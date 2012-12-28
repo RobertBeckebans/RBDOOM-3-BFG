@@ -301,9 +301,6 @@ set(JPEG_SOURCES
 file(GLOB PNG_INCLUDES libs/png/*.h)
 file(GLOB PNG_SOURCES libs/png/*.c)
 
-file(GLOB ZLIB_INCLUDES libs/zlib/*.h)
-file(GLOB ZLIB_SOURCES libs/zlib/*.c)
-	
 set(GLEW_INCLUDES
 	libs/glew/include/GL/glew.h)
 	
@@ -778,9 +775,6 @@ source_group("libs\\jpeg-6" FILES ${JPEG_SOURCES})
 source_group("libs\\png" FILES ${PNG_INCLUDES})
 source_group("libs\\png" FILES ${PNG_SOURCES})
 
-source_group("libs\\zlib" FILES ${ZLIB_INCLUDES})
-source_group("libs\\zlib" FILES ${ZLIB_SOURCES})
-
 source_group("libs\\glew" FILES ${GLEW_INCLUDES})
 source_group("libs\\glew" FILES ${GLEW_SOURCES})
 
@@ -914,6 +908,7 @@ set(RBDOOM3_INCLUDES
 			#${IRRXML_INCLUDES}
 			${JPEG_INCLUDES}
 			#${PNG_INCLUDES}
+			${MINIZIP_INCLUDES}
 			${ZLIB_INCLUDES}
 			#${GLEW_INCLUDES}
 			#${FREETYPE_SOURCES}
@@ -938,7 +933,7 @@ set(RBDOOM3_SOURCES
 			#${IRRXML_SOURCES}
 			${JPEG_SOURCES}
 			#${PNG_SOURCES}
-			${ZLIB_SOURCES}
+			#${ZLIB_SOURCES}
 			#${GLEW_SOURCES}
 			#${FREETYPE_SOURCES}
 			${SOUND_SOURCES}
@@ -987,7 +982,7 @@ include_directories(
 			#libs/openal/include
 			#libs/glew/include
 			#libs/freetype/include
-			libs/zlib)
+			)
 			
 #link_directories(
 #			${CMAKE_CURRENT_SOURCE_DIR}/libs/curl/lib
@@ -1155,6 +1150,13 @@ else()
 			${POSIX_INCLUDES} ${POSIX_SOURCES}
 			${SDL_INCLUDES} ${SDL_SOURCES}
 			sys/linux/linux_main.cpp)
+
+		find_package(ZLIB REQUIRED)
+		include_directories(${ZLIB_INCLUDE_DIRS})
+
+		find_package(MiniZip REQUIRED)
+		include_directories(${MINIZIP_INCLUDE_DIRS})
+
 	endif()
 
 	list(REMOVE_DUPLICATES RBDOOM3_SOURCES)
@@ -1195,6 +1197,8 @@ else()
 			pthread
 			dl
 			rt
+			${MINIZIP_LIBRARY}
+			${ZLIB_LIBRARY}
 			${SDLx_LIBRARY}
 			)
 	endif()
