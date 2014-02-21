@@ -97,7 +97,7 @@ private:
 class idFileSystem
 {
 public:
-	virtual					~idFileSystem() {}
+	virtual					~idFileSystem() ID_NOEXCEPT ID_DEFAULT_DESTRUCTOR;
 	// Initializes the file system.
 	virtual void			Init() = 0;
 	// Restarts the file system.
