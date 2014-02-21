@@ -89,7 +89,7 @@ idSoundSample::idSoundSample()
 idSoundSample::~idSoundSample
 ========================
 */
-idSoundSample::~idSoundSample()
+idSoundSample::~idSoundSample() ID_NOEXCEPT
 {
 	FreeData();
 }

@@ -85,7 +85,7 @@ idSoundSample_XAudio2::idSoundSample_XAudio2()
 idSoundSample_XAudio2::~idSoundSample_XAudio2
 ========================
 */
-idSoundSample_XAudio2::~idSoundSample_XAudio2()
+idSoundSample_XAudio2::~idSoundSample_XAudio2() ID_NOEXCEPT
 {
 	FreeData();
 }

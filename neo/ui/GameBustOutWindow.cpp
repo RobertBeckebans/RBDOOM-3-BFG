@@ -238,10 +238,6 @@ BOBrick::BOBrick( BOEntity* _ent, float _x, float _y, float _width, float _heigh
 	ent->game->entities.Append( ent );
 }
 
-BOBrick::~BOBrick()
-{
-}
-
 /*
 ======================
 BOBrick::WriteToSaveGame

@@ -91,6 +91,7 @@ public:
 	{
 		cpuid = CPUID_NONE;
 	}
+	virtual ~idSIMDProcessor() ID_NOEXCEPT ID_DEFAULT_DESTRUCTOR
 	
 	cpuid_t							cpuid;
 	

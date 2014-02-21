@@ -90,7 +90,7 @@ idSoundSample_OpenAL::idSoundSample_OpenAL()
 idSoundSample_OpenAL::~idSoundSample_OpenAL
 ========================
 */
-idSoundSample_OpenAL::~idSoundSample_OpenAL()
+idSoundSample_OpenAL::~idSoundSample_OpenAL() ID_NOEXCEPT
 {
 	FreeData();
 }
