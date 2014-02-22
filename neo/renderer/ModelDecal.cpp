@@ -544,7 +544,10 @@ void idRenderModelDecal::CreateDecal( const idRenderModel* model, const decalPro
 					{
 						const idVec3 dir = verts[j]->xyz - localParms.projectionOrigin;
 						float scale;
-						localParms.boundingPlanes[NUM_DECAL_BOUNDING_PLANES - 1].RayIntersection( verts[j]->xyz, dir, scale );
+						bool success = localParms.boundingPlanes[NUM_DECAL_BOUNDING_PLANES - 1].RayIntersection( verts[j]->xyz, dir, scale );
+						if( !success )
+							idLib::FatalError( "%s::%s failed - unhandled due to unset scale", "idRenderModelDecal", "CreateDecal" );
+
 						const idVec3 intersection = verts[j]->xyz + scale * dir;
 						
 						fw[j] = verts[j]->xyz;

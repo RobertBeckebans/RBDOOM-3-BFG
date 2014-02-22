@@ -930,7 +930,8 @@ bool idSurface::RayIntersection( const idVec3& start, const idVec3& dir, float& 
 		if( s0 & s1 & s2 )
 		{
 			plane.FromPoints( verts[indexes[i + 0]].xyz, verts[indexes[i + 1]].xyz, verts[indexes[i + 2]].xyz );
-			plane.RayIntersection( start, dir, s );
+			if( !plane.RayIntersection( start, dir, s ) )
+				idLib::FatalError( "%s::%s failed on first occurrence - scale undefined", "idSurface", "RayIntersection" );
 			if( idMath::Fabs( s ) < idMath::Fabs( scale ) )
 			{
 				scale = s;
@@ -939,7 +940,8 @@ bool idSurface::RayIntersection( const idVec3& start, const idVec3& dir, float& 
 		else if( !backFaceCull && !( s0 | s1 | s2 ) )
 		{
 			plane.FromPoints( verts[indexes[i + 0]].xyz, verts[indexes[i + 1]].xyz, verts[indexes[i + 2]].xyz );
-			plane.RayIntersection( start, dir, s );
+			if( !plane.RayIntersection( start, dir, s ) )
+				idLib::FatalError( "%s::%s failed on second occurrence - scale undefined", "idSurface", "RayIntersection" );
 			if( idMath::Fabs( s ) < idMath::Fabs( scale ) )
 			{
 				scale = s;
