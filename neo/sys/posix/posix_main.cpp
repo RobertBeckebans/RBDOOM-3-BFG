@@ -532,7 +532,8 @@ const char* Posix_Cwd()
 {
 	static char cwd[MAX_OSPATH];
 	
-	getcwd( cwd, sizeof( cwd ) - 1 );
+	if( getcwd( cwd, sizeof( cwd ) - 1 ) == nullptr )
+		idLib::FatalError( "%s failed at %s with %d", "Posix_Cwd", "getcwd", errno );
 	cwd[MAX_OSPATH - 1] = 0;
 	
 	return cwd;
@@ -930,28 +931,34 @@ terminal support utilities
 ================
 */
 
+#define WRITE_SUCCESSFUL( x, y ) \
+	if( write( STDOUT_FILENO, x, y ) == -1 ) {\
+		idLib::FatalError( "%s failed in %s with errno %d. line: %d", "write", __FILE__, errno, __LINE__ ); \
+	}
+
 void tty_Del()
 {
 	char key;
 	key = '\b';
-	write( STDOUT_FILENO, &key, 1 );
+	WRITE_SUCCESSFUL( &key, 1 );
 	key = ' ';
-	write( STDOUT_FILENO, &key, 1 );
+	WRITE_SUCCESSFUL( &key, 1 );
+
 	key = '\b';
-	write( STDOUT_FILENO, &key, 1 );
+	WRITE_SUCCESSFUL( &key, 1 );
 }
 
 void tty_Left()
 {
 	char key = '\b';
-	write( STDOUT_FILENO, &key, 1 );
+	WRITE_SUCCESSFUL( &key, 1 );
 }
 
 void tty_Right()
 {
 	char key = 27;
-	write( STDOUT_FILENO, &key, 1 );
-	write( STDOUT_FILENO, "[C", 2 );
+	WRITE_SUCCESSFUL( &key, 1 );
+	WRITE_SUCCESSFUL( "[C", 2 );
 }
 
 // clear the display of the line currently edited
@@ -999,7 +1006,7 @@ void tty_Show()
 		char* buf = input_field.GetBuffer();
 		if( buf[0] )
 		{
-			write( STDOUT_FILENO, buf, strlen( buf ) );
+			WRITE_SUCCESSFUL( buf, strlen( buf ) );
 			
 			// RB begin
 #if defined(__ANDROID__)
@@ -1064,7 +1071,7 @@ char* Posix_ConsoleInput()
 					idStr::Copynz( input_ret, input_field.GetBuffer(), sizeof( input_ret ) );
 					assert( hidden );
 					tty_Show();
-					write( STDOUT_FILENO, &key, 1 );
+					WRITE_SUCCESSFUL( &key, 1 );
 					input_field.Clear();
 					if( history_count < COMMAND_HISTORY )
 					{
