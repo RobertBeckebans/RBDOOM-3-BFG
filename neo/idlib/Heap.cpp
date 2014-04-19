@@ -59,7 +59,9 @@ void* Mem_Alloc16( const size_t size, const memTag_t tag )
 #else // not _WIN32
 	// DG: the POSIX solution for linux etc
 	void* ret;
-	posix_memalign( &ret, 16, paddedSize );
+	int result = posix_memalign( &ret, 16, paddedSize );
+	if( result != 0 )
+		idLib::FatalError( "%s failed at %s with result %d", "Mem_Alloc16", "posix_memalign", result );
 	return ret;
 	// DG end
 #endif // _WIN32

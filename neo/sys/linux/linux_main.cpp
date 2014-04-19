@@ -476,7 +476,9 @@ void Sys_DoStartProcess( const char* exeName, bool dofork )
 				if( use_system )
 				{
 					printf( "system %s\n", exeName );
-					system( exeName );
+					int result = system( exeName );
+					if( result < 0 )
+						printf( "%s failed at %s with return status %d", "Sys_DoStartProcess", "system", result );
 					_exit( 0 );
 				}
 				else
@@ -494,7 +496,9 @@ void Sys_DoStartProcess( const char* exeName, bool dofork )
 		if( use_system )
 		{
 			printf( "system %s\n", exeName );
-			system( exeName );
+			int result = system( exeName );
+			if( result < 0 )
+				printf( "%s failed at %s with return status %d", "Sys_DoStartProcess", "system", result );
 			sleep( 1 );	// on some systems I've seen that starting the new process and exiting this one should not be too close
 		}
 		else
