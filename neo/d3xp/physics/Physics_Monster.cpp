@@ -27,9 +27,25 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <assert.h>
+#include <string.h>
 
 #include "../Game_local.h"
+#include "../cm/CollisionModel.h"
+#include "../d3xp/Actor.h"
+#include "../d3xp/Entity.h"
+#include "../d3xp/Game_defines.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/gamesys/SaveGame.h"
+#include "../d3xp/physics/Clip.h"
+#include "../d3xp/physics/Physics.h"
+#include "../d3xp/physics/Physics_Monster.h"
+#include "../idlib/BitMsg.h"
+#include "../idlib/Str.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Rotation.h"
+#include "../idlib/math/Vector.h"
 
 CLASS_DECLARATION( idPhysics_Actor, idPhysics_Monster )
 END_CLASS

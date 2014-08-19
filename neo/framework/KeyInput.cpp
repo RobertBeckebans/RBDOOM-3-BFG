@@ -27,7 +27,22 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
+#include <stdlib.h>
+#include <string.h>
+
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/File.h"
+#include "../framework/KeyInput.h"
+#include "../framework/UsercmdGen.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Heap.h"
+#include "../idlib/LangDict.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../sys/sys_public.h"
+
 #pragma hdrstop
 
 typedef struct

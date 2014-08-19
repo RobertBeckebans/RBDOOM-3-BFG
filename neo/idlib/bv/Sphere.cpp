@@ -27,7 +27,12 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include "../idlib/bv/Sphere.h"
+
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Plane.h"
+#include "../idlib/math/Simd.h"
+#include "../idlib/math/Vector.h"
 
 
 idSphere sphere_zero( vec3_zero, 0.0f );

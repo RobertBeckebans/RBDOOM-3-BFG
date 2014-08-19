@@ -25,9 +25,21 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
+#include <stddef.h>
+
+#include "../d3xp/menus/MenuHandler.h"
+#include "../d3xp/menus/MenuScreen.h"
+#include "../d3xp/menus/MenuWidget.h"
+#include "../idlib/Heap.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../swf/SWF.h"
+#include "../swf/SWF_ParmList.h"
+#include "../swf/SWF_ScriptFunction.h"
+#include "../swf/SWF_ScriptObject.h"
+#include "../swf/SWF_ScriptVar.h"
+#include "../swf/SWF_SpriteInstance.h"
+
 #pragma hdrstop
-#include "precompiled.h"
-#include "../Game_local.h"
 
 idMenuScreen::idMenuScreen()
 {

@@ -26,13 +26,20 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "PreLightShadowVolume_local.h"
-
 /*
 ===================
 PreLightShadowVolumeJob
 ===================
 */
+#include <stddef.h>
+
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/jobs/prelightshadowvolume/../../../idlib/bv/Bounds.h"
+#include "../renderer/jobs/prelightshadowvolume/../ShadowShared.h"
+#include "../renderer/jobs/prelightshadowvolume/PreLightShadowVolume.h"
+#include "ParallelJobList.h"
+
 void PreLightShadowVolumeJob( const preLightShadowVolumeParms_t* parms )
 {
 	if( parms->tempCullBits == NULL )

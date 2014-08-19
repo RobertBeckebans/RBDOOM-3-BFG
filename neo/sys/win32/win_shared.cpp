@@ -27,7 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include "../idlib/sys/sys_types.h"
 
 #include "win_local.h"
 #include <lmerr.h>

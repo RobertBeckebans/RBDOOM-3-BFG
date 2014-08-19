@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __PHYSICS_PLAYER_H__
 #define __PHYSICS_PLAYER_H__
 
+#include "../d3xp/physics/Physics_Actor.h"  // for idPhysics_Actor
+
 /*
 ===================================================================================
 

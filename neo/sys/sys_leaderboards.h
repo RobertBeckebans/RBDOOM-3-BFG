@@ -25,9 +25,13 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
+
+
 #ifndef __SYS_LEADERBOARDS_H__
 #define __SYS_LEADERBOARDS_H__
 
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/Callback.h"                   // for idCallback
 
 /*
 ================================================================================================
@@ -54,8 +58,10 @@ the level for matchmaking, etc.
 ================================================================================================
 */
 
+
 const int MAX_LEADERBOARDS			= 256;
 const int MAX_LEADERBOARD_COLUMNS	= 16;
+
 
 enum aggregationMethod_t
 {
@@ -86,6 +92,8 @@ struct columnDef_t
 	aggregationMethod_t			aggregationMethod;
 	statsColumnDisplayType_t	displayType;
 };
+
+
 
 extern struct leaderboardDefinition_t* registeredLeaderboards[MAX_LEADERBOARDS];
 extern int								numRegisteredLeaderboards;
@@ -129,6 +137,7 @@ struct column_t
 };
 
 
+
 /*
 ================================================================================================
 Contains the Achievement and LeaderBoard free function declarations.
@@ -142,6 +151,7 @@ typedef int32			leaderboardHandle_t;
 idLeaderBoardEntry
 ================================================
 */
+
 class idLeaderBoardEntry
 {
 public:
@@ -152,7 +162,6 @@ public:
 };
 
 const leaderboardDefinition_t* Sys_FindLeaderboardDef( int id );
-
 
 //------------------------
 // leaderboardError_t
@@ -168,6 +177,8 @@ enum leaderboardError_t
 	LEADERBOARD_ERROR_DOWNLOAD,				// An error occurred while downloading the leaderboard
 	LEADERBOARD_ERROR_MAX
 };
+
+
 
 /*
 ================================================
@@ -256,5 +267,9 @@ protected:
 	int								numRowsInLeaderboard;	// total number of rows in the online leaderboard
 	leaderboardError_t				errorCode;				// error, if any, that occurred during last operation
 };
+
+const leaderboardDefinition_t* Sys_FindLeaderboardDef( int id );
+leaderboardDefinition_t* 		Sys_CreateLeaderboardDef( int id_, int numColumns_, const columnDef_t* columnDefs_, rankOrder_t rankOrder_, bool supportsAttachments_, bool checkAgainstCurrent_ );
+void							Sys_DestroyLeaderboardDefs();
 
 #endif // !__SYS_LEADERBOARDS_H__

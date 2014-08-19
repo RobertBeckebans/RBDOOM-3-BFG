@@ -28,6 +28,12 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __VERTEXCACHE2_H__
 #define __VERTEXCACHE2_H__
 
+#include "../idlib/Lib.h"
+#include "../idlib/Thread.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/BufferObject.h"
+
 const int VERTCACHE_INDEX_MEMORY_PER_FRAME = 31 * 1024 * 1024;
 const int VERTCACHE_VERTEX_MEMORY_PER_FRAME = 31 * 1024 * 1024;
 const int VERTCACHE_JOINT_MEMORY_PER_FRAME = 256 * 1024;

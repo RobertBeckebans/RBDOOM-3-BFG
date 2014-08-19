@@ -27,6 +27,15 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#ifndef __IMAGE_H__
+#define __IMAGE_H__
+
+#include "../renderer/Material.h"       // for textureFilter_t, etc
+#include "../framework/File_Manifest.h"  // for idPreloadManifest, etc
+#include "../framework/FileSystem.h"    // for FILE_NOT_FOUND_TIMESTAMP, etc
+#include "../libs/glew/include/GL/glew.h"  // for GLint, GLuint, etc
+#include "../framework/Common.h"        // for MemInfo_t
+
 /*
 ====================================================================
 
@@ -414,3 +423,4 @@ IMAGEPROGRAM
 void R_LoadImageProgram( const char* name, byte** pic, int* width, int* height, ID_TIME_T* timestamp, textureUsage_t* usage = NULL );
 const char* R_ParsePastImageProgram( idLexer& src );
 
+#endif // !__IMAGE_H__

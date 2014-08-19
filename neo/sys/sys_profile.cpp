@@ -26,7 +26,35 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+#include <assert.h>
+#include <stddef.h>
+#include <memory>
+
+#include "../d3xp/Game.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../framework/Common_dialog.h"
+#include "../framework/FileSystem.h"
+#include "../framework/File_SaveGame.h"
+#include "../framework/PlayerProfile.h"
+#include "../framework/Serializer.h"
+#include "../idlib/BitMsg.h"
+#include "../idlib/Callback.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/StrStatic.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/StrList.h"
+#include "../idlib/hashing/MD5.h"
+#include "../idlib/sys/sys_filesystem.h"
+#include "../idlib/sys/sys_types.h"
+#include "../sys/sys_localuser.h"
+#include "../sys/sys_profile.h"
+#include "../sys/sys_savegame.h"
+#include "../sys/sys_session.h"
+#include "../sys/sys_session_savegames.h"
+#include "sys_profile.h"
 
 #define SAVEGAME_PROFILE_FILENAME			"profile.bin"
 

@@ -27,11 +27,27 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <stddef.h>
 
-
-#include "tr_local.h"
+#include "../framework/DeclManager.h"
+#include "../framework/FileSystem.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lexer.h"
+#include "../idlib/Parser.h"
+#include "../idlib/Str.h"
+#include "../idlib/Token.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/Sort.h"
+#include "../idlib/geometry/DrawVert.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Random.h"
+#include "../idlib/math/Simd.h"
+#include "../idlib/math/Vector.h"
+#include "../renderer/Model.h"
+#include "../framework/DeclParticle.h"
 #include "Model_local.h"
+#include "tr_local.h"
 
 #define LIQUID_MAX_SKIP_FRAMES	5
 #define LIQUID_MAX_TYPES		3

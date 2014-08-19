@@ -26,9 +26,41 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
 #pragma hdrstop
 
+#include <string.h>
+
+#include "../d3xp/Entity.h"
+#include "../d3xp/Game.h"
+#include "../d3xp/Light.h"
+#include "../d3xp/MultiplayerGame.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/gamesys/Event.h"
+#include "../d3xp/gamesys/SaveGame.h"
+#include "../d3xp/gamesys/SysCvar.h"
+#include "../d3xp/physics/Clip.h"
+#include "../d3xp/physics/Physics.h"
+#include "../d3xp/script/Script_Thread.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../framework/DeclManager.h"
+#include "../framework/DeclParticle.h"
+#include "../idlib/BitMsg.h"
+#include "../idlib/Dict.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Angles.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../renderer/Material.h"
+#include "../renderer/ModelManager.h"
+#include "../renderer/RenderWorld.h"
+#include "../sound/sound.h"
 #include "Game_local.h"
 
 /*

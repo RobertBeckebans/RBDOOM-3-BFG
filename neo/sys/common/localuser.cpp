@@ -27,7 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include "../framework/CVarSystem.h"
 #include "localuser.h"
 
 extern idCVar win_userPersistent;

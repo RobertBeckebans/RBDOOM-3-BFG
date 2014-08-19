@@ -29,6 +29,7 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __FORCE_GRAB_H__
 #define __FORCE_GRAB_H__
 
+#include "../d3xp/physics/Force.h"
 
 /*
 ===============================================================================

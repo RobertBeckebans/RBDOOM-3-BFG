@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __R_DATA__
 #define __R_DATA__
 
+#include "../../doomclassic/doom/Precompiled.h"
+#include "../doomclassic/doom/typedefs.h"
 #include "r_defs.h"
 #include "r_state.h"
 

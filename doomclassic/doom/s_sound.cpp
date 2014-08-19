@@ -26,28 +26,26 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
-
-
-
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "i_system.h"
-#include "i_sound.h"
-#include "sounds.h"
-#include "s_sound.h"
-
-#include "z_zone.h"
-#include "m_random.h"
-#include "w_wad.h"
-
+#include "../../doomclassic/doom/d_net.h"
+#include "../../doomclassic/doom/d_player.h"
+#include "../../doomclassic/doom/defs.h"
+#include "../../doomclassic/doom/doomlib.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/m_fixed.h"
+#include "../../doomclassic/doom/p_mobj.h"
+#include "../../doomclassic/doom/structs.h"
+#include "../framework/CVarSystem.h"
 #include "doomdef.h"
-#include "p_local.h"
-
-#include "doomstat.h"
-#include "Main.h"
+#include "globaldata.h"
+#include "i_sound.h"
+#include "i_system.h"
+#include "m_random.h"
+#include "s_sound.h"
+#include "sounds.h"
+#include "z_zone.h"
 
 // Purpose?
 const char snd_prefixen[]

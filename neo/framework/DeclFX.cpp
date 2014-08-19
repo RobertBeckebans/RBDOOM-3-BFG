@@ -26,7 +26,20 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
+#include <stddef.h>
+
+#include "../framework/Common.h"
+#include "../framework/DeclFX.h"
+#include "../framework/DeclManager.h"
+#include "../idlib/Lexer.h"
+#include "../idlib/Str.h"
+#include "../idlib/Token.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Angles.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Vector.h"
+#include "../renderer/ModelManager.h"
+
 #pragma hdrstop
 
 

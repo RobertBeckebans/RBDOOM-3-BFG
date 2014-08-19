@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SWF_TYPES1_H__
 #define __SWF_TYPES1_H__
 
+#include "../renderer/RenderSystem.h"   // for stereoDepthType_t
+
 ID_INLINE float SWFTWIP( int twip )
 {
 	return twip * ( 1.0f / 20.0f );

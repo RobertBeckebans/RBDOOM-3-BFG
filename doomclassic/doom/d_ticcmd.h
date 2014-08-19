@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __D_TICCMD__
 #define __D_TICCMD__
 
+#include "../doomclassic/doom/typedefs.h"
+
 #include "doomtype.h"
 
 #ifdef __GNUG__

@@ -27,15 +27,19 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "../ParallelJobList_JobHeaders.h"
-#include "../math/Math.h"
-#include "../math/Vector.h"
-#include "../math/Matrix.h"
-#include "../math/Rotation.h"
-#include "../math/Plane.h"
-#include "../bv/Sphere.h"
-#include "../bv/Bounds.h"
-#include "RenderMatrix.h"
+#include <emmintrin.h>
+#include <xmmintrin.h>
+
+#include "../idlib/ParallelJobList_JobHeaders.h"
+#include "../idlib/bv/Sphere.h"
+#include "../idlib/geometry/RenderMatrix.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Rotation.h"
+#include "../idlib/math/Vector.h"
+#include "sys/sys_assert.h"
+#include "sys/sys_defines.h"
+#include "sys/sys_intrinsics.h"
+#include "sys/sys_types.h"
 
 // FIXME:	it would be nice if all render matrices were 16-byte aligned
 //			so there is no need for unaligned loads and stores everywhere

@@ -29,6 +29,10 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __MODEL_H__
 #define __MODEL_H__
 
+#include "../renderer/Material.h"       // for idMaterial, etc
+
+#include "VertexCache.h"
+
 /*
 ===============================================================================
 

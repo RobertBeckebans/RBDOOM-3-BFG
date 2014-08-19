@@ -28,6 +28,11 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __MATH_LCP_H__
 #define __MATH_LCP_H__
 
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/MatX.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+
 /*
 ================================================
 The *LCP* class, idLCP, is a Box-Constrained Mixed Linear Complementarity Problem solver.

@@ -26,19 +26,18 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
-
 #include <ctype.h>
 
+#include "../../doomclassic/doom/r_defs.h"
+#include "../../doomclassic/doom/st_lib.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "Precompiled.h"
 #include "doomdef.h"
-
-#include "v_video.h"
-#include "m_swap.h"
-
+#include "globaldata.h"
 #include "hu_lib.h"
-#include "r_local.h"
+#include "m_swap.h"
 #include "r_draw.h"
+#include "v_video.h"
 
 // qboolean : whether the screen is always erased
 

@@ -26,32 +26,33 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
-
 #include <stdio.h>
+#include <string.h>
 
-
-#include "z_zone.h"
+#include "../../doomclassic/doom/d_englsh.h"
+#include "../../doomclassic/doom/d_player.h"
+#include "../../doomclassic/doom/defs.h"
+#include "../../doomclassic/doom/doomdata.h"
+#include "../../doomclassic/doom/m_fixed.h"
+#include "../../doomclassic/doom/p_mobj.h"
+#include "../../doomclassic/doom/r_defs.h"
+#include "../../doomclassic/doom/structs.h"
+#include "../../doomclassic/doom/tables.h"
+#include "../../doomclassic/doom/typedefs.h"
+#include "../../doomclassic/doom/d_event.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "Precompiled.h"
+#include "am_map.h"
 #include "doomdef.h"
-#include "st_stuff.h"
-#include "p_local.h"
-#include "w_wad.h"
-
-#include "m_cheat.h"
+#include "globaldata.h"
 #include "i_system.h"
-
+#include "m_cheat.h"
+#include "p_local.h"
+#include "st_stuff.h"
 // Needs access to LFB.
 #include "v_video.h"
-
-// State.
-#include "doomstat.h"
-#include "r_state.h"
-
-// Data.
-#include "dstrings.h"
-
-#include "am_map.h"
+#include "w_wad.h"
+#include "z_zone.h"
 
 
 // For use if I do walls with outsides/insides

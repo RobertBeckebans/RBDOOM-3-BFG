@@ -26,9 +26,26 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
 #pragma hdrstop
-
+#include <math.h>                       // for sin, cos, atan2
+#include <stdio.h>                      // for NULL, sscanf
+#include "../framework/Common.h"        // for idCommon
+#include "../framework/File.h"          // for idFile
+#include "../framework/FileSystem.h"    // for idFileSystem, etc
+#include "../idlib/Dict.h"              // for idDict, idKeyValue
+#include "../idlib/Lexer.h"             // for idLexer, etc
+#include "../idlib/Lib.h"               // for idLib, idLib::fileSystem, etc
+#include "../idlib/MapFile.h"           // for idMapPatch, idMapFile, etc
+#include "../idlib/Str.h"               // for idStr, operator==, etc
+#include "../idlib/Token.h"             // for idToken, TT_STRING
+#include "../idlib/math/Math.h"         // for idMath
+#include "../idlib/math/Plane.h"        // for idPlane
+#include "../idlib/math/Vector.h"       // for idVec3, idVec4, idVec2
+#include "../idlib/Heap.h"                       // for operator delete, etc
+#include "../idlib/containers/List.h"            // for idList
+#include "../idlib/geometry/DrawVert.h"          // for idDrawVert
+#include "../idlib/geometry/Surface.h"           // for idSurface
+#include "../idlib/sys/sys_defines.h"            // for ID_INLINE
 
 /*
 ===============

@@ -26,8 +26,37 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
 #pragma hdrstop
+#include <math.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../framework/DeclManager.h"
+#include "../framework/DeclParticle.h"
+#include "../framework/DeclTable.h"
+#include "../framework/File.h"
+#include "../framework/FileSystem.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lexer.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/StrStatic.h"
+#include "../idlib/Token.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/geometry/DrawVert.h"
+#include "../idlib/hashing/MD5.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Random.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/Material.h"
+#include "../renderer/RenderWorld.h"
 
 idCVar binaryLoadParticles( "binaryLoadParticles", "1", 0, "enable binary load/write of particle decls" );
 

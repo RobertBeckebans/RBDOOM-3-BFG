@@ -29,6 +29,9 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __AMMAP_H__
 #define __AMMAP_H__
 
+#include "../../doomclassic/doom/d_event.h"
+#include "../../doomclassic/doom/doomtype.h"
+
 // Used by ST StatusBar stuff.
 #define AM_MSGHEADER (('a'<<24)+('m'<<16))
 #define AM_MSGENTERED (AM_MSGHEADER | ('e'<<8))

@@ -25,9 +25,39 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
+#include <stddef.h>
+
+#include "../framework/CVarSystem.h"
+#include "../framework/DeclManager.h"
+#include "../framework/KeyInput.h"
+#include "../framework/UsercmdGen.h"
+#include "../idlib/LangDict.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/Sort.h"
+#include "../idlib/containers/StaticList.h"
+#include "../idlib/geometry/DrawVert.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/math/VectorI.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/Font.h"
+#include "../renderer/GLState.h"
+#include "../renderer/Material.h"
+#include "../renderer/RenderSystem.h"
+#include "../swf/SWF.h"
+#include "../swf/SWF_Enums.h"
+#include "../swf/SWF_ParmList.h"
+#include "../swf/SWF_ScriptObject.h"
+#include "../swf/SWF_ScriptVar.h"
+#include "../swf/SWF_SpriteInstance.h"
+#include "../swf/SWF_TextInstance.h"
+#include "../swf/SWF_Types.h"
+#include "../sys/sys_public.h"
+
 #pragma hdrstop
-#include "precompiled.h"
-#include "../renderer/tr_local.h"
 
 idCVar swf_timescale( "swf_timescale", "1", CVAR_FLOAT, "timescale for swf files" );
 idCVar swf_stopat( "swf_stopat", "0", CVAR_FLOAT, "stop at a specific frame" );

@@ -29,7 +29,20 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SLIDERWINDOW_H__
 #define __SLIDERWINDOW_H__
 
+#include <stddef.h>
+
+#include "../idlib/Str.h"
+#include "../ui/Rectangle.h"
+#include "../ui/SimpleWindow.h"
+#include "../ui/Window.h"
+#include "../ui/Winvar.h"
+
+class idCVar;
+class idMaterial;
+class idTokenParser;
 class idUserInterfaceLocal;
+class idVec4;
+struct sysEvent_t;
 
 class idSliderWindow : public idWindow
 {

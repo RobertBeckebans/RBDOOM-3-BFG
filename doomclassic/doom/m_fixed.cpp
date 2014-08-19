@@ -31,14 +31,9 @@ If you have questions concerning this license or the applicable additional terms
 #ifdef __GNUG__
 #pragma implementation "m_fixed.h"
 #endif
-#include "m_fixed.h"
-
-#include "globaldata.h"
-
-#include "stdlib.h"
-
-#include "doomtype.h"
 #include "i_system.h"
+#include "m_fixed.h"
+#include "stdlib.h"
 
 
 // Fixme. __USE_C_FIXED__ or something.

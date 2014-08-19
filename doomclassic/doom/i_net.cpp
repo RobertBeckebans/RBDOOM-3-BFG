@@ -26,25 +26,15 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
 
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
 
-#include <errno.h>
 
-#include "i_system.h"
-#include "d_event.h"
-#include "d_net.h"
-#include "m_argv.h"
 
-#include "doomstat.h"
 
 #ifdef __GNUG__
 #pragma implementation "i_net.h"
 #endif
+#include "../../doomclassic/doom/doomtype.h"
 #include "i_net.h"
 
 

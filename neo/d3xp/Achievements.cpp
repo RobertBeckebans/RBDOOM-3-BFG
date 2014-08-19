@@ -25,11 +25,31 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#include "precompiled.h"
 #pragma hdrstop
 
-#include "Game_local.h"
+#include <stdlib.h>
+
 #include "../../doomclassic/doom/doomdef.h"
+#include "../d3xp/Achievements.h"
+#include "../d3xp/Player.h"
+#include "../d3xp/gamesys/SaveGame.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/PlayerProfile.h"
+#include "../idlib/BitMsg.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Dict.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/Array.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_types.h"
+#include "../sys/sys_achievements.h"
+#include "../sys/sys_session.h"
+#include "../sys/sys_signin.h"
+#include "Game_local.h"
+#include "sys/sys_localuser.h"
 
 idCVar achievements_Verbose( "achievements_Verbose", "1", CVAR_BOOL, "debug spam" );
 idCVar g_demoMode( "g_demoMode", "0", CVAR_INTEGER, "this is a demo" );

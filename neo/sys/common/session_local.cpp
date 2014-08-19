@@ -14,15 +14,36 @@ Contains the windows implementation of the network session
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <assert.h>
+#include <stddef.h>
 
-#include "../../framework/Common_local.h"
-#include "../sys_session_local.h"
-#include "../sys_stats.h"
-#include "../sys_savegame.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Dict.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/containers/Array.h"
+#include "../idlib/sys/sys_types.h"
+#include "../sys/sys_achievements.h"
+#include "../sys/sys_public.h"
+#include "../sys/sys_session.h"
+#include "../sys/sys_signin.h"
 #include "../sys_lobby_backend_direct.h"
+#include "../sys_savegame.h"
+#include "../sys_session_local.h"
 #include "../sys_voicechat.h"
 #include "achievements.h"
+#include "sys/common/signin.h"
+#include "sys/sys_lobby.h"
+#include "sys/sys_lobby_backend.h"
+
+class idBitMsg;
+class idCallback;
+class idFile_Memory;
+class idLeaderboardCallback;
+struct column_t;
+struct leaderboardDefinition_t;
 //#include "win_local.h"
 
 /*

@@ -26,7 +26,21 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
+#include <stdarg.h>
+#include <stdio.h>
+
+#include "../framework/Common.h"
+#include "../framework/File.h"
+#include "../framework/FileSystem.h"
+#include "../framework/TokenParser.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Parser.h"
+#include "../idlib/Str.h"
+#include "../idlib/Token.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/sys/sys_defines.h"
+
 #pragma hdrstop
 
 void idTokenParser::LoadFromParser( idParser& parser, const char* guiName )

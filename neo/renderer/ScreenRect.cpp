@@ -27,8 +27,12 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
-
+#include "../idlib/Lib.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Vector.h"
+#include "../renderer/RenderWorld_local.h"
+#include "../renderer/ScreenRect.h"
+#include "ScreenRect.h"
 #include "tr_local.h"
 
 /*

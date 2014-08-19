@@ -27,12 +27,29 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <math.h>
+#include <string.h>
 
-#include "DeviceContext.h"
-#include "Window.h"
-#include "UserInterfaceLocal.h"
+#include "../d3xp/Game.h"
+#include "../framework/Common.h"
+#include "../idlib/Dict.h"
+#include "../idlib/Heap.h"
+#include "../idlib/geometry/JointTransform.h"
+#include "../idlib/math/Angles.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Vector.h"
+#include "../renderer/Model.h"
+#include "../renderer/RenderSystem.h"
+#include "../ui/Rectangle.h"
+#include "../renderer/RenderWorld.h"
+#include "../ui/SimpleWindow.h"
+#include "../ui/Winvar.h"
 #include "RenderWindow.h"
+#include "UserInterfaceLocal.h"
+#include "Window.h"
+
+class idTokenParser;
 
 // NO LONGER SUPPORTED!
 //

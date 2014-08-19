@@ -27,10 +27,38 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
-
+#include <assert.h>
+#include <math.h>
+#include <stddef.h>
+#include <string.h>
 
 #include "../Game_local.h"
+#include "../aas/AASFile.h"
+#include "../cm/CollisionModel.h"
+#include "../d3xp/Actor.h"
+#include "../d3xp/Entity.h"
+#include "../d3xp/Game_defines.h"
+#include "../d3xp/Moveable.h"
+#include "../d3xp/WorldSpawn.h"
+#include "../d3xp/ai/AAS.h"
+#include "../d3xp/ai/AI.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/gamesys/SysCvar.h"
+#include "../d3xp/physics/Clip.h"
+#include "../d3xp/physics/Physics.h"
+#include "../framework/CVarSystem.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/containers/Queue.h"
+#include "../idlib/geometry/Winding2D.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Plane.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../renderer/RenderWorld.h"
+#include "bv/Box.h"
 
 /*
 ===============================================================================

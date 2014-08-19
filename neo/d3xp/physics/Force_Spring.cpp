@@ -26,10 +26,17 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
-#include "precompiled.h"
+#include <stddef.h>
 
-#include "../Game_local.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/physics/Force_Spring.h"
+#include "../d3xp/physics/Physics.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Vector.h"
+
+#pragma hdrstop
+
 
 CLASS_DECLARATION( idForce, idForce_Spring )
 END_CLASS

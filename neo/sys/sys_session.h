@@ -29,7 +29,11 @@ If you have questions concerning this license or the applicable additional terms
 #define __SYS_SESSION_H__
 
 #include "../framework/Serializer.h"
+#include "../framework/File.h"          // for idFile, idFile_Memory
 #include "sys_localuser.h"
+
+class lobbyConnectInfo_t;
+
 
 typedef uint8 peerMask_t;
 static const int MAX_PLAYERS			= 8;

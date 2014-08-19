@@ -28,6 +28,14 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SWF_SHAPEPARSER_H__
 #define __SWF_SHAPEPARSER_H__
 
+#include "../idlib/Heap.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_types.h"
+#include "../swf/SWF_Types.h"
+
+class idSWFBitStream;
+
 /*
 ================================================
 This class handles parsing and triangulating a shape

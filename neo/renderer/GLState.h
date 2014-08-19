@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __GLSTATE_H__
 #define __GLSTATE_H__
 
+#include "../idlib/sys/sys_types.h"              // for uint64
+
 // one/zero is flipped on src/dest so a gl state of 0 is SRC_ONE,DST_ZERO
 static const uint64 GLS_SRCBLEND_ONE					= 0 << 0;
 static const uint64 GLS_SRCBLEND_ZERO					= 1 << 0;

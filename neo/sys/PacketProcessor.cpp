@@ -27,7 +27,16 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <string.h>
+
+#include "../framework/CVarSystem.h"
+#include "../idlib/BitMsg.h"
+#include "../idlib/DataQueue.h"
+#include "../idlib/Lib.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_types.h"
+#include "../sys/LightweightCompression.h"
 #include "PacketProcessor.h"
 
 // DG: workaround for GCC bug

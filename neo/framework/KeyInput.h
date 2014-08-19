@@ -29,6 +29,9 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __KEYINPUT_H__
 #define __KEYINPUT_H__
 
+#include "../idlib/Str.h"               // for idStr
+#include "../sys/sys_public.h"          // for keyNum_t
+
 struct keyBindings_t
 {
 	idStr keyboard;

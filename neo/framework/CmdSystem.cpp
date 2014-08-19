@@ -26,7 +26,23 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
+#include <stdarg.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/DeclManager.h"
+#include "../framework/FileSystem.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/Sort.h"
+#include "../idlib/containers/StrList.h"
+#include "../idlib/sys/sys_types.h"
+
 #pragma hdrstop
 
 #ifdef ID_RETAIL

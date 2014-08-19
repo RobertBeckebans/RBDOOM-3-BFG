@@ -21,23 +21,22 @@ playmidi.c -- random stuff in need of rearrangement
 
 */
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <stddef.h>
 #include <string.h>
 
-#include "config.h"
 #include "common.h"
+#include "config.h"
+#include "controls.h"
 #include "instrum.h"
+#include "mix.h"
+#include "output.h"
 #include "playmidi.h"
 #include "readmidi.h"
-#include "output.h"
-#include "mix.h"
-#include "controls.h"
+#include "structs.h"
+#include "tables.h"
 #include "timidity.h"
 
-#include "tables.h"
-
-#include "structs.h"
+class idFile;
 
 //void Real_Tim_Free( void *pt );
 

@@ -29,7 +29,33 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __GAME_WEAPON_H__
 #define __GAME_WEAPON_H__
 
+#include <stddef.h>
+
+#include "../d3xp/Entity.h"
+#include "../d3xp/Grabber.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/gamesys/Event.h"
+#include "../d3xp/script/Script_Program.h"
+#include "../idlib/Dict.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/HashTable.h"
+#include "../idlib/math/Angles.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../renderer/Model.h"
+#include "../renderer/RenderWorld.h"
 #include "PredictedValue.h"
+
+class idBitMsg;
+class idDeclEntityDef;
+class idDeclParticle;
+class idFuncEmitter;
+class idMaterial;
+class idRestoreGame;
+class idSaveGame;
+class idSoundShader;
+class idThread;
 
 /*
 ===============================================================================

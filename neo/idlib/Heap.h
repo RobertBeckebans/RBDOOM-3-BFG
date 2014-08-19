@@ -29,6 +29,19 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __HEAP_H__
 #define __HEAP_H__
 
+#include <new>
+#ifdef _WIN32
+#include <malloc.h>
+#else
+#include <mm_malloc.h>                  // for posix_memalign
+#endif
+#include <stddef.h>                     // for size_t
+#include <stdlib.h>                     // for NULL, free
+#include <string.h>                     // for strcpy, strlen
+
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"              // for Max
+
 /*
 ===============================================================================
 
@@ -40,9 +53,126 @@ If you have questions concerning this license or the applicable additional terms
 // memory tag names are used to sort allocations for sys_dumpMemory and other reporting functions
 enum memTag_t
 {
-#define MEM_TAG( x )	TAG_##x,
-#include "sys/sys_alloc_tags.h"
-	TAG_NUM_TAGS,
+  TAG_UNSET,		// This should never be used
+  TAG_STATIC_EXE,	// The static exe, generally how much memory we are using before our main() function ever runs
+  TAG_DEBUG,		// Crap we don't care about, because it won't be in a retail build
+  TAG_NEW,		// Crap allocated with new which hasn't been given an explicit tag
+  TAG_BLOCKALLOC,	// Crap allocated with idBlockAlloc which hasn't been given an explicit tag
+  TAG_PHYSICAL,
+  TAG_TRI_VERTS,
+  TAG_TRI_INDEXES,
+  TAG_TRI_SHADOW,
+  TAG_TRI_PLANES,
+  TAG_TRI_SIL_INDEXES,
+  TAG_TRI_SIL_EDGE,
+  TAG_TRI_DOMINANT_TRIS,
+  TAG_TRI_MIR_VERT,
+  TAG_TRI_DUP_VERT,
+  TAG_SRFTRIS,
+  TAG_TEMP,			// Temp data which should be automatically freed at the end of the function
+  TAG_PAGE,
+  TAG_DEFRAG_BLOCK,
+  TAG_MATH,
+  TAG_MD5_WEIGHT,
+  TAG_MD5_BASE,
+  TAG_MD5_ANIM,
+  TAG_MD5_INDEX,
+  TAG_JOINTMAT,
+  TAG_DECAL,
+  TAG_CULLBITS,
+  TAG_TEXCOORDS,
+  TAG_VERTEXREMAP,
+  TAG_JOINTBUFFER,
+  TAG_IMAGE,
+  TAG_DXBUFFER,
+  TAG_AUDIO,
+  TAG_FUNC_CALLBACK,
+  TAG_SAVEGAMES,
+  TAG_IDFILE,
+  TAG_NETWORKING,
+  TAG_SWF,
+  TAG_STEAM,
+  TAG_IDLIB,
+  TAG_IDLIB_LIST,
+  TAG_IDLIB_LIST_IMAGE,
+  TAG_IDLIB_LIST_SURFACE,
+  TAG_IDLIB_LIST_PHYSICS,
+  TAG_IDLIB_LIST_DECL,
+  TAG_IDLIB_LIST_CMD,
+  TAG_IDLIB_LIST_TRIANGLES,
+  TAG_IDLIB_LIST_MATERIAL,
+  TAG_IDLIB_LIST_SOUND,
+  TAG_IDLIB_LIST_SNAPSHOT,
+  TAG_IDLIB_LIST_MENU,
+  TAG_IDLIB_LIST_MENUWIDGET,
+  TAG_IDLIB_LIST_PLAYER,
+  TAG_IDLIB_LIST_MAP,
+  TAG_IDLIB_HASH,
+  TAG_IDLIB_STRING,
+  TAG_IDLIB_SURFACE,
+  TAG_IDLIB_WINDING,
+  TAG_IDLIB_LEXER,
+  TAG_IDLIB_PARSER,
+  TAG_AF,
+  TAG_COLLISION,
+  TAG_COLLISION_QUERY,
+  TAG_DECLTEXT,
+  TAG_RSX,
+  TAG_CVAR,
+  TAG_CRAP,				// Crap allocated with new which hasn't been given an explicit tag
+  TAG_CINEMATIC,
+  TAG_FONT,
+  TAG_MATERIAL,
+  TAG_MODEL,
+  TAG_RENDER,
+  TAG_RENDER_TOOLS,
+  TAG_RENDER_WINDING,
+  TAG_RENDER_STATIC,
+  TAG_RENDER_ENTITY,
+  TAG_RENDER_LIGHT,
+  TAG_RENDER_INTERACTION,
+  TAG_SURFACE,
+  TAG_LIGHT,
+  TAG_AI,
+  TAG_SCRIPT,
+  TAG_EVENTS,
+  TAG_JPG,
+  TAG_AAS,
+  TAG_STRING,
+  TAG_THREAD,
+  TAG_DECL,
+  TAG_SYSTEM,
+  TAG_PSN,
+  TAG_OLD_UI,
+  TAG_ANIM,
+  TAG_ANIMWEB,
+  TAG_PHYSICS,
+  TAG_PARTICLE,
+  TAG_ENTITY,
+  TAG_GAME,
+  TAG_FX,
+  TAG_PVS,
+  TAG_IDCLASS,
+  TAG_ZIP,
+  TAG_JOBLIST,
+  TAG_AMPLITUDE,
+  TAG_RESOURCE,
+  TAG_ACHIEVEMENT,
+  TAG_TARGET,
+  TAG_BINK,
+  TAG_PROJECTILE,
+  TAG_MOVER,
+  TAG_ACTOR,
+  TAG_PHYSICS_CLIP,
+  TAG_PHYSICS_CLIP_MOVER,
+  TAG_PHYSICS_CLIP_AF,
+  TAG_PHYSICS_CLIP_BRITTLE,
+  TAG_PHYSICS_CLIP_ENTITY,
+  TAG_PHYSICS_BRITTLE,
+  TAG_PHYSICS_AF,
+  TAG_RENDERPROG,
+  TAG_NUM_TAGS,
+  TAG_TOOLS,
 };
 
 static const int MAX_TAGS = 256;

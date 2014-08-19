@@ -29,6 +29,14 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __MATH_MATH_H__
 #define __MATH_MATH_H__
 
+#include <math.h>                       // for sqrt
+#include <stdlib.h>                     // for abs
+#include <xmmintrin.h>                  // for __m128
+#include "../idlib/sys/sys_assert.h"             // for assert
+#include "../idlib/sys/sys_intrinsics.h"         // for USE_INTRINSICS
+#include "../idlib/sys/sys_types.h"              // for dword
+
+
 /*
 ===============================================================================
 

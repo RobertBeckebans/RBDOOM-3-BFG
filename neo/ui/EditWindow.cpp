@@ -27,13 +27,28 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <string.h>
 
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../framework/DeclManager.h"
+#include "../framework/FileSystem.h"
+#include "../framework/KeyInput.h"
+#include "../framework/TokenParser.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Vector.h"
+#include "../renderer/Material.h"
+#include "../sys/sys_public.h"
+#include "../ui/Rectangle.h"
+#include "../ui/SimpleWindow.h"
+#include "../ui/Winvar.h"
 #include "DeviceContext.h"
-#include "Window.h"
-#include "UserInterfaceLocal.h"
-#include "SliderWindow.h"
 #include "EditWindow.h"
+#include "SliderWindow.h"
+#include "UserInterfaceLocal.h"
+#include "Window.h"
 
 
 bool idEditWindow::ParseInternalVar( const char* _name, idTokenParser* src )

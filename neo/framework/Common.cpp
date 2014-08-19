@@ -27,20 +27,71 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
 #pragma hdrstop
 
-#include "Common_local.h"
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "ConsoleHistory.h"
-
+#include "../../doomclassic/doom/doominterface.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "../d3xp/Game.h"
+#include "../framework/BuildVersion.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/Common_dialog.h"
+#include "../framework/Console.h"
+#include "../framework/DeclManager.h"
+#include "../framework/EventLoop.h"
+#include "../framework/File.h"
+#include "../framework/FileSystem.h"
+#include "../framework/File_Manifest.h"
+#include "../framework/File_SaveGame.h"
+#include "../framework/KeyInput.h"
+#include "../framework/Licensee.h"
+#include "../framework/UsercmdGen.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Dict.h"
+#include "../idlib/Heap.h"
+#include "../idlib/LangDict.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/StrList.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Simd.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/ImageOpts.h"
+#include "../renderer/Material.h"
+#include "../renderer/ModelManager.h"
+#include "../renderer/RenderSystem.h"
+#include "../renderer/RenderWorld.h"
 #include "../sound/sound.h"
+#include "../swf/SWF.h"
+#include "../sys/Snapshot.h"
+#include "../sys/sys_achievements.h"
+#include "../sys/sys_public.h"
+#include "../sys/sys_session.h"
+#include "../sys/sys_signin.h"
+#include "../ui/UserInterface.h"
+#include "Common_local.h"
+#include "ConsoleHistory.h"
+#include "ParallelJobList.h"
+#include "sys/sys_localuser.h"
+#include "sys/sys_threading.h"
+
+#if defined(USE_IDTOOLS)
+#include "../tools/compilers/compiler_public.h"
+#endif
 
 // RB begin
 #if defined(USE_DOOMCLASSIC)
-#include "../../doomclassic/doom/doomlib.h"
 #include "../../doomclassic/doom/d_event.h"
 #include "../../doomclassic/doom/d_main.h"
+#include "../../doomclassic/doom/doomlib.h"
 #endif
 // RB end
 
@@ -822,6 +873,8 @@ CONSOLE_COMMAND( reloadLanguage, "reload language dict", NULL )
 }
 
 #include "../renderer/Image.h"
+
+struct emptyCommand_t;
 
 /*
 =================
@@ -1686,11 +1739,13 @@ idCommonLocal::InitCommands
 */
 void idCommonLocal::InitCommands()
 {
+#if defined(USE_IDTOOLS)
 	// compilers
 	cmdSystem->AddCommand( "dmap", Dmap_f, CMD_FL_TOOL, "compiles a map", idCmdSystem::ArgCompletion_MapName );
 	cmdSystem->AddCommand( "runAAS", RunAAS_f, CMD_FL_TOOL, "compiles an AAS file for a map", idCmdSystem::ArgCompletion_MapName );
 	cmdSystem->AddCommand( "runAASDir", RunAASDir_f, CMD_FL_TOOL, "compiles AAS files for all maps in a folder", idCmdSystem::ArgCompletion_MapName );
 	cmdSystem->AddCommand( "runReach", RunReach_f, CMD_FL_TOOL, "calculates reachability for an AAS file", idCmdSystem::ArgCompletion_MapName );
+#endif
 }
 
 /*

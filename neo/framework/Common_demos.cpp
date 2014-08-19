@@ -26,9 +26,24 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
 #pragma hdrstop
 
+#include <stdlib.h>
+
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/Console.h"
+#include "../framework/DemoFile.h"
+#include "../framework/File.h"
+#include "../framework/FileSystem.h"
+#include "../framework/Licensee.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Str.h"
+#include "../renderer/RenderWorld.h"
+#include "../sound/sound.h"
+#include "../sys/sys_public.h"
 #include "Common_local.h"
 
 /*

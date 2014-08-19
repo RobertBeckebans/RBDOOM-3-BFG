@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __R_BSP__
 #define __R_BSP__
 
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/r_defs.h"
 #ifdef __GNUG__
 #pragma interface
 #endif

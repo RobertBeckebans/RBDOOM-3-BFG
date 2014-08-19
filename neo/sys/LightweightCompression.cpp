@@ -26,7 +26,10 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+#include <string.h>
+
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_types.h"
 #include "LightweightCompression.h"
 
 /*

@@ -25,9 +25,21 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
+#include <stddef.h>
+
+#include "../d3xp/menus/MenuWidget.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/containers/StaticList.h"
+#include "../swf/SWF.h"
+#include "../swf/SWF_ParmList.h"
+#include "../swf/SWF_ScriptObject.h"
+#include "../swf/SWF_ScriptVar.h"
+#include "../swf/SWF_SpriteInstance.h"
+
+class idMenuHandler;
+
 #pragma hdrstop
-#include "precompiled.h"
-#include "../Game_local.h"
 
 void idMenuWidget_ScrollBar::Initialize( idMenuHandler* data )
 {

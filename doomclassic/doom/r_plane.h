@@ -30,6 +30,9 @@ If you have questions concerning this license or the applicable additional terms
 #define __R_PLANE__
 
 
+#include "../../doomclassic/doom/Precompiled.h"
+#include "../../doomclassic/doom/m_fixed.h"
+#include "../../doomclassic/doom/r_defs.h"
 #include "r_data.h"
 
 #ifdef __GNUG__

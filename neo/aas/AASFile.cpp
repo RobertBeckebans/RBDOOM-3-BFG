@@ -27,9 +27,23 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <string.h>
 
-
+#include "../framework/Common.h"
+#include "../framework/DeclEntityDef.h"
+#include "../framework/DeclManager.h"
+#include "../framework/File.h"
+#include "../framework/FileSystem.h"
+#include "../idlib/Dict.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lexer.h"
+#include "../idlib/Str.h"
+#include "../idlib/Token.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/PlaneSet.h"
+#include "../idlib/math/Plane.h"
+#include "../idlib/math/Vector.h"
 #include "AASFile.h"
 #include "AASFile_local.h"
 

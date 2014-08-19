@@ -26,24 +26,32 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
-
-
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-
+#include "../../doomclassic/doom/d_player.h"
+#include "../../doomclassic/doom/defs.h"
+#include "../../doomclassic/doom/doomlib.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/info.h"
+#include "../../doomclassic/doom/m_fixed.h"
+#include "../../doomclassic/doom/p_mobj.h"
+#include "../../doomclassic/doom/p_pspr.h"
+#include "../../doomclassic/doom/r_defs.h"
+#include "../../doomclassic/doom/r_draw.h"
+#include "../../doomclassic/doom/r_main.h"
+#include "../../doomclassic/doom/r_segs.h"
+#include "../../doomclassic/doom/r_things.h"
+#include "../../doomclassic/doom/tables.h"
+#include "../../doomclassic/doom/typedefs.h"
+#include "Precompiled.h"
 #include "doomdef.h"
-#include "m_swap.h"
-
+#include "globaldata.h"
 #include "i_system.h"
-#include "z_zone.h"
+#include "m_swap.h"
 #include "w_wad.h"
-
-#include "r_local.h"
-
-#include "doomstat.h"
+#include "z_zone.h"
 
 
 

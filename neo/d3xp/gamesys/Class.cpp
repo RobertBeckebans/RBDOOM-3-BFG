@@ -34,10 +34,29 @@ instancing of objects.
 */
 
 #pragma hdrstop
-#include "precompiled.h"
-
+#include <assert.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
 
 #include "../Game_local.h"
+#include "../d3xp/Entity.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/gamesys/Event.h"
+#include "../d3xp/gamesys/SysCvar.h"
+#include "../d3xp/script/Script_Thread.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/Hierarchy.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Math.h"
+
+class idCmdArgs;
+class idRestoreGame;
+class idSaveGame;
 
 
 /***********************************************************************

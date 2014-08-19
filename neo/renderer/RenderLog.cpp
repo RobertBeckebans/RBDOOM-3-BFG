@@ -27,6 +27,17 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
+#include <assert.h>
+#include <stdarg.h>
+
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/sys/sys_types.h"
+#include "../libs/glew/include/GL/glew.h"
+#include "../renderer/RenderLog.h"
+#include "../renderer/RenderSystem.h"
 #include "tr_local.h"
 
 /*

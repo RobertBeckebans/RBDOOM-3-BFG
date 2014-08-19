@@ -30,6 +30,7 @@ If you have questions concerning this license or the applicable additional terms
 #define __R_SEGS__
 
 
+#include "../../doomclassic/doom/r_defs.h"
 #ifdef __GNUG__
 #pragma interface
 #endif

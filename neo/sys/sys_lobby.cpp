@@ -26,8 +26,32 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../framework/Console.h"
+#include "../framework/DebugGraph.h"
+#include "../idlib/BitMsg.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Str.h"
+#include "../idlib/hashing/MD5.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Random.h"
+#include "../idlib/math/Vector.h"
+#include "../renderer/RenderSystem.h"
+#include "../sys/LightweightCompression.h"
+#include "../sys/Snapshot.h"
+#include "../sys/sys_lobby_backend.h"
+#include "../sys/sys_localuser.h"
+#include "../sys/sys_public.h"
+#include "../sys/sys_signin.h"
+#include "../idlib/containers/StaticList.h"
+#include "../framework/Common_dialog.h"
+#include "../sys/PacketProcessor.h"
+#include "../sys/SnapshotProcessor.h"
+#include "../sys/sys_session.h"
 #include "sys_lobby.h"
+
+class idPlayerProfile;
 
 extern idCVar net_connectTimeoutInSeconds;
 extern idCVar net_headlessServer;

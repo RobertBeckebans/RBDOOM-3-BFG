@@ -29,6 +29,9 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __MATH_PLANE_H__
 #define __MATH_PLANE_H__
 
+#include "../idlib/math/Vector.h"
+#include "../idlib/math/Matrix.h"
+
 /*
 ===============================================================================
 
@@ -100,7 +103,7 @@ public:
 	bool			FixDegeneracies( float distEpsilon );	// fix degenerate normal and dist
 	float			Dist() const;						// returns: -d
 	void			SetDist( const float dist );			// sets: d = -dist
-	int				Type() const;						// returns plane type
+	int			Type() const;						// returns plane type
 	
 	bool			FromPoints( const idVec3& p1, const idVec3& p2, const idVec3& p3, bool fixDegenerate = true );
 	bool			FromVecs( const idVec3& dir1, const idVec3& dir2, const idVec3& p, bool fixDegenerate = true );

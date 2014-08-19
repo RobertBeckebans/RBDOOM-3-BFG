@@ -25,8 +25,30 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
+#include <assert.h>
+#include <stddef.h>
+
+#include "../framework/CVarSystem.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/StaticList.h"
+#include "../idlib/math/Random.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_types.h"
+#include "../swf/SWF.h"
+#include "../swf/SWF_Bitstream.h"
+#include "../swf/SWF_Enums.h"
+#include "../swf/SWF_ParmList.h"
+#include "../swf/SWF_ScriptFunction.h"
+#include "../swf/SWF_ScriptObject.h"
+#include "../swf/SWF_ScriptVar.h"
+#include "../swf/SWF_SpriteInstance.h"
+#include "../swf/SWF_Sprites.h"
+#include "../sys/sys_public.h"
+#include "SWF_ScriptFunction.h"
+
 #pragma hdrstop
-#include "precompiled.h"
 
 idCVar swf_debug( "swf_debug", "0", CVAR_INTEGER | CVAR_ARCHIVE, "debug swf scripts.  1 shows traces/errors.  2 also shows warnings.  3 also shows disassembly.  4 shows parameters in the disassembly." );
 idCVar swf_debugInvoke( "swf_debugInvoke", "0", CVAR_INTEGER, "debug swf functions being called from game." );

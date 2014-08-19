@@ -28,6 +28,20 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SWF_SPRITEINSTANCE_H__
 #define __SWF_SPRITEINSTANCE_H__
 
+#include "../idlib/Heap.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/sys/sys_types.h"
+#include "../swf/SWF_ParmList.h"
+#include "../swf/SWF_ScriptFunction.h"
+#include "../swf/SWF_ScriptObject.h"
+#include "../swf/SWF_ScriptVar.h"
+
+class idMaterial;
+class idSWFBitStream;
+class idSWFSprite;
+struct swfDisplayEntry_t;
+
 /*
 ================================================
 There can be multiple instances of a single sprite running

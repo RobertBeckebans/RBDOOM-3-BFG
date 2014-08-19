@@ -51,11 +51,21 @@ Manager
 */
 
 #pragma hdrstop
-#include "precompiled.h"
 
 
 // tr_imageprogram.c
 
+#include <string.h>
+
+#include "../idlib/Heap.h"
+#include "../idlib/Lexer.h"
+#include "../idlib/Str.h"
+#include "../idlib/Token.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/Image.h"
 #include "tr_local.h"
 
 /*

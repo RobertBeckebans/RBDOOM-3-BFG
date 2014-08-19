@@ -27,7 +27,14 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include "../idlib/containers/HashIndex.h"
+
+#include <stdlib.h>
+#include <string.h>
+
+#include "../idlib/math/Math.h"
+#include "Heap.h"
+#include "sys/sys_assert.h"
 
 int idHashIndex::INVALID_INDEX[1] = { -1 };
 

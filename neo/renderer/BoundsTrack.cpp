@@ -27,12 +27,21 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
 
 
 #undef min			// windef.h macros
 #undef max
 
+#include <math.h>
+
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/math/Random.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_types.h"
+#include "../sys/sys_public.h"
 #include "BoundsTrack.h"
 
 /*

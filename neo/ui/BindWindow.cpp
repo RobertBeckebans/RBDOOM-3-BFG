@@ -27,12 +27,16 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
-
-#include "DeviceContext.h"
-#include "Window.h"
-#include "UserInterfaceLocal.h"
+#include "../idlib/LangDict.h"
+#include "../idlib/Str.h"
+#include "../idlib/math/Vector.h"
+#include "../sys/sys_public.h"
+#include "../ui/SimpleWindow.h"
+#include "../ui/Winvar.h"
 #include "BindWindow.h"
+#include "DeviceContext.h"
+#include "UserInterfaceLocal.h"
+#include "Window.h"
 
 
 void idBindWindow::CommonInit()

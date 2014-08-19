@@ -32,7 +32,12 @@ Contains the DxtDecoder implementation.
 */
 
 #pragma hdrstop
-#include "DXTCodec_local.h"
+#include <math.h>
+#include <string.h>
+
+#include "../idlib/math/Math.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_types.h"
 #include "DXTCodec.h"
 
 /*

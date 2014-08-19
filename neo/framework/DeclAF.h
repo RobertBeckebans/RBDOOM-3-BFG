@@ -29,6 +29,9 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __DECLAF_H__
 #define __DECLAF_H__
 
+#include "../idlib/geometry/JointTransform.h"  // for idJointMat
+#include "../framework/DeclManager.h"   // for declManager, idDeclManager, etc
+
 /*
 ===============================================================================
 

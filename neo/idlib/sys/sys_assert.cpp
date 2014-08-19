@@ -26,7 +26,17 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+
+#include <signal.h>                     // for raise, SIGTRAP
+#include <stddef.h>
+
+#include "../framework/../framework/CVarSystem.h"
+#include "../framework/../framework/CVarSystem.h"  // for ::CVAR_BOOL, etc
+#include "../idlib/Lib.h"
+#include "../idlib/Lib.h"               // for idLib
+#include "../idlib/containers/StaticList.h"      // for idStaticList
+#include "../idlib/sys/sys_types.h"     // for NULL
+#include "containers/StaticList.h"
 
 #ifndef _WIN32
 #include <signal.h> // for raise()

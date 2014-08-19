@@ -29,8 +29,6 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "../../idlib/precompiled.h"
-
 // DG: SDL.h somehow needs the following functions, so #undef those silly
 //     "don't use" #defines from Str.h
 #undef strncmp
@@ -39,8 +37,22 @@ If you have questions concerning this license or the applicable additional terms
 // DG end
 
 #include <SDL.h>
-#include <SDL_syswm.h>
+#include <SDL/SDL_error.h>
+#include <SDL/SDL_events.h>
+#include <SDL/SDL_mouse.h>
+#include <SDL/SDL_stdinc.h>
+#include <SDL/SDL_version.h>
+#include <SDL/SDL_video.h>
+#include <assert.h>
+#include <stddef.h>
 
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../framework/Licensee.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/Sort.h"
+#include "../libs/glew/include/GL/glew.h"
+#include "../renderer/RenderSystem.h"
 #include "renderer/tr_local.h"
 #include "sdl_local.h"
 

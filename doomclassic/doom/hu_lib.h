@@ -29,8 +29,12 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __HULIB__
 #define __HULIB__
 
+#include "../../doomclassic/doom/doomdef.h"
+#include "../../doomclassic/doom/doomtype.h"
 // We are referring to patches.
 #include "r_defs.h"
+
+struct patch_t;
 
 // font stuff
 #define HU_CHARERASE	KEY_BACKSPACE

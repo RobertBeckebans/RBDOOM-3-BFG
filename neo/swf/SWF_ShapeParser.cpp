@@ -26,7 +26,19 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+#include <stddef.h>
+
+#include "../idlib/Lib.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/Sort.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_types.h"
+#include "../swf/SWF_Bitstream.h"
+#include "../swf/SWF_ShapeParser.h"
+#include "../swf/SWF_Types.h"
 #include "float.h"
 
 #pragma warning( disable: 4189 ) // local variable is initialized but not referenced

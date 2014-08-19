@@ -28,9 +28,36 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <assert.h>
+#include <stdlib.h>
 
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../idlib/Str.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/geometry/RenderMatrix.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Plane.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/Framebuffer.h"
+#include "../renderer/Material.h"
+#include "../renderer/Model.h"
+#include "../renderer/RenderWorld.h"
+#include "../renderer/RenderWorld_local.h"
+#include "../renderer/ScreenRect.h"
+#include "../renderer/VertexCache.h"
+#include "../renderer/jobs/ShadowShared.h"
+#include "../renderer/jobs/prelightshadowvolume/PreLightShadowVolume.h"
+#include "../sys/sys_public.h"
+#include "sys/sys_intrinsics.h"
 #include "tr_local.h"
+#include "ParallelJobList.h"
+
+
+class idInteraction;
 
 extern idCVar r_useAreasConnectedForShadowCulling;
 extern idCVar r_useParallelAddShadows;

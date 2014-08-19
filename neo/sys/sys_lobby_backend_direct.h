@@ -28,6 +28,13 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef	__SYS_LOBBY_BACKEND_DIRECT_H__
 #define	__SYS_LOBBY_BACKEND_DIRECT_H__
 
+#include "../idlib/containers/List.h"
+#include "../sys/sys_lobby_backend.h"
+#include "../sys/sys_public.h"
+
+class idBitMsg;
+class idMatchParameters;
+
 /*
 ========================
 idLobbyBackendDirect

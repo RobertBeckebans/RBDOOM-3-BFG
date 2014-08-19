@@ -26,20 +26,24 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#include "../../idlib/precompiled.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
 #include "../posix/posix_public.h"
-#include "../sys_local.h"
+#include "../sys/sys_public.h"
 //#include "local.h"
 
-#include <pthread.h>
-#include <errno.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <fcntl.h>
-
+#include <assert.h>
 // DG: needed for Sys_ReLaunch()
 #include <dirent.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 static const char** cmdargv = NULL;
 static int cmdargc = 0;

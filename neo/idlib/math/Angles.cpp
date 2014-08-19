@@ -27,7 +27,11 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include "../idlib/math/Quat.h"
+#include "../idlib/math/Rotation.h"
+#include "../idlib/Str.h"
+
+#include "../idlib/math/Angles.h"
 
 #include <float.h>
 

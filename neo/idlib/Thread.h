@@ -29,6 +29,9 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __THREAD_H__
 #define __THREAD_H__
 
+#include "../idlib/containers/List.h"            // for idList
+#include "../idlib/Str.h"						 // for idStr
+
 /*
 ================================================
 idSysMutex provides a C++ wrapper to the low level system mutex functions.  A mutex is an

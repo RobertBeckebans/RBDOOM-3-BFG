@@ -74,7 +74,14 @@ The file was renamed from unzip.c to unzip.cpp so we can use C++ functions from 
 
 */
 
-#include "precompiled.h"
+#include <string.h>
+
+#include "../idlib/Heap.h"
+#include "../idlib/Str.h"
+#include "../libs/zlib/minizip/ioapi.h"
+#include "minizip/../zlib.h"
+#include "zconf.h"
+
 #pragma hdrstop
 
 #if 0 // DG: these cvars were defined in the original d3 bfg code, probably for some debug purpose?
@@ -95,13 +102,13 @@ idCVar zip_avgSeekDistance( "zip_avgSeekDistance", "0", CVAR_INTEGER, "" );
         #define NOUNCRYPT
 #endif
 
-#include "zlib.h"
 #include "unzip.h"
+#include "zlib.h"
 
 #ifdef STDC
 #  include <stddef.h>
-#  include <string.h>
 #  include <stdlib.h>
+#  include <string.h>
 #endif
 #ifdef NO_ERRNO_H
     extern int errno;

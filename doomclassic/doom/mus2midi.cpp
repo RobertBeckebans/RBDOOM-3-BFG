@@ -26,11 +26,12 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
-#include <assert.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include <string.h>
+
+#include "../../doomclassic/doom/defs.h"
+#include "../../doomclassic/doom/structs.h"
+#include "../../doomclassic/doom/typedefs.h"
+#include "../idlib/sys/sys_assert.h"
 // mus header
 
 

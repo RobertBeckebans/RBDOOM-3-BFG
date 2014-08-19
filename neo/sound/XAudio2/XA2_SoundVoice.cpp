@@ -26,8 +26,22 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+#include <XAudio2.h>
+#include <XAudio2fx.h>
+#include <stddef.h>
+
+#include "../framework/CVarSystem.h"
+#include "../idlib/Lib.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_types.h"
 #include "../snd_local.h"
+#include "../sound/XAudio2/XA2_SoundSample.h"
+#include "../sound/XAudio2/XA2_SoundVoice.h"
+#include "../sound/WaveFile.h"
+#include "../sound/sound.h"
+#include "../sys/sys_public.h"
+#include "../sound/snd_defines.h"
 
 idCVar s_skipHardwareSets( "s_skipHardwareSets", "0", CVAR_BOOL, "Do all calculation, but skip XA2 calls" );
 idCVar s_debugHardware( "s_debugHardware", "0", CVAR_BOOL, "Print a message any time a hardware voice changes" );

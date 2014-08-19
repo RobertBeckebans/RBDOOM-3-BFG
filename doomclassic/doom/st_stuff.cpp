@@ -26,43 +26,43 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
-
-
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "i_system.h"
-#include "i_video.h"
-#include "z_zone.h"
-#include "m_random.h"
-#include "w_wad.h"
-
-#include "doomdef.h"
-
-#include "g_game.h"
-
-#include "st_stuff.h"
-#include "st_lib.h"
-#include "r_local.h"
-
-#include "p_local.h"
-#include "p_inter.h"
-
+#include "../../doomclassic/doom/d_englsh.h"
+#include "../../doomclassic/doom/d_event.h"
+#include "../../doomclassic/doom/d_items.h"
+#include "../../doomclassic/doom/d_player.h"
+#include "../../doomclassic/doom/defs.h"
+#include "../../doomclassic/doom/doomlib.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/p_mobj.h"
+#include "../../doomclassic/doom/r_main.h"
+#include "../../doomclassic/doom/tables.h"
+#include "../../doomclassic/doom/typedefs.h"
+#include "../framework/CmdSystem.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Lib.h"
+#include "Precompiled.h"
 #include "am_map.h"
+#include "doomdef.h"
+#include "g_game.h"
+#include "globaldata.h"
+#include "i_video.h"
 #include "m_cheat.h"
-
+#include "m_random.h"
+#include "p_inter.h"
 #include "s_sound.h"
-
+#include "sounds.h"
+#include "st_lib.h"
+#include "st_stuff.h"
 // Needs access to LFB.
 #include "v_video.h"
+#include "w_wad.h"
+#include "z_zone.h"
 
-// State.
-#include "doomstat.h"
-
-// Data.
-#include "dstrings.h"
-#include "sounds.h"
+struct patch_t;
 
 //
 // STATUS BAR DATA

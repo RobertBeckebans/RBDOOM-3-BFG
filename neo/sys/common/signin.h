@@ -28,7 +28,12 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __POSIX_SIGNIN_H__
 #define __POSIX_SIGNIN_H__
 
+#include "../idlib/containers/StaticList.h"
+#include "../sys/sys_session.h"
+#include "../sys/sys_signin.h"
 #include "localuser.h"
+
+class idLocalUser;
 
 /*
 ================================================

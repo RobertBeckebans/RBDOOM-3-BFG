@@ -26,9 +26,25 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
 #pragma hdrstop
+#include <stddef.h>
+
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/KeyInput.h"
+#include "../framework/Serializer.h"
+#include "../idlib/Dict.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/StaticList.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_types.h"
+#include "../sys/sys_achievements.h"
+#include "../sys/sys_public.h"
+#include "../sys/sys_session.h"
+#include "../sys/sys_signin.h"
 #include "PlayerProfile.h"
+#include "sys/sys_localuser.h"
 
 // After releasing a version to the market, here are limitations for compatibility:
 //	- the major version should not ever change

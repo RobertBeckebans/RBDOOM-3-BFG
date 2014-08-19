@@ -29,6 +29,9 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __CMDSYSTEM_H__
 #define __CMDSYSTEM_H__
 
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Str.h"
+
 /*
 ===============================================================================
 

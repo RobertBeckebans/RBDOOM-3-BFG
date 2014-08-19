@@ -29,8 +29,10 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __STSTUFF_H__
 #define __STSTUFF_H__
 
-#include "doomtype.h"
+#include "../../doomclassic/doom/Precompiled.h"
+#include "../../doomclassic/doom/doomdef.h"
 #include "d_event.h"
+#include "doomtype.h"
 
 // Size of statusbar.
 // Now sensitive for scaling.

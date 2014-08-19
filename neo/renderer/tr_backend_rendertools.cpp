@@ -28,10 +28,43 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <assert.h>
+#include <string.h>
 
-#include "tr_local.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../framework/DeclManager.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/geometry/DrawVert.h"
+#include "../idlib/geometry/RenderMatrix.h"
+#include "../idlib/geometry/Winding.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Plane.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_types.h"
+#include "../libs/glew/include/GL/glew.h"
+#include "../renderer/BufferObject.h"
+#include "../renderer/Cinematic.h"
+#include "../renderer/GLMatrix.h"
+#include "../renderer/GLState.h"
+#include "../renderer/GraphicsAPIWrapper.h"
+#include "../renderer/Image.h"
+#include "../renderer/Material.h"
+#include "../renderer/Model.h"
+#include "../renderer/RenderLog.h"
+#include "../renderer/RenderProgs.h"
+#include "../renderer/RenderSystem.h"
+#include "../renderer/RenderWorld.h"
+#include "../renderer/RenderWorld_local.h"
+#include "../renderer/ScreenRect.h"
+#include "../renderer/VertexCache.h"
+#include "../renderer/jobs/dynamicshadowvolume/DynamicShadowVolume.h"
 #include "simplex.h"	// line font definition
+#include "tr_local.h"
 
 idCVar r_showCenterOfProjection( "r_showCenterOfProjection", "0", CVAR_RENDERER | CVAR_BOOL, "Draw a cross to show the center of projection" );
 idCVar r_showLines( "r_showLines", "0", CVAR_RENDERER | CVAR_INTEGER, "1 = draw alternate horizontal lines, 2 = draw alternate vertical lines" );

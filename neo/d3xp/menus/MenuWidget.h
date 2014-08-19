@@ -28,6 +28,16 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __MENU_WIDGET_H__
 #define __MENU_WIDGET_H__
 
+#include "../swf/SWF.h"        // for idSWF
+#include "../swf/SWF_ParmList.h"        // for idSWFParmList
+#include "../swf/SWF_ScriptObject.h"    // for idSWFScriptObject
+#include "../swf/SWF_ScriptVar.h"       // for idSWFScriptVar
+#include "../swf/SWF_ScriptFunction.h"  // for idSWFScriptFunction
+
+#include "../sys/sys_session.h"  // for voiceStateDisplay_t
+
+#include "../d3xp/Player.h"             // for idPlayer
+
 class idMenuHandler;
 class idMenuWidget;
 

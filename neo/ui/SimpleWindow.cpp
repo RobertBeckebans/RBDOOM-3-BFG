@@ -28,12 +28,22 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <string.h>
 
+#include "../framework/DeclManager.h"
+#include "../framework/File.h"
+#include "../idlib/Lib.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Rotation.h"
+#include "../renderer/Font.h"
+#include "../renderer/Material.h"
+#include "../renderer/RenderSystem.h"
+#include "../ui/Winvar.h"
+#include "../ui/Rectangle.h"
 #include "DeviceContext.h"
-#include "Window.h"
-#include "UserInterfaceLocal.h"
 #include "SimpleWindow.h"
+#include "UserInterfaceLocal.h"
+#include "Window.h"
 
 
 idSimpleWindow::idSimpleWindow( idWindow* win )

@@ -26,11 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
+#include "../idlib/Str.h"
 #include "globaldata.h"
-
-
-#include <string.h>
 
 
 

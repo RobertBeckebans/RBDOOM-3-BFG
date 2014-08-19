@@ -30,6 +30,11 @@ If you have questions concerning this license or the applicable additional terms
 #define __LIB_H__
 
 #include <stddef.h>
+#include <string.h>
+
+#include "../idlib/sys/sys_threading.h"
+#include "sys/sys_types.h"              // for byte, dword
+
 
 /*
 ===============================================================================
@@ -242,6 +247,7 @@ public:
 ===============================================================================
 */
 
+/*
 // System
 #include "sys/sys_assert.h"
 #include "sys/sys_threading.h"
@@ -252,33 +258,34 @@ public:
 #include "containers/List.h"
 
 // math
-#include "math/Simd.h"
-#include "math/Math.h"
-#include "math/Random.h"
-#include "math/Complex.h"
-#include "math/Vector.h"
-#include "math/VecX.h"
-#include "math/VectorI.h"
-#include "math/Matrix.h"
-#include "math/MatX.h"
-#include "math/Angles.h"
-#include "math/Quat.h"
-#include "math/Rotation.h"
-#include "math/Plane.h"
-#include "math/Pluecker.h"
-#include "math/Polynomial.h"
-#include "math/Extrapolate.h"
-#include "math/Interpolate.h"
-#include "math/Curve.h"
-#include "math/Ode.h"
-#include "math/Lcp.h"
+//#include "math/Simd.h"
+//#include "math/Math.h"
+//#include "math/Random.h"
+//#include "math/Complex.h"
+//#include "math/Vector.h"
+//#include "math/VecX.h"
+//#include "math/VectorI.h"
+//#include "math/Matrix.h"
+//#include "math/MatX.h"
+//#include "math/Angles.h"
+//#include "math/Quat.h"
+//#include "math/Rotation.h"
+//#include "math/Plane.h"
+//#include "math/Pluecker.h"
+//#include "math/Polynomial.h"
+//#include "math/Extrapolate.h"
+//#include "math/Interpolate.h"
+//#include "math/Curve.h"
+//#include "math/Ode.h"
+//#include "math/Lcp.h"
 
 // bounding volumes
-#include "bv/Sphere.h"
-#include "bv/Bounds.h"
-#include "bv/Box.h"
+//#include "bv/Sphere.h"
+//#include "bv/Bounds.h"
+//#include "bv/Box.h"
 
 // geometry
+
 #include "geometry/RenderMatrix.h"
 #include "geometry/JointTransform.h"
 #include "geometry/DrawVert.h"
@@ -316,12 +323,12 @@ public:
 #include "containers/PlaneSet.h"
 
 // hashing
-#include "hashing/CRC32.h"
-#include "hashing/MD4.h"
-#include "hashing/MD5.h"
+//#include "hashing/CRC32.h"
+//#include "hashing/MD4.h"
+//#include "hashing/MD5.h"
 
 // misc
-#include "Dict.h"
+//#include "Dict.h"
 #include "LangDict.h"
 #include "DataQueue.h"
 #include "BitMsg.h"
@@ -333,5 +340,6 @@ public:
 #include "ParallelJobList.h"
 
 #include "SoftwareCache.h"
+*/
 
 #endif	/* !__LIB_H__ */

@@ -26,9 +26,21 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
+#include <emmintrin.h>
+#include <stddef.h>
+#include <xmmintrin.h>
+
+#include "../framework/CVarSystem.h"
+#include "../idlib/Lib.h"
+#include "../idlib/containers/Sort.h"
+#include "../idlib/geometry/JointTransform.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_types.h"
+#include "../libs/glew/include/GL/glew.h"
+#include "../renderer/BufferObject.h"
+#include "sys/sys_intrinsics.h"
+
 #pragma hdrstop
-#include "precompiled.h"
-#include "tr_local.h"
 
 idCVar r_showBuffers( "r_showBuffers", "0", CVAR_INTEGER, "" );
 

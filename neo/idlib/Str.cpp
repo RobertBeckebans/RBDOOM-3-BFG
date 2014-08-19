@@ -27,8 +27,39 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
 #pragma hdrstop
+
+#include <ctype.h>
+#include <ctype.h>                      // for toupper, isdigit
+#include <stdarg.h>
+#include <stdarg.h>                     // for va_list, va_end, va_start
+#include <stddef.h>
+#include <stddef.h>                     // for size_t
+#include <stdio.h>
+#include <stdio.h>                      // for vsprintf, vsnprintf
+#include <string.h>
+#include <string.h>                     // for strlen, memmove, strcpy, etc
+
+#include "../framework/../framework/CmdSystem.h"
+#include "../framework/CmdSystem.h"  // for args, etc
+#include "../framework/Common.h"        // for idCommon
+#include "../idlib/Heap.h"              // for operator delete[], etc
+#include "../idlib/LangDict.h"                   // for idStrId
+#include "../idlib/Lib.h"
+#include "../idlib/Lib.h"               // for idLib, idLib::common, etc
+#include "../idlib/Str.h"               // for idStr, Measure_t, etc
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Math.h"         // for INT32_SIGNBITNOTSET
+#include "../idlib/math/Vector.h"       // for idVec4
+#include "../idlib/sys/sys_assert.h"             // for assert
+#include "../idlib/sys/sys_types.h"              // for byte, uint8, uint32
+#include "../sys/../idlib/CmdArgs.h"
+#include "../sys/../idlib/CmdArgs.h"    // for idCmdArgs
+#include "LangDict.h"
+#include "sys/sys_assert.h"
+#include "sys/sys_types.h"
+
+
 
 #ifdef USE_STRING_DATA_ALLOCATOR
 static idDynamicBlockAlloc < char, 1 << 18, 128, TAG_STRING >	stringDataAllocator;

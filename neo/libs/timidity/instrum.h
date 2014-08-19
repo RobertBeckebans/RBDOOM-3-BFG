@@ -21,6 +21,13 @@ instrum.h
 
 */
 
+#ifndef TIMIDY_INSTRUM_H
+#define TIMIDY_INSTRUM_H
+
+#include <stdint.h>
+
+#include "../libs/timidity/config.h"
+
 typedef struct {
 	 int32_t 
 		loop_start, loop_end, data_length,
@@ -82,3 +89,4 @@ extern int load_missing_instruments(void);
 extern void free_instruments(void);
 extern int set_default_instrument(char *name);
 
+#endif // TIMIDY_INSTRUM_H

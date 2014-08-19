@@ -26,9 +26,58 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
 #pragma hdrstop
 
+#include <assert.h>
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "../aas/AASFile.h"
+#include "../cm/CollisionModel.h"
+#include "../d3xp/AF.h"
+#include "../d3xp/AFEntity.h"
+#include "../d3xp/Achievements.h"
+#include "../d3xp/Actor.h"
+#include "../d3xp/Entity.h"
+#include "../d3xp/IK.h"
+#include "../d3xp/Item.h"
+#include "../d3xp/Light.h"
+#include "../d3xp/Moveable.h"
+#include "../d3xp/Player.h"
+#include "../d3xp/Projectile.h"
+#include "../d3xp/WorldSpawn.h"
+#include "../d3xp/ai/AAS.h"
+#include "../d3xp/anim/Anim.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/gamesys/Event.h"
+#include "../d3xp/gamesys/SaveGame.h"
+#include "../d3xp/gamesys/SysCvar.h"
+#include "../d3xp/physics/Clip.h"
+#include "../d3xp/physics/Physics.h"
+#include "../d3xp/physics/Physics_AF.h"
+#include "../d3xp/script/Script_Program.h"
+#include "../d3xp/script/Script_Thread.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../framework/DeclManager.h"
+#include "../framework/DeclParticle.h"
+#include "../idlib/Dict.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lexer.h"
+#include "../idlib/Str.h"
+#include "../idlib/Token.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/containers/LinkList.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/StrList.h"
+#include "../idlib/math/Angles.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Random.h"
+#include "../idlib/math/Vector.h"
+#include "../renderer/Material.h"
+#include "../renderer/Model.h"
 #include "Game_local.h"
 
 

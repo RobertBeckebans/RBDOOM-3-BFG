@@ -30,6 +30,7 @@ If you have questions concerning this license or the applicable additional terms
 #define __BOUNDSTRACK_H__
 
 
+class idBounds;
 struct shortBounds_t;
 
 class idBoundsTrack

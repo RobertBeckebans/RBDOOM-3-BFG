@@ -26,8 +26,45 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+#include <assert.h>
+#include <stddef.h>
+
 #include "../Game_local.h"
+#include "../d3xp/Misc.h"
+#include "../d3xp/MultiplayerGame.h"
+#include "../d3xp/Player.h"
+#include "../d3xp/Weapon.h"
+#include "../d3xp/menus/MenuHandler.h"
+#include "../d3xp/menus/MenuScreen.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/DeclEntityDef.h"
+#include "../framework/DeclManager.h"
+#include "../framework/DeclPDA.h"
+#include "../framework/KeyInput.h"
+#include "../idlib/Dict.h"
+#include "../idlib/Heap.h"
+#include "../idlib/LangDict.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/StaticList.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Random.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_types.h"
+#include "../swf/SWF.h"
+#include "../swf/SWF_ParmList.h"
+#include "../swf/SWF_ScriptFunction.h"
+#include "../swf/SWF_ScriptObject.h"
+#include "../swf/SWF_ScriptVar.h"
+#include "../swf/SWF_SpriteInstance.h"
+#include "../swf/SWF_TextInstance.h"
+#include "../swf/SWF_Types.h"
+
+class idEntity;
+class idMaterial;
 
 extern idCVar pm_stamina;
 extern idCVar in_useJoystick;

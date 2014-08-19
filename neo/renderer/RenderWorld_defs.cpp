@@ -28,8 +28,34 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <assert.h>
+#include <stdlib.h>
 
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../framework/DeclManager.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/geometry/DrawVert.h"
+#include "../idlib/geometry/RenderMatrix.h"
+#include "../idlib/geometry/Winding.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Plane.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/GLMatrix.h"
+#include "../renderer/Interaction.h"
+#include "../renderer/Material.h"
+#include "../renderer/Model.h"
+#include "../renderer/ModelDecal.h"
+#include "../renderer/ModelManager.h"
+#include "../renderer/RenderWorld.h"
+#include "../renderer/RenderWorld_local.h"
+#include "../ui/UserInterface.h"
 #include "tr_local.h"
 
 /*

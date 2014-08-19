@@ -26,8 +26,45 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+#include <stddef.h>
+
 #include "../Game_local.h"
+#include "../d3xp/Player.h"
+#include "../d3xp/menus/MenuHandler.h"
+#include "../d3xp/menus/MenuScreen.h"
+#include "../d3xp/menus/MenuWidget.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/Common_dialog.h"
+#include "../framework/DeclManager.h"
+#include "../framework/FileSystem.h"
+#include "../framework/KeyInput.h"
+#include "../idlib/BitMsg.h"
+#include "../idlib/Heap.h"
+#include "../idlib/LangDict.h"
+#include "../idlib/Str.h"
+#include "../idlib/StrStatic.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/StaticList.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/Cinematic.h"
+#include "../renderer/Material.h"
+#include "../renderer/RenderSystem.h"
+#include "../sound/sound.h"
+#include "../swf/SWF.h"
+#include "../swf/SWF_ParmList.h"
+#include "../swf/SWF_ScriptFunction.h"
+#include "../swf/SWF_ScriptObject.h"
+#include "../swf/SWF_ScriptVar.h"
+#include "../swf/SWF_SpriteInstance.h"
+#include "../swf/SWF_TextInstance.h"
+#include "../swf/SWF_Types.h"
+#include "../sys/sys_public.h"
+#include "../sys/sys_session.h"
+#include "sys/sys_savegame.h"
+
+class idLeaderboardCallback;
 
 
 extern idCVar g_demoMode;

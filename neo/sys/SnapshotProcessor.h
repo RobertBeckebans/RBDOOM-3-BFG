@@ -28,6 +28,10 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SNAP_PROCESSOR_H__
 #define __SNAP_PROCESSOR_H__
 
+#include "../sys/LightweightCompression.h"
+#include "../sys/Snapshot.h"            // for idSnapShot
+#include "../sys/PacketProcessor.h"     // for idPacketProcessor
+
 /*
 ================================================
 idSnapshotProcessor

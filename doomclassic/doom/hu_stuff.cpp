@@ -26,30 +26,24 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
+#include <stdio.h>
+#include <string.h>
 
-#include <ctype.h>
-
+#include "../../doomclassic/doom/d_englsh.h"
+#include "../../doomclassic/doom/d_event.h"
+#include "../../doomclassic/doom/d_player.h"
+#include "../../doomclassic/doom/defs.h"
+#include "../../doomclassic/doom/doomlib.h"
+#include "../framework/CVarSystem.h"
+#include "../../doomclassic/doom/doomtype.h"
 #include "doomdef.h"
-
+#include "globaldata.h"
+#include "hu_lib.h"
+#include "hu_stuff.h"
+#include "w_wad.h"
 #include "z_zone.h"
 
-#include "m_swap.h"
-
-#include "hu_stuff.h"
-#include "hu_lib.h"
-#include "w_wad.h"
-
-#include "s_sound.h"
-
-#include "doomstat.h"
-
-// Data.
-#include "dstrings.h"
-#include "sounds.h"
-
-#include "Main.h"
+struct patch_t;
 
 //
 // Locally used constants, shortcuts.

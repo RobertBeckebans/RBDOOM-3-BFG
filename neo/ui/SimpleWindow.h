@@ -29,9 +29,19 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SIMPLEWIN_H__
 #define __SIMPLEWIN_H__
 
-class idUserInterfaceLocal;
+#include <stddef.h>
+
+#include "../idlib/Str.h"
+#include "../idlib/math/Vector.h"
+#include "../ui/Rectangle.h"
+#include "../ui/Winvar.h"
+
 class idDeviceContext;
+class idFile;
+class idMaterial;
 class idSimpleWindow;
+class idUserInterfaceLocal;
+class idWindow;
 
 typedef struct
 {

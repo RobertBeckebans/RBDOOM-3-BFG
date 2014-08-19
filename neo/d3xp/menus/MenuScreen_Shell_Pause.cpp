@@ -26,8 +26,27 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+#include <stddef.h>
+
 #include "../Game_local.h"
+#include "../d3xp/Player.h"
+#include "../d3xp/menus/MenuHandler.h"
+#include "../d3xp/menus/MenuScreen.h"
+#include "../d3xp/menus/MenuWidget.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/Common_dialog.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/StaticList.h"
+#include "../swf/SWF_ParmList.h"
+#include "../swf/SWF_ScriptFunction.h"
+#include "../swf/SWF_ScriptVar.h"
+#include "../sys/sys_session.h"
+
+class idSWFScriptObject;
 
 extern idCVar g_demoMode;
 const static int NUM_PAUSE_OPTIONS = 6;

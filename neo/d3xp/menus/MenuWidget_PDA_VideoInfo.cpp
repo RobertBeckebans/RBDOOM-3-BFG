@@ -26,8 +26,18 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+#include <stddef.h>
+
 #include "../Game_local.h"
+#include "../d3xp/Player.h"
+#include "../d3xp/menus/MenuScreen.h"
+#include "../d3xp/menus/MenuWidget.h"
+#include "../framework/DeclPDA.h"
+#include "../idlib/containers/List.h"
+#include "../swf/SWF.h"
+#include "../swf/SWF_ScriptObject.h"
+#include "../swf/SWF_SpriteInstance.h"
+#include "../swf/SWF_TextInstance.h"
 
 void idMenuWidget_PDA_VideoInfo::Update()
 {

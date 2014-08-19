@@ -29,6 +29,11 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SYS_INTRIINSICS_H__
 #define __SYS_INTRIINSICS_H__
 
+#include <math.h>                       // for sqrtf
+
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_assert.h"
+
 #define USE_INTRINSICS
 
 #if defined(USE_INTRINSICS)

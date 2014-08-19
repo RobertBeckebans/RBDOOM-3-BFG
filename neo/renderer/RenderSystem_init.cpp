@@ -28,9 +28,58 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/Console.h"
+#include "../framework/DeclManager.h"
+#include "../framework/FileSystem.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Heap.h"
+#include "../idlib/LangDict.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/StrStatic.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/geometry/DrawVert.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
+#include "../libs/glew/include/GL/glew.h"
+#include "../renderer/BufferObject.h"
+#include "../renderer/Cinematic.h"
+#include "../renderer/Font.h"
+#include "../renderer/Framebuffer.h"
+#include "../renderer/GuiModel.h"
+#include "../renderer/Image.h"
+#include "../renderer/Interaction.h"
+#include "../renderer/Material.h"
+#include "../renderer/Model.h"
+#include "../renderer/ModelManager.h"
+#include "../renderer/RenderProgs.h"
+#include "../renderer/RenderSystem.h"
+#include "../renderer/RenderWorld.h"
+#include "../renderer/RenderWorld_local.h"
+#include "../renderer/VertexCache.h"
+#include "../sound/sound.h"
+#include "../sys/sys_public.h"
+#include "../ui/UserInterface.h"
+#include "ParallelJobList.h"
 #include "tr_local.h"
+
+class idPreloadManifest;
+
+#ifdef _WIN32
+#include "../framework/Licensee.h"
+#endif
 
 // RB begin
 #if defined(_WIN32)

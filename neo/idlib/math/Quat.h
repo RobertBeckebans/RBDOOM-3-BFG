@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __MATH_QUAT_H__
 #define __MATH_QUAT_H__
 
+#include "../idlib/containers/Array.h"	// for idTupleSize
+#include "../idlib/math/Vector.h"
 /*
 ===============================================================================
 
@@ -36,8 +38,6 @@ If you have questions concerning this license or the applicable additional terms
 
 ===============================================================================
 */
-
-#include "../containers/Array.h"	// for idTupleSize
 
 class idVec3;
 class idAngles;

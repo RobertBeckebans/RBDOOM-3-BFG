@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __ARRAY_H__
 #define __ARRAY_H__
 
+#include "../idlib/sys/sys_assert.h"
+
 /*
 ================================================
 idArray is a replacement for a normal C array.

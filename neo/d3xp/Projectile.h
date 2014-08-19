@@ -29,6 +29,30 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __GAME_PROJECTILE_H__
 #define __GAME_PROJECTILE_H__
 
+#include <stddef.h>
+
+#include "../cm/CollisionModel.h"
+#include "../d3xp/Entity.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/gamesys/Event.h"
+#include "../d3xp/physics/Force_Constant.h"
+#include "../d3xp/physics/Physics_RigidBody.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Angles.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Vector.h"
+#include "../renderer/RenderWorld.h"
+
+class idBitMsg;
+class idDeclParticle;
+class idDict;
+class idRestoreGame;
+class idSaveGame;
+class idSoundShader;
+template <class T_, int numElements> class idArray;
 /*
 ===============================================================================
 

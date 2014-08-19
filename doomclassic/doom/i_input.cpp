@@ -26,23 +26,18 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
+#include <math.h>
+#include <string.h>
 
-#include <stdlib.h>
-#include <stdarg.h>
-#include <sys/types.h>
-
-#include "i_video.h"
-#include "i_system.h"
-
-#include "doomstat.h"
-#include "v_video.h"
-#include "m_argv.h"
-#include "d_main.h"
-
+#include "../../doomclassic/doom/d_englsh.h"
+#include "../../doomclassic/doom/d_event.h"
+#include "../../doomclassic/doom/d_player.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/p_mobj.h"
+#include "../../doomclassic/doom/sounds.h"
+#include "../../doomclassic/doom/structs.h"
 #include "doomdef.h"
-
+#include "globaldata.h"
 #include "sys/sys_public.h"
 
 #define ALLOW_CHEATS	1
@@ -72,7 +67,10 @@ static bool Cheat_God() {
 }
 
 #include "g_game.h"
-static bool Cheat_NextLevel() {
+
+struct controller_t;
+
+static bool Cheat_NextLevel( void ) {
 	if( PLAYERCOUNT != 1 || ::g->netgame ) {
 		return false;
 	}

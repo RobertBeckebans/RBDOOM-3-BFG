@@ -19,20 +19,18 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 */
 
-#include "precompiled.h"
-
-#include <stdio.h>
-#include <stdlib.h>
 #include <errno.h>
 #include <string.h>
 
-#include "config.h"
+#include "../framework/File.h"
+#include "../libs/timidity/timidity.h"
+#include "../libs/timidity/structs.h"
 #include "common.h"
+#include "config.h"
+#include "controls.h"
 #include "instrum.h"
 #include "playmidi.h"
 #include "readmidi.h"
-#include "output.h"
-#include "controls.h"
 
 
 void Real_Tim_Free( void *pt );

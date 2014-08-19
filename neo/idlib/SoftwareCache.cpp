@@ -33,7 +33,7 @@ If you have questions concerning this license or the applicable additional terms
 #endif
 // RB end
 
-#include "ParallelJobList_JobHeaders.h"
+#include "../idlib/ParallelJobList_JobHeaders.h"
 
 #ifdef _WIN32
 #include <windows.h> // for DebugBreak

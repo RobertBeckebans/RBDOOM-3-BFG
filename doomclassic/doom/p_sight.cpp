@@ -26,17 +26,16 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
-
-
+#include "../../doomclassic/doom/doomdata.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/m_fixed.h"
+#include "../../doomclassic/doom/p_mobj.h"
+#include "../../doomclassic/doom/r_defs.h"
+#include "../../doomclassic/doom/typedefs.h"
 #include "doomdef.h"
-
+#include "globaldata.h"
 #include "i_system.h"
 #include "p_local.h"
-
-// State.
-#include "r_state.h"
 
 //
 // P_CheckSight

@@ -30,8 +30,15 @@ DG: The file was renamed from zip.c to zip.cpp so we can use C++ functions from 
 
 */
 
-// DG: add the precompiled.h beast..
-#include "precompiled.h"
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "../idlib/Heap.h"
+#include "../libs/zlib/minizip/ioapi.h"
+#include "minizip/../zlib.h"
+
 #pragma hdrstop
 // DG end
 
@@ -40,13 +47,14 @@ DG: The file was renamed from zip.c to zip.cpp so we can use C++ functions from 
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "zlib.h"
+
 #include "zip.h"
+#include "zlib.h"
 
 #ifdef STDC
 #  include <stddef.h>
-#  include <string.h>
 #  include <stdlib.h>
+#  include <string.h>
 #endif
 #ifdef NO_ERRNO_H
     extern int errno;

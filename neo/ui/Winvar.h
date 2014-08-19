@@ -29,12 +29,28 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __WINVAR_H__
 #define __WINVAR_H__
 
+#include <assert.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "../framework/DeclManager.h"
+#include "../framework/File.h"
+#include "../idlib/Dict.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Vector.h"
 #include "Rectangle.h"
+
+class idMaterial;
 
 static const char* VAR_GUIPREFIX = "gui::";
 static const int VAR_GUIPREFIX_LEN = strlen( VAR_GUIPREFIX );
 
 class idWindow;
+
 class idWinVar
 {
 public:

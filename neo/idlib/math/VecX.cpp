@@ -28,7 +28,11 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include "../idlib/math/VecX.h"
+
+#include <stdint.h>
+
+#include "../idlib/Str.h"
 
 //===============================================================
 //

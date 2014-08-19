@@ -29,6 +29,12 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __AAS_H__
 #define __AAS_H__
 
+#include "../aas/AASFile.h"
+#include "../idlib/Str.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/math/Vector.h"
+
+class idPlane;
 /*
 ===============================================================================
 

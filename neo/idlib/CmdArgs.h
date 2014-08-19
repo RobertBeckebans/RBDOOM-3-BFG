@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __CMDARGS_H__
 #define __CMDARGS_H__
 
+#include "../idlib/Lib.h"
+
 /*
 ===============================================================================
 

@@ -26,7 +26,20 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+#include <string.h>
+
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../framework/Common_dialog.h"
+#include "../idlib/BitMsg.h"
+#include "../idlib/Lib.h"
+#include "../idlib/containers/StaticList.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_types.h"
+#include "../sys/PacketProcessor.h"
+#include "../sys/sys_lobby_backend.h"
+#include "../sys/sys_public.h"
+#include "../sys/sys_session.h"
 #include "sys_lobby.h"
 
 idCVar net_migration_debug( "net_migration_debug", "0", CVAR_BOOL, "debug" );

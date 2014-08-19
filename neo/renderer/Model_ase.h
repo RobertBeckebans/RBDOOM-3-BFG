@@ -29,6 +29,11 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __MODEL_ASE_H__
 #define __MODEL_ASE_H__
 
+#include "../idlib/Heap.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
 /*
 ===============================================================================
 

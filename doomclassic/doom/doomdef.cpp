@@ -26,14 +26,10 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-
 #ifdef __GNUG__
 #pragma implementation "doomdef.h"
 #endif
 #include "doomdef.h"
-
-#include "globaldata.h"
 
 
 // Location for any defines turned variables.

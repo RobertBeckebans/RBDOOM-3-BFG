@@ -30,6 +30,19 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __MODELDECAL_H__
 #define __MODELDECAL_H__
 
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/geometry/DrawVert.h"
+#include "../idlib/math/Plane.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
+
+class idFixedWinding;
+class idMat3;
+class idMaterial;
+class idRenderModel;
+class idWinding;
 /*
 ===============================================================================
 

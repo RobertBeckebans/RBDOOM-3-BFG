@@ -29,6 +29,25 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
+#include "../idlib/BitMsg.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/StrList.h"
+
+#include "../framework/CVarSystem.h"
+
+class idGame;
+class idRenderWorld;
+class idSoundWorld;
+class idSession;
+class idCommonDialog;
+class idDemoFile;
+class idUserInterface;
+class idSaveLoadParms;
+class idMatchParameters;
+
+struct lobbyConnectInfo_t;
+
+
 /*
 ==============================================================
 
@@ -62,18 +81,6 @@ ID_INLINE int MSEC_ALIGN_TO_FRAME( int msec )
 {
 	return FRAME_TO_MSEC( MSEC_TO_FRAME_CEIL( msec ) );
 }
-
-class idGame;
-class idRenderWorld;
-class idSoundWorld;
-class idSession;
-class idCommonDialog;
-class idDemoFile;
-class idUserInterface;
-class idSaveLoadParms;
-class idMatchParameters;
-
-struct lobbyConnectInfo_t;
 
 ID_INLINE void BeginProfileNamedEventColor( uint32 color, VERIFY_FORMAT_STRING const char* szName )
 {

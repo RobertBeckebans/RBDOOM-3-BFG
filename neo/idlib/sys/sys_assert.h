@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SYS_ASSERT_H__
 #define __SYS_ASSERT_H__
 
+#include <stdint.h>                     // for uintptr_t
+
 /*
 ================================================================================================
 
@@ -105,7 +107,7 @@ template<> struct compile_time_assert_failed<true> {};
 template<int x> struct compile_time_assert_test {};
 #define compile_time_assert_join2( a, b )	a##b
 #define compile_time_assert_join( a, b )	compile_time_assert_join2(a,b)
-#define compile_time_assert( x )			typedef compile_time_assert_test<sizeof(compile_time_assert_failed<(bool)(x)>)> compile_time_assert_join(compile_time_assert_typedef_, __LINE__)
+#define compile_time_assert( x )		typedef compile_time_assert_test<sizeof(compile_time_assert_failed<(bool)(x)>)> compile_time_assert_join(compile_time_assert_typedef_, __LINE__)
 
 #define assert_sizeof( type, size )						compile_time_assert( sizeof( type ) == size )
 #define assert_sizeof_8_byte_multiple( type )			compile_time_assert( ( sizeof( type ) &  7 ) == 0 )

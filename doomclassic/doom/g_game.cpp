@@ -26,61 +26,71 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
-#include "Main.h"
-#include "sys/sys_signin.h"
-#include "d3xp/Game_local.h"
-
-
+#include <math.h>
+#include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
+#include <limits>
 
-#include "doomdef.h" 
-#include "doomstat.h"
-
-#include "z_zone.h"
-#include "f_finale.h"
-#include "m_argv.h"
-#include "m_misc.h"
-#include "m_menu.h"
-#include "m_random.h"
-#include "i_system.h"
-
-#include "p_setup.h"
-#include "p_saveg.h"
-#include "p_tick.h"
-
-#include "d_main.h"
-
-#include "wi_stuff.h"
-#include "hu_stuff.h"
-#include "st_stuff.h"
+#include "../../doomclassic/doom/d_event.h"
+#include "../../doomclassic/doom/d_net.h"
+#include "../../doomclassic/doom/d_player.h"
+#include "../../doomclassic/doom/d_ticcmd.h"
+#include "../../doomclassic/doom/defs.h"
+#include "../../doomclassic/doom/doomdata.h"
+#include "../../doomclassic/doom/doomlib.h"
+#include "../../doomclassic/doom/info.h"
+#include "../../doomclassic/doom/m_fixed.h"
+#include "../../doomclassic/doom/p_mobj.h"
+#include "../../doomclassic/doom/r_defs.h"
+#include "../../doomclassic/doom/r_draw.h"
+#include "../../doomclassic/doom/r_main.h"
+#include "../../doomclassic/doom/tables.h"
+#include "../../doomclassic/doom/typedefs.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/Common_dialog.h"
+#include "../framework/UsercmdGen.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Str.h"
+#include "../idlib/math/Angles.h"
+#include "../idlib/math/Math.h"
+#include "../sys/sys_session.h"
+#include "../doomclassic/doom/doomtype.h"
 #include "am_map.h"
-
-// Needs access to LFB.
-#include "v_video.h"
-
-#include "w_wad.h"
-
-#include "p_local.h" 
-
-#include "s_sound.h"
-
+#include "d_main.h"
+#include "doomdef.h" 
 // Data.
 #include "dstrings.h"
-#include "sounds.h"
-
+#include "f_finale.h"
+#include "framework/Common.h"
+#include "g_game.h"
+#include "globaldata.h"
+#include "hu_stuff.h"
+#include "i_system.h"
+#include "m_argv.h"
+#include "m_menu.h"
+#include "m_misc.h"
+#include "m_random.h"
+#include "p_local.h" 
+#include "p_saveg.h"
+#include "p_setup.h"
+#include "p_tick.h"
 // SKY handling - still the wrong place.
 #include "r_data.h"
 #include "r_sky.h"
+#include "s_sound.h"
+#include "sounds.h"
+#include "st_stuff.h"
+#include "sys/sys_signin.h"
+#include "w_wad.h"
+#include "wi_stuff.h"
+#include "z_zone.h"
 
-#include "g_game.h"
+#ifdef _WIN32
+// KORTEMIK: namespaces collide
+#undef max
+#endif
 
-#include "framework/Common.h"
-#include "sys/sys_lobby.h"
-
-#include <limits>
+class idLocalUser;
 
 
 extern bool waitingForWipe;

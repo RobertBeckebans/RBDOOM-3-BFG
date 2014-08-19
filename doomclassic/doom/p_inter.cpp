@@ -26,36 +26,50 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
+#include <stddef.h>
+#include <algorithm>
 
-
+#include "../../doomclassic/doom/d_englsh.h"
+#include "../../doomclassic/doom/d_items.h"
+#include "../../doomclassic/doom/defs.h"
+#include "../../doomclassic/doom/doomlib.h"
+#include "../../doomclassic/doom/info.h"
+#include "../../doomclassic/doom/m_fixed.h"
+#include "../../doomclassic/doom/p_mobj.h"
+#include "../../doomclassic/doom/r_defs.h"
+#include "../../doomclassic/doom/r_main.h"
+#include "../../doomclassic/doom/tables.h"
+#include "../d3xp/Player.h" // IWYU pragma: keep
+#include "../framework/Common.h"
+#include "../idlib/Lib.h"
+#include "../idlib/sys/sys_types.h"
+#include "../sys/sys_session.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/d_player.h"
+#include "am_map.h"
 // Data.
 #include "doomdef.h"
-#include "dstrings.h"
-#include "sounds.h"
-
-#include "doomstat.h"
-
-#include "m_random.h"
+#include "globaldata.h"
 #include "i_system.h"
-
-#include "am_map.h"
-
+#include "m_random.h"
 #include "p_local.h"
-
 #include "s_sound.h"
+#include "sounds.h"
+#include "sys/sys_localuser.h"
 
 #ifdef __GNUG__
 #pragma implementation "p_inter.h"
 #endif
 #include "p_inter.h"
-
-#include "Main.h"
-
 #include "sys/sys_signin.h"
 
-#include "../../neo/d3xp/Game_local.h"
+
+#ifdef _WIN32
+// KORTEMIK: namespaces collide
+#undef min
+#endif
+
+class idPlayerProfile;
 
 // a weapon is found with two clip loads,
 // a big item has five clip loads

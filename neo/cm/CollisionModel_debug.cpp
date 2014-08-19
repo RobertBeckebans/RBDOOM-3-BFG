@@ -35,10 +35,32 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <stdio.h>
+#include <stdlib.h>
 
-
+#include "../cm/CollisionModel.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lexer.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/Token.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/geometry/TraceModel.h"
+#include "../idlib/geometry/Winding.h"
+#include "../idlib/math/Angles.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Plane.h"
+#include "../idlib/math/Random.h"
+#include "../idlib/math/Rotation.h"
+#include "../idlib/math/Vector.h"
+#include "../renderer/Material.h"
+#include "../renderer/RenderWorld.h"
 #include "CollisionModel_local.h"
+#include "Timer.h"
 
 
 /*
@@ -419,8 +441,6 @@ static int max_rotation = -999999;
 static int num_rotation = 0;
 static idVec3 start;
 static idVec3* testend;
-
-#include "../sys/sys_public.h"
 
 void idCollisionModelManagerLocal::DebugOutput( const idVec3& origin )
 {

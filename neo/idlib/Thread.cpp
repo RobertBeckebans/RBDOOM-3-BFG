@@ -26,7 +26,20 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+
+#include <stdlib.h>
+#include <stdlib.h>                     // for exit, abs
+
+#include "../idlib/Lib.h"
+#include "../idlib/Lib.h"               // for idException, idLib
+#include "../idlib/Str.h"
+#include "../idlib/Str.h"               // for idStr, va
+#include "Heap.h"
+#include "Heap.h"                       // for operator delete, etc
+#include "Thread.h"
+#include "Thread.h"                     // for idSysThread, idSysSignal, etc
+#include "sys/sys_threading.h"
+#include "sys/sys_threading.h"          // for Sys_DestroyThread, etc
 
 /*
 ================================================================================================

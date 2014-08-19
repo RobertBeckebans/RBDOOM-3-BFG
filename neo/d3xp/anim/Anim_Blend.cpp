@@ -27,10 +27,50 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
-
+#include <assert.h>
+#include <ctype.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "../Game_local.h"
+#include "../d3xp/Actor.h"
+#include "../d3xp/Entity.h"
+#include "../d3xp/Fx.h"
+#include "../d3xp/Game.h"
+#include "../d3xp/ai/AI.h"
+#include "../d3xp/anim/Anim.h"
+#include "../d3xp/gamesys/Event.h"
+#include "../d3xp/gamesys/SaveGame.h"
+#include "../d3xp/gamesys/SysCvar.h"
+#include "../d3xp/script/Script_Program.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/DeclManager.h"
+#include "../framework/DeclParticle.h"
+#include "../idlib/Dict.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lexer.h"
+#include "../idlib/Str.h"
+#include "../idlib/Token.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/containers/BinSearch.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/geometry/JointTransform.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Quat.h"
+#include "../idlib/math/Random.h"
+#include "../idlib/math/Simd.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../renderer/Model.h"
+#include "../renderer/ModelManager.h"
+#include "../renderer/RenderWorld.h"
+#include "../sound/sound.h"
+
+class idClass;
+class idDeclSkin;
 
 static const char* channelNames[ ANIM_NumAnimChannels ] =
 {

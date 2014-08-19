@@ -25,9 +25,35 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
+
 #pragma hdrstop
-#include "precompiled.h"
-#include "ParallelJobList.h"
+#include "../idlib/ParallelJobList.h"
+
+#include <stdio.h>                      // for NULL
+#include <string.h>
+
+#include "../framework/CVarSystem.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/math/Math.h"
+#include "../sys/sys_public.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Thread.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/StaticList.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_threading.h"
+#include "../idlib/sys/sys_types.h"
+
+#ifdef _WIN32
+// KORTEMIK: namespace collision
+#undef AddJob
+#endif
+
+class idColor;
+class idParallelJobList_Threads;
+struct CellSpursJob128;
 
 /*
 ================================================================================================

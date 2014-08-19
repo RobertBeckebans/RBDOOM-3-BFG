@@ -28,6 +28,13 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __DEBUGGRAPH_H__
 #define __DEBUGGRAPH_H__
 
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Vector.h"
+#include "../renderer/RenderSystem.h"   // for idRenderSystem, etc
+
+class idRenderSystem;
+
 /*
 ================================================================================================
 Contains the DebugGraph declaration.

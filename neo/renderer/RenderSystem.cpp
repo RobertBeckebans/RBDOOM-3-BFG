@@ -27,9 +27,37 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <string.h>
 
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../framework/DemoFile.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/Thread.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/geometry/DrawVert.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
+#include "../libs/glew/include/GL/glew.h"
+#include "../renderer/GraphicsAPIWrapper.h"
+#include "../renderer/GuiModel.h"
+#include "../renderer/Image.h"
+#include "../renderer/ModelManager.h"
+#include "../renderer/RenderSystem.h"
+#include "../renderer/RenderWorld.h"
+#include "../renderer/RenderWorld_local.h"
+#include "../renderer/ResolutionScale.h"
+#include "../renderer/ScreenRect.h"
+#include "../renderer/VertexCache.h"
+#include "../sys/sys_public.h"
 #include "tr_local.h"
+
+class idFont;
+class idMaterial;
 
 idRenderSystemLocal	tr;
 idRenderSystem* renderSystem = &tr;

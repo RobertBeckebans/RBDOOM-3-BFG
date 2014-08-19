@@ -26,31 +26,31 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
+#include "../../doomclassic/doom/d_think.h"
+#include "../../doomclassic/doom/doomlib.h"
+#include "../../doomclassic/doom/m_fixed.h"
+#include "../../doomclassic/doom/p_mobj.h"
+#include "../../doomclassic/doom/r_defs.h"
+#include "../../doomclassic/doom/structs.h"
+#include "../../doomclassic/doom/typedefs.h"
+#include "../idlib/Str.h"
 #include "globaldata.h"
-
 #include "i_system.h"
-#include "z_zone.h"
-
 #include "m_swap.h"
-
-#include "w_wad.h"
-
-#include "doomdef.h"
-#include "r_local.h"
 #include "p_local.h"
-
-#include "doomstat.h"
-#include "r_sky.h"
+#include "w_wad.h"
+#include "z_zone.h"
 
 #ifdef LINUX
 #include  <alloca.h>
 #endif
 
 
-#include "r_data.h"
-
+#include <stdint.h>
+#include <string.h>
 #include <vector>
+
+#include "r_data.h"
 
 //
 // Graphics.

@@ -26,9 +26,27 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+#include <stddef.h>
+#include <string.h>
 
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Compressor.h"
+#include "../framework/File.h"
+#include "../framework/FileSystem.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/StrStatic.h"
+#include "../idlib/Thread.h"
+#include "../idlib/hashing/MD5.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_types.h"
+#include "../libs/zlib/minizip/../zlib.h"
+#include "../sys/sys_public.h"
 #include "File_SaveGame.h"
+#include "sys/sys_threading.h"
+#include "zconf.h"
 
 /*
 

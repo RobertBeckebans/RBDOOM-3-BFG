@@ -28,14 +28,37 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
 
 #ifdef __APPLE__
+#include <stdlib.h>
+#include <unistd.h>			// this is for sleep()
+#include <sys/time.h>
+#include <sys/resource.h>
 #include <mach/mach_time.h>
 #endif
 
-#include "Simd_Generic.h"
-#include "Simd_SSE.h"
+#include <math.h>                       // for fabs, sqrt
+#include <stddef.h>                     // for NULL
+#include "../framework/Common.h"        // for idCommon, common
+#include "../idlib/Lib.h"               // for idLib, idLib::common, etc
+#include "../idlib/Str.h"               // for va, S_COLOR_RED, idStr
+#include "../idlib/geometry/DrawVert.h"  // for idDrawVert
+#include "../idlib/geometry/JointTransform.h"  // for idJointQuat, etc
+#include "../idlib/math/Angles.h"       // for idAngles
+#include "../idlib/math/Math.h"         // for idMath, idMath::PI, etc
+#include "../idlib/math/Matrix.h"       // for idMat3
+#include "../idlib/math/Quat.h"         // for idQuat, idCQuat
+#include "../idlib/math/Random.h"       // for idRandom
+#include "../idlib/math/Simd.h"         // for idSIMDProcessor, idSIMD
+#include "../idlib/math/Simd_Generic.h"  // for idSIMD_Generic
+#include "../idlib/math/Simd_SSE.h"     // for idSIMD_SSE
+#include "../idlib/math/Vector.h"       // for idVec3, idVec2
+#include "../sys/../idlib/CmdArgs.h"    // for idCmdArgs
+#include "../sys/sys_public.h"          // for idSys, cpuid_t, etc
+#include "../idlib/Heap.h"                       // for idTempArray, etc
+#include "../idlib/sys/sys_defines.h"            // for ALIGN16
+#include "../idlib/sys/sys_intrinsics.h"         // for USE_INTRINSICS
+#include "../idlib/sys/sys_types.h"              // for byte, triIndex_t
 
 idSIMDProcessor*		processor = NULL;			// pointer to SIMD processor
 idSIMDProcessor* 	generic = NULL;				// pointer to generic SIMD implementation

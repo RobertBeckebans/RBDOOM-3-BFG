@@ -21,19 +21,15 @@ I bet they'll be amazed.
 
 mix.c */
 
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-
+#include "../libs/timidity/timidity.h"
 #include "config.h"
-#include "common.h"
-#include "instrum.h"
-#include "playmidi.h"
-#include "output.h"
 #include "controls.h"
-#include "tables.h"
-#include "resample.h"
+#include "instrum.h"
 #include "mix.h"
+#include "output.h"
+#include "playmidi.h"
+#include "resample.h"
+#include "tables.h"
 
 /* Returns 1 if envelope runs out */
 int recompute_envelope(int v)

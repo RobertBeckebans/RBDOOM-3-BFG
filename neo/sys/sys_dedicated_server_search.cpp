@@ -27,9 +27,14 @@ If you have questions concerning this license or the applicable additional terms
 */
 #pragma hdrstop
 
-#include "precompiled.h"
-#include "sys_lobby_backend.h"
+#include <stddef.h>
+
+#include "../idlib/BitMsg.h"
+#include "../idlib/Callback.h"
+#include "../idlib/Heap.h"
+#include "../sys/sys_session.h"
 #include "sys_dedicated_server_search.h"
+#include "sys_lobby_backend.h"
 
 /*
 ========================

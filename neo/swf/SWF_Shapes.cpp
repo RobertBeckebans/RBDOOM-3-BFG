@@ -25,8 +25,15 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
+#include <stddef.h>
+
+#include "../idlib/sys/sys_types.h"
+#include "../swf/SWF.h"
+#include "../swf/SWF_Bitstream.h"
+#include "../swf/SWF_Enums.h"
+#include "../swf/SWF_ShapeParser.h"
+
 #pragma hdrstop
-#include "precompiled.h"
 
 /*
 ========================

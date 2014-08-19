@@ -26,9 +26,27 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
 #pragma hdrstop
 
+#include <stddef.h>
+
+#include "../cm/CollisionModel.h"
+#include "../d3xp/Actor.h"
+#include "../d3xp/AimAssist.h"
+#include "../d3xp/Entity.h"
+#include "../d3xp/MultiplayerGame.h"
+#include "../d3xp/Player.h"
+#include "../d3xp/ai/AI.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/physics/Clip.h"
+#include "../d3xp/physics/Physics.h"
+#include "../framework/CVarSystem.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/containers/LinkList.h"
+#include "../idlib/math/Angles.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Vector.h"
 #include "Game_local.h"
 
 /*

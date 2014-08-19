@@ -26,25 +26,23 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
+#include <stddef.h>
 
-
-#include "i_system.h"
-#include "z_zone.h"
-#include "m_random.h"
-
+#include "../../doomclassic/doom/d_think.h"
+#include "../../doomclassic/doom/doomlib.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/m_fixed.h"
+#include "../../doomclassic/doom/p_spec.h"
+#include "../../doomclassic/doom/r_defs.h"
 #include "doomdef.h"
+#include "globaldata.h"
+#include "i_system.h"
+#include "m_random.h"
 #include "p_local.h"
-
 #include "s_sound.h"
-
-// State.
-#include "doomstat.h"
-#include "r_state.h"
-
 // Data.
 #include "sounds.h"
+#include "z_zone.h"
 
 
 

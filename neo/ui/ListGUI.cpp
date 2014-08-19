@@ -27,8 +27,14 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <stddef.h>
 
+#include "../idlib/Dict.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../sys/sys_public.h"
+#include "../ui/UserInterface.h"
 #include "ListGUILocal.h"
 
 /*

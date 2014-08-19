@@ -28,6 +28,15 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __PARALLELJOBLIST_H__
 #define __PARALLELJOBLIST_H__
 
+#include <stdio.h>                      // for NULL
+
+#include "../idlib/sys/sys_types.h"
+
+#ifdef _WIN32
+// KORTEMIK: namespace collision
+#undef AddJob
+#endif
+
 struct CellSpursJob128;
 class idColor;
 

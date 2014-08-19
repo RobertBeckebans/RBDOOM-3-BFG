@@ -29,6 +29,13 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __FRAMEBUFFER_H__
 #define __FRAMEBUFFER_H__
 
+#include <stdint.h>
+
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+
+class idImage;
+
 static const int MAX_SHADOWMAP_RESOLUTIONS = 5;
 #if 1
 static	int shadowMapResolutions[MAX_SHADOWMAP_RESOLUTIONS] = { 2048, 1024, 512, 512, 256 };

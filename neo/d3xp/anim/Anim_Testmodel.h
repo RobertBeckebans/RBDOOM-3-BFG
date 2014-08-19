@@ -29,6 +29,12 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __ANIM_TESTMODEL_H__
 #define __ANIM_TESTMODEL_H__
 
+#include "../d3xp/physics/Physics_Parametric.h"
+#include "../d3xp/Entity.h"
+#include "../d3xp/Actor.h"
+
+
+
 /*
 ==============================================================================================
 

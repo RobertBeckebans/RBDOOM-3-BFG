@@ -28,6 +28,13 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __WAVEFILE_H
 #define __WAVEFILE_H
 
+#include <stddef.h>
+
+#include "../framework/File.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/StaticList.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
 /*
 ================================================================================================
 Contains the WaveFile declaration.

@@ -19,22 +19,22 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 */
 
-#include "precompiled.h"
-
-#include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "../framework/File.h"
+#include "../idlib/Str.h"
+#include "../idlib/sys/sys_types.h"
+#include "common.h"
 //#include "SDL.h"
 #include "config.h"
-#include "common.h"
-#include "instrum.h"
-#include "playmidi.h"
-#include "readmidi.h"
-#include "output.h"
 #include "controls.h"
-#include "timidity.h"
+#include "instrum.h"
+#include "output.h"
+#include "playmidi.h"
 #include "tables.h"
+#include "timidity.h"
 
 
 //void *Real_Tim_Malloc( int sz );

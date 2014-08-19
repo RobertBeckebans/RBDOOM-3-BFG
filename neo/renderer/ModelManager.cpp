@@ -27,8 +27,28 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <stdio.h>
 
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/DeclManager.h"
+#include "../framework/File.h"
+#include "../framework/FileSystem.h"
+#include "../framework/File_Manifest.h"
+#include "../framework/File_Resource.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/StrStatic.h"
+#include "../idlib/containers/HashIndex.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../renderer/Model.h"
+#include "../renderer/ModelManager.h"
+#include "../renderer/VertexCache.h"
+#include "../sys/sys_public.h"
 #include "Model_local.h"
 #include "tr_local.h"	// just for R_FreeWorldInteractions and R_CreateWorldInteractions
 

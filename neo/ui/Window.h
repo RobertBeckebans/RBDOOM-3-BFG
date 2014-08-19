@@ -29,12 +29,30 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __WINDOW_H__
 #define __WINDOW_H__
 
-#include "Rectangle.h"
+#include <stddef.h>
+#include <stdint.h>
+
+#include "../idlib/Heap.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Interpolate.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_defines.h"
 #include "DeviceContext.h"
+#include "Rectangle.h"
 #include "RegExp.h"
-#include "Winvar.h"
-#include "GuiScript.h"
 #include "SimpleWindow.h"
+#include "Winvar.h"
+
+#include "GuiScript.h"
+
+class idCVar;
+class idDict;
+class idFile;
+class idGuiScriptList;
+class idMaterial;
+class idTokenParser;
+struct sysEvent_t;
 
 const int WIN_CHILD			= 0x00000001;
 const int WIN_CAPTION		= 0x00000002;
@@ -122,8 +140,8 @@ struct idRegEntry
 };
 
 
-class rvGEWindowWrapper;
 class idWindow;
+class rvGEWindowWrapper;
 
 struct idTimeLineEvent
 {
@@ -175,6 +193,7 @@ struct idTransitionData
 
 
 class idUserInterfaceLocal;
+
 class idWindow
 {
 public:

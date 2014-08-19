@@ -27,7 +27,16 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include "../idlib/geometry/Surface_Patch.h"
+
+#include "../framework/Common.h"
+#include "../idlib/Lib.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Vector.h"
+#include "Heap.h"
+#include "containers/List.h"
+#include "geometry/DrawVert.h"
+#include "sys/sys_assert.h"
 
 /*
 =================

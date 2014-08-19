@@ -29,6 +29,10 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __PHYSICS_H__
 #define __PHYSICS_H__
 
+#include "../d3xp/physics/Clip.h"       // for idClipModel, idClip
+
+#include "../d3xp/gamesys/Class.h"      // for idClass
+
 /*
 ===============================================================================
 

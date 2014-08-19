@@ -29,6 +29,10 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SYS_LOCAL__
 #define __SYS_LOCAL__
 
+#include <stdarg.h>
+
+#include "../idlib/sys/sys_defines.h"
+#include "../sys/sys_public.h"
 /*
 ==============================================================
 

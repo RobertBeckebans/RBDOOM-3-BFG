@@ -26,23 +26,29 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
-
-
-
 #include <stdlib.h>
-#include <math.h>
 
-
-#include "doomdef.h"
+#include "../../doomclassic/doom/d_player.h"
+#include "../../doomclassic/doom/defs.h"
+#include "../../doomclassic/doom/doomdata.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/m_fixed.h"
+#include "../../doomclassic/doom/p_mobj.h"
+#include "../../doomclassic/doom/r_bsp.h"
+#include "../../doomclassic/doom/r_data.h"
+#include "../../doomclassic/doom/r_defs.h"
+#include "../../doomclassic/doom/r_draw.h"
+#include "../../doomclassic/doom/r_main.h"
+#include "../../doomclassic/doom/r_plane.h"
+#include "../../doomclassic/doom/r_things.h"
+#include "../../doomclassic/doom/tables.h"
+#include "../../doomclassic/doom/typedefs.h"
+#include "Precompiled.h"
 #include "d_net.h"
-
-#include "m_bbox.h"
-
-#include "r_local.h"
-#include "r_sky.h"
+#include "globaldata.h"
 #include "i_system.h"
+#include "m_bbox.h"
+#include "r_sky.h"
 
 
 

@@ -27,6 +27,12 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../idlib/LangDict.h"                   // for idLangDict
+#include "../framework/Common_dialog.h"  // for idCommonDialog
+#include "../framework/File_SaveGame.h"  // for idFile_SaveGame, etc
+#include "../d3xp/Game.h"               // for gameReturn_t (ptr only), etc
+#include "../framework/UsercmdGen.h"    // for idUserCmdMgr, idUsercmdGen, etc
+
 static const int MAX_USERCMD_BACKUP = 256;
 static const int NUM_USERCMD_RELAY = 10;
 static const int NUM_USERCMD_SEND = 8;

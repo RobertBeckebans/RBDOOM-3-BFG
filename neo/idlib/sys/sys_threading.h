@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SYS_THREADING_H__
 #define __SYS_THREADING_H__
 
+#include <stdint.h>                     // for uintptr_t
+
 #ifndef __TYPEINFOGEN__
 
 /*
@@ -41,6 +43,9 @@ If you have questions concerning this license or the applicable additional terms
 
 // RB begin
 #if defined(_WIN32)
+#undef LONG
+#include <Windows.h>
+
 typedef CRITICAL_SECTION		mutexHandle_t;
 typedef HANDLE					signalHandle_t;
 typedef LONG					interlockedInt_t;

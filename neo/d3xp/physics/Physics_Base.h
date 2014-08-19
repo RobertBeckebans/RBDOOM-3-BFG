@@ -29,6 +29,10 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __PHYSICS_BASE_H__
 #define __PHYSICS_BASE_H__
 
+#include "../d3xp/physics/Physics.h"
+
+#include "../d3xp/Game_local.h"
+
 /*
 ===============================================================================
 

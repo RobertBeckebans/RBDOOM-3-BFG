@@ -26,22 +26,18 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include <math.h>
+#include <string.h>
+
+#include "../../doomclassic/doom/d_event.h"
+#include "../../doomclassic/doom/typedefs.h"
 #include "Precompiled.h"
-#include "globaldata.h"
-
-#include <stdlib.h>
-#include <stdarg.h>
-#include <sys/types.h>
-
-#include "i_video.h"
-#include "i_system.h"
-
-#include "doomstat.h"
-#include "v_video.h"
-#include "m_argv.h"
 #include "d_main.h"
+#include "globaldata.h"
+#include "i_video.h"
+#include "v_video.h"
 
-#include "doomdef.h"
+struct controller_t;
 
 //#include <d3d8.h>			// SMF
 //#include <xgraphics.h>	// SMF

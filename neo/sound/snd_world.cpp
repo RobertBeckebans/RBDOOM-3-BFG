@@ -26,8 +26,44 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+#include <stddef.h>
 
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/Console.h"
+#include "../framework/DeclManager.h"
+#include "../framework/DemoFile.h"
+#include "../framework/File.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/StaticList.h"
+#include "../idlib/geometry/Winding.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Plane.h"
+#include "../idlib/math/Random.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/RenderWorld.h"
+
+#if defined(USE_OPENAL)
+#include "../sound/OpenAL/AL_SoundHardware.h"
+#include "../sound/OpenAL/AL_SoundSample.h"
+#include "../sound/OpenAL/AL_SoundVoice.h"
+#else
+#include "../sound/XAudio2/XA2_SoundHardware.h"
+#include "../sound/XAudio2/XA2_SoundSample.h"
+#include "../sound/XAudio2/XA2_SoundVoice.h"
+#endif
+
+
+#include "../sound/sound.h"
+#include "../sound/snd_defines.h"
 #include "snd_local.h"
 
 idCVar s_lockListener( "s_lockListener", "0", CVAR_BOOL, "lock listener updates" );

@@ -26,11 +26,22 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
 #pragma hdrstop
 
-#include "tr_local.h"
+#include <string.h>
+
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../idlib/Heap.h"
+#include "../libs/glew/include/GL/glew.h"
+#include "../renderer/GraphicsAPIWrapper.h"
+#include "../renderer/Image.h"
+#include "../renderer/RenderSystem.h"
 #include "Framebuffer.h"
+#include "tr_local.h"
+
+class idCmdArgs;
 
 idList<Framebuffer*>	Framebuffer::framebuffers;
 

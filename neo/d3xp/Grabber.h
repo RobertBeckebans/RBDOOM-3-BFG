@@ -26,6 +26,10 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#ifndef __GRABBER_H__
+#define __GRABBER_H__
+
+
 /*
 ===============================================================================
 
@@ -35,7 +39,15 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
+#include "../d3xp/Entity.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/physics/Force_Grab.h"
+#include "../idlib/math/Vector.h"
+
 class idBeam;
+class idPlayer;
+class idRestoreGame;
+class idSaveGame;
 
 class idGrabber : public idEntity
 {
@@ -82,4 +94,6 @@ private:
 	void					UpdateBeams();
 	void					ApplyShake();
 };
+
+#endif // __GRABBER_H__
 

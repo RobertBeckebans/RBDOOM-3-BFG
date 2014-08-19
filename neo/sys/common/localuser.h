@@ -28,6 +28,10 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __WIN_LOCALUSER_H__
 #define __WIN_LOCALUSER_H__
 
+#include "../idlib/StrStatic.h"
+#include "../idlib/sys/sys_types.h"
+#include "sys/sys_localuser.h"
+
 // This is to quickly get/set the data needed for disc-swapping
 typedef struct
 {

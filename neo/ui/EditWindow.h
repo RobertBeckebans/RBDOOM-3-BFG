@@ -29,12 +29,22 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __EDITWINDOW_H__
 #define __EDITWINDOW_H__
 
+#include <stddef.h>
+
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../ui/SimpleWindow.h"
+#include "../ui/Winvar.h"
 #include "Window.h"
+
+class idCVar;
+class idTokenParser;
+struct sysEvent_t;
 
 const int MAX_EDITFIELD = 4096;
 
-class idUserInterfaceLocal;
 class idSliderWindow;
+class idUserInterfaceLocal;
 
 class idEditWindow : public idWindow
 {

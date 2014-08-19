@@ -27,8 +27,18 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
-#include "Winding2D.h"
+#include <string.h>
+
+#include "../framework/Common.h"
+#include "../idlib/Lib.h"
+#include "../idlib/geometry/Winding2D.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Plane.h"
+#include "../idlib/math/Vector.h"
+#include "Heap.h"
+#include "containers/Sort.h"
+#include "sys/sys_assert.h"
+#include "sys/sys_types.h"
 
 /*
 ============

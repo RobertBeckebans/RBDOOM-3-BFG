@@ -28,6 +28,11 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SWAP_H__
 #define __SWAP_H__
 
+#include "../idlib/bv/Bounds.h"         // for idBounds
+#include "../idlib/math/Quat.h"         // for idQuat
+#include "../idlib/geometry/DrawVert.h"          // for idDrawVert
+#include "../idlib/math/Angles.h"       // for idAngles
+
 /*
 ================================================================================================
 Contains the Swap class, for CrossPlatform endian conversion.

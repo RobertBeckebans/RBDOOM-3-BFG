@@ -20,7 +20,10 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 output.h
 
 */
+#include <stdint.h>
 #include <stdio.h>
+
+#include "../libs/timidity/config.h"
 #include "timidity.h"
 /* Data format encoding bits */
 

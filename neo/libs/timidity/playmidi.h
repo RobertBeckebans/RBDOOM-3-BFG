@@ -21,6 +21,11 @@ playmidi.h
 
 */
 
+#include <stdint.h>
+#include <sys/types.h>
+
+#include "../libs/timidity/config.h"
+#include "../libs/timidity/instrum.h"
 #include "structs.h"
 
 /* Midi events */

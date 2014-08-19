@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __CONSOLE_H__
 #define __CONSOLE_H__
 
+#include "../framework/DebugGraph.h"    // for idDebugGraph, etc
+
 enum justify_t
 {
 	JUSTIFY_LEFT,

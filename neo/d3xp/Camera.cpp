@@ -26,9 +26,32 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
 #pragma hdrstop
 
+#include <string.h>
+
+#include "../d3xp/Camera.h"
+#include "../d3xp/Entity.h"
+#include "../d3xp/Game.h"
+#include "../d3xp/Player.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/gamesys/Event.h"
+#include "../d3xp/gamesys/SaveGame.h"
+#include "../d3xp/gamesys/SysCvar.h"
+#include "../d3xp/physics/Physics.h"
+#include "../d3xp/script/Script_Thread.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/DeclParticle.h"
+#include "../idlib/Dict.h"
+#include "../idlib/Lexer.h"
+#include "../idlib/Str.h"
+#include "../idlib/Token.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Quat.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../renderer/Model.h"
 #include "Game_local.h"
 
 /*

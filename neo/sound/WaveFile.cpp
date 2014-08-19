@@ -26,7 +26,6 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
 
 /*
 ================================================================================================
@@ -34,6 +33,14 @@ Contains the WaveFile implementation.
 ================================================================================================
 */
 
+#include <string.h>
+
+#include "../framework/FileSystem.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Swap.h"
+#include "../framework/File.h"
+#include "../idlib/containers/StaticList.h"
 #include "WaveFile.h"
 
 /*

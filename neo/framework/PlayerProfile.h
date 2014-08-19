@@ -28,6 +28,12 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __PLAYERPROFILE_H__
 #define __PLAYERPROFILE_H__
 
+#include "../framework/Serializer.h"    // for idSerializer
+#include "../idlib/containers/StaticList.h"      // for idStaticList
+#include "../idlib/sys/sys_types.h"
+
+class idSerializer;
+
 #define	MAX_PROFILE_SIZE			( 1024 * 1000 ) // High number for the key bindings
 
 /*

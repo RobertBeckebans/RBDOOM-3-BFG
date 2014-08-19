@@ -30,7 +30,9 @@ If you have questions concerning this license or the applicable additional terms
 #define __M_MISC__
 
 
+#include "../../doomclassic/doom/typedefs.h"
 #include "doomtype.h"
+
 //
 // MISC
 //

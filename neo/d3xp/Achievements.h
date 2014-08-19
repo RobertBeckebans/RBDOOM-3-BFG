@@ -28,6 +28,18 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __ACHIEVEMENTS_H__
 #define __ACHIEVEMENTS_H__
 
+#include <stddef.h>
+
+#include "../d3xp/Entity.h"
+#include "../framework/PlayerProfile.h"
+#include "../idlib/containers/Array.h"
+#include "../idlib/sys/sys_assert.h"
+
+class idDict;
+class idLocalUser;
+class idRestoreGame;
+class idSaveGame;
+
 enum achievement_t
 {
 

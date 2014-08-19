@@ -28,6 +28,11 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef	__SYS_VOICECHATMGR_H__
 #define	__SYS_VOICECHATMGR_H__
 
+#include <stddef.h>
+
+#include "../idlib/containers/StaticList.h"
+#include "../idlib/sys/sys_types.h"
+#include "../sys/sys_session.h"
 #include "sys_lobby_backend.h"
 
 /*

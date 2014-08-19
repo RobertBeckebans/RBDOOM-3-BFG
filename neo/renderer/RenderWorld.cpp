@@ -27,9 +27,47 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <assert.h>
+#include <string.h>
 
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../framework/DeclManager.h"
+#include "../framework/DeclSkin.h"
+#include "../framework/FileSystem.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/bv/Sphere.h"
+#include "../idlib/containers/Array.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/geometry/RenderMatrix.h"
+#include "../idlib/geometry/Winding.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Plane.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/GLMatrix.h"
+#include "../renderer/GuiModel.h"
+#include "../renderer/Interaction.h"
+#include "../renderer/Material.h"
+#include "../renderer/Model.h"
+#include "../renderer/ModelDecal.h"
+#include "../renderer/ModelOverlay.h"
+#include "../renderer/RenderSystem.h"
+#include "../renderer/RenderWorld.h"
+#include "../renderer/RenderWorld_local.h"
+#include "../renderer/ScreenRect.h"
+#include "../sys/sys_public.h"
+#include "../sys/sys_session.h"
+#include "bv/Box.h"
 #include "tr_local.h"
+
+class idCmdArgs;
+class idUserInterface;
 
 /*
 ===================

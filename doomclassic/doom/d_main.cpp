@@ -26,57 +26,48 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
-
-
-
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
+#include <string.h>
 
+#include "../../doomclassic/doom/d_englsh.h"
+#include "../../doomclassic/doom/d_event.h"
+#include "../../doomclassic/doom/d_net.h"
+#include "../../doomclassic/doom/d_player.h"
+#include "../../doomclassic/doom/doomlib.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/r_draw.h"
+#include "../../doomclassic/doom/r_main.h"
+#include "../../doomclassic/doom/typedefs.h"
+#include "../framework/CVarSystem.h"
+#include "../renderer/tr_local.h"
+#include "../sys/sys_session.h"
+#include "Precompiled.h"
+#include "am_map.h"
+#include "d_main.h"
 #include "doomdef.h"
-#include "doomstat.h"
-
 #include "dstrings.h"
-#include "sounds.h"
-
-
-#include "z_zone.h"
-#include "w_wad.h"
-#include "s_sound.h"
-#include "v_video.h"
-
 #include "f_finale.h"
 #include "f_wipe.h"
-
-#include "m_argv.h"
-#include "m_misc.h"
-#include "m_menu.h"
-
-#include "i_system.h"
-#include "i_sound.h"
-#include "i_video.h"
-
 #include "g_game.h"
-
+#include "globaldata.h"
 #include "hu_stuff.h"
-#include "wi_stuff.h"
-#include "st_stuff.h"
-#include "am_map.h"
-
+#include "i_sound.h"
+#include "i_system.h"
+#include "i_video.h"
+#include "m_argv.h"
+#include "m_menu.h"
+#include "m_misc.h"
 #include "p_setup.h"
-#include "r_local.h"
+#include "s_sound.h"
+#include "sounds.h"
+#include "st_stuff.h"
+#include "v_video.h"
+#include "w_wad.h"
+#include "wi_stuff.h"
+#include "z_zone.h"
 
-
-#include "d_main.h"
-
-//#include "precompiled.h"
-//#include "../Main/PlayerProfile.h"
-//#include "../Main/PSN/PS3_Session.h"
-#include "d3xp/Game_local.h"
+struct patch_t;
 
 //
 // D-DoomLoop()

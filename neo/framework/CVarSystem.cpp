@@ -26,7 +26,21 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
+#include <stdlib.h>
+#include <string.h>
+
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/File.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Dict.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/HashIndex.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/sys/sys_types.h"
+
 #pragma hdrstop
 
 idCVar* idCVar::staticVars = NULL;

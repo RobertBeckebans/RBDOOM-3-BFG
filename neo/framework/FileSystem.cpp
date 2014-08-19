@@ -27,23 +27,49 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
 #pragma hdrstop
+#include <errno.h>
+#include <stdio.h>
+#include <string.h>
+#include <memory>
 
-#include "Unzip.h"
-#include "Zip.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/EventLoop.h"
+#include "../framework/File.h"
+#include "../framework/FileSystem.h"
+#include "../framework/File_Manifest.h"
+#include "../framework/File_Resource.h"
+#include "../framework/Licensee.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lexer.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Parser.h"
+#include "../idlib/Str.h"
+#include "../idlib/StrStatic.h"
+#include "../idlib/Token.h"
+#include "../idlib/containers/HashIndex.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/StaticList.h"
+#include "../idlib/containers/StrList.h"
+#include "../idlib/hashing/CRC32.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_filesystem.h"
+#include "../idlib/sys/sys_types.h"
+#include "../sys/sys_public.h"
 
 #ifdef WIN32
 #include <io.h>	// for _read
 #else
 #if !__MACH__ && __MWERKS__
-#include <types.h>
 #include <stat.h>
+#include <types.h>
 #else
-#include <sys/types.h>
 #include <sys/stat.h>
 #endif
-#include <unistd.h>
 #endif
 
 

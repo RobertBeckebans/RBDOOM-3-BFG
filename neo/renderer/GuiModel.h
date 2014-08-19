@@ -25,6 +25,15 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
+#ifndef __GUIMODEL_H__
+#define __GUIMODEL_H__
+
+#include "../idlib/Heap.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/Material.h"
+#include "../renderer/RenderSystem.h"
+#include "../renderer/VertexCache.h"
 
 struct guiModelSurface_t
 {
@@ -35,6 +44,8 @@ struct guiModelSurface_t
 	stereoDepthType_t		stereoType;
 };
 
+class idDemoFile;
+class idDrawVert;
 class idRenderMatrix;
 
 class idGuiModel
@@ -87,3 +98,4 @@ private:
 	idList<guiModelSurface_t, TAG_MODEL>	surfaces;
 };
 
+#endif /* !__GUIMODEL_H__ */

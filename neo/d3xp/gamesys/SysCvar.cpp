@@ -27,10 +27,16 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
-
+#include <stdio.h>
 
 #include "../Game_local.h"
+#include "../d3xp/Game_defines.h"
+#include "../d3xp/MultiplayerGame.h"
+#include "../framework/BuildVersion.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Licensee.h"
+#include "../idlib/sys/sys_defines.h"
 
 #if defined( _DEBUG )
 	#define	BUILD_DEBUG	"-debug"

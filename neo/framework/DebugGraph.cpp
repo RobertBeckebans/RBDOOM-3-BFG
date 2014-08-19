@@ -25,8 +25,15 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
+#include "../framework/DebugGraph.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/RenderSystem.h"
+
 #pragma hdrstop
-#include "precompiled.h"
 
 /*
 ================================================================================================

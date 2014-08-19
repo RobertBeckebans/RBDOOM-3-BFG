@@ -28,10 +28,31 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "tr_local.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/FileSystem.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lexer.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Parser.h"
+#include "../idlib/Str.h"
+#include "../idlib/Token.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/Sort.h"
+#include "../idlib/containers/StaticList.h"
+#include "../idlib/containers/StrList.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
+#include "../libs/glew/include/GL/glew.h"
+#include "../renderer/GraphicsAPIWrapper.h"
+#include "../renderer/RenderProgs.h"
+#include "../renderer/RenderSystem.h"
 #include "RenderProgs_embedded.h"
+#include "tr_local.h"
 
 idCVar r_skipStripDeadCode( "r_skipStripDeadCode", "0", CVAR_BOOL, "Skip stripping dead code" );
 idCVar r_useUniformArrays( "r_useUniformArrays", "1", CVAR_BOOL, "" );

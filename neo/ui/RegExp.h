@@ -29,9 +29,20 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __REGEXP_H__
 #define __REGEXP_H__
 
+#include <assert.h>
+#include <stddef.h>
+
+#include "../idlib/Str.h"
+#include "../idlib/containers/HashIndex.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/sys/sys_defines.h"
+
+class idDemoFile;
+class idFile;
 class idTokenParser;
-class idWindow;
+class idVec4;
 class idWinVar;
+class idWindow;
 
 class idRegister
 {

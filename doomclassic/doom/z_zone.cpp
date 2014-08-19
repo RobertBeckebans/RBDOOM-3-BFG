@@ -26,12 +26,16 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "z_zone.h"
-#include "i_system.h"
-#include "doomdef.h"
+#include "../../doomclassic/doom/structs.h"
+#include "../../doomclassic/doom/typedefs.h"
 #include "globaldata.h"
+#include "i_system.h"
+#include "z_zone.h"
 
 
 //

@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SNAPSHOT_H__
 #define __SNAPSHOT_H__
 
+#include "../framework/CVarSystem.h"  // for idCVar
+
 #include "Snapshot_Jobs.h"
 
 extern idCVar net_verboseSnapshot;

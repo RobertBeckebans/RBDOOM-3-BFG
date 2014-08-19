@@ -28,6 +28,12 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SHADOWSHARED_H__
 #define __SHADOWSHARED_H__
 
+#include "../idlib/sys/sys_types.h"
+
+class idBounds;
+class idShadowVert;
+class idVec3;
+
 enum shadowVolumeState_t
 {
 	SHADOWVOLUME_DONE		= 0,

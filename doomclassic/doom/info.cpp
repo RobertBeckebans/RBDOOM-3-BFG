@@ -26,20 +26,17 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-
 #ifdef __GNUG__
 #pragma implementation "info.h"
 #endif
+#include <stddef.h>
+
+#include "../../doomclassic/doom/d_think.h"
 #include "info.h"
-
-#include "globaldata.h"
-
+#include "m_fixed.h"
+#include "p_mobj.h"
 // Data.
 #include "sounds.h"
-#include "m_fixed.h"
-
-#include "p_mobj.h"
 
 
 // RB: sprnames must be NULL-terminated

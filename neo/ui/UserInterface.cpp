@@ -27,12 +27,37 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <stddef.h>
+#include <stdio.h>
 
-#include "ListGUILocal.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../framework/DeclManager.h"
+#include "../framework/DemoFile.h"
+#include "../framework/File.h"
+#include "../framework/FileSystem.h"
+#include "../framework/KeyInput.h"
+#include "../framework/TokenParser.h"
+#include "../idlib/Dict.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lexer.h"
+#include "../idlib/Parser.h"
+#include "../idlib/Str.h"
+#include "../idlib/Token.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../renderer/Material.h"
+#include "../sys/sys_public.h"
+#include "../ui/ListGUI.h"
+#include "../ui/Rectangle.h"
+#include "../ui/SimpleWindow.h"
+#include "../ui/UserInterface.h"
+#include "../ui/Winvar.h"
 #include "DeviceContext.h"
-#include "Window.h"
+#include "ListGUILocal.h"
 #include "UserInterfaceLocal.h"
+#include "Window.h"
 
 extern idCVar r_skipGuiShaders;		// 1 = don't render any gui elements on surfaces
 

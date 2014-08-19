@@ -30,8 +30,11 @@ If you have questions concerning this license or the applicable additional terms
 #define __STLIB__
 
 
+#include "../../doomclassic/doom/doomtype.h"
 // We are referring to patches.
 #include "r_defs.h"
+
+struct patch_t;
 
 
 //

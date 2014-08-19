@@ -36,6 +36,10 @@ instancing of objects.
 #ifndef __SYS_CLASS_H__
 #define __SYS_CLASS_H__
 
+#include "../d3xp/gamesys/Event.h"      // for idEventDef, idEvent, etc
+#include "../idlib/containers/Hierarchy.h"       // for idHierarchy
+#include "../d3xp/Game_local.h"      // gameLocal
+
 class idClass;
 class idTypeInfo;
 

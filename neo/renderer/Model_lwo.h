@@ -29,6 +29,12 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __LWO2_H__
 #define __LWO2_H__
 
+#include <stdint.h>
+
+#include "../idlib/math/Math.h"
+#include "../idlib/sys/sys_defines.h"
+
+class idFile;
 /*
 ======================================================================
 

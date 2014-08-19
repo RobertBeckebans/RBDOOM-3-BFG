@@ -28,7 +28,19 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __RENDERWINDOW_H
 #define __RENDERWINDOW_H
 
+#include <stddef.h>
+
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../renderer/RenderWorld.h"
+#include "../ui/SimpleWindow.h"
+#include "../ui/Window.h"
+#include "../ui/Winvar.h"
+
+class idMD5Anim;
+class idTokenParser;
 class idUserInterfaceLocal;
+
 class idRenderWindow : public idWindow
 {
 public:

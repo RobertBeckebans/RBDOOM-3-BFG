@@ -28,6 +28,10 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __LIGHTWEIGHT_COMPRESSION_H__
 #define __LIGHTWEIGHT_COMPRESSION_H__
 
+#include <stddef.h>
+
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
 
 struct lzwCompressionData_t
 {

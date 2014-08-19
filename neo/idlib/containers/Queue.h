@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __QUEUE_H__
 #define __QUEUE_H__
 
+#include "../idlib/Heap.h"
+
 /*
 ===============================================================================
 

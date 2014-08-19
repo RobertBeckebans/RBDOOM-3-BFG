@@ -26,7 +26,22 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+#include <stddef.h>
+
+#include "../framework/CVarSystem.h"
+#include "../framework/File.h"
+#include "../framework/FileSystem.h"
+#include "../idlib/LangDict.h"
+#include "../idlib/Lexer.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/HashIndex.h"
+#include "../sys/sys_public.h"
+#include "../idlib/Heap.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_types.h"
+
 
 // This is the default language dict that the entire system uses, but you can instantiate your own idLangDict classes to manipulate a language dictionary in a tool
 idLangDict	idLocalization::languageDict;

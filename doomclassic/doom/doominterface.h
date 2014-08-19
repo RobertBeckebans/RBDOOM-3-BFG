@@ -31,8 +31,10 @@ If you have questions concerning this license or the applicable additional terms
 
 //#include "doomlib.h"
 
-#include <vector>
 #include <string>
+#include <vector>
+
+#include "../../doomclassic/doom/doomtype.h"
 
 class idUserCmdMgr;
 

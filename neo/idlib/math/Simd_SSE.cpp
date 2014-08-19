@@ -28,9 +28,20 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
-#include "Simd_Generic.h"
-#include "Simd_SSE.h"
+#include <math.h>                       // for M_PI
+#include <stdint.h>                     // for intptr_t
+
+#include "../idlib/math/Math.h"         // for idMath
+#include "../idlib/math/Quat.h"         // for idQuat
+#include "../idlib/math/Simd.h"         // for VPCALL
+#include "../idlib/math/Simd_SSE.h"     // for idSIMD_SSE
+#include "../idlib/math/Vector.h"       // for idVec3
+#include "../idlib/containers/Sort.h"            // for SwapValues
+#include "../idlib/geometry/JointTransform.h"    // for idJointQuat, idJointMat, etc
+#include "../idlib/sys/sys_assert.h"             // for assert, etc
+#include "../idlib/sys/sys_intrinsics.h"         // for _mm_madd_ps, __m128c, etc
+
+
 
 //===============================================================
 //                                                        M
@@ -40,7 +51,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #if defined(USE_INTRINSICS)
 
-#include <xmmintrin.h>
+#include <emmintrin.h>                  // for _mm_set_epi32
+#include <xmmintrin.h>                  // for __m128, _mm_load_ps, etc
 
 #ifndef M_PI // DG: this is already defined in math.h
 #define M_PI	3.14159265358979323846f

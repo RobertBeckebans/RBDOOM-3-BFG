@@ -29,6 +29,11 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __PUSH_H__
 #define __PUSH_H__
 
+#include "../cm/CollisionModel.h"
+
+#include "../d3xp/physics/Clip.h"
+#include "../d3xp/Game_defines.h"
+
 /*
 ===============================================================================
 

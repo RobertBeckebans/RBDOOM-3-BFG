@@ -26,41 +26,24 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
-
-
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <fcntl.h>
+#include <ctype.h>
 #include <stdlib.h>
 
-#include <ctype.h>
-
-
-#include "doomdef.h"
-#include "g_game.h"
-#include "z_zone.h"
-
-#include "m_swap.h"
-#include "m_argv.h"
-
-#include "w_wad.h"
-
-#include "i_system.h"
-#include "i_video.h"
-#include "v_video.h"
-
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/r_defs.h"
+#include "../../doomclassic/doom/structs.h"
+#include "../doomclassic/doom/typedefs.h"
+#include "../framework/File.h"
+#include "../framework/FileSystem.h"
+#include "Precompiled.h"
+#include "globaldata.h"
 #include "hu_stuff.h"
-
-// State.
-#include "doomstat.h"
-
-// Data.
-#include "dstrings.h"
-
+#include "i_system.h"
+#include "m_argv.h"
 #include "m_misc.h"
-#include "d3xp/Game_local.h"
+#include "m_swap.h"
+#include "v_video.h"
+#include "z_zone.h"
 
 //
 // M_DrawText
@@ -189,14 +172,6 @@ int M_ReadSaveGame( byte** buffer )
 
 
 // machine-independent sound params
-
-
-// UNIX hack, to be removed.
-#ifdef SNDSERV
-#endif
-
-#ifdef LINUX
-#endif
 
 extern const char* const temp_chat_macros[];
 

@@ -25,8 +25,18 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
+#include <string.h>
+
+#include "../idlib/Heap.h"
+#include "../idlib/Str.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
+#include "../swf/SWF_Bitstream.h"
+#include "../swf/SWF_Types.h"
+
 #pragma hdrstop
-#include "precompiled.h"
 
 #define NBM( x ) (int32)( ( 1LL << x ) - 1 )
 int maskForNumBits[33] = {	NBM( 0x00 ), NBM( 0x01 ), NBM( 0x02 ), NBM( 0x03 ),

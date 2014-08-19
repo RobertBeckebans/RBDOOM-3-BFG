@@ -28,6 +28,9 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SYS_STATS_H__
 #define __SYS_STATS_H__
 
+#include "../idlib/Callback.h"                   // for idCallback
+#include "../sys/sys_stats_misc.h"
+
 //------------------------
 // leaderboardError_t
 //------------------------
@@ -42,6 +45,7 @@ enum leaderboardError_t
 	LEADERBOARD_ERROR_DOWNLOAD,				// An error occurred while downloading the leaderboard
 	LEADERBOARD_ERROR_MAX
 };
+
 
 /*
 ================================================
@@ -127,7 +131,5 @@ protected:
 	int								numRowsInLeaderboard;	// total number of rows in the online leaderboard
 	leaderboardError_t				errorCode;				// error, if any, that occurred during last operation
 };
-
-
 
 #endif // !__SYS_STATS_H__

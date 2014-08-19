@@ -26,13 +26,17 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
+#include "../../doomclassic/doom/d_player.h"
+#include "../../doomclassic/doom/d_think.h"
+#include "../../doomclassic/doom/doomdef.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/p_spec.h"
+#include "../../doomclassic/doom/typedefs.h"
 #include "globaldata.h"
-
-#include "z_zone.h"
 #include "p_local.h"
+#include "z_zone.h"
 
-#include "doomstat.h"
+struct mobj_t;
 
 
 

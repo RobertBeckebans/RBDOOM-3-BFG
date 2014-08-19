@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __DECLENTITYDEF_H__
 #define __DECLENTITYDEF_H__
 
+#include "../framework/DeclManager.h"   // for declManager, idDeclManager
+
 /*
 ===============================================================================
 

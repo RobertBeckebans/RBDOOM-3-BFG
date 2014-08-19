@@ -25,11 +25,13 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#include "../../idlib/precompiled.h"
-#include "posix_public.h"
-
-#include <string.h>
 #include <errno.h>
+#include <signal.h>
+#include <string.h>
+
+#include "../framework/Common.h"
+#include "../sys/sys_public.h"
+#include "posix_public.h"
 
 const int siglist[] =
 {

@@ -27,9 +27,18 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <stdlib.h>
+#include <string.h>
 
-
+#include "../aas/AASFile.h"
+#include "../d3xp/ai/AAS.h"
+#include "../framework/Common.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Plane.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
 #include "AAS_local.h"
 
 #define SUBSAMPLE_WALK_PATH		1

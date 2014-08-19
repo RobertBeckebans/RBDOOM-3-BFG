@@ -28,10 +28,30 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <math.h>
+#include <stddef.h>
 
-#include "tr_local.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Str.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/geometry/DrawVert.h"
+#include "../idlib/math/Plane.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/GLMatrix.h"
+#include "../renderer/GuiModel.h"
+#include "../renderer/Material.h"
+#include "../renderer/Model.h"
+#include "../renderer/RenderSystem.h"
+#include "../renderer/RenderWorld.h"
+#include "../ui/UserInterface.h"
+#include "../framework/DeclParticle.h"
 #include "Model_local.h"
+#include "tr_local.h"
+
+class idJointMat;
 
 /*
 ==========================================================================================

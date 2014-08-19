@@ -26,16 +26,14 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../../doomclassic/doom/m_fixed.h"
 #include "Precompiled.h"
-#include "globaldata.h"
 
 
 #ifdef __GNUG__
 #pragma implementation "m_bbox.h"
 #endif
 #include "m_bbox.h"
-
-#include "doomtype.h"
 
 
 

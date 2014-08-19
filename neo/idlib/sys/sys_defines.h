@@ -37,6 +37,11 @@ If you have questions concerning this license or the applicable additional terms
 ================================================================================================
 */
 
+const int MAX_EXPRESSION_OPS = 4096;
+const int MAX_EXPRESSION_REGISTERS = 4096;
+
+#define ID_TIME_T int64 // Signed because -1 means "File not found" and we don't want that to compare > than any other time
+
 // Win32
 #if defined(WIN32) || defined(_WIN32)
 
@@ -56,7 +61,6 @@ If you have questions concerning this license or the applicable additional terms
 #define ALIGNTYPE128
 // DG end
 #endif
-
 
 #define FORMAT_PRINTF( x )
 

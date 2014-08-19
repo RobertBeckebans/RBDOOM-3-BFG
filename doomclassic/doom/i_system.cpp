@@ -26,30 +26,26 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
-
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-
 #include <stdarg.h>
+#include <stdio.h>
 
-#include "doomdef.h"
-#include "m_misc.h"
-#include "i_video.h"
-#include "i_sound.h"
-
+#include "../../doomclassic/doom/d_ticcmd.h"
+#include "../../doomclassic/doom/doominterface.h"
+#include "../../doomclassic/doom/doomlib.h"
+#include "../framework/Common.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
 #include "d_net.h"
-#include "g_game.h"
+#include "globaldata.h"
+#include "i_sound.h"
+#include "i_video.h"
+#include "m_misc.h"
 
 #ifdef __GNUG__
 #pragma implementation "i_system.h"
 #endif
-#include "i_system.h"
-
 #include "Main.h"
+#include "i_system.h"
 
 #if  1
 

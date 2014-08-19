@@ -26,23 +26,31 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
+#include <string.h>
 
-#include "i_system.h"
-#include "z_zone.h"
-#include "m_random.h"
-
+#include "../../doomclassic/doom/d_player.h"
+#include "../../doomclassic/doom/d_think.h"
+#include "../../doomclassic/doom/d_ticcmd.h"
+#include "../../doomclassic/doom/defs.h"
+#include "../../doomclassic/doom/doomdata.h"
+#include "../../doomclassic/doom/doomlib.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/info.h"
+#include "../../doomclassic/doom/m_fixed.h"
+#include "../../doomclassic/doom/p_mobj.h"
+#include "../../doomclassic/doom/r_defs.h"
+#include "../../doomclassic/doom/r_main.h"
+#include "../../doomclassic/doom/tables.h"
 #include "doomdef.h"
-#include "p_local.h"
-#include "sounds.h"
-
-#include "st_stuff.h"
+#include "globaldata.h"
 #include "hu_stuff.h"
-
+#include "m_random.h"
+#include "p_local.h"
+#include "p_mobj.h"
 #include "s_sound.h"
-
-#include "doomstat.h"
+#include "sounds.h"
+#include "st_stuff.h"
+#include "z_zone.h"
 
 extern bool globalNetworking;
 

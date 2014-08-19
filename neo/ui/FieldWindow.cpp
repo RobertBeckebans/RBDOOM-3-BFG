@@ -27,12 +27,14 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
-
+#include "../framework/TokenParser.h"
+#include "../idlib/Dict.h"
+#include "../ui/Rectangle.h"
+#include "../ui/Winvar.h"
 #include "DeviceContext.h"
-#include "Window.h"
-#include "UserInterfaceLocal.h"
 #include "FieldWindow.h"
+#include "UserInterfaceLocal.h"
+#include "Window.h"
 
 
 void idFieldWindow::CommonInit()

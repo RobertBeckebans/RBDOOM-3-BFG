@@ -26,7 +26,17 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
+#include <stddef.h>
+
+#include "../framework/DeclManager.h"
+#include "../framework/DeclSkin.h"
+#include "../idlib/Lexer.h"
+#include "../idlib/Str.h"
+#include "../idlib/Token.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/StrList.h"
+#include "../renderer/Material.h"
+
 #pragma hdrstop
 
 

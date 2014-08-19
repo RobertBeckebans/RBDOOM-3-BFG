@@ -26,7 +26,17 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+#include <stddef.h>
+
+#include "../framework/CVarSystem.h"
+#include "../framework/PlayerProfile.h"
+#include "../idlib/Str.h"
+#include "../idlib/hashing/MD5.h"
+#include "../idlib/sys/sys_types.h"
+#include "../sys/sys_localuser.h"
+#include "../sys/sys_public.h"
+#include "../sys/sys_session.h"
+#include "../sys/sys_signin.h"
 
 idCVar com_requireNonProductionSignIn( "com_requireNonProductionSignIn", "1", CVAR_BOOL | CVAR_ARCHIVE, "If true, will require sign in, even on non production builds." );
 extern idCVar fs_savepath;

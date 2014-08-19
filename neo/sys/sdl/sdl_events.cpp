@@ -29,8 +29,6 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "../../idlib/precompiled.h"
-
 // DG: SDL.h somehow needs the following functions, so #undef those silly
 //     "don't use" #defines from Str.h
 #undef strncmp
@@ -38,11 +36,29 @@ If you have questions concerning this license or the applicable additional terms
 #undef vsnprintf
 // DG end
 
-#include <SDL.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
 
+#include <SDL/SDL_events.h>
+#include <SDL/SDL_keyboard.h>
+#include <SDL/SDL_keysym.h>
+#include <SDL/SDL_mouse.h>
+#include <SDL/SDL_version.h>
+
+#include "../d3xp/Game.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/sys/sys_types.h"
+#include "../posix/posix_public.h"
+#include "../renderer/RenderSystem.h"
+#include "../sys/sys_public.h"
 #include "renderer/tr_local.h"
 #include "sdl_local.h"
-#include "../posix/posix_public.h"
 
 #if !SDL_VERSION_ATLEAST(2, 0, 0)
 #define SDL_Keycode SDLKey

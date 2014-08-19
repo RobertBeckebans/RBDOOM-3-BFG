@@ -29,6 +29,9 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __TIMER_H__
 #define __TIMER_H__
 
+#include "../sys/sys_public.h"
+#include "../idlib/containers/StrList.h"
+
 /*
 ===============================================================================
 

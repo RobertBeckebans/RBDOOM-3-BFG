@@ -29,6 +29,18 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __BRUSH_H__
 #define __BRUSH_H__
 
+#include "../idlib/math/Plane.h"
+#include "../idlib/geometry/Winding.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/containers/PlaneSet.h"
+#include "../idlib/sys/sys_types.h"
+#include "../idlib/Str.h"
+#include "../framework/File.h"
+
+
+
 /*
 ===============================================================================
 

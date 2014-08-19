@@ -20,10 +20,12 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 tables.h
 */
 
+#include <stdint.h>
 #ifdef LOOKUP_SINE
 extern float sine(int x);
 #else
 #include <math.h>
+
 #define sine(x) (sin((2*PI/1024.0) * (x)))
 #endif
 

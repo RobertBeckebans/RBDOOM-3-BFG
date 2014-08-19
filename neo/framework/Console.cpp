@@ -27,10 +27,37 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
-#include "ConsoleHistory.h"
+#ifndef _WIN32
+#include <alloca.h>
+#endif
+#include <assert.h>
+#include <stdarg.h>
+#include <string.h>
+
+#include "../framework/BuildVersion.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/Console.h"
+#include "../framework/DebugGraph.h"
+#include "../framework/EditField.h"
+#include "../framework/EventLoop.h"
+#include "../framework/File.h"
+#include "../framework/FileSystem.h"
+#include "../framework/KeyInput.h"
+#include "../framework/Licensee.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Vector.h"
+#include "../renderer/RenderSystem.h"
 #include "../renderer/ResolutionScale.h"
+#include "../sys/sys_public.h"
 #include "Common_local.h"
+#include "ConsoleHistory.h"
 
 #define	CON_TEXTSIZE			0x30000
 #define	NUM_CON_TIMES			4

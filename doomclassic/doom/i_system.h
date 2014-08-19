@@ -29,8 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __I_SYSTEM__
 #define __I_SYSTEM__
 
-#include "d_ticcmd.h"
 #include "d_event.h"
+#include "d_ticcmd.h"
 
 #ifdef __GNUG__
 #pragma interface

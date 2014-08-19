@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __COLORSPACE_H__
 #define __COLORSPACE_H__
 
+#include "../idlib/sys/sys_types.h"
 /*
 ================================================================================================
 Contains the ColorSpace conversion declarations.

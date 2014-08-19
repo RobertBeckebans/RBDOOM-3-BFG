@@ -26,21 +26,31 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+
+#include "../../doomclassic/doom/d_event.h"
+#include "../../doomclassic/doom/d_net.h"
+#include "../../doomclassic/doom/d_player.h"
+#include "../../doomclassic/doom/d_ticcmd.h"
+#include "../../doomclassic/doom/defs.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/typedefs.h"
+#include "../framework/Common.h"
+#include "../framework/Common_dialog.h"
+#include "../sys/sys_session.h"
 #include "Precompiled.h"
-#include "globaldata.h"
-
-
-#include "m_menu.h"
-#include "i_system.h"
-#include "i_video.h"
-#include "i_net.h"
-#include "g_game.h"
 #include "doomdef.h"
-#include "doomstat.h"
-
 #include "doomlib.h"
-#include "Main.h"
-#include "d3xp/Game_local.h"
+#include "g_game.h"
+#include "globaldata.h"
+#include "i_net.h"
+#include "i_system.h"
+#include "m_menu.h"
+
+class idUserCmdMgr;
+struct controller_t;
 
 
 void I_GetEvents( controller_t * );

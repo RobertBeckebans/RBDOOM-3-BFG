@@ -25,8 +25,24 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
+#include <stdlib.h>
+
+#include "../framework/CVarSystem.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/Sort.h"
+#include "../idlib/containers/StaticList.h"
+#include "../swf/SWF_ParmList.h"
+#include "../swf/SWF_ScriptFunction.h"
+#include "../swf/SWF_ScriptObject.h"
+#include "../swf/SWF_ScriptVar.h"
+#include "../swf/SWF_SpriteInstance.h"
+
+class idSWFTextInstance;
+
 #pragma hdrstop
-#include "precompiled.h"
 
 idCVar swf_debugShowAddress( "swf_debugShowAddress", "0", CVAR_BOOL, "shows addresses along with object types when they are serialized" );
 

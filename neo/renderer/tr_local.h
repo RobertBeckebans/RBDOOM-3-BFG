@@ -30,14 +30,14 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __TR_LOCAL_H__
 #define __TR_LOCAL_H__
 
-#include "precompiled.h"
-
 #include "GLState.h"
 #include "ScreenRect.h"
 #include "ImageOpts.h"
 #include "Image.h"
 #include "Font.h"
 #include "Framebuffer.h"
+#include "../renderer/RenderWorld.h"    // for renderLight_t, etc
+#include "../renderer/RenderSystem.h"   // for idRenderSystem, etc
 
 // everything that is needed by the backend needs
 // to be double buffered to allow it to run in

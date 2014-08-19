@@ -30,6 +30,26 @@ If you have questions concerning this license or the applicable additional terms
 #define __GAME_BRITTLEFRACTURE_H__
 
 
+#include "../cm/CollisionModel.h"
+#include "../d3xp/Entity.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/physics/Physics_RigidBody.h"
+#include "../d3xp/physics/Physics_StaticMulti.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Str.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/geometry/Winding.h"
+#include "../idlib/math/Vector.h"
+#include "../renderer/RenderWorld.h"
+
+class idBitMsg;
+class idClipModel;
+class idMaterial;
+class idRandom2;
+class idRenderModel;
+class idRestoreGame;
+class idSaveGame;
 /*
 ===============================================================================
 

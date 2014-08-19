@@ -32,11 +32,13 @@ If you have questions concerning this license or the applicable additional terms
 #include <windows.h>
 
 // RB: replaced QGL with GLEW
-#include "../../libs/glew/include/GL/wglew.h" // windows OpenGL extensions
+#include "../libs/glew/include/GL/glew.h"
+#include "../libs/glew/include/GL/wglew.h" // windows OpenGL extensions
 // RB end
 
 #include "win_input.h"
 
+#include <dinput.h>
 
 #define	WINDOW_STYLE	(WS_OVERLAPPED|WS_BORDER|WS_CAPTION|WS_VISIBLE | WS_THICKFRAME)
 
@@ -126,7 +128,7 @@ typedef struct
 	CRITICAL_SECTION criticalSections[MAX_CRITICAL_SECTIONS];
 	
 	HINSTANCE		hInstDI;			// direct input
-	
+
 	LPDIRECTINPUT8			g_pdi;
 	LPDIRECTINPUTDEVICE8	g_pMouse;
 	LPDIRECTINPUTDEVICE8	g_pKeyboard;

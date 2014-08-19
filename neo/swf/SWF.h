@@ -28,6 +28,10 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SWF_H__
 #define __SWF_H__
 
+
+#include "../idlib/math/VectorI.h"
+#include "../sound/sound.h"             // for SCHANNEL_ANY, etc
+
 #include "SWF_Enums.h"
 #include "SWF_Types.h"
 #include "SWF_Bitstream.h"

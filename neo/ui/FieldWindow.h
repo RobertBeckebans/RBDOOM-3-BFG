@@ -28,7 +28,11 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __FIELDWINDOW_H
 #define __FIELDWINDOW_H
 
+#include "../idlib/Str.h"
 #include "Window.h"
+
+class idTokenParser;
+class idUserInterfaceLocal;
 
 
 class idFieldWindow : public idWindow

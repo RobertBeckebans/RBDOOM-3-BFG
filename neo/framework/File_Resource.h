@@ -29,6 +29,11 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __FILE_RESOURCE_H__
 #define __FILE_RESOURCE_H__
 
+#include "../idlib/StrStatic.h"
+#include "../idlib/containers/StrList.h"  // for idStrList
+#include "../idlib/sys/sys_types.h"
+#include "../framework/File.h"          // for idFileLocal, idFile
+
 /*
 ==============================================================
 

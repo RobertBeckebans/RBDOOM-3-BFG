@@ -32,8 +32,18 @@ If you have questions concerning this license or the applicable additional terms
 // device context support for gui stuff
 //
 
-#include "Rectangle.h"
+#include <stddef.h>
+
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Vector.h"
 #include "../renderer/Font.h"
+#include "Rectangle.h"
+
+class idFont;
+class idMaterial;
+class idWinding;
+struct scaledGlyphInfo_t;
 
 const int VIRTUAL_WIDTH = 640;
 const int VIRTUAL_HEIGHT = 480;

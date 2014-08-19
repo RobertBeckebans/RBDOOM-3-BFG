@@ -22,23 +22,26 @@ instrum.c
 Code to load and unload GUS-compatible instrument patches.
 
 */
-
-#include "precompiled.h"
-
-#include <stdio.h>
+#ifndef _WIN32
+#include <endian.h>
+#endif
+#include <stddef.h>
+#include <stdint.h>
 #include <string.h>
-#include <stdlib.h>
-#include <ctype.h>
 
-#include "config.h"
+#include "../framework/File.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Str.h"
+#include "../idlib/sys/sys_types.h"
+#include "../libs/timidity/timidity.h"
 #include "common.h"
+#include "config.h"
+#include "controls.h"
+#include "filter.h"
 #include "instrum.h"
 #include "playmidi.h"
-#include "output.h"
-#include "controls.h"
 #include "resample.h"
 #include "tables.h"
-#include "filter.h"
 
 
 

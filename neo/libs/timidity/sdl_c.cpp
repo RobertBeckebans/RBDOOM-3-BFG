@@ -21,19 +21,12 @@ sdl_c.c
 Minimal control mode -- no interaction, just stores messages.
 */
 
-#include "precompiled.h"
-
-#include <stdio.h>
-#include <stdlib.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
 
-#include "config.h"
-#include "common.h"
-#include "output.h"
+#include "../idlib/Str.h"
 #include "controls.h"
-#include "instrum.h"
-#include "playmidi.h"
 
 static void ctl_refresh(void);
 static void ctl_total_time(int tt);

@@ -27,8 +27,42 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
 #pragma hdrstop
+#include <math.h>
+#include <math.h>                       // for fabs
+#include <stdarg.h>
+#include <stdarg.h>                     // for va_end, va_list, va_start
+#include <stdio.h>
+#include <stdio.h>                      // for NULL, sprintf, vsprintf
+#include <stdlib.h>
+#include <stdlib.h>                     // for abs
+#include <string.h>
+#include <string.h>                     // for strlen, strcpy
+#include <time.h>
+#include <time.h>                       // for ctime, time, time_t
+
+#include "../framework/../framework/CmdSystem.h"
+#include "../framework/CmdSystem.h"  // for CONSOLE_COMMAND
+#include "../framework/Common.h"
+#include "../framework/Common.h"        // for idCommon
+#include "../idlib/Heap.h"                       // for operator new, etc
+#include "../idlib/Lexer.h"
+#include "../idlib/Lexer.h"             // for idLexer, punctuation_t, etc
+#include "../idlib/Lib.h"
+#include "../idlib/Lib.h"               // for idLib, idLib::common, etc
+#include "../idlib/Parser.h"            // for idParser, define_t, etc
+#include "../idlib/Str.h"
+#include "../idlib/Str.h"               // for idStr, operator==, etc
+#include "../idlib/Token.h"
+#include "../idlib/Token.h"             // for idToken, TT_NAME, TT_NUMBER, etc
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Math.h"         // for idMath
+#include "../idlib/sys/sys_assert.h"             // for assert
+#include "../idlib/sys/sys_defines.h"            // for ID_INLINE, etc
+#include "Heap.h"
+#include "sys/sys_assert.h"
+#include "sys/sys_defines.h"
+
 
 //#define DEBUG_EVAL
 #define MAX_DEFINEPARMS				128

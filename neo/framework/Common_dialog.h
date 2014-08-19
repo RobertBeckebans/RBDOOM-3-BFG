@@ -29,6 +29,19 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __COMMON_DIALOG_H__
 #define __COMMON_DIALOG_H__
 
+#include <stddef.h>
+
+#include "../idlib/Str.h"
+#include "../idlib/StrStatic.h"                  // for idStrStatic
+#include "../swf/SWF.h"                 // for idSWF
+#include "../swf/SWF_ScriptFunction.h"  // for idSWFScriptFunction
+#include "../idlib/LangDict.h"
+#include "../idlib/containers/StaticList.h"
+
+class idSWF;
+class idSWFScriptFunction;
+struct sysEvent_t;
+
 static const int	MAX_DIALOGS			= 4;		// maximum dialogs that can be open at one time
 static const int	PC_KEYBOARD_WAIT	= 20000;
 

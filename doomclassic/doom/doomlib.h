@@ -30,10 +30,17 @@ If you have questions concerning this license or the applicable additional terms
 #define _DOOM_LIB_H
 
 
-#include "doomtype.h"
+#include <stddef.h>
+
+#include "../../doomclassic/doom/Precompiled.h"
+#include "../doomclassic/doom/typedefs.h"
+#include "../framework/CVarSystem.h"
+#include "../idlib/Str.h"
+#include "../sys/sys_public.h"
+#include "../sys/sys_session.h"
 #include "doomdef.h"
 #include "doominterface.h"
-
+#include "doomtype.h"
 #include "idlib/containers/Array.h"
 
 class idSysMutex;

@@ -29,6 +29,25 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __GAME_H__
 #define __GAME_H__
 
+#include "../idlib/sys/sys_types.h"
+#include "../idlib/Dict.h"              // for idDict
+#include "../idlib/math/Vector.h"              // for idDict
+#include "../idlib/BitMsg.h"  // for idBitMsg
+#include "../idlib/Lib.h"
+#include "../framework/CmdSystem.h"  // for idCmdSystem, etc
+#include "../framework/CVarSystem.h"  // for idCVar, etc
+#include "../aas/AASFileManager.h"      // for AASFileManager
+#include "../renderer/RenderWorld.h"    // for idRenderWorld
+#include "../sound/sound.h"             // for idSoundWorld
+#include "../sys/sys_savegame.h"           // for saveGameDetailsList_t, etc
+#include "../sys/sys_public.h"          // for sysEvent_t, etc
+#include "../sys/Snapshot.h"            // for idSnapShot
+#include "../framework/File_Manifest.h"  // for idPreloadManifest, etc
+#include "../framework/UsercmdGen.h"    // for idUserCmdMgr
+#include "../renderer/RenderSystem.h"   // for idRenderSystem, etc
+#include "../renderer/ModelManager.h"   // for idRenderModelManager, etc
+#include "../ui/UserInterface.h"        // for idUserInterfaceManager, etc
+#include "../cm/CollisionModel.h"       // for idCollisionModelManager
 /*
 ===============================================================================
 

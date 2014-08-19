@@ -26,14 +26,28 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+#include <string.h>
 
+#include "../framework/Common.h"
+#include "../framework/DeclManager.h"
+#include "../framework/File.h"
+#include "../framework/TokenParser.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_defines.h"
 #include "../renderer/Image.h"
-
+#include "../renderer/Material.h"
+#include "../sound/sound.h"
+#include "../sys/sys_public.h"
+#include "../ui/SimpleWindow.h"
+#include "../ui/Winvar.h"
 #include "DeviceContext.h"
-#include "Window.h"
-#include "UserInterfaceLocal.h"
 #include "GameBustOutWindow.h"
+#include "UserInterfaceLocal.h"
+#include "Window.h"
+#include "sys/sys_types.h"
 
 #define BALL_RADIUS		12.f
 #define BALL_SPEED		250.f

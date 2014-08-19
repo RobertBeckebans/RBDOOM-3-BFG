@@ -40,7 +40,7 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef SOUNDSTUB_H_
 #define SOUNDSTUB_H_
 
-#include "idlib/precompiled.h" // TIME_T
+#include "../idlib/sys/sys_defines.h"
 #include "../WaveFile.h"
 
 class idSoundVoice : public idSoundVoice_Base

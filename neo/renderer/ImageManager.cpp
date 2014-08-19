@@ -27,9 +27,33 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#ifndef _WIN32
+#include <alloca.h>
+#endif
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/DeclManager.h"
+#include "../framework/File.h"
+#include "../framework/FileSystem.h"
+#include "../framework/File_Manifest.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/StrStatic.h"
+#include "../idlib/containers/HashIndex.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/Image.h"
+#include "../renderer/ImageOpts.h"
+#include "../renderer/Material.h"
+#include "../renderer/RenderLog.h"
+#include "../sys/sys_public.h"
 #include "tr_local.h"
 
 // do this with a pointer, in case we want to make the actual manager

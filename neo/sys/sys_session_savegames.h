@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SYS_SESSION_SAVEGAMES_H__
 #define __SYS_SESSION_SAVEGAMES_H__
 
+#include "../sys/sys_savegame.h"
+
 /*
 ================================================
 idSaveGameProcessorLoadFiles

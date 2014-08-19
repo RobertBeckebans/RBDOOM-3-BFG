@@ -26,8 +26,16 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
 #pragma hdrstop
+#include "../idlib/Timer.h"
+
+#include "../framework/../idlib/containers/StrList.h"
+#include "../framework/Common.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "Heap.h"
+#include "containers/List.h"
+#include "sys/sys_assert.h"
 
 double idTimer::base = -1.0;
 

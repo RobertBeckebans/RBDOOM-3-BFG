@@ -26,28 +26,31 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
+#include <stdio.h>
+#include <string.h>
+
+#include "../../doomclassic/doom/d_player.h"
+#include "../../doomclassic/doom/doomdata.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/info.h"
+#include "../../doomclassic/doom/m_fixed.h"
+#include "../../doomclassic/doom/p_spec.h"
+#include "../../doomclassic/doom/r_data.h"
+#include "../../doomclassic/doom/r_defs.h"
+#include "../../doomclassic/doom/r_things.h"
+#include "../../doomclassic/doom/typedefs.h"
+#include "doomdef.h"
+#include "g_game.h"
 #include "globaldata.h"
-
-
-#include <math.h>
-
+#include "i_system.h"
+#include "m_bbox.h"
+#include "m_swap.h"
+#include "p_local.h"
+#include "s_sound.h"
+#include "w_wad.h"
 #include "z_zone.h"
 
-#include "m_swap.h"
-#include "m_bbox.h"
-
-#include "g_game.h"
-
-#include "i_system.h"
-#include "w_wad.h"
-
-#include "doomdef.h"
-#include "p_local.h"
-
-#include "s_sound.h"
-
-#include "doomstat.h"
+struct mobj_t;
 
 
 void	P_SpawnMapThing (mapthing_t*	mthing);

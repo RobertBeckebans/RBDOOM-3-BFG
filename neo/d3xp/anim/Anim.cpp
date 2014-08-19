@@ -27,10 +27,33 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
-
+#include <stddef.h>
 
 #include "../Game_local.h"
+#include "../d3xp/anim/Anim.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../framework/File.h"
+#include "../framework/FileSystem.h"
+#include "../framework/File_Manifest.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lexer.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/Token.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/containers/HashIndex.h"
+#include "../idlib/containers/HashTable.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/StrList.h"
+#include "../idlib/geometry/JointTransform.h"
+#include "../idlib/math/Quat.h"
+#include "../idlib/math/Simd.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/Model.h"
+#include "../sys/sys_public.h"
 
 idCVar binaryLoadAnim( "binaryLoadAnim", "1", 0, "enable binary load/write of idMD5Anim" );
 

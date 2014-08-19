@@ -26,7 +26,6 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
 
 /*
 ================================================================================================
@@ -36,9 +35,26 @@ If you have questions concerning this license or the applicable additional terms
 ================================================================================================
 */
 
-#include "tr_local.h"
-#include "DXT/DXTCodec.h"
+#include <string.h>
+
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../framework/File.h"
+#include "../framework/FileSystem.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/Swap.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/BinaryImage.h"
+#include "../renderer/BinaryImageData.h"
+#include "../renderer/Image.h"
+#include "../renderer/ImageOpts.h"
 #include "Color/ColorSpace.h"
+#include "DXT/DXTCodec.h"
 
 idCVar image_highQualityCompression( "image_highQualityCompression", "0", CVAR_BOOL, "Use high quality (slow) compression" );
 

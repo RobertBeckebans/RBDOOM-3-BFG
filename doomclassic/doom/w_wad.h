@@ -30,6 +30,7 @@ If you have questions concerning this license or the applicable additional terms
 #define __W_WAD__
 
 
+class idFile;
 #ifdef __GNUG__
 #pragma interface
 #endif

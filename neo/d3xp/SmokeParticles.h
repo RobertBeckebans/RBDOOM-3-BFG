@@ -29,6 +29,15 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SMOKEPARTICLES_H__
 #define __SMOKEPARTICLES_H__
 
+#include "../idlib/Heap.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Random.h"
+#include "../idlib/math/Vector.h"
+#include "../renderer/RenderWorld.h"
+
+class idDeclParticle;
+class idParticleStage;
 /*
 ===============================================================================
 

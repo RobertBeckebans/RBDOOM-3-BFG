@@ -29,6 +29,23 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __AASFILE_H__
 #define __AASFILE_H__
 
+#include <stddef.h>
+
+#include "../idlib/Dict.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Str.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/PlaneSet.h"        // for idPlaneSet
+#include "../idlib/math/Angles.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Vector.h"
+#include "sys/sys_types.h"
+
+class idFile;
+class idLexer;
+class idPlane;
+
 /*
 ===============================================================================
 

@@ -26,11 +26,16 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/physics/Force.h"
+#include "../idlib/Heap.h"
+#include "../idlib/containers/List.h"
+
+class idPhysics;
+
 #pragma hdrstop
-#include "precompiled.h"
 
 
-#include "../Game_local.h"
 
 CLASS_DECLARATION( idClass, idForce )
 END_CLASS

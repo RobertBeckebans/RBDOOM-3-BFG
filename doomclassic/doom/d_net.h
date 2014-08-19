@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __D_NET__
 #define __D_NET__
 
+#include "../../doomclassic/doom/Precompiled.h"
+#include "../../doomclassic/doom/d_ticcmd.h"
 #include "d_player.h"
 
 

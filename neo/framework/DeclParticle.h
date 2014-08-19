@@ -29,6 +29,12 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __DECLPARTICLE_H__
 #define __DECLPARTICLE_H__
 
+#include "../idlib/geometry/DrawVert.h"  // for idDrawVert
+#include "../idlib/bv/Bounds.h"         // for idBounds
+#include "../renderer/Material.h"       // for idMaterial
+
+class idDeclTable;
+
 /*
 ===============================================================================
 

@@ -28,8 +28,23 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <assert.h>
+#include <string.h>
 
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_types.h"
+#include "../libs/glew/include/GL/glew.h"
+#include "../renderer/Framebuffer.h"
+#include "../renderer/GLState.h"
+#include "../renderer/GraphicsAPIWrapper.h"
+#include "../renderer/Material.h"
+#include "../renderer/RenderLog.h"
+#include "../renderer/RenderProgs.h"
+#include "../renderer/RenderSystem.h"
+#include "../renderer/ScreenRect.h"
 #include "../tr_local.h"
 
 /*

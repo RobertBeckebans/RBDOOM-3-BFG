@@ -27,9 +27,35 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <string.h>
 
-#include "snd_local.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/DemoFile.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/StaticList.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Random.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/RenderWorld.h"
+
+#if defined(USE_OPENAL)
+#include "../sound/OpenAL/AL_SoundSample.h"
+#include "../sound/OpenAL/AL_SoundVoice.h"
+#else
+#include "../sound/XAudio2/XA2_SoundSample.h"
+#include "../sound/XAudio2/XA2_SoundVoice.h"
+#endif
+
+#include "../sound/snd_local.h"
+#include "../sound/sound.h"
+#include "../sound/snd_defines.h"
+
+class idDecl;
 
 idCVar s_singleEmitter( "s_singleEmitter", "0", CVAR_INTEGER, "mute all sounds but this emitter" );
 idCVar s_showStartSound( "s_showStartSound", "0", CVAR_BOOL, "print a message every time a sound starts/stops" );

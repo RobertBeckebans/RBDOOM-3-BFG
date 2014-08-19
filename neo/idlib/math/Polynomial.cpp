@@ -27,7 +27,13 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include "../idlib/Str.h"
+#include "../idlib/math/Complex.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Polynomial.h"
+#include "sys/sys_assert.h"
+#include "sys/sys_defines.h"
+#include "sys/sys_types.h"
 
 const float EPSILON		= 1e-6f;
 

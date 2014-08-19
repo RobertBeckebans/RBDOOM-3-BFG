@@ -29,6 +29,7 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __Z_ZONE__
 #define __Z_ZONE__
 
+#include <stddef.h>
 #include <stdio.h>
 
 //

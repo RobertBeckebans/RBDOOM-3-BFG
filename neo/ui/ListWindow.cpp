@@ -27,13 +27,28 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <stdlib.h>
 
+#include "../framework/Common.h"
+#include "../framework/DeclManager.h"
+#include "../framework/KeyInput.h"
+#include "../framework/TokenParser.h"
+#include "../idlib/Dict.h"
+#include "../idlib/Lexer.h"
+#include "../idlib/Parser.h"
+#include "../idlib/Token.h"
+#include "../renderer/Material.h"
+#include "../sys/sys_public.h"
+#include "../ui/Rectangle.h"
+#include "../ui/Winvar.h"
+#include "../idlib/containers/StrList.h"
+#include "../idlib/containers/HashTable.h"
+#include "../ui/SimpleWindow.h"
 #include "DeviceContext.h"
-#include "Window.h"
-#include "UserInterfaceLocal.h"
-#include "SliderWindow.h"
 #include "ListWindow.h"
+#include "SliderWindow.h"
+#include "UserInterfaceLocal.h"
+#include "Window.h"
 
 // Number of pixels above the text that the rect starts
 static const int pixelOffset = 3;

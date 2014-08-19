@@ -29,13 +29,17 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __D_STATE__
 #define __D_STATE__
 
+#include <stdio.h>
+
+#include "../../doomclassic/doom/d_ticcmd.h"
+#include "../../doomclassic/doom/doomdef.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "d_net.h"
+// We need the playr data structure as well.
+#include "d_player.h"
 // We need globally shared data structures,
 //  for defining the global state variables.
 #include "doomdata.h"
-#include "d_net.h"
-
-// We need the playr data structure as well.
-#include "d_player.h"
 
 
 #ifdef __GNUG__

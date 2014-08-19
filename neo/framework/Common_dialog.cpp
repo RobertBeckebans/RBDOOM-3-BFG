@@ -25,10 +25,32 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#include "precompiled.h"
 #pragma hdrstop
 
+#include <assert.h>
+#include <stdlib.h>
+
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/KeyInput.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Heap.h"
+#include "../idlib/LangDict.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/StrStatic.h"
+#include "../idlib/containers/StaticList.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../renderer/RenderSystem.h"
+#include "../swf/SWF.h"
+#include "../swf/SWF_ParmList.h"
+#include "../swf/SWF_ScriptFunction.h"
+#include "../swf/SWF_ScriptVar.h"
+#include "../sys/sys_public.h"
 #include "Common_dialog.h"
+
+class idSWFScriptObject;
 
 idCVar popupDialog_debug( "popupDialog_debug", "0", CVAR_BOOL | CVAR_ARCHIVE, "display debug spam" );
 

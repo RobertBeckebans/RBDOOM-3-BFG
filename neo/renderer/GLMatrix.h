@@ -30,6 +30,10 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __GLMATRIX_H__
 #define __GLMATRIX_H__
 
+class idMat3;
+class idPlane;
+class idVec3;
+struct viewDef_t;
 /*
 ==========================================================================================
 

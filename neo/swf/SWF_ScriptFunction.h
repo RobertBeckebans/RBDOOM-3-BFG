@@ -28,6 +28,19 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SWF_SCRIPTFUNCTION_H__
 #define __SWF_SCRIPTFUNCTION_H__
 
+#include <assert.h>
+#include <stddef.h>
+
+#include "../idlib/Heap.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/sys/sys_types.h"
+#include "../swf/SWF_ScriptObject.h"
+#include "../swf/SWF_ScriptVar.h"
+
+class idSWFBitStream;
+class idSWFParmList;
+class idSWFSpriteInstance;
+
 /*
 ========================
 Interface for calling functions from script

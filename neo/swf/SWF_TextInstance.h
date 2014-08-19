@@ -28,6 +28,18 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SWF_TEXTINSTANCE_H__
 #define __SWF_TEXTINSTANCE_H__
 
+#include "../idlib/Heap.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Random.h"
+#include "../swf/SWF_ScriptFunction.h"
+#include "../swf/SWF_ScriptObject.h"
+#include "../swf/SWF_ScriptVar.h"
+#include "../swf/SWF_Types.h"
+
+class idSWF;
+class idSWFParmList;
+
 struct subTimingWordData_t
 {
 	subTimingWordData_t()

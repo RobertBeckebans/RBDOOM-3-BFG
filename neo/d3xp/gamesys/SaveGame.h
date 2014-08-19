@@ -29,6 +29,12 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SAVEGAME_H__
 #define __SAVEGAME_H__
 
+#include "../d3xp/gamesys/Class.h"      // for idClass
+#include "../framework/DeclParticle.h"  // for idDeclParticle
+#include "../framework/DeclFX.h"        // for idDeclFX
+#include "../d3xp/Game.h"               // for refSound_t
+#include "../framework/UsercmdGen.h"    // for usercmd_t
+
 /*
 
 Save game related helper classes.

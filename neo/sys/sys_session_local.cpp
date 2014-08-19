@@ -26,10 +26,50 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "../framework/BuildVersion.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/Licensee.h"
+#include "../framework/PlayerProfile.h"
+#include "../framework/Serializer.h"
+#include "../idlib/BitMsg.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Lexer.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Parser.h"
+#include "../idlib/Token.h"
+#include "../idlib/containers/Sort.h"
+#include "../idlib/hashing/CRC32.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Random.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../sys/LightweightCompression.h"
+#include "../sys/SnapshotProcessor.h"
+#include "../sys/sys_achievements.h"
+#include "../sys/sys_lobby.h"
+#include "../sys/sys_lobby_backend.h"
+#include "../sys/sys_session_savegames.h"
+#include "../sys/sys_stats_misc.h"
+#include "../idlib/Dict.h"
+#include "../idlib/containers/StaticList.h"
+#include "../framework/Common_dialog.h"
+#include "../idlib/StrStatic.h"
+#include "../sys/PacketProcessor.h"
+#include "../sys/sys_session.h"
+#include "../sys/sys_signin.h"
+#include "../sys/sys_localuser.h"
+#include "../sys/sys_savegame.h"
+#include "sys_dedicated_server_search.h"
 #include "sys_session_local.h"
 #include "sys_voicechat.h"
-#include "sys_dedicated_server_search.h"
+
+class idSnapShot;
 
 
 idCVar ui_skinIndex( "ui_skinIndex", "0", CVAR_ARCHIVE, "Selected skin index" );

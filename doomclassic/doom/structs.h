@@ -26,6 +26,14 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../doomclassic/doom/z_zone.h"
+
+#include "../doomclassic/doom/typedefs.h"
+
+#include "../doomclassic/doom/sounds.h"
+
+#include "../doomclassic/doom/r_defs.h"
+
 #pragma once
 
 //  am_map.structs begin // 

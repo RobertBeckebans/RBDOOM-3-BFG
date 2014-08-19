@@ -28,22 +28,56 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <assert.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "DeviceContext.h"
-#include "Window.h"
-#include "UserInterfaceLocal.h"
-#include "EditWindow.h"
-#include "ChoiceWindow.h"
-#include "SliderWindow.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../framework/DeclManager.h"
+#include "../framework/DeclTable.h"
+#include "../framework/File.h"
+#include "../framework/KeyInput.h"
+#include "../framework/TokenParser.h"
+#include "../idlib/Dict.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lexer.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Parser.h"
+#include "../idlib/Str.h"
+#include "../idlib/Token.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/Sort.h"
+#include "../idlib/math/Interpolate.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Rotation.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../renderer/Font.h"
+#include "../renderer/Material.h"
+#include "../renderer/RenderSystem.h"
+#include "../sys/sys_public.h"
+#include "../ui/GuiScript.h"
+#include "../ui/Rectangle.h"
+#include "../ui/RegExp.h"
+#include "../ui/SimpleWindow.h"
+#include "../ui/Winvar.h"
 #include "BindWindow.h"
-#include "ListWindow.h"
-#include "RenderWindow.h"
+#include "ChoiceWindow.h"
+#include "DeviceContext.h"
+#include "EditWindow.h"
 #include "FieldWindow.h"
-
-#include "GameSSDWindow.h"
 #include "GameBearShootWindow.h"
 #include "GameBustOutWindow.h"
+#include "GameSSDWindow.h"
+#include "ListWindow.h"
+#include "RenderWindow.h"
+#include "SliderWindow.h"
+#include "UserInterfaceLocal.h"
+#include "Window.h"
 
 bool idWindow::registerIsTemporary[MAX_EXPRESSION_REGISTERS];		// statics to assist during parsing
 //float idWindow::shaderRegisters[MAX_EXPRESSION_REGISTERS];

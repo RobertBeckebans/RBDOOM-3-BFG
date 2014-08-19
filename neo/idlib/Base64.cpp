@@ -1,6 +1,9 @@
 
-#include "precompiled.h"
+
 #pragma hdrstop
+
+#include "../idlib/Base64.h"
+#include "../framework/File.h"          // for idFile
 
 /*
 Copyright (c) 1996 Lars Wirzenius.  All rights reserved.

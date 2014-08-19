@@ -29,6 +29,10 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __R_MAIN__
 #define __R_MAIN__
 
+#include "../../doomclassic/doom/Precompiled.h"
+#include "../../doomclassic/doom/m_fixed.h"
+#include "../../doomclassic/doom/r_defs.h"
+#include "../../doomclassic/doom/tables.h"
 #include "d_player.h"
 #include "r_data.h"
 

@@ -25,7 +25,17 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#include "precompiled.h"
+#include <string.h>
+
+#include "../framework/Common.h"
+#include "../framework/Compressor.h"
+#include "../framework/File.h"
+#include "../idlib/Heap.h"
+#include "../idlib/containers/HashIndex.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
+
 #pragma hdrstop
 
 

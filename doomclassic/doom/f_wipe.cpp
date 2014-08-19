@@ -26,16 +26,19 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
+#include <string.h>
 
-#include "z_zone.h"
-#include "i_video.h"
-#include "i_system.h"
-#include "v_video.h"
-#include "m_random.h"
-#include "doomdef.h"
+#include "../../doomclassic/doom/doomlib.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/typedefs.h"
+#include "../idlib/Heap.h"
+#include "Precompiled.h"
 #include "f_wipe.h"
+#include "globaldata.h"
+#include "i_video.h"
+#include "m_random.h"
+#include "v_video.h"
+#include "z_zone.h"
 
 //
 //                       SCREEN WIPE PACKAGE

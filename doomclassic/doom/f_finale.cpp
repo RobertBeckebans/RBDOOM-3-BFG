@@ -26,28 +26,32 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include <ctype.h>
+#include <stdio.h>
+#include <string.h>
+
+#include "../../doomclassic/doom/d_englsh.h"
+#include "../../doomclassic/doom/d_event.h"
+#include "../../doomclassic/doom/d_player.h"
+#include "../../doomclassic/doom/d_ticcmd.h"
+#include "../../doomclassic/doom/defs.h"
+#include "../../doomclassic/doom/doomdef.h"
+#include "../../doomclassic/doom/doomlib.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/info.h"
+#include "../../doomclassic/doom/p_pspr.h"
+#include "../../doomclassic/doom/r_defs.h"
+#include "../../doomclassic/doom/structs.h"
+#include "../../doomclassic/doom/typedefs.h"
+#include "../framework/Common.h"
 #include "Precompiled.h"
 #include "globaldata.h"
-
-#include <ctype.h>
-
-// Functions.
-#include "i_system.h"
 #include "m_swap.h"
-#include "z_zone.h"
+#include "s_sound.h"
+#include "sounds.h"
 #include "v_video.h"
 #include "w_wad.h"
-#include "s_sound.h"
-
-// Data.
-#include "dstrings.h"
-#include "sounds.h"
-
-#include "doomstat.h"
-#include "r_state.h"
-
-#include "Main.h"
-#include "d3xp/Game_local.h"
+#include "z_zone.h"
 
 // ?
 //#include "doomstat.h"

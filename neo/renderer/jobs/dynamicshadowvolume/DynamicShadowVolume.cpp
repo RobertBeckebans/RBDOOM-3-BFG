@@ -26,10 +26,25 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "DynamicShadowVolume_local.h"
+#include <emmintrin.h>
+#include <stddef.h>
+#include <xmmintrin.h>
 
-#include "../../../idlib/sys/sys_intrinsics.h"
 #include "../../../idlib/geometry/DrawVert_intrinsics.h"
+#include "../../../idlib/sys/sys_intrinsics.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/jobs/dynamicshadowvolume/../../../idlib/SoftwareCache.h"
+#include "../renderer/jobs/dynamicshadowvolume/../../../idlib/geometry/DrawVert.h"
+#include "../renderer/jobs/dynamicshadowvolume/../../../idlib/geometry/RenderMatrix.h"
+#include "../renderer/jobs/dynamicshadowvolume/../../../idlib/math/Vector.h"
+#include "../renderer/jobs/dynamicshadowvolume/../ShadowShared.h"
+#include "../renderer/jobs/dynamicshadowvolume/DynamicShadowVolume.h"
+#include "ParallelJobList.h"
+
+class idJointMat;
 
 #if defined(USE_INTRINSICS)
 static const __m128i vector_int_neg_one		= _mm_set_epi32( -1, -1, -1, -1 );

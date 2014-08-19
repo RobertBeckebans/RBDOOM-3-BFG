@@ -26,35 +26,39 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
-#include "Main.h"
-
 #include <stdlib.h>
+#include <string.h>
 
+#include "../../doomclassic/doom/d_event.h"
+#include "../../doomclassic/doom/d_player.h"
+#include "../../doomclassic/doom/d_think.h"
+#include "../../doomclassic/doom/defs.h"
+#include "../../doomclassic/doom/doomdata.h"
+#include "../../doomclassic/doom/doomlib.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/info.h"
+#include "../../doomclassic/doom/m_fixed.h"
+#include "../../doomclassic/doom/p_mobj.h"
+#include "../../doomclassic/doom/p_spec.h"
+#include "../../doomclassic/doom/r_data.h"
+#include "../../doomclassic/doom/r_defs.h"
+#include "../../doomclassic/doom/structs.h"
+#include "../d3xp/Player.h" // IWYU pragma: keep
+#include "../framework/Common.h"
+#include "../../doomclassic/doom/Precompiled.h"
 #include "doomdef.h"
-#include "doomstat.h"
-
+#include "g_game.h"
+#include "globaldata.h"
 #include "i_system.h"
-#include "z_zone.h"
 #include "m_argv.h"
 #include "m_random.h"
-#include "w_wad.h"
-
-#include "r_local.h"
 #include "p_local.h"
-
-#include "g_game.h"
-
 #include "s_sound.h"
-
-// State.
-#include "r_state.h"
-
 // Data.
 #include "sounds.h"
+#include "w_wad.h"
+#include "z_zone.h"
 
-#include "../../neo/d3xp/Game_local.h"
 
 //
 // Animating textures and planes

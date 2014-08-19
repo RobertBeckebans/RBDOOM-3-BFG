@@ -27,7 +27,14 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <stdio.h>
+#include <time.h>
+
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/FileSystem.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
 #include "sys_local.h"
 
 const char* sysLanguageNames[] =

@@ -26,21 +26,17 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
-
-
 #include <stdlib.h>
 
-
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/m_fixed.h"
+#include "../../doomclassic/doom/p_mobj.h"
+#include "../../doomclassic/doom/r_defs.h"
+#include "../../doomclassic/doom/r_main.h"
+#include "Precompiled.h"
+#include "globaldata.h"
 #include "m_bbox.h"
-
-#include "doomdef.h"
 #include "p_local.h"
-
-
-// State.
-#include "r_state.h"
 
 //
 // P_AproxDistance

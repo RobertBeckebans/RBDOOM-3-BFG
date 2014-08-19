@@ -26,10 +26,45 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
 #pragma hdrstop
 
+#include <assert.h>
+#include <stdio.h>
+
+#include "../cm/CollisionModel.h"
+#include "../d3xp/AF.h"
+#include "../d3xp/Entity.h"
+#include "../d3xp/Game.h"
+#include "../d3xp/Game_defines.h"
+#include "../d3xp/anim/Anim.h"
+#include "../d3xp/gamesys/SaveGame.h"
+#include "../d3xp/gamesys/SysCvar.h"
+#include "../d3xp/physics/Clip.h"
+#include "../d3xp/physics/Physics.h"
+#include "../d3xp/physics/Physics_AF.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/DeclAF.h"
+#include "../framework/DeclManager.h"
+#include "../framework/DeclParticle.h"
+#include "../idlib/Dict.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lexer.h"
+#include "../idlib/Str.h"
+#include "../idlib/Token.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/geometry/JointTransform.h"
+#include "../idlib/geometry/TraceModel.h"
+#include "../idlib/math/Angles.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Rotation.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../renderer/Model.h"
 #include "Game_local.h"
+
+class idClass;
 
 
 /*

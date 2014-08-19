@@ -28,6 +28,9 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __MATH_VECTORI_H__
 #define __MATH_VECTORI_H__
 
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_assert.h"
+
 static ID_INLINE int MinInt( int a, int b )
 {
 	return ( a ) < ( b ) ? ( a ) : ( b );

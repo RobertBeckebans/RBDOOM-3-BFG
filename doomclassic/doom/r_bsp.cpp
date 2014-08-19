@@ -26,23 +26,21 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
+#include <stddef.h>
 
-
+#include "../../doomclassic/doom/doomdata.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/m_fixed.h"
+#include "../../doomclassic/doom/r_defs.h"
+#include "../../doomclassic/doom/structs.h"
+#include "../../doomclassic/doom/tables.h"
 #include "doomdef.h"
-
-#include "m_bbox.h"
-
+#include "globaldata.h"
 #include "i_system.h"
-
+#include "m_bbox.h"
 #include "r_main.h"
 #include "r_plane.h"
 #include "r_things.h"
-
-// State.
-#include "doomstat.h"
-#include "r_state.h"
 
 //#include "r_local.h"
 

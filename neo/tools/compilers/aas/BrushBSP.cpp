@@ -26,8 +26,10 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
 #pragma hdrstop
+
+#include "../framework/FileSystem.h"
+#include "../idlib/math/Plane.h"
 
 #include "Brush.h"
 #include "BrushBSP.h"

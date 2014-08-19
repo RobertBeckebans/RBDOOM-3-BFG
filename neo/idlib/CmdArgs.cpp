@@ -26,8 +26,16 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
 #pragma hdrstop
+#include <string.h>
+
+#include "../framework/CVarSystem.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Lexer.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/Token.h"
+#include "sys/sys_assert.h"
 
 /*
 ============

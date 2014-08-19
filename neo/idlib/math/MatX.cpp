@@ -28,7 +28,26 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <emmintrin.h>
+#include <stdint.h>
+#include <string.h>
+#include <xmmintrin.h>
+
+#include "../framework/Common.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/Sort.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/VecX.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/Heap.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_intrinsics.h"
+#include "../idlib/sys/sys_types.h"
+
+
+#include "../idlib/math/MatX.h"
 
 //===============================================================
 //

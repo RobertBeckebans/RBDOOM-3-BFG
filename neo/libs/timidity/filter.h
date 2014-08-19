@@ -24,7 +24,12 @@ rates as low as 8Khz.
 
 */
 
+#include <stdint.h>
 /* Order of the FIR filter = 20 should be enough ! */
+#include <sys/types.h>
+
+#include "../libs/timidity/instrum.h"
+
 #define ORDER 20
 #define ORDER2 ORDER/2
 

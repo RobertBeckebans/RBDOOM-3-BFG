@@ -28,8 +28,17 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __GUISCRIPT_H
 #define __GUISCRIPT_H
 
-#include "Window.h"
+#include <stddef.h>
+
+#include "../idlib/Heap.h"
+#include "../idlib/containers/List.h"
+
+//#include "Window.h"
 #include "Winvar.h"
+
+class idFile;
+class idTokenParser;
+class idWindow;
 
 struct idGSWinVar
 {

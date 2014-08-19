@@ -26,10 +26,26 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
-#include "../renderer/Image.h"
+#include <assert.h>
+#include <string.h>
+
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Swap.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/math/VectorI.h"
+#include "../idlib/sys/sys_types.h"
 //#include "../../renderer/ImageTools/ImageProcess.h"
-#include "../libs/jpeg-6/jpeglib.h"
+#include "../renderer/Image.h"
+#include "../swf/SWF.h"
+#include "../swf/SWF_Bitstream.h"
+#include "../swf/SWF_Enums.h"
+
+extern "C" {
+#include <jpeglib.h>
+#include <jmorecfg.h>
+}
 
 /*
 ========================

@@ -28,7 +28,22 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __GAME_BUSTOUT_WINDOW_H__
 #define __GAME_BUSTOUT_WINDOW_H__
 
+#include <stddef.h>
+
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_types.h"
+#include "../ui/SimpleWindow.h"
+#include "../ui/Window.h"
+#include "../ui/Winvar.h"
+
+class idFile;
 class idGameBustOutWindow;
+class idMaterial;
+class idTokenParser;
+class idUserInterfaceLocal;
+struct sysEvent_t;
 
 typedef enum
 {

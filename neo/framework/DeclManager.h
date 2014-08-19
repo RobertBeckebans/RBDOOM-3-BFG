@@ -29,6 +29,14 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __DECLMANAGER_H__
 #define __DECLMANAGER_H__
 
+#include "../idlib/Lexer.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/CmdArgs.h"           // for idCmdArgs
+#include "../framework/File.h"          // for idFileLocal, idFile
+
+class idDeclEntityDef;
+class idDeclTable;
+
 /*
 ===============================================================================
 

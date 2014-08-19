@@ -30,6 +30,8 @@ If you have questions concerning this license or the applicable additional terms
 #define __SOUNDS__
 
 
+struct sfxinfo_struct;
+
 //
 // SoundFX struct.
 //

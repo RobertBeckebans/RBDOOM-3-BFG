@@ -26,6 +26,12 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../ui/UserInterface.h"
+
+#include "../ui/DeviceContext.h"
+
+#include "../framework/TokenParser.h"   // for idTokenParser
+
 class idWindow;
 
 class idUserInterfaceLocal : public idUserInterface

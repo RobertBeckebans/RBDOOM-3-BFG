@@ -26,10 +26,40 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
 #pragma hdrstop
 
+#include <assert.h>
+#include <math.h>
+#include <string.h>
+
+#include "../d3xp/Entity.h"
+#include "../d3xp/Player.h"
+#include "../d3xp/PlayerView.h"
+#include "../d3xp/gamesys/SaveGame.h"
+#include "../d3xp/gamesys/SysCvar.h"
+#include "../d3xp/menus/MenuHandler.h"
+#include "../d3xp/physics/Physics.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../framework/DeclManager.h"
+#include "../framework/DeclParticle.h"
+#include "../idlib/Dict.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Angles.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Random.h"
+#include "../idlib/math/Vector.h"
+#include "../renderer/RenderSystem.h"
+#include "../renderer/RenderWorld.h"
+#include "../sound/sound.h"
 #include "Game_local.h"
+
+class idClass;
+class idMaterial;
 
 // _D3XP : rename all gameLocal.time to gameLocal.slow.time for merge!
 
@@ -452,16 +482,52 @@ void idPlayerView::SingleView( const renderView_t* view, idMenuHandler_HUD* hudM
 	// hack the shake in at the very last moment, so it can't cause any consistency problems
 	renderView_t hackedView = *view;
 	hackedView.viewaxis = hackedView.viewaxis * ShakeAxis();
+    
+    idVec3 diff, currentEyePos, PSOrigin, Zero;
+    Zero.Zero();
+
+    if ( ( gameLocal.CheckGlobalPortalSky() ) || ( gameLocal.GetCurrentPortalSkyType() == PORTALSKY_LOCAL ) ) {
+        // in a case of a moving portalSky    
+        currentEyePos = hackedView.vieworg;
+        
+        if ( gameLocal.playerOldEyePos == Zero ) {
+            gameLocal.playerOldEyePos = currentEyePos;
+            //initialize playerOldEyePos, this will only happen in one tick.
+        }
+
+        diff = ( currentEyePos - gameLocal.playerOldEyePos) / gameLocal.portalSkyScale;
+        gameLocal.portalSkyGlobalOrigin += diff; // this is for the global portalSky.
+        // It should keep going even when not active.
+    }
 	
-	if( gameLocal.portalSkyEnt.GetEntity() && gameLocal.IsPortalSkyAcive() && g_enablePortalSky.GetBool() )
+	if( gameLocal.portalSkyEnt.GetEntity() && gameLocal.IsPortalSkyActive() && g_enablePortalSky.GetBool() )
 	{
+        if ( gameLocal.GetCurrentPortalSkyType() == PORTALSKY_STANDARD ) {
+            PSOrigin = gameLocal.portalSkyOrigin;
+        }
+
+        if ( gameLocal.GetCurrentPortalSkyType() == PORTALSKY_GLOBAL ) {
+            PSOrigin = gameLocal.portalSkyGlobalOrigin;
+        }
+
+        if ( gameLocal.GetCurrentPortalSkyType() == PORTALSKY_LOCAL ) {
+            gameLocal.portalSkyOrigin += diff;
+            PSOrigin = gameLocal.portalSkyOrigin;
+        }
+
+        gameLocal.playerOldEyePos = currentEyePos;
+
 		renderView_t portalView = hackedView;
-		portalView.vieworg = gameLocal.portalSkyEnt.GetEntity()->GetPhysics()->GetOrigin();
+        portalView.vieworg = PSOrigin;
 		gameRenderWorld->RenderScene( &portalView );
 		renderSystem->CaptureRenderToImage( "_currentRender" );
 		
 		hackedView.forceUpdate = true;				// FIX: for smoke particles not drawing when portalSky present
-	}
+	} else {
+        gameLocal.playerOldEyePos = currentEyePos;
+        // so if g_enablePortalSky is disabled GlobalPortalSkies don't broke
+        // when g_enablePortalSky gets re-enabled GlPS keep working
+    }
 	
 	// process the frame
 	fxManager->Process( &hackedView );

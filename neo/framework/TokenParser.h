@@ -28,6 +28,9 @@ If you have questions concerning this license or the applicable additional terms
 
 #ifndef __TOKENPARSER_H__
 #define __TOKENPARSER_H__
+
+#include "../framework/FileSystem.h"    // for FILE_NOT_FOUND_TIMESTAMP
+
 class idBinaryToken
 {
 public:

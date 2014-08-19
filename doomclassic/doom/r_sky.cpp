@@ -26,15 +26,9 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
 #include "globaldata.h"
-
-
 // Needed for FRACUNIT.
 #include "m_fixed.h"
-
-// Needed for Flat retrieval.
-#include "r_data.h"
 
 
 #ifdef __GNUG__

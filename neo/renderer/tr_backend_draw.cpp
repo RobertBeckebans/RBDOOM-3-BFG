@@ -29,10 +29,44 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <assert.h>
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "tr_local.h"
+#include "../framework/CVarSystem.h"
+#include "../idlib/Lib.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/containers/StaticList.h"
+#include "../idlib/geometry/DrawVert.h"
+#include "../idlib/geometry/JointTransform.h"
+#include "../idlib/geometry/RenderMatrix.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Plane.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
+#include "../libs/glew/include/GL/glew.h"
+#include "../renderer/BufferObject.h"
+#include "../renderer/Cinematic.h"
+#include "../renderer/GLMatrix.h"
+#include "../renderer/GLState.h"
+#include "../renderer/GraphicsAPIWrapper.h"
+#include "../renderer/Image.h"
+#include "../renderer/Material.h"
+#include "../renderer/RenderLog.h"
+#include "../renderer/RenderProgs.h"
+#include "../renderer/RenderSystem.h"
+#include "../renderer/RenderWorld.h"
+#include "../renderer/ScreenRect.h"
+#include "../renderer/VertexCache.h"
+#include "../renderer/jobs/ShadowShared.h"
+#include "../sys/sys_public.h"
 #include "Framebuffer.h"
+#include "sys/sys_threading.h"
+#include "tr_local.h"
 
 idCVar r_drawEyeColor( "r_drawEyeColor", "0", CVAR_RENDERER | CVAR_BOOL, "Draw a colored box, red = left eye, blue = right eye, grey = non-stereo" );
 idCVar r_motionBlur( "r_motionBlur", "0", CVAR_RENDERER | CVAR_INTEGER | CVAR_ARCHIVE, "1 - 5, log2 of the number of motion blur samples" );

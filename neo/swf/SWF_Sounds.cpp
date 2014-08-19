@@ -25,8 +25,12 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
+#include "../swf/SWF.h"
+#include "../swf/SWF_SpriteInstance.h"
+
+class idSWFBitStream;
+
 #pragma hdrstop
-#include "precompiled.h"
 
 /*
 ========================

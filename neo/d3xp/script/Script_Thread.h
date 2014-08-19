@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SCRIPT_THREAD_H__
 #define __SCRIPT_THREAD_H__
 
+#include "../d3xp/script/Script_Interpreter.h"  // for idInterpreter
+
 extern const idEventDef EV_Thread_Execute;
 extern const idEventDef EV_Thread_SetCallback;
 extern const idEventDef EV_Thread_TerminateThread;

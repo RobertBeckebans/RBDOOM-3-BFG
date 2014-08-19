@@ -28,6 +28,10 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __BITMSG_H__
 #define __BITMSG_H__
 
+#include "../sys/sys_public.h"          // for netadr_t, netadrtype_t
+#include "../idlib/math/Vector.h"
+#include "../idlib/Str.h"
+#include "../idlib/Dict.h"
 /*
 ================================================
 idBitMsg operates on a sequence of individual bits. It handles byte ordering and

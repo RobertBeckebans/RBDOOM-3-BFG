@@ -28,6 +28,13 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef SYS_TYPES_H
 #define SYS_TYPES_H
 
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_defines.h"
+
+#ifdef _WIN32
+#undef uint64
+#endif
+
 /*
 ================================================================================================
 Contains types and defines used throughout the engine.
@@ -118,8 +125,10 @@ struct idNullPtr
 //#endif
 
 // C99 Standard
+#ifndef _WIN32
 #ifndef nullptr
 #define nullptr	idNullPtr()
+#endif
 #endif
 
 #ifndef BIT

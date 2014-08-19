@@ -26,6 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../doomclassic/doom/m_swap.h"
+
 //  am_map.defs begin // 
 #define REDS		(256-5*16)
 #define REDRANGE	16

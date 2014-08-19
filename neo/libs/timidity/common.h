@@ -20,7 +20,11 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 common.h
 */
+#include <stddef.h>
+#include <stdio.h>
+
 class idFile;
+
 extern char *program_name, current_filename[];
 
 extern FILE *msgfp;

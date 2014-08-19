@@ -25,8 +25,22 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
+#include <string.h>
+
+#include "../framework/CVarSystem.h"
+#include "../framework/File.h"
+#include "../idlib/BitMsg.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_types.h"
+#include "../sys/LightweightCompression.h"
+#include "../sys/Snapshot.h"
+#include "../sys/Snapshot_Jobs.h"
+
 #pragma hdrstop
-#include "precompiled.h"
 
 idCVar net_verboseSnapshot( "net_verboseSnapshot", "0", CVAR_INTEGER | CVAR_NOCHEAT, "Verbose snapshot code to help debug snapshot problems. Greater the number greater the spam" );
 idCVar net_verboseSnapshotCompression( "net_verboseSnapshotCompression", "0", CVAR_INTEGER | CVAR_NOCHEAT, "Verbose snapshot code to help debug snapshot problems. Greater the number greater the spam" );

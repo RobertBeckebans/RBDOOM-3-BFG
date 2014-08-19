@@ -26,10 +26,33 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
+#include <assert.h>
+#include <stddef.h>
+
+#include "../d3xp/menus/MenuHandler.h"
+#include "../d3xp/menus/MenuScreen.h"
+#include "../d3xp/menus/MenuWidget.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../framework/DeclManager.h"
+#include "../idlib/Heap.h"
+#include "../idlib/LangDict.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/StaticList.h"
+#include "../swf/SWF.h"
+#include "../swf/SWF_ParmList.h"
+#include "../swf/SWF_ScriptFunction.h"
+#include "../swf/SWF_ScriptObject.h"
+#include "../swf/SWF_ScriptVar.h"
+#include "../swf/SWF_SpriteInstance.h"
+#include "../sys/sys_session.h"
+#include "../sys/sys_signin.h"
+
+class idMaterial;
+
 #pragma hdrstop
-#include "precompiled.h"
-#include "../Game_local.h"
-#include "../../framework/Common_local.h"
 
 static const int NUM_GAME_SELECTIONS_VISIBLE = 5;
 extern idCVar g_demoMode;

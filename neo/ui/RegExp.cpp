@@ -27,12 +27,18 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
-
+#include "../framework/Common.h"
+#include "../framework/DemoFile.h"
+#include "../framework/File.h"
+#include "../framework/TokenParser.h"
+#include "../idlib/Heap.h"
+#include "../idlib/LangDict.h"
+#include "../idlib/Token.h"
+#include "../idlib/math/Vector.h"
+#include "../ui/Rectangle.h"
+#include "../ui/Winvar.h"
 #include "RegExp.h"
-#include "DeviceContext.h"
 #include "Window.h"
-#include "UserInterfaceLocal.h"
 
 int idRegister::REGCOUNT[NUMTYPES] = {4, 1, 1, 1, 0, 2, 3, 4};
 

@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __RENDERWORLD_H__
 #define __RENDERWORLD_H__
 
+#include "../renderer/Model.h"          // for idRenderModel
+
 /*
 ===============================================================================
 
@@ -82,8 +84,32 @@ ID_INLINE void SIMD_INIT_LAST_JOINT( idJointMat* joints, int numJoints )
 	}
 }
 
-typedef bool( *deferredEntityCallback_t )( renderEntity_s*, const renderView_s* );
+typedef struct renderView_s
+{
+	// player views will set this to a non-zero integer for model suppress / allow
+	// subviews (mirrors, cameras, etc) will always clear it to zero
+	int						viewID;
+	
+	float					fov_x, fov_y;		// in degrees
+	idVec3					vieworg;			// has already been adjusted for stereo world seperation
+	idVec3					vieworg_weapon;		// has already been adjusted for stereo world seperation
+	idMat3					viewaxis;			// transformation matrix, view looks down the positive X axis
+	
+	bool					cramZNear;			// for cinematics, we want to set ZNear much lower
+	bool					flipProjection;
+	bool					forceUpdate;		// for an update
+	
+	// time in milliseconds for shader effects and other time dependent rendering issues
+	int						time[2];
+	float					shaderParms[MAX_GLOBAL_SHADER_PARMS];		// can be used in any way by shader
+	const idMaterial*		globalMaterial;							// used to override everything draw
+	
+	// the viewEyeBuffer may be of a different polarity than stereoScreenSeparation if the eyes have been swapped
+	int						viewEyeBuffer;				// -1 = left eye, 1 = right eye, 0 = monoscopic view or GUI
+	float					stereoScreenSeparation;		// projection matrix horizontal offset, positive or negative based on camera eye
+} renderView_t;
 
+typedef bool( *deferredEntityCallback_t )( renderEntity_s*, const renderView_s* );
 
 typedef struct renderEntity_s
 {
@@ -164,7 +190,6 @@ typedef struct renderEntity_s
 	int						xrayIndex;
 } renderEntity_t;
 
-
 typedef struct renderLight_s
 {
 	idMat3					axis;				// rotation vectors, must be unit length
@@ -214,33 +239,6 @@ typedef struct renderLight_s
 	float					shaderParms[MAX_ENTITY_SHADER_PARMS];		// can be used in any way by shader
 	idSoundEmitter* 		referenceSound;		// for shader sound tables, allowing effects to vary with sounds
 } renderLight_t;
-
-
-typedef struct renderView_s
-{
-	// player views will set this to a non-zero integer for model suppress / allow
-	// subviews (mirrors, cameras, etc) will always clear it to zero
-	int						viewID;
-	
-	float					fov_x, fov_y;		// in degrees
-	idVec3					vieworg;			// has already been adjusted for stereo world seperation
-	idVec3					vieworg_weapon;		// has already been adjusted for stereo world seperation
-	idMat3					viewaxis;			// transformation matrix, view looks down the positive X axis
-	
-	bool					cramZNear;			// for cinematics, we want to set ZNear much lower
-	bool					flipProjection;
-	bool					forceUpdate;		// for an update
-	
-	// time in milliseconds for shader effects and other time dependent rendering issues
-	int						time[2];
-	float					shaderParms[MAX_GLOBAL_SHADER_PARMS];		// can be used in any way by shader
-	const idMaterial*		globalMaterial;							// used to override everything draw
-	
-	// the viewEyeBuffer may be of a different polarity than stereoScreenSeparation if the eyes have been swapped
-	int						viewEyeBuffer;				// -1 = left eye, 1 = right eye, 0 = monoscopic view or GUI
-	float					stereoScreenSeparation;		// projection matrix horizontal offset, positive or negative based on camera eye
-} renderView_t;
-
 
 // exitPortal_t is returned by idRenderWorld::GetPortal()
 typedef struct

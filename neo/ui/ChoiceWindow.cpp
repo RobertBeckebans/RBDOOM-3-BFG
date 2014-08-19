@@ -27,12 +27,27 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <ctype.h>
+#include <stdlib.h>
 
-#include "DeviceContext.h"
-#include "Window.h"
-#include "UserInterfaceLocal.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../framework/TokenParser.h"
+#include "../idlib/LangDict.h"
+#include "../idlib/Lexer.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Token.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Vector.h"
+#include "../sys/sys_public.h"
+#include "../ui/Rectangle.h"
+#include "../idlib/containers/StrList.h"
+#include "../ui/SimpleWindow.h"
+#include "../ui/Winvar.h"
 #include "ChoiceWindow.h"
+#include "DeviceContext.h"
+#include "UserInterfaceLocal.h"
+#include "Window.h"
 
 /*
 ============

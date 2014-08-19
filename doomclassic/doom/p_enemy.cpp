@@ -26,25 +26,29 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
-
 #include <stdlib.h>
 
-#include "m_random.h"
-#include "i_system.h"
-
+#include "../../doomclassic/doom/d_player.h"
+#include "../../doomclassic/doom/d_think.h"
+#include "../../doomclassic/doom/defs.h"
+#include "../../doomclassic/doom/doomdata.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/info.h"
+#include "../../doomclassic/doom/m_fixed.h"
+#include "../../doomclassic/doom/p_mobj.h"
+#include "../../doomclassic/doom/p_pspr.h"
+#include "../../doomclassic/doom/p_spec.h"
+#include "../../doomclassic/doom/r_defs.h"
+#include "../../doomclassic/doom/r_main.h"
+#include "../../doomclassic/doom/structs.h"
+#include "../../doomclassic/doom/tables.h"
 #include "doomdef.h"
-#include "p_local.h"
-
-#include "s_sound.h"
-
 #include "g_game.h"
-
-// State.
-#include "doomstat.h"
-#include "r_state.h"
-
+#include "globaldata.h"
+#include "i_system.h"
+#include "m_random.h"
+#include "p_local.h"
+#include "s_sound.h"
 // Data.
 #include "sounds.h"
 

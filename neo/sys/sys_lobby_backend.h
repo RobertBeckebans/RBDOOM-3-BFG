@@ -28,6 +28,9 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef	__SYS_LOBBY_BACKEND_H__
 #define	__SYS_LOBBY_BACKEND_H__
 
+#include "../framework/CVarSystem.h"  // for idCVar, etc
+
+#include "../sys/sys_session.h"  // for lobbyUserID_t
 
 extern idCVar net_verboseResource;
 #define NET_VERBOSERESOURCE_PRINT if ( net_verboseResource.GetBool() ) idLib::Printf

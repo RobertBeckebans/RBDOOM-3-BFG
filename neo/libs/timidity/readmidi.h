@@ -21,6 +21,11 @@ readmidi.h
 
 */
 
+#include <stddef.h>
+#include <stdint.h>
+
+#include "../libs/timidity/structs.h"
+
 class idFile;
 
 typedef struct {

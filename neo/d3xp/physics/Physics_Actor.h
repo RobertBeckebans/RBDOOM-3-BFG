@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __PHYSICS_ACTOR_H__
 #define __PHYSICS_ACTOR_H__
 
+#include "../d3xp/physics/Physics_Base.h"
+
 /*
 ===================================================================================
 

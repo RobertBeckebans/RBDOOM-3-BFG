@@ -26,14 +26,11 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-
 #ifdef __GNUG__
 #pragma implementation "dstrings.h"
 #endif
+#include "../../doomclassic/doom/d_englsh.h"
 #include "dstrings.h"
-
-#include "globaldata.h"
 
 
 const char* endmsg[NUM_QUITMESSAGES+1]=

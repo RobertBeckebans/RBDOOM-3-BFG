@@ -28,6 +28,10 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __PACKET_PROCESSOR_H__
 #define __PACKET_PROCESSOR_H__
 
+#include "../idlib/DataQueue.h"                  // for idDataQueue
+#include "../idlib/sys/sys_types.h"
+#include "../idlib/BitMsg.h"
+
 /*
 ================================================
 idPacketProcessor

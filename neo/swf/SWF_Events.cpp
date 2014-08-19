@@ -25,8 +25,30 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
+#include <math.h>
+#include <stddef.h>
+
+#include "../framework/KeyInput.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/RenderSystem.h"
+#include "../swf/SWF.h"
+#include "../swf/SWF_Enums.h"
+#include "../swf/SWF_ParmList.h"
+#include "../swf/SWF_ScriptFunction.h"
+#include "../swf/SWF_ScriptObject.h"
+#include "../swf/SWF_ScriptVar.h"
+#include "../swf/SWF_SpriteInstance.h"
+#include "../swf/SWF_TextInstance.h"
+#include "../swf/SWF_Types.h"
+#include "../sys/sys_public.h"
+
 #pragma hdrstop
-#include "precompiled.h"
 
 /*
 ===================

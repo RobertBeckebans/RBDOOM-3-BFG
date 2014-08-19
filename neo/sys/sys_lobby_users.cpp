@@ -26,7 +26,23 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+#include <assert.h>
+#include <string.h>
+
+#include "../framework/PlayerProfile.h"
+#include "../idlib/BitMsg.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/StaticList.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_types.h"
+#include "../sys/PacketProcessor.h"
+#include "../sys/SnapshotProcessor.h"
+#include "../sys/sys_lobby_backend.h"
+#include "../sys/sys_localuser.h"
+#include "../sys/sys_session.h"
+#include "../sys/sys_signin.h"
 #include "sys_lobby.h"
 #include "sys_voicechat.h"
 

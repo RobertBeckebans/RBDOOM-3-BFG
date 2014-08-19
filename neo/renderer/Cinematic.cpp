@@ -29,17 +29,69 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
 
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
+
+#include "../framework/CVarSystem.h"  // for idCVar, etc
+#include "../framework/Common.h"
+#include "../framework/DeclManager.h"
+#include "../framework/File.h"
+#include "../framework/FileSystem.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/Cinematic.h"
+#include "../renderer/Image.h"
+#include "../renderer/ImageOpts.h"
+#include "../renderer/Material.h"
+#include "../sound/sound.h"
+#include "../sys/sys_public.h"
+
+#ifdef USE_FFMPEG
+#ifdef _WIN32
+extern "C" {
+#include "libavcodec/version.h"
+#include "libavutil/avutil.h"
+#include "libavutil/frame.h"
+#include "libavutil/mem.h"
+#include "libavutil/pixfmt.h"
+#include "libavutil/rational.h"
+#include "libavutil/version.h"
+}
+#else
+extern "C" {
+#include <libavcodec/version.h>
+#include <libavutil/avutil.h>
+#include <libavutil/mem.h>
+#include <libavutil/pixfmt.h>
+#include <libavutil/rational.h>
+#include <libavutil/version.h>
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(55,28,1)
+#include <libavutil/frame.h>
+#endif
+}
+#endif
+#endif // USE_FFMPEG
+
+extern "C" {
+#include <jconfig.h>
+#include <jmorecfg.h>
+#include <jpeglib.h>
+}
 
 extern idCVar s_noSound;
+extern idCVar r_skipDynamicTextures;
 
 #define JPEG_INTERNALS
-//extern "C" {
-#include "../libs/jpeg-6/jpeglib.h"
-//}
 
-#include "tr_local.h"
+
+
+//#include "tr_local.h"
+
+struct SwsContext;
 
 #define CIN_system	1
 #define CIN_loop	2
@@ -551,7 +603,7 @@ bool idCinematicLocal::InitFromFFMPEGFile( const char* qpath, bool amilooping )
 	int ticksPerFrame = dec_ctx->ticks_per_frame;
 	float durationSec = static_cast<double>( fmt_ctx->streams[video_stream_index]->duration ) * static_cast<double>( ticksPerFrame ) / static_cast<double>( avr.den );
 	animationLength = durationSec * 1000;
-	frameRate = av_q2d( fmt_ctx->streams[video_stream_index]->r_frame_rate );
+	frameRate = av_q2d( fmt_ctx->streams[video_stream_index]->avg_frame_rate );
 	buf = NULL;
 	hasFrame = false;
 	framePos = -1;
@@ -2047,7 +2099,7 @@ struct jpeg_error_mgr jerr;
  */
 
 
-METHODDEF boolean fill_input_buffer( j_decompress_ptr cinfo )
+METHODDEF(boolean) fill_input_buffer( j_decompress_ptr cinfo )
 {
 	my_src_ptr src = ( my_src_ptr ) cinfo->src;
 	int nbytes;
@@ -2079,7 +2131,7 @@ METHODDEF boolean fill_input_buffer( j_decompress_ptr cinfo )
  */
 
 
-METHODDEF void init_source( j_decompress_ptr cinfo )
+METHODDEF(void) init_source( j_decompress_ptr cinfo )
 {
 	my_src_ptr src = ( my_src_ptr ) cinfo->src;
 	
@@ -2102,7 +2154,7 @@ METHODDEF void init_source( j_decompress_ptr cinfo )
  * buffer is the application writer's problem.
  */
 
-METHODDEF void
+METHODDEF(void)
 skip_input_data( j_decompress_ptr cinfo, long num_bytes )
 {
 	my_src_ptr src = ( my_src_ptr ) cinfo->src;
@@ -2138,14 +2190,14 @@ skip_input_data( j_decompress_ptr cinfo, long num_bytes )
  * for error exit.
  */
 
-METHODDEF void
+METHODDEF(void)
 term_source( j_decompress_ptr cinfo )
 {
 	cinfo = cinfo;
 	/* no work necessary here */
 }
 
-GLOBAL void
+GLOBAL(void)
 jpeg_memory_src( j_decompress_ptr cinfo, byte* infile, int size )
 {
 	my_src_ptr src;

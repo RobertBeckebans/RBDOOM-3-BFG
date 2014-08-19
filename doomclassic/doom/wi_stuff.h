@@ -31,6 +31,7 @@ If you have questions concerning this license or the applicable additional terms
 
 //#include "v_video.h"
 
+#include "../../doomclassic/doom/d_player.h"
 #include "doomdef.h"
 
 // Called by main loop, animate the intermission.

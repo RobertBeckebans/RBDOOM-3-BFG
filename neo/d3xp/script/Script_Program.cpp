@@ -28,10 +28,31 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
-
+#include <assert.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
 
 #include "../Game_local.h"
+#include "../d3xp/Entity.h"
+#include "../d3xp/gamesys/Event.h"
+#include "../d3xp/gamesys/SaveGame.h"
+#include "../d3xp/gamesys/SysCvar.h"
+#include "../d3xp/script/Script_Compiler.h"
+#include "../d3xp/script/Script_Program.h"
+#include "../d3xp/script/Script_Thread.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/File.h"
+#include "../framework/FileSystem.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/HashIndex.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/StaticList.h"
+#include "../idlib/containers/StrList.h"
+#include "../idlib/hashing/MD4.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_types.h"
 
 // simple types.  function types are dynamically allocated
 idTypeDef	type_void( ev_void, &def_void, "void", 0, NULL );

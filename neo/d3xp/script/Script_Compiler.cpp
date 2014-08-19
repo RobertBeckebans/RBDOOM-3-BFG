@@ -28,10 +28,26 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
-
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "../Game_local.h"
+#include "../d3xp/Game.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/gamesys/Event.h"
+#include "../d3xp/script/Script_Compiler.h"
+#include "../d3xp/script/Script_Program.h"
+#include "../d3xp/script/Script_Thread.h"
+#include "../idlib/Lexer.h"
+#include "../idlib/Parser.h"
+#include "../idlib/Str.h"
+#include "../idlib/Token.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_defines.h"
+#include "Timer.h"
 
 #define FUNCTION_PRIORITY	2
 #define INT_PRIORITY		2

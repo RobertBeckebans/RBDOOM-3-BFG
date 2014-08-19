@@ -30,6 +30,14 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __RENDERER_H__
 #define __RENDERER_H__
 
+#include "../libs/glew/include/GL/glew.h"  // for GLint, GLuint, etc
+#include "../renderer/Material.h"       // for idMaterial
+#include "../idlib/geometry/DrawVert.h"  // for idDrawVert
+#include "../idlib/math/Plane.h"        // for idPlane
+#include "../framework/File_Manifest.h"  // for idPreloadManifest, etc
+#include "../framework/CVarSystem.h"  // for idCVar, etc
+#include "../framework/Common.h"        // for MemInfo_t
+
 /*
 ===============================================================================
 

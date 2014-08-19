@@ -28,7 +28,11 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SNAPSHOT_JOBS_H__
 #define __SNAPSHOT_JOBS_H__
 
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
 #include "LightweightCompression.h"
+
+struct lzwCompressionData_t;
 
 //#define SNAPSHOT_CHECKSUMS
 

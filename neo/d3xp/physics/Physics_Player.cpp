@@ -27,9 +27,37 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "../Game_local.h"
+#include "../cm/CollisionModel.h"
+#include "../d3xp/Entity.h"
+#include "../d3xp/Game_defines.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/gamesys/SaveGame.h"
+#include "../d3xp/gamesys/SysCvar.h"
+#include "../d3xp/physics/Clip.h"
+#include "../d3xp/physics/Physics.h"
+#include "../d3xp/physics/Physics_Player.h"
+#include "../d3xp/physics/Physics_Static.h"
+#include "../d3xp/physics/Physics_StaticMulti.h"
+#include "../d3xp/physics/Push.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../framework/UsercmdGen.h"
+#include "../idlib/BitMsg.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/geometry/TraceModel.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Rotation.h"
+#include "../idlib/math/Vector.h"
+#include "../renderer/Material.h"
 
 CLASS_DECLARATION( idPhysics_Actor, idPhysics_Player )
 END_CLASS

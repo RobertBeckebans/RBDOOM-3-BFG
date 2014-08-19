@@ -28,6 +28,14 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef	__SWF_PARMLIST_H__
 #define	__SWF_PARMLIST_H__
 
+#include "../idlib/Str.h"
+#include "../idlib/containers/StaticList.h"
+#include "../idlib/sys/sys_types.h"
+#include "../swf/SWF_ScriptVar.h"
+
+class idSWFScriptFunction;
+class idSWFScriptObject;
+
 // static list for script parameters
 static const int SWF_MAX_PARMS = 16;
 

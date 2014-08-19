@@ -25,8 +25,10 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
+#include "../swf/SWF.h"
+#include "../swf/SWF_Enums.h"
+
 #pragma hdrstop
-#include "precompiled.h"
 
 /*
 ========================

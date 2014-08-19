@@ -30,6 +30,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SCRIPT_PROGRAM_H__
 #define __SCRIPT_PROGRAM_H__
 
+#include "../d3xp/Game_defines.h"
+
 class idScriptObject;
 class idEventDef;
 class idVarDef;

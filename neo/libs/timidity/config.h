@@ -17,6 +17,10 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
+#ifndef TIMIDY_CONFIG_H
+#define TIMIDY_CONFIG_H
+
+
 /* This is for use with the SDL library */
 #define SDL
 #if (defined(WIN32) || defined(_WIN32)) && !defined(__WIN32__)
@@ -206,3 +210,6 @@ const float PI =  3.14159265358979323846f;
 //#  define PATH_SEP '/'
 //#  define PATH_STRING "/"
 //#endif
+
+#endif // TIMIDY_CONFIG_H
+

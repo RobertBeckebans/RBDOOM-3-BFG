@@ -28,6 +28,15 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __DYNAMICSHADOWVOLUME_H__
 #define __DYNAMICSHADOWVOLUME_H__
 
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/jobs/dynamicshadowvolume/../../../idlib/bv/Bounds.h"
+#include "../renderer/jobs/dynamicshadowvolume/../../../idlib/geometry/RenderMatrix.h"
+#include "../renderer/jobs/dynamicshadowvolume/../../../idlib/math/Vector.h"
+#include "../renderer/jobs/dynamicshadowvolume/../ShadowShared.h"
+
+class idDrawVert;
+class idJointMat;
+struct CellSpursJob128;
 /*
 ================================================================================================
 

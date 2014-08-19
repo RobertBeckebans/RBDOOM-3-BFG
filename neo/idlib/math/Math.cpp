@@ -27,7 +27,13 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <math.h>                       // for sqrt
+#include <stdlib.h>                     // for abs
+#include <xmmintrin.h>                  // for __m128
+#include "../idlib/math/Math.h"         // for idMath, etc
+#include "../idlib/sys/sys_assert.h"             // for assert
+#include "../idlib/sys/sys_intrinsics.h"         // for USE_INTRINSICS
+#include "../idlib/sys/sys_types.h"              // for dword
 
 const int SMALLEST_NON_DENORMAL					= 1 << IEEE_FLT_MANTISSA_BITS;
 const int NAN_VALUE								= 0x7f800000;

@@ -27,10 +27,27 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <stdio.h>
+#include <string.h>
 
-#include "DeviceContext.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/DeclManager.h"
+#include "../framework/KeyInput.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/geometry/DrawVert.h"
+#include "../idlib/geometry/Winding.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Plane.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/Font.h"
 #include "../renderer/GuiModel.h"
+#include "../renderer/Material.h"
+#include "../renderer/RenderSystem.h"
+#include "../sys/sys_public.h"
+#include "../ui/Rectangle.h"
+#include "DeviceContext.h"
 
 extern idCVar in_useJoystick;
 

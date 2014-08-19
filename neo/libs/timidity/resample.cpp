@@ -20,18 +20,16 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 resample.c
 */
 
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <stdint.h>
 
-#include "config.h"
+#include "../libs/timidity/timidity.h"
 #include "common.h"
+#include "config.h"
+#include "controls.h"
 #include "instrum.h"
 #include "playmidi.h"
-#include "output.h"
-#include "controls.h"
-#include "tables.h"
 #include "resample.h"
+#include "tables.h"
 
 #ifdef LINEAR_INTERPOLATION
 # if defined(LOOKUP_HACK) && defined(LOOKUP_INTERPOLATION)

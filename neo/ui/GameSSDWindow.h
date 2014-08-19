@@ -28,7 +28,23 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __GAME_SSD_WINDOW_H__
 #define __GAME_SSD_WINDOW_H__
 
+#include <stddef.h>
+
+#include "../idlib/Str.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Vector.h"
+#include "../ui/SimpleWindow.h"
+#include "../ui/Window.h"
+#include "../ui/Winvar.h"
+
+class idFile;
 class idGameSSDWindow;
+class idMaterial;
+class idRandom;
+class idTokenParser;
+class idUserInterfaceLocal;
+struct sysEvent_t;
 
 class SSDCrossHair
 {

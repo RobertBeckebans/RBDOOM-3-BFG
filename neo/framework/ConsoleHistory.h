@@ -28,6 +28,10 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __CONSOLEHISTORY_H__
 #define __CONSOLEHISTORY_H__
 
+#include "../idlib/Str.h"
+#include "../idlib/containers/Array.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_types.h"
 /*
 
 This should behave like the windows command prompt, with the addition

@@ -26,13 +26,16 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+
+#include <windows.h>
 
 #ifdef _MSC_VER // DG: dx SDK's xinput.h is incompatible with MinGW..
 #include <Xinput.h>
 #else // .. so use the one from wine instead when not using MSVC
 #include "wine-xinput.h"
 #endif // DG end
+
+#include "../sys/sys_session.h"
 
 static const int MAX_JOYSTICKS = 4;
 

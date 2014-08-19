@@ -27,10 +27,26 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <assert.h>
+#include <stddef.h>
 
-#include "tr_local.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/DeclManager.h"
+#include "../framework/DeclParticle.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Str.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Random.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/Model.h"
+#include "../renderer/RenderWorld.h"
 #include "Model_local.h"
+#include "tr_local.h"
+
+class idDrawVert;
 
 static const char* parametricParticle_SnapshotName = "_ParametricParticle_Snapshot_";
 

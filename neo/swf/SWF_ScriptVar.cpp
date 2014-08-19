@@ -25,8 +25,23 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
+#include <assert.h>
+#include <stdlib.h>
+
+#include "../framework/CVarSystem.h"
+#include "../idlib/LangDict.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/sys/sys_types.h"
+#include "../swf/SWF_ScriptFunction.h"
+#include "../swf/SWF_ScriptObject.h"
+#include "../swf/SWF_ScriptVar.h"
+
+class idSWFSpriteInstance;
+class idSWFTextInstance;
+
 #pragma hdrstop
-#include "precompiled.h"
 
 extern idCVar swf_debugShowAddress;
 

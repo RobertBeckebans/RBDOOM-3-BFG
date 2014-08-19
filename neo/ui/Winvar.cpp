@@ -27,11 +27,16 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <stddef.h>
 
+#include "../idlib/Heap.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/Str.h"
+#include "UserInterfaceLocal.h"
 #include "Window.h"
 #include "Winvar.h"
-#include "UserInterfaceLocal.h"
+
+class idDict;
 
 idWinVar::idWinVar()
 {

@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __GRAPHICSAPIWRAPPER_H__
 #define __GRAPHICSAPIWRAPPER_H__
 
+#include "../renderer/ScreenRect.h"     // for idScreenRect
+
 /*
 ================================================================================================
 

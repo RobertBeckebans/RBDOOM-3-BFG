@@ -27,9 +27,32 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
-#include "../sys_session_local.h"
+#include <errno.h>
+#include <stddef.h>
+#include <string.h>
+
+#include "../framework/CVarSystem.h"
+#include "../framework/File.h"
+#include "../framework/FileSystem.h"
+#include "../framework/File_SaveGame.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/StrStatic.h"
+#include "../idlib/Thread.h"
+#include "../idlib/containers/StrList.h"
+#include "../idlib/hashing/MD5.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_filesystem.h"
+#include "../idlib/sys/sys_types.h"
+#include "../sys/common/localuser.h"
+#include "../sys/sys_public.h"
+#include "../sys/sys_session.h"
+#include "../sys/sys_signin.h"
 #include "../sys_savegame.h"
+#include "sys/sys_threading.h"
+
+class idLocalUser;
 
 idCVar savegame_winInduceDelay( "savegame_winInduceDelay", "0", CVAR_INTEGER, "on windows, this is a delay induced before any file operation occurs" );
 extern idCVar fs_savepath;

@@ -29,6 +29,11 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __MATH_VECTOR_H__
 #define __MATH_VECTOR_H__
 
+#include <string.h>                     // for memcpy
+
+#include "../idlib/containers/Array.h" // for idTupleSize
+#include "../idlib/math/Math.h"
+
 /*
 ===============================================================================
 
@@ -36,8 +41,6 @@ If you have questions concerning this license or the applicable additional terms
 
 ===============================================================================
 */
-
-#include "../containers/Array.h" // for idTupleSize
 
 #define VECTOR_EPSILON		0.001f
 

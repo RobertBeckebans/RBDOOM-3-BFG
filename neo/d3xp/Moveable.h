@@ -29,6 +29,22 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __GAME_MOVEABLE_H__
 #define __GAME_MOVEABLE_H__
 
+#include "../cm/CollisionModel.h"
+#include "../d3xp/Entity.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/gamesys/Event.h"
+#include "../d3xp/physics/Physics_RigidBody.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Vector.h"
+#include "../renderer/RenderWorld.h"
+
+class idBitMsg;
+class idMaterial;
+class idRestoreGame;
+class idSaveGame;
+template <class type> class idCurve_Spline;
 /*
 ===============================================================================
 

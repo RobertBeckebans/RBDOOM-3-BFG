@@ -29,6 +29,11 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __RENDERMATRIX_H__
 #define __RENDERMATRIX_H__
 
+#include "../idlib/math/Vector.h"
+#include "../idlib/math/Plane.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/bv/Box.h"
+
 static const int NUM_FRUSTUM_CORNERS	= 8;
 
 struct frustumCorners_t

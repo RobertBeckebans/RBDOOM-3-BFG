@@ -29,6 +29,32 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __GAME_MOVER_H__
 #define __GAME_MOVER_H__
 
+#include <stddef.h>
+
+#include "../cm/CollisionModel.h"
+#include "../d3xp/Entity.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/gamesys/Event.h"
+#include "../d3xp/physics/Physics_Parametric.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/StrList.h"
+#include "../idlib/math/Angles.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Vector.h"
+
+class idBitMsg;
+class idBounds;
+class idClipModel;
+class idLexer;
+class idRestoreGame;
+class idSaveGame;
+class idThread;
+template <class type> class idCurve_Spline;
+template <class type> class idEntityPtr;
+
 extern const idEventDef EV_TeamBlocked;
 extern const idEventDef EV_PartBlocked;
 extern const idEventDef EV_ReachedPos;

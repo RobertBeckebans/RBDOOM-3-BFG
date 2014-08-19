@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SYS_ACHIEVEMENTS_H__
 #define __SYS_ACHIEVEMENTS_H__
 
+#include "../sys/sys_session.h"
+
 class idLocalUser;
 
 // data structure for online achievement entry descriptions

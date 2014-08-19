@@ -30,6 +30,8 @@ If you have questions concerning this license or the applicable additional terms
 #define __P_INTER__
 
 
+#include "../../doomclassic/doom/d_player.h"
+#include "../../doomclassic/doom/doomtype.h"
 #ifdef __GNUG__
 #pragma interface
 #endif

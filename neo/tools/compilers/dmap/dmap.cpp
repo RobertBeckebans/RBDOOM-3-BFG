@@ -26,10 +26,10 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
 #pragma hdrstop
-
-#include "dmap.h"
+#include "../tools/compilers/dmap/dmap.h"
+         
+#include "../tools/compilers/compiler_public.h"
 
 dmapGlobals_t	dmapGlobals;
 

@@ -27,9 +27,42 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+#include <stddef.h>
 
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/FileSystem.h"
+#include "../framework/File_Manifest.h"
+#include "../framework/File_Resource.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/StrStatic.h"
+#include "../idlib/Thread.h"
+#include "../idlib/containers/HashIndex.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/StaticList.h"
+#include "../idlib/math/Random.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../renderer/Cinematic.h"
+#if defined(USE_OPENAL)
+#include "../sound/OpenAL/AL_SoundHardware.h"
+#include "../sound/OpenAL/AL_SoundSample.h"
+#else
+#include "../sound/XAudio2/XA2_SoundHardware.h"
+#include "../sound/XAudio2/XA2_SoundSample.h"
+#endif
+
+#include "../sound/sound.h"
+#include "../sys/sys_public.h"
+#include "../sound/snd_defines.h"
 #include "snd_local.h"
+
+class idDecl;
+class idRenderWorld;
+class idSoundVoice;
 
 idCVar s_noSound( "s_noSound", "0", CVAR_BOOL, "returns NULL for all sounds loaded and does not update the sound rendering" );
 

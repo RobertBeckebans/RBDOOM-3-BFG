@@ -26,15 +26,21 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-
 #include <stdio.h>
+#include <string.h>
 
-#include "globaldata.h"
-#include "doominterface.h"
+#include "../../doomclassic/doom/d_main.h"
+#include "../../doomclassic/doom/d_net.h"
+#include "../../doomclassic/doom/doomdef.h"
+#include "../../doomclassic/doom/doomlib.h"
+#include "../../doomclassic/doom/z_zone.h"
+#include "../../doomclassic/doom/doomtype.h"
 #include "Main.h"
-#include "m_menu.h"
+#include "doominterface.h"
 #include "g_game.h"
+#include "globaldata.h"
+#include "m_menu.h"
+#include "sys/sys_threading.h"
 
 extern void I_SetTime( int );
 

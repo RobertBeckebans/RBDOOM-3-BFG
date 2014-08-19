@@ -26,8 +26,30 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+#include <stddef.h>
+
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../framework/DeclManager.h"
+#include "../framework/File.h"
+#include "../framework/FileSystem.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/Swap.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/math/VectorI.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
 #include "../renderer/Font.h"
+#include "../renderer/Material.h"
+#include "../renderer/RenderSystem.h"
+#include "../swf/SWF.h"
+#include "../swf/SWF_Bitstream.h"
+#include "../swf/SWF_Enums.h"
+#include "../swf/SWF_Sprites.h"
+#include "../swf/SWF_Types.h"
 
 #pragma warning(disable: 4355) // 'this' : used in base member initializer list
 

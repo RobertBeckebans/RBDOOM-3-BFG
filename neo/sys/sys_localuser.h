@@ -28,11 +28,13 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SYS_LOCALUSER_H__
 #define __SYS_LOCALUSER_H__
 
+#include "../idlib/BitMsg.h"
+#include "../idlib/sys/sys_types.h"
 #include "sys_profile.h"
 
-struct achievementDescription_t;
 class idPlayerProfile;
 class idProfileMgr;
+struct achievementDescription_t;
 
 enum onlineCaps_t
 {

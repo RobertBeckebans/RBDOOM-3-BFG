@@ -27,10 +27,28 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <math.h>
+#include <stdlib.h>
 
-#include "AAS_local.h"
 #include "../Game_local.h"		// for cvars and debug drawing
+#include "../aas/AASFile.h"
+#include "../d3xp/Player.h"
+#include "../d3xp/ai/AAS.h"
+#include "../d3xp/ai/AI.h"
+#include "../d3xp/gamesys/SysCvar.h"
+#include "../d3xp/physics/Physics.h"
+#include "../framework/CVarSystem.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/math/Angles.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Plane.h"
+#include "../idlib/math/Random.h"
+#include "../idlib/math/Vector.h"
+#include "../renderer/RenderWorld.h"
+#include "AAS_local.h"
 
 
 /*

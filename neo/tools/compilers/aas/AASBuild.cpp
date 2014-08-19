@@ -26,8 +26,12 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
 #pragma hdrstop
+
+#include "../idlib/Heap.h"
+#include "../framework/FileSystem.h"
+#include "../d3xp/Game.h"
+#include "../renderer/RenderWorld.h"
 
 #include "AASBuild_local.h"
 

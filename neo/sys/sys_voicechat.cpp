@@ -26,7 +26,14 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+#include "../idlib/BitMsg.h"
+#include "../idlib/Lib.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../sys/sys_lobby_backend.h"
+#include "../sys/sys_public.h"
+#include "../idlib/containers/StaticList.h"
+#include "../sys/sys_session.h"
+#include "sys/sys_types.h"
 #include "sys_voicechat.h"
 
 /*

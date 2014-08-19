@@ -26,11 +26,57 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
 #pragma hdrstop
 
-#include "Game_local.h"
+#include <assert.h>
+#include <stdarg.h>
+#include <string.h>
+
+#include "../cm/CollisionModel.h"
+#include "../d3xp/Entity.h"
+#include "../d3xp/Game_defines.h"
+#include "../d3xp/MultiplayerGame.h"
+#include "../d3xp/Player.h"
+#include "../d3xp/Pvs.h"
+#include "../d3xp/Weapon.h"
+#include "../d3xp/anim/Anim.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/gamesys/Event.h"
+#include "../d3xp/gamesys/SysCmds.h"
+#include "../d3xp/physics/Clip.h"
+#include "../d3xp/physics/Physics.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
 #include "../framework/Common_local.h"
+#include "../framework/DeclEntityDef.h"
+#include "../framework/DeclManager.h"
+#include "../framework/DeclParticle.h"
+#include "../framework/UsercmdGen.h"
+#include "../idlib/BitMsg.h"
+#include "../idlib/Dict.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/containers/Array.h"
+#include "../idlib/containers/LinkList.h"
+#include "../idlib/containers/StaticList.h"
+#include "../idlib/containers/StrList.h"
+#include "../idlib/geometry/JointTransform.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/Material.h"
+#include "../renderer/Model.h"
+#include "../renderer/RenderWorld.h"
+#include "../sound/sound.h"
+#include "../sys/Snapshot.h"
+#include "../sys/sys_session.h"
+#include "Game_local.h"
+
+struct gameReturn_t;
 
 static const int SNAP_GAMESTATE = 0;
 static const int SNAP_SHADERPARMS = 1;

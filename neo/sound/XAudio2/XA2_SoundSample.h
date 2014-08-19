@@ -28,6 +28,13 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __XA2_SOUNDSAMPLE_H__
 #define __XA2_SOUNDSAMPLE_H__
 
+#include <XAudio2.h>
+#include <XAudio2fx.h>
+
+#include "../framework/FileSystem.h"
+#include "../sound/WaveFile.h"
+#include "../sound/snd_defines.h"
+
 /*
 ================================================
 idSoundSample_XAudio2

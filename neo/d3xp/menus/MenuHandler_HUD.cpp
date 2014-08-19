@@ -26,8 +26,16 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+#include <stddef.h>
+
 #include "../Game_local.h"
+#include "../d3xp/Player.h"
+#include "../d3xp/menus/MenuHandler.h"
+#include "../d3xp/menus/MenuScreen.h"
+#include "../idlib/Heap.h"
+#include "../swf/SWF.h"
+
+class idSoundWorld;
 
 static const int TIP_DISPLAY_TIME = 5000;
 

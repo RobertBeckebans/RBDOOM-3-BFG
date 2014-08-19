@@ -29,6 +29,13 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __MULTIPLAYERGAME_H__
 #define	__MULTIPLAYERGAME_H__
 
+#include <stddef.h>
+
+#include "../idlib/Str.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../d3xp/Game_defines.h"
+
 /*
 ===============================================================================
 
@@ -37,10 +44,15 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-class idPlayer;
+class idBitMsg;
+class idCmdArgs;
+class idItemTeam;
 class idMenuHandler_HUD;
 class idMenuHandler_Scoreboard;
-class idItemTeam;
+class idPlayer;
+class idUserInterface;
+struct lobbyUserID_t;
+struct sysEvent_t;
 
 enum gameType_t
 {

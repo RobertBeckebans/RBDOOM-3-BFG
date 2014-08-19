@@ -27,8 +27,20 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
-#include "TraceModel.h"
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "../framework/Common.h"
+#include "../idlib/Lib.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/geometry/TraceModel.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Vector.h"
+#include "geometry/Winding.h"
+#include "sys/sys_defines.h"
+
 
 /*
 ============

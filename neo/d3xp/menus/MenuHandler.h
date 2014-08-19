@@ -28,6 +28,15 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __MENUDATA_H__
 #define __MENUDATA_H__
 
+#include "../d3xp/menus/MenuWidget.h"   // for idMenuWidget
+#include "../swf/SWF_ScriptVar.h"       // for idSWFScriptVar
+#include "../swf/SWF_ParmList.h"        // for idSWFParmList
+#include "../swf/SWF_ScriptObject.h"    // for idSWFScriptObject
+#include "../swf/SWF_SpriteInstance.h"  // for idSWFSpriteInstance
+#include "../framework/DeclPDA.h"       // for idDeclAudio
+
+#include "../d3xp/menus/MenuScreen.h"   // for idMenuScreen, etc
+
 enum shellAreas_t
 {
 	SHELL_AREA_INVALID = -1,

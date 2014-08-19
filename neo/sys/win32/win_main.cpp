@@ -28,7 +28,13 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+
+#ifdef _WIN32
+// KORTEMIK: namespace collision
+#define _LIMITS_
+#endif
+
+#include <windows.h>
 
 #include <errno.h>
 #include <float.h>
@@ -48,6 +54,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "../sys_local.h"
 #include "win_local.h"
 #include "../../renderer/tr_local.h"
+#include "../framework/Licensee.h"
 
 idCVar Win32Vars_t::sys_arch( "sys_arch", "", CVAR_SYSTEM | CVAR_INIT, "" );
 idCVar Win32Vars_t::sys_cpustring( "sys_cpustring", "detect", CVAR_SYSTEM | CVAR_INIT, "" );

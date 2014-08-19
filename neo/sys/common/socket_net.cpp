@@ -36,34 +36,44 @@ Note that other POSIX systems may need some small changes, e.g. in Sys_InitNetwo
 ================================================================================================
 */
 
+#ifndef _WIN32
+#include <sys/socket.h> // IWYU pragma: keep
+#endif
+#include <limits.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/sys/sys_types.h"
+#include "../sys/sys_public.h"
+
 #pragma hdrstop
-#include "precompiled.h"
 
 #ifdef _WIN32
 
-#include <iptypes.h>
 #include <iphlpapi.h>
+#include <iptypes.h>
+
 // force these libs to be included, so users of idLib don't need to add them to every project
 #pragma comment(lib, "iphlpapi.lib" )
 #pragma comment(lib, "wsock32.lib" )
 
 #else // ! _WIN32
 
-#include <signal.h>
-#include <unistd.h>
+#include <arpa/inet.h>
+#include <errno.h>
 #include <fcntl.h>
+#include <net/if.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <sys/ioctl.h>
+#include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/time.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <sys/param.h>
-#include <sys/ioctl.h>
-#include <sys/uio.h>
-#include <errno.h>
-#include <sys/select.h>
-#include <net/if.h>
+#include <unistd.h>
 #if defined(__APPLE__) || defined(__FreeBSD__)
 #include <ifaddrs.h>
 #endif

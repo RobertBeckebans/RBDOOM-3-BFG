@@ -29,6 +29,15 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __MATH_MATX_H__
 #define __MATH_MATX_H__
 
+#include "../idlib/sys/sys_intrinsics.h"
+
+#include "../idlib/Heap.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/math/VecX.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/containers/Sort.h"
+#include "../idlib/math/Random.h"       // for idRandom
+
 /*
 ===============================================================================
 

@@ -29,15 +29,14 @@ April 95
 - modify "filter" so that it simulate leading and trailing 0 in the buffer
 */
 
-#include <stdio.h>
-#include <string.h>
 #include <math.h>
-#include <stdlib.h>
-#include "config.h"
+#include <string.h>
+
 #include "common.h"
+#include "config.h"
 #include "controls.h"
-#include "instrum.h"
 #include "filter.h"
+#include "instrum.h"
 
 void Real_Tim_Free( void *pt );
 

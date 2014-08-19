@@ -26,16 +26,30 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
+#include <stdlib.h>
+#include <string.h>
+
+#include "../../doomclassic/doom/d_net.h"
+#include "../../doomclassic/doom/d_player.h"
+#include "../../doomclassic/doom/defs.h"
+#include "../../doomclassic/doom/doomdef.h"
+#include "../../doomclassic/doom/doominterface.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/m_fixed.h"
+#include "../../doomclassic/doom/r_main.h"
+#include "../../doomclassic/doom/tables.h"
+#include "../../doomclassic/doom/typedefs.h"
+#include "../../doomclassic/doom/w_wad.h"
+#include "../framework/../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../idlib/Heap.h"
+#include "../idlib/containers/Array.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../sys/sys_public.h"
 #include "doomlib.h"
-#include <assert.h>
-#include "Main.h"
-#include "sys/sys_session.h"
+#include "globaldata.h"
 #include "idlib/Thread.h"
-
-
-#include <sys/types.h>
+#include "sys/sys_session.h"
 
 // Store master volume settings in archived cvars, becausue we want them to apply
 // even if a user isn't signed in.

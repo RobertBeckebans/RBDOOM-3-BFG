@@ -28,9 +28,18 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <stdlib.h>
+#include <string.h>
 
-
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../idlib/Str.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/Framebuffer.h"
+#include "../renderer/Image.h"
+#include "../renderer/Material.h"
 #include "tr_local.h"
 
 #define	DEFAULT_SIZE	16

@@ -27,10 +27,72 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
-
+#include <assert.h>
+#include <math.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "../Game_local.h"
+#include "../cm/CollisionModel.h"
+#include "../d3xp/AFEntity.h"
+#include "../d3xp/Actor.h"
+#include "../d3xp/Entity.h"
+#include "../d3xp/Fx.h"
+#include "../d3xp/Game.h"
+#include "../d3xp/GameEdit.h"
+#include "../d3xp/Game_defines.h"
+#include "../d3xp/Item.h"
+#include "../d3xp/Light.h"
+#include "../d3xp/Misc.h"
+#include "../d3xp/Moveable.h"
+#include "../d3xp/MultiplayerGame.h"
+#include "../d3xp/Player.h"
+#include "../d3xp/Projectile.h"
+#include "../d3xp/Weapon.h"
+#include "../d3xp/WorldSpawn.h"
+#include "../d3xp/ai/AAS.h"
+#include "../d3xp/ai/AI.h"
+#include "../d3xp/anim/Anim.h"
+#include "../d3xp/anim/Anim_Testmodel.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/gamesys/SysCvar.h"
+#include "../d3xp/physics/Physics.h"
+#include "../d3xp/script/Script_Program.h"
+#include "../d3xp/script/Script_Thread.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/DeclManager.h"
+#include "../framework/DeclPDA.h"
+#include "../framework/DeclParticle.h"
+#include "../framework/File.h"
+#include "../framework/FileSystem.h"
+#include "../idlib/BitMsg.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Dict.h"
+#include "../idlib/Heap.h"
+#include "../idlib/LangDict.h"
+#include "../idlib/Lexer.h"
+#include "../idlib/MapFile.h"
+#include "../idlib/Str.h"
+#include "../idlib/Token.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/containers/Array.h"
+#include "../idlib/containers/LinkList.h"
+#include "../idlib/containers/StrList.h"
+#include "../idlib/geometry/DrawVert.h"
+#include "../idlib/math/Angles.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Plane.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/Material.h"
+#include "../renderer/Model.h"
+#include "../renderer/RenderWorld.h"
+#include "../sys/sys_session.h"
 
 /*
 ==================

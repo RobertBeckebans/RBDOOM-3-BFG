@@ -28,7 +28,19 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "../../precompiled.h"
+
+#include <errno.h>                      // for ETIMEDOUT
+#include <pthread.h>                    // for pthread_mutex_lock, etc
+#include <stdint.h>                     // for uintptr_t
+#include <sys/time.h>                   // for CLOCK_REALTIME
+#include <time.h>                       // for timespec, NULL, etc
+
+#include "../framework/Common.h"        // for idCommon
+#include "../idlib/Lib.h"               // for idLib, idLib::common
+#include "../idlib/Thread.h"                     // for idSysSignal, etc
+#include "../idlib/sys/sys_assert.h"             // for assert
+#include "../idlib/sys/sys_threading.h"          // for signalHandle_t, etc
+
 
 #ifndef _WIN32
 #include <sched.h>

@@ -28,6 +28,9 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SERIALIZER_H__
 #define __SERIALIZER_H__
 
+#include "../idlib/math/Quat.h"         // for idCQuat, idQuat
+#include "../idlib/BitMsg.h"  // for idBitMsg
+
 #define SERIALIZE_BOOL( ser, x )			( ( x ) = ser.SerializeBoolNonRef( x ) )
 #define SERIALIZE_ENUM( ser, x, type, max ) ( ( x ) = (type)ser.SerializeUMaxNonRef( x, max ) )
 #define SERIALIZE_CVAR_FLOAT( ser, cvar )	{ float a = cvar.GetFloat(); ser.Serialize( a ); cvar.SetFloat( a ); }

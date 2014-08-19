@@ -29,6 +29,14 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef	__PLAYERICON_H__
 #define	__PLAYERICON_H__
 
+#include "../idlib/Lib.h"
+#include "../renderer/Model.h"
+#include "../renderer/RenderWorld.h"
+
+class idMat3;
+class idPlayer;
+class idVec3;
+
 typedef enum
 {
 	ICON_LAG,

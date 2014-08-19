@@ -27,12 +27,27 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <assert.h>
+#include <stdlib.h>
 
-#include "Window.h"
-#include "Winvar.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/DeclManager.h"
+#include "../framework/File.h"
+#include "../framework/TokenParser.h"
+#include "../idlib/LangDict.h"
+#include "../idlib/Lexer.h"
+#include "../idlib/Parser.h"
+#include "../idlib/Str.h"
+#include "../idlib/Token.h"
+#include "../renderer/Material.h"
+#include "../sound/sound.h"
+#include "../ui/Rectangle.h"
+#include "../ui/SimpleWindow.h"
 #include "GuiScript.h"
 #include "UserInterfaceLocal.h"
+#include "Window.h"
+#include "Winvar.h"
 
 /*
 =========================

@@ -29,6 +29,49 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __GAME_ENTITY_H__
 #define __GAME_ENTITY_H__
 
+#include <assert.h>
+
+#include "../cm/CollisionModel.h"
+#include "../d3xp/Game.h"
+#include "../d3xp/Pvs.h"
+#include "../d3xp/anim/Anim.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/gamesys/Event.h"
+#include "../d3xp/physics/Physics.h"
+#include "../d3xp/physics/Physics_Static.h"
+#include "../d3xp/script/Script_Program.h"
+#include "../framework/Common.h"
+#include "../framework/Serializer.h"
+#include "../idlib/BitMsg.h"
+#include "../idlib/Dict.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/LinkList.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/Model.h"
+#include "../renderer/RenderWorld.h"
+#include "../sound/sound.h"
+#include "../sys/sys_session.h"
+
+#include "../d3xp/Game_local.h"
+
+class idAngles;
+class idDeclEntityDef;
+class idDeclParticle;
+class idDeclSkin;
+class idLexer;
+class idMaterial;
+class idRestoreGame;
+class idSaveGame;
+class idThread;
+template <class type> class idCurve_Spline;
+template <class type> class idEntityPtr;
 /*
 ===============================================================================
 

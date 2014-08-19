@@ -28,8 +28,19 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SWF_SCRIPTVAR_H__
 #define __SWF_SCRIPTVAR_H__
 
-class idSWFScriptObject;
+#include <assert.h>
+#include <stddef.h>
+
+#include "../idlib/Heap.h"
+#include "../idlib/LangDict.h"
+#include "../idlib/Str.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
+
 class idSWFScriptFunction;
+class idSWFScriptObject;
+class idSWFSpriteInstance;
+class idSWFTextInstance;
 
 /*
 ========================

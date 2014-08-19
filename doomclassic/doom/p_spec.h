@@ -30,6 +30,15 @@ If you have questions concerning this license or the applicable additional terms
 #define __P_SPEC__
 
 
+#include "../../doomclassic/doom/d_player.h"
+#include "../../doomclassic/doom/d_think.h"
+#include "../../doomclassic/doom/doomdef.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/m_fixed.h"
+#include "../../doomclassic/doom/r_defs.h"
+
+struct mobj_t;
+
 //
 // End-level timer (-TIMER option)
 //

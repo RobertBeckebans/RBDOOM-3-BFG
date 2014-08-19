@@ -28,24 +28,12 @@ If you have questions concerning this license or the applicable additional terms
 
 #pragma once
 
-#include "idlib/precompiled.h"
-
-
-#include <stdio.h>
-#include <assert.h>
-#include <time.h>
-#include <stdlib.h>
-#include <string.h>
-#include <queue>
+#include <limits.h>
 
 #define ID_INLINE inline
 
 typedef unsigned char byte;
 typedef unsigned int dword;
-
-
-#include <math.h>
-#include <assert.h>
 
 #define ACTUALTEXTUREWIDTH	1024		// should always be equal to or larger
 #define ACTUALTEXTUREHEIGHT	1024

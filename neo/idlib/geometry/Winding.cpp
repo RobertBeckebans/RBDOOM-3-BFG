@@ -27,7 +27,21 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <string.h>
+
+#include "../framework/Common.h"
+#include "../idlib/Lib.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/geometry/Winding.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Plane.h"
+#include "../idlib/math/Pluecker.h"
+#include "../idlib/math/Vector.h"
+#include "Heap.h"
+#include "sys/sys_assert.h"
+#include "sys/sys_defines.h"
+#include "sys/sys_types.h"
+
 
 //===============================================================
 //

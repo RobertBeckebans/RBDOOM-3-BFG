@@ -32,10 +32,24 @@ Worldspawn class.  Each map has one worldspawn which handles global spawnargs.
 
 */
 
-#include "precompiled.h"
 #pragma hdrstop
 
+#include <stddef.h>
+
+#include "../d3xp/WorldSpawn.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/gamesys/SysCvar.h"
+#include "../d3xp/script/Script_Program.h"
+#include "../d3xp/script/Script_Thread.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/FileSystem.h"
+#include "../idlib/Dict.h"
+#include "../idlib/Str.h"
+#include "../idlib/sys/sys_assert.h"
 #include "Game_local.h"
+
+class idRestoreGame;
+class idSaveGame;
 
 /*
 ================

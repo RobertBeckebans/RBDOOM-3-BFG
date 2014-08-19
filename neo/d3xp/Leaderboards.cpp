@@ -26,8 +26,29 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
 #pragma hdrstop
+
+#include <stdlib.h>
+
+#include "../d3xp/Game.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Heap.h"
+#include "../idlib/LangDict.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/Array.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_types.h"
+#include "../sys/sys_session.h"
+
+#ifdef USE_STEAM_API
+#include "../sys/sys_leaderboards.h"
+#else
+#include "../sys/sys_stats.h"
+#endif
 
 #include "Game_local.h"
 #include "Leaderboards.h"
@@ -139,11 +160,11 @@ void LeaderboardLocal_Init()
 						gamemode.checkAgainstCurrent );
 						
 						
-						
+#ifndef USE_STEAM_API
 				// Set the leaderboard name.
 				const char* mapname = idLocalization::GetString( maps[ mapIdx ].mapName );
 				newLeaderboardDef->boardName.Format( "%s %s", mapname, gamemode.abrevName );
-				
+#endif
 				// sanity check.
 				if( Sys_FindLeaderboardDef( boardID ) != newLeaderboardDef )
 				{

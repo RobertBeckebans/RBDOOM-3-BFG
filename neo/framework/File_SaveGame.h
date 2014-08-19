@@ -28,7 +28,16 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __FILE_SAVEGAME_H__
 #define __FILE_SAVEGAME_H__
 
+#include <stddef.h>
+
+#include "../idlib/Str.h"
+#include "../idlib/Thread.h"                     // for idSysSignal
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
 #include "../libs/zlib/zlib.h"
+#include "../framework/File.h"
+#include "../idlib/StrStatic.h"
 
 // Listing of the types of files within a savegame package
 enum saveGameType_t
@@ -77,6 +86,8 @@ public: // TODO_KC_CR for now...
 	bool				error;			// when loading, this is set if there is a problem
 };
 
+class idSGFcompressThread;
+class idSGFdecompressThread;
 /*
 ================================================
 idFile_SaveGamePipelined uses threads to pipeline overlap compression and IO
@@ -84,8 +95,6 @@ idFile_SaveGamePipelined uses threads to pipeline overlap compression and IO
 */
 class idSGFreadThread;
 class idSGFwriteThread;
-class idSGFdecompressThread;
-class idSGFcompressThread;
 
 struct blockForIO_t
 {

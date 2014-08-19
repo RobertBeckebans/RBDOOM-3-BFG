@@ -26,10 +26,19 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
-#include "precompiled.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/physics/Clip.h"
+#include "../d3xp/physics/Physics.h"
+#include "../framework/Common.h"
+#include "../idlib/Heap.h"
+#include "../idlib/geometry/TraceModel.h"
 
-#include "../Game_local.h"
+class idBounds;
+class idRestoreGame;
+class idSaveGame;
+
+#pragma hdrstop
+
 
 ABSTRACT_DECLARATION( idClass, idPhysics )
 END_CLASS

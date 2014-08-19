@@ -26,22 +26,25 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
-
-
-
-
-
+#include <limits.h>
 #include <stdlib.h>
+#include <string.h>
 
-#include "i_system.h"
-
+#include "../../doomclassic/doom/defs.h"
+#include "../../doomclassic/doom/doomdata.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/m_fixed.h"
+#include "../../doomclassic/doom/r_data.h"
+#include "../../doomclassic/doom/r_defs.h"
+#include "../../doomclassic/doom/r_main.h"
+#include "../../doomclassic/doom/r_plane.h"
+#include "../../doomclassic/doom/r_things.h"
+#include "../../doomclassic/doom/tables.h"
+#include "../../doomclassic/doom/typedefs.h"
+#include "Precompiled.h"
 #include "doomdef.h"
-#include "doomstat.h"
-
-#include "r_local.h"
-#include "r_sky.h"
+#include "globaldata.h"
+#include "i_system.h"
 
 
 // OPTIMIZE: closed two sided ::g->lines as single sided

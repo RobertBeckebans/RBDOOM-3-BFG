@@ -26,29 +26,28 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-
 #ifdef __GNUG__
 #pragma implementation "w_wad.h"
 #endif
-#include "w_wad.h"
-
-#include "globaldata.h"
-
-
 #include <ctype.h>
-#include <sys/types.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
-#include <sys/stat.h>
 #include <vector>
 
-#include "doomtype.h"
-#include "m_swap.h"
+#include "../../doomclassic/doom/d_main.h"
+#include "../../doomclassic/doom/doomdef.h"
+#include "../../doomclassic/doom/doomlib.h"
+#include "../../doomclassic/doom/typedefs.h"
+#include "../framework/File.h"
+#include "../framework/FileSystem.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Str.h"
+#include "globaldata.h"
 #include "i_system.h"
+#include "m_swap.h"
+#include "w_wad.h"
 #include "z_zone.h"
-
-#include "idlib/precompiled.h"
 
 
 //

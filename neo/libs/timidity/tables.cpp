@@ -30,9 +30,6 @@ tables were lifted from the rsynth-2.0 sources.  The README says:
 
 */
 
-#include <stdio.h>
-#include "config.h"
-#include "common.h"
 #include "tables.h"
 
  int32_t freq_table[128]=

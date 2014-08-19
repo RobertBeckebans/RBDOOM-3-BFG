@@ -30,19 +30,48 @@ If you have questions concerning this license or the applicable additional terms
 #undef private
 #undef protected
 
+#include <stddef.h>
+
+#include "../framework/Common_dialog.h"
+#include "../framework/FileSystem.h"
+#include "../idlib/Dict.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Str.h"
+#include "../idlib/StrStatic.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/Queue.h"
+#include "../idlib/containers/StaticList.h"
+#include "../idlib/sys/sys_types.h"
+#include "../sys/PacketProcessor.h"
+#include "../sys/sys_localuser.h"
+#include "../sys/sys_public.h"
+#include "../sys/sys_savegame.h"
+#include "../sys/sys_session.h"
+#include "../sys/sys_signin.h"
+#include "../sys/sys_voicechat.h"
 // DG: achievements and signin is the same on windows, linux => put them in common dir
 #include "common/achievements.h"
 #include "common/signin.h"
 // DG end
 
-#include "sys_lobby_backend.h"
 #include "sys_lobby.h"
+#include "sys_lobby_backend.h"
 
-class idSaveGameProcessorNextMap;
-class idSaveGameProcessorSaveGame;
-class idSaveGameProcessorLoadGame;
+class idBitMsg;
+class idCallback;
+class idFile_Memory;
+class idLeaderboardCallback;
+class idPlayerProfile;
 class idSaveGameProcessorDelete;
 class idSaveGameProcessorEnumerateGames;
+class idSaveGameProcessorLoadFiles;
+class idSaveGameProcessorLoadGame;
+class idSaveGameProcessorNextMap;
+class idSaveGameProcessorSaveFiles;
+class idSaveGameProcessorSaveGame;
+class idSnapShot;
+struct column_t;
+struct leaderboardDefinition_t;
 
 /*
 ================================================

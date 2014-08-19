@@ -1,0 +1,34 @@
+// this file is GPLv3, the author is Biel Bestué de Luna
+entityDef info_portalSky {
+    "editor_color"          "1 .5 0"
+    "editor_mins"           "-1 -1 -4"
+    "editor_maxs"           "1 1 0"
+    "editor_showangle"      "0"
+    "editor_usage"          "Specifies location for portal sky.  Multiple portalsky locations are supported, with one 'currently active' info_portalSky providing the view for all portal sky brushes.  Triggering an info_portalSky will make it 'current', even if it didn't have a 'triggered' flag to start with."
+    "editor_var triggered"  "This portal sky will be inactive at start, and must be triggered to become active.  All additional portalsky areas must have this flag set."
+    "editor_var scale"      "integer variabl that determine the scale of the movement of the skyportal related to the movement of the player, only important for local and global skyboxes. default --> '16'" 
+	
+    "spawnclass"            "idPortalSky"
+    "hide"                  "1"
+    "ps_type"               "0"
+    "ps_scale"              "16"
+}
+
+entityDef info_portalSky_local {
+    "inherit"               "info_portalSky"
+    "editor_color"          ".5 .5 0"
+    "editor_mins"           "-1 -1 -4"
+    "editor_maxs"           "1 1 0"
+    "ps_type"               "2"
+    "editor_usage"          "inherits from 'info_portalSky', every time that it gets triggered changes the portalSky that follows the player starting from this spot." 
+	
+}
+
+entityDef info_portalSky_global {
+    "inherit"               "info_portalSky"
+    "editor_color"          ".75 .75 0"
+    "editor_mins"           "-1 -1 -4"
+    "editor_maxs"           "1 1 0"
+    "ps_type"               "1"
+    "editor_usage"          "inherits from 'info_portalSky', every time that it gets triggered changes the portalSky that follows the player starting from the initial spot since the start of the map, so of you retrigger it, it will preserve the relative position that it had since the start. .:WARNING:. only one global portalSky per map! .:WARNING:."
+}

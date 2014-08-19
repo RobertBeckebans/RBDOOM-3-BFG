@@ -25,9 +25,24 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
+#include <stddef.h>
+
+#include "../d3xp/menus/MenuWidget.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../swf/SWF.h"
+#include "../swf/SWF_ScriptFunction.h"
+#include "../swf/SWF_ScriptVar.h"
+#include "../swf/SWF_SpriteInstance.h"
+
+class idMaterial;
+class idMenuHandler;
+class idSWFParmList;
+class idSWFScriptObject;
+
 #pragma hdrstop
-#include "precompiled.h"
-#include "../Game_local.h"
 
 void idMenuWidget_Carousel::Initialize( idMenuHandler* data )
 {

@@ -20,5 +20,11 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 resample.h
 */
 
+#include <stdint.h>
+#include <sys/types.h>
+
+#include "../libs/timidity/config.h"
+#include "../libs/timidity/instrum.h"
+
 extern sample_t *resample_voice(int v,  int32_t  *countptr);
 extern void pre_resample(Sample *sp);

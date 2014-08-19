@@ -49,10 +49,41 @@ move around it to view it from different angles.
 */
 
 #pragma hdrstop
-#include "precompiled.h"
-
+#include <stdlib.h>
 
 #include "../Game_local.h"
+#include "../d3xp/Actor.h"
+#include "../d3xp/Entity.h"
+#include "../d3xp/Player.h"
+#include "../d3xp/anim/Anim.h"
+#include "../d3xp/anim/Anim_Testmodel.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/gamesys/SysCvar.h"
+#include "../d3xp/physics/Clip.h"
+#include "../d3xp/physics/Physics.h"
+#include "../d3xp/physics/Physics_Parametric.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/DeclManager.h"
+#include "../framework/DeclParticle.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Dict.h"
+#include "../idlib/Str.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Angles.h"
+#include "../idlib/math/Extrapolate.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Vector.h"
+#include "../renderer/Material.h"
+#include "../renderer/Model.h"
+#include "../renderer/ModelManager.h"
+#include "../renderer/RenderWorld.h"
+
+class idRestoreGame;
+class idSaveGame;
 
 CLASS_DECLARATION( idAnimatedEntity, idTestModel )
 EVENT( EV_FootstepLeft,			idTestModel::Event_Footstep )

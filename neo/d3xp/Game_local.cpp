@@ -26,10 +26,105 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
 #pragma hdrstop
 
+#include <assert.h>
+#include <math.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+#include "../aas/AASFileManager.h"
+#include "../d3xp/AFEntity.h"
+#include "../d3xp/Actor.h"
+#include "../d3xp/AimAssist.h"
+#include "../d3xp/Camera.h"
+#include "../d3xp/Entity.h"
+#include "../d3xp/Game.h"
+#include "../d3xp/GameEdit.h"
+#include "../d3xp/Game_defines.h"
+#include "../d3xp/Leaderboards.h"
+#include "../d3xp/Misc.h"
+#include "../d3xp/MultiplayerGame.h"
+#include "../d3xp/Player.h"
+#include "../d3xp/PlayerView.h"
+#include "../d3xp/Projectile.h"
+#include "../d3xp/Pvs.h"
+#include "../d3xp/SmokeParticles.h"
+#include "../d3xp/Trigger.h"
+#include "../d3xp/WorldSpawn.h"
+#include "../d3xp/ai/AAS.h"
+#include "../d3xp/ai/AI.h"
+#include "../d3xp/anim/Anim.h"
+#include "../d3xp/anim/Anim_Testmodel.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/gamesys/Event.h"
+#include "../d3xp/gamesys/SaveGame.h"
+#include "../d3xp/gamesys/SysCmds.h"
+#include "../d3xp/gamesys/SysCvar.h"
+#include "../d3xp/menus/MenuHandler.h"
+#include "../d3xp/menus/MenuScreen.h"
+#include "../d3xp/physics/Clip.h"
+#include "../d3xp/physics/Force.h"
+#include "../d3xp/physics/Physics.h"
+#include "../d3xp/physics/Physics_Actor.h"
+#include "../d3xp/physics/Physics_Parametric.h"
+#include "../d3xp/script/Script_Program.h"
+#include "../d3xp/script/Script_Thread.h"
+#include "../idlib/containers/StaticList.h"
+#include "../idlib/containers/StrList.h"
+#include "../framework/BuildVersion.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/DeclEntityDef.h"
+#include "../framework/DeclParticle.h"
+#include "../framework/File.h"
+#include "../framework/FileSystem.h"
+#include "../framework/File_SaveGame.h"
+#include "../framework/UsercmdGen.h"
+#include "../idlib/BitMsg.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Heap.h"
+#include "../idlib/LangDict.h"
+#include "../idlib/Lib.h"
+#include "../idlib/MapFile.h"
+#include "../idlib/Str.h"
+#include "../idlib/StrStatic.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/containers/Array.h"
+#include "../idlib/containers/HashIndex.h"
+#include "../idlib/containers/LinkList.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/geometry/TraceModel.h"
+#include "../idlib/geometry/Winding.h"
+#include "../idlib/math/Angles.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Random.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../renderer/Model.h"
+#include "../renderer/ModelManager.h"
+#include "../renderer/RenderSystem.h"
+#include "../sys/sys_public.h"
+#include "../sys/sys_signin.h"
+#include "../ui/UserInterface.h"
+#include "../idlib/Dict.h"
+#include "../idlib/math/Vector.h"
+#include "../framework/DeclManager.h"
+#include "../renderer/Material.h"
+#include "../cm/CollisionModel.h"
+#include "../renderer/RenderWorld.h"
+#include "../sound/sound.h"
+#include "../sys/sys_session.h"
 #include "Game_local.h"
+#include "Timer.h"
+#include "sys/sys_localuser.h"
+#include "sys/sys_savegame.h"
+
+class idLeaderboardCallback;
+class idPreloadManifest;
 
 #ifdef GAME_DLL
 
@@ -273,6 +368,8 @@ void idGameLocal::Clear()
 	selectedGroup = 0;
 	portalSkyEnt			= NULL;
 	portalSkyActive			= false;
+    playerOldEyePos.Zero();
+    globalPortalSky         = false;
 	
 	ResetSlowTimeVars();
 	
@@ -609,6 +706,11 @@ void idGameLocal::SaveGame( idFile* f, idFile* strings )
 	
 	portalSkyEnt.Save( &savegame );
 	savegame.WriteBool( portalSkyActive );
+    savegame.WriteBool( globalPortalSky );
+    savegame.WriteInt( currentPortalSkyType );
+    savegame.WriteVec3( playerOldEyePos );
+    savegame.WriteVec3( portalSkyGlobalOrigin );
+    savegame.WriteVec3( portalSkyOrigin );
 	
 	fast.Save( &savegame );
 	slow.Save( &savegame );
@@ -1019,6 +1121,8 @@ void idGameLocal::LoadMap( const char* mapName, int randseed )
 	
 	portalSkyEnt			= NULL;
 	portalSkyActive			= false;
+    playerOldEyePos.Zero();
+    globalPortalSky         = false;
 	
 	ResetSlowTimeVars();
 	
@@ -1468,6 +1572,11 @@ bool idGameLocal::InitFromSaveGame( const char* mapName, idRenderWorld* renderWo
 	
 	portalSkyEnt.Restore( &savegame );
 	savegame.ReadBool( portalSkyActive );
+    savegame.ReadBool( globalPortalSky );
+    savegame.ReadInt( currentPortalSkyType );
+    savegame.ReadVec3( playerOldEyePos );
+    savegame.ReadVec3( portalSkyGlobalOrigin );
+    savegame.ReadVec3( portalSkyOrigin );
 	
 	fast.Restore( &savegame );
 	slow.Restore( &savegame );
@@ -5282,12 +5391,52 @@ void idGameLocal::SetPortalSkyEnt( idEntity* ent )
 
 /*
 =================
-idPlayer::IsPortalSkyAcive
+idPlayer::IsPortalSkyActive
 =================
 */
-bool idGameLocal::IsPortalSkyAcive()
+bool idGameLocal::IsPortalSkyActive()
 {
 	return portalSkyActive;
+}
+
+/*
+=================
+idGameLocal::CheckGlobalPortalSky
+=================
+*/
+bool idGameLocal::CheckGlobalPortalSky() {
+    return globalPortalSky;
+}
+
+/*
+=================
+idGameLocal::SetGlobalPortalSky 
+=================
+*/
+void idGameLocal::SetGlobalPortalSky( const char *name ) {
+    if ( CheckGlobalPortalSky() ) {
+        Error( "more than one global portalSky:\ndelete them until you have just one.\nportalSky '%s' causes it.", name );
+    } else {
+        globalPortalSky = true;
+    }
+}
+
+/*
+=================
+idGameLocal::SetCurrentPortalSkyType
+=================
+*/
+void idGameLocal::SetCurrentPortalSkyType( int type ) {
+    currentPortalSkyType = type;
+}
+
+/*
+=================
+idGameLocal::GetCurrentPortalSkyType
+=================
+*/
+int idGameLocal::GetCurrentPortalSkyType() {
+    return currentPortalSkyType;
 }
 
 /*

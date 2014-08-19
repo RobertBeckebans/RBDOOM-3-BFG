@@ -26,19 +26,14 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
+#include "../../doomclassic/doom/d_think.h"
+#include "../../doomclassic/doom/doomlib.h"
+#include "../../doomclassic/doom/p_spec.h"
+#include "../../doomclassic/doom/r_defs.h"
 #include "globaldata.h"
-
-
-#include "z_zone.h"
 #include "m_random.h"
-
-#include "doomdef.h"
 #include "p_local.h"
-
-
-// State.
-#include "r_state.h"
+#include "z_zone.h"
 
 //
 // FIRELIGHT FLICKER

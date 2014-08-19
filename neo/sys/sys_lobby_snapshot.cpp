@@ -26,8 +26,26 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+#include <assert.h>
+#include <stddef.h>
+
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/StaticList.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_types.h"
+#include "../sys/PacketProcessor.h"
+#include "../sys/Snapshot.h"
+#include "../sys/SnapshotProcessor.h"
+#include "../sys/sys_lobby_backend.h"
+#include "../sys/sys_public.h"
+#include "../sys/sys_session.h"
 #include "sys_lobby.h"
+
+class idBitMsg;
 
 idCVar net_snapshot_send_warntime( "net_snapshot_send_warntime", "500", CVAR_INTEGER, "Print warning messages if we take longer than this to send a client a snapshot." );
 

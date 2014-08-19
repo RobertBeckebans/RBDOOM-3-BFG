@@ -25,8 +25,21 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
+#include <stddef.h>
+
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/sys/sys_types.h"
+#include "../swf/SWF.h"
+#include "../swf/SWF_Bitstream.h"
+#include "../swf/SWF_Enums.h"
+#include "../swf/SWF_ScriptObject.h"
+#include "../swf/SWF_SpriteInstance.h"
+#include "../swf/SWF_Sprites.h"
+#include "../swf/SWF_TextInstance.h"
+#include "../swf/SWF_Types.h"
+
 #pragma hdrstop
-#include "precompiled.h"
 
 int c_PlaceObject2;
 int c_PlaceObject3;

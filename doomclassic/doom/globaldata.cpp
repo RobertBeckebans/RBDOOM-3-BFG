@@ -26,10 +26,10 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/structs.h"
+#include "../../doomclassic/doom/typedefs.h"
 #include "globaldata.h"
-#include "globaldata.h"
-#include "Main.h"
 
 //
 // PROTOTYPES

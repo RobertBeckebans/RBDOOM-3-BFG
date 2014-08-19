@@ -35,9 +35,19 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <stdlib.h>
 
-
+#include "../cm/CollisionModel.h"
+#include "../framework/Common.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/geometry/TraceModel.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Plane.h"
+#include "../idlib/math/Pluecker.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_defines.h"
 #include "CollisionModel_local.h"
 
 /*

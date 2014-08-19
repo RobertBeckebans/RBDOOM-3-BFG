@@ -28,12 +28,15 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
-
-#include "win_local.h"
-#include "../../renderer/tr_local.h"
-
 #include <windowsx.h>
+
+#include "../sys/win32/win_local.h"
+#include "../renderer/tr_local.h"
+
+#include "../sound/sound.h"
+#include "../framework/KeyInput.h"
+#include "../framework/Console.h"
+#include "../d3xp/Game.h"
 
 LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam );
 

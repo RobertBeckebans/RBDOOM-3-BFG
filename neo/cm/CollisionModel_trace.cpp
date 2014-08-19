@@ -35,9 +35,10 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
-
-
+#include "../cm/CollisionModel.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Rotation.h"
+#include "../idlib/math/Vector.h"
 #include "CollisionModel_local.h"
 
 /*

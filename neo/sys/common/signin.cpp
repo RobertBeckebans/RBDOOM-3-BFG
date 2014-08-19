@@ -27,10 +27,18 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <stddef.h>
 
-#include "../../framework/PlayerProfile.h"
-#include "../sys_session_local.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/StaticList.h"
+#include "../idlib/sys/sys_types.h"
+#include "../sys/common/localuser.h"
+#include "../sys/sys_session.h"
+#include "../sys/sys_signin.h"
 #include "signin.h"
 #ifndef _WIN32
 #include <unistd.h>

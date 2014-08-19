@@ -28,6 +28,11 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SWF_BITSTREAM_H__
 #define __SWF_BITSTREAM_H__
 
+#include "../idlib/Swap.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
+#include "../swf/SWF_Types.h"
+
 class idSWFBitStream
 {
 public:

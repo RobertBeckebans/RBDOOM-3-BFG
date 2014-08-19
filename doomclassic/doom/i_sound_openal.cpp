@@ -27,7 +27,17 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
+#include "../../doomclassic/doom/d_player.h"
+#include "../../doomclassic/doom/defs.h"
+#include "../../doomclassic/doom/doomlib.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/i_sound.h" // IWYU pragma: keep
+#include "../../doomclassic/doom/m_fixed.h"
+#include "../../doomclassic/doom/p_mobj.h"
+#include "../../doomclassic/doom/sounds.h"
+#include "../../doomclassic/doom/tables.h"
+#include "../../doomclassic/doom/typedefs.h"
+#include "../idlib/Str.h"
 #include "globaldata.h"
 
 //
@@ -36,27 +46,16 @@ If you have questions concerning this license or the applicable additional terms
 //
 //-----------------------------------------------------------------------------
 
+#include <AL/al.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
-#include <math.h>
-#include <sys/types.h>
-#include <fcntl.h>
-// Timer stuff. Experimental.
-#include <time.h>
-#include <signal.h>
-#include "z_zone.h"
-#include "i_system.h"
-#include "i_sound.h"
-#include "m_argv.h"
-#include "m_misc.h"
-#include "w_wad.h"
-#include "d_main.h"
-#include "doomdef.h"
-#include "../timidity/timidity.h"
-#include "../timidity/controls.h"
+#include <string.h>
 
-#include "sound/snd_local.h"
+#include "../timidity/controls.h"
+#include "../timidity/timidity.h"
+#include "doomdef.h"
+#include "w_wad.h"
+#include "z_zone.h"
 
 #pragma warning ( disable : 4244 )
 

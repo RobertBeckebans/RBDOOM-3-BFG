@@ -29,6 +29,10 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __COLLISIONMODELMANAGER_H__
 #define __COLLISIONMODELMANAGER_H__
 
+#include "../idlib/math/Vector.h"
+#include "../idlib/MapFile.h"
+#include "../renderer/Material.h"       // for idMaterial, etc
+
 /*
 ===============================================================================
 

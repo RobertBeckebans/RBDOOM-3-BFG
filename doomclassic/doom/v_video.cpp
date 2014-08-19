@@ -26,19 +26,18 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include <string.h>
+
+#include "../../doomclassic/doom/doomlib.h"
+#include "../../doomclassic/doom/r_defs.h"
+#include "../../doomclassic/doom/z_zone.h"
+#include "../doomclassic/doom/typedefs.h"
 #include "Precompiled.h"
-#include "globaldata.h"
-
-
-#include "i_system.h"
-#include "r_local.h"
-
 #include "doomdef.h"
-#include "doomdata.h"
-
+#include "globaldata.h"
+#include "i_system.h"
 #include "m_bbox.h"
 #include "m_swap.h"
-
 #include "v_video.h"
 
 

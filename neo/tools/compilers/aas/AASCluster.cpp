@@ -29,8 +29,9 @@ If you have questions concerning this license or the applicable additional terms
 #include "precompiled.h"
 #pragma hdrstop
 
-#include "../../../aas/AASFile.h"
-#include "../../../aas/AASFile_local.h"
+#include "../framework/Common.h"
+#include "../aas/AASFile.h"
+#include "../aas/AASFile_local.h"
 #include "AASCluster.h"
 
 

@@ -26,7 +26,22 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
+#include <ctype.h>
+#include <string.h>
+
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/EditField.h"
+#include "../framework/KeyInput.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../renderer/RenderSystem.h"
+#include "../sys/sys_public.h"
+
 #pragma hdrstop
 
 static autoComplete_t	globalAutoComplete;

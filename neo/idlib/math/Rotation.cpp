@@ -27,7 +27,15 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <math.h>
+
+#include "../idlib/math/Angles.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Quat.h"
+#include "../idlib/math/Rotation.h"
+#include "../idlib/math/Vector.h"
+
 
 /*
 ============

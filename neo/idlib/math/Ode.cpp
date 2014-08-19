@@ -27,7 +27,9 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Ode.h"
+#include "Heap.h"
 
 //===============================================================
 //

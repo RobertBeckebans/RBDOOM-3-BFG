@@ -30,6 +30,17 @@ If you have questions concerning this license or the applicable additional terms
 #define __GAME_EDIT_H__
 
 
+#include <stddef.h>
+
+#include "../d3xp/Entity.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/physics/Force_Drag.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Vector.h"
+#include "../renderer/Model.h"
+
+class idPlayer;
 /*
 ===============================================================================
 

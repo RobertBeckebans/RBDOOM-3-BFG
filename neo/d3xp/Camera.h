@@ -30,6 +30,15 @@ If you have questions concerning this license or the applicable additional terms
 #define __GAME_CAMERA_H__
 
 
+#include "../d3xp/Entity.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Quat.h"
+#include "../idlib/math/Vector.h"
+#include "../renderer/RenderWorld.h"
+
+class idRestoreGame;
+class idSaveGame;
 /*
 ===============================================================================
 

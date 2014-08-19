@@ -21,17 +21,17 @@ common.c
 
 */
 
-#include "precompiled.h"
-
-#include <stdio.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <errno.h>
-#include "config.h"
+#include "../framework/File.h"
+#include "../framework/FileSystem.h"
+#include "../idlib/Heap.h"
 #include "common.h"
-#include "output.h"
+#include "config.h"
 #include "controls.h"
+#include "timidity.h" // IWYU pragma: keep
 
 /* I guess "rb" should be right for any libc */
 #define OPEN_MODE "rb"

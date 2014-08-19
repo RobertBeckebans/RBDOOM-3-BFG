@@ -26,9 +26,27 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
 #pragma hdrstop
 
+#include <string.h>
+
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/File.h"
+#include "../framework/FileSystem.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Dict.h"
+#include "../idlib/LangDict.h"
+#include "../idlib/Lexer.h"
+#include "../idlib/MapFile.h"
+#include "../idlib/Str.h"
+#include "../idlib/Token.h"
+#include "../idlib/containers/HashTable.h"
+#include "../idlib/containers/StrList.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_filesystem.h"
+#include "../idlib/sys/sys_types.h"
 #include "Common_local.h"
 
 idCVar com_product_lang_ext( "com_product_lang_ext", "1", CVAR_INTEGER | CVAR_SYSTEM | CVAR_ARCHIVE, "Extension to use when creating language files." );

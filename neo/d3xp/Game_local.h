@@ -29,25 +29,77 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __GAME_LOCAL_H__
 #define	__GAME_LOCAL_H__
 
+#include "../idlib/sys/sys_defines.h"   // for NULL
+#include "../idlib/sys/sys_types.h"     // for uint32, byte
+#include "../cm/CollisionModel.h"       // for trace_t
+#include "../sys/sys_session.h"  // for MAX_PLAYERS, etc
+#include "../framework/DeclManager.h"   // for declType_t
+#include "../idlib/Dict.h"              // for idDict
+#include "../idlib/Heap.h"              // for idBlockAlloc
+#include "../idlib/Lib.h"               // for idException, qhandle_t
+#include "../idlib/Str.h"               // for idStr
+#include "../idlib/containers/Array.h"  // for idArray
+#include "../idlib/containers/List.h"   // for idList
+#include "../idlib/math/Math.h"         // for SEC2MS, idMath
+#include "../idlib/math/Random.h"       // for idRandom
+#include "../idlib/math/Vector.h"       // for idVec3
+#include "../renderer/Material.h"       // for idMaterial (ptr only), etc
+#include "../renderer/RenderWorld.h"    // for idRenderWorld (ptr only), etc
+#include "../sound/sound.h"             // for idSoundWorld (ptr only), etc
+#include "../idlib/containers/HashIndex.h"       // for idHashIndex
+#include "../idlib/containers/LinkList.h"        // for idLinkList
+#include "../idlib/containers/StaticList.h"      // for idStaticList
+#include "../idlib/containers/StrList.h"         // for idStrList
+
+
+#include "../d3xp/gamesys/SaveGame.h"           // for idRestoreGame, idSaveGame
+#include "../d3xp/physics/Clip.h"               // for idClip
+#include "../d3xp/physics/Push.h"               // for idPush
+#include "../d3xp/script/Script_Program.h"      // for idProgram
+#include "../d3xp/MultiplayerGame.h"            // for gameType_t, etc
+#include "../d3xp/Pvs.h"                        // for pvsHandle_t, idPVS, etc
+#include "../d3xp/ai/AAS.h"                     // for aasHandle_t
+#include "../d3xp/anim/Anim.h"                  // for idAnimManager
+
 /*
-===============================================================================
-
-	Local implementation of the public game interface.
-
-===============================================================================
+class idActor;
+class idAngles;
+class idBitMsg;
+class idBounds;
+class idCamera;
+class idCmdArgs;
+class idDeclEntityDef;
+class idEditEntities;
+class idEntity;
+class idEntityFx;
+class idFile;
+class idLeaderboardCallback;
+class idLocationEntity;
+class idMapFile;
+class idMenuHandler_Shell;
+class idPreloadManifest;
+class idSaveGameDetails;
+class idSmokeParticles;
+class idSnapShot;
+class idTestModel;
+class idThread;
+class idTypeInfo;
+class idUserCmdMgr;
+class idWeapon;
+class idWorldspawn;
+class usercmd_t;
+struct sysEvent_t;
 */
 
-#ifdef ID_DEBUG_UNINITIALIZED_MEMORY
-// This is real evil but allows the code to inspect arbitrary class variables.
-#define private		public
-#define protected	public
-#endif
+class idDeclEntityDef;
+class idRenderWorld;
+class idSoundWorld;
+class idUserInterface;
+class idWeapon;
+class idMenuHandler_Shell;
 
-extern idRenderWorld* 				gameRenderWorld;
-extern idSoundWorld* 				gameSoundWorld;
-
-// the "gameversion" client command will print this plus compile date
-#define	GAME_VERSION		"baseDOOM-1"
+extern idRenderWorld *gameRenderWorld;
+extern idSoundWorld *gameSoundWorld;
 
 // classes used by idGameLocal
 class idEntity;
@@ -56,60 +108,20 @@ class idPlayer;
 class idCamera;
 class idWorldspawn;
 class idTestModel;
-class idAAS;
-class idAI;
 class idSmokeParticles;
 class idEntityFx;
 class idTypeInfo;
-class idProgram;
 class idThread;
 class idEditEntities;
 class idLocationEntity;
-class idMenuHandler_Shell;
 
-const int MAX_CLIENTS			= MAX_PLAYERS;
-const int MAX_CLIENTS_IN_PVS	= MAX_CLIENTS >> 3;
-const int GENTITYNUM_BITS		= 12;
-const int MAX_GENTITIES			= 1 << GENTITYNUM_BITS;
-const int ENTITYNUM_NONE		= MAX_GENTITIES - 1;
-const int ENTITYNUM_WORLD		= MAX_GENTITIES - 2;
-const int ENTITYNUM_MAX_NORMAL	= MAX_GENTITIES - 2;
-const int ENTITYNUM_FIRST_NON_REPLICATED	= ENTITYNUM_MAX_NORMAL - 256;
+/*
+===============================================================================
 
-//============================================================================
+	Local implementation of the public game interface.
 
-void gameError( const char* fmt, ... );
-
-#include "gamesys/Event.h"
-#include "gamesys/Class.h"
-#include "gamesys/SysCvar.h"
-#include "gamesys/SysCmds.h"
-#include "gamesys/SaveGame.h"
-
-#include "script/Script_Program.h"
-
-#include "anim/Anim.h"
-
-#include "ai/AAS.h"
-
-#include "physics/Clip.h"
-#include "physics/Push.h"
-
-#include "Pvs.h"
-#include "Leaderboards.h"
-#include "MultiplayerGame.h"
-
-
-class idWeapon;
-
-//============================================================================
-
-const int MAX_GAME_MESSAGE_SIZE		= 8192;
-const int MAX_ENTITY_STATE_SIZE		= 512;
-const int ENTITY_PVS_SIZE			= ( ( MAX_GENTITIES + 31 ) >> 5 );
-const int NUM_RENDER_PORTAL_BITS	= idMath::BitsForInteger( PS_BLOCK_ALL );
-
-const int MAX_EVENT_PARAM_SIZE		= 128;
+===============================================================================
+*/
 
 typedef struct entityNetEvent_s
 {
@@ -161,6 +173,12 @@ typedef struct
 	int			dist;
 	int			team;
 } spawnSpot_t;
+
+enum {
+    PORTALSKY_STANDARD = 0,	// classic portalsky
+    PORTALSKY_GLOBAL = 1,	// always following portal sky
+    PORTALSKY_LOCAL = 2,	// following portal sky from a spot
+};
 
 //============================================================================
 
@@ -353,9 +371,21 @@ public:
 	
 	idEntityPtr<idEntity>	portalSkyEnt;
 	bool					portalSkyActive;
+
+	bool                    globalPortalSky;	
+    int                     portalSkyScale;	
+    int                     currentPortalSkyType;	//0 = classic, 1 = global, 2 = local
+    idVec3                  portalSkyOrigin;	
+    idVec3                  portalSkyGlobalOrigin;	
+    idVec3                  playerOldEyePos;	
 	
 	void					SetPortalSkyEnt( idEntity* ent );
-	bool					IsPortalSkyAcive();
+	bool					IsPortalSkyActive();
+
+    bool                    CheckGlobalPortalSky();
+    void                    SetGlobalPortalSky(const char *name);
+    void                    SetCurrentPortalSkyType(int type); // 0 = classic, 1 = global, 2 = local
+    int                     GetCurrentPortalSkyType(); //0 = classic, 1 = global, 2 = local
 	
 	timeState_t				fast;
 	timeState_t				slow;
@@ -853,64 +883,5 @@ const idVec3 DEFAULT_GRAVITY_VEC3( 0, 0, -DEFAULT_GRAVITY );
 const int	CINEMATIC_SKIP_DELAY	= SEC2MS( 2.0f );
 
 //============================================================================
-
-#include "physics/Force.h"
-#include "physics/Force_Constant.h"
-#include "physics/Force_Drag.h"
-#include "physics/Force_Grab.h"
-#include "physics/Force_Field.h"
-#include "physics/Force_Spring.h"
-#include "physics/Physics.h"
-#include "physics/Physics_Static.h"
-#include "physics/Physics_StaticMulti.h"
-#include "physics/Physics_Base.h"
-#include "physics/Physics_Actor.h"
-#include "physics/Physics_Monster.h"
-#include "physics/Physics_Player.h"
-#include "physics/Physics_Parametric.h"
-#include "physics/Physics_RigidBody.h"
-#include "physics/Physics_AF.h"
-
-#include "SmokeParticles.h"
-
-#include "Entity.h"
-#include "GameEdit.h"
-#include "Grabber.h"
-#include "AF.h"
-#include "IK.h"
-#include "AFEntity.h"
-#include "Misc.h"
-#include "Actor.h"
-#include "Projectile.h"
-#include "Weapon.h"
-#include "Light.h"
-#include "WorldSpawn.h"
-#include "Item.h"
-#include "PlayerView.h"
-#include "PlayerIcon.h"
-#include "Achievements.h"
-#include "AimAssist.h"
-#include "Player.h"
-#include "Mover.h"
-#include "Camera.h"
-#include "Moveable.h"
-#include "Target.h"
-#include "Trigger.h"
-#include "Sound.h"
-#include "Fx.h"
-#include "SecurityCamera.h"
-#include "BrittleFracture.h"
-
-#include "ai/AI.h"
-#include "anim/Anim_Testmodel.h"
-
-// menus
-#include "menus/MenuWidget.h"
-#include "menus/MenuScreen.h"
-#include "menus/MenuHandler.h"
-
-#include "script/Script_Compiler.h"
-#include "script/Script_Interpreter.h"
-#include "script/Script_Thread.h"
 
 #endif	/* !__GAME_LOCAL_H__ */

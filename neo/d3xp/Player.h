@@ -29,7 +29,71 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __GAME_PLAYER_H__
 #define __GAME_PLAYER_H__
 
+#include <stddef.h>
+
+#include "../cm/CollisionModel.h"
+#include "../d3xp/Actor.h"
+#include "../d3xp/AimAssist.h"
+#include "../d3xp/Entity.h"
+#include "../d3xp/GameEdit.h"
+#include "../d3xp/PlayerIcon.h"
+#include "../d3xp/PlayerView.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/gamesys/Event.h"
+#include "../d3xp/physics/Physics_Player.h"
+#include "../d3xp/script/Script_Program.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/UsercmdGen.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/Array.h"
+#include "../idlib/containers/HashTable.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Angles.h"
+#include "../idlib/math/Interpolate.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Quat.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../renderer/Model.h"
+#include "../renderer/RenderWorld.h"
+#include "../sound/sound.h"
 #include "PredictedValue.h"
+
+#include "../d3xp/Weapon.h"             // for idWeapon, ammo_t
+#include "../d3xp/Achievements.h"       // for idAchievementManager
+
+#include "../idlib/containers/HashTable.h"       // for idHashTable
+
+class idAAS;
+class idAFEntity_Vehicle;
+class idAI;
+class idBitMsg;
+class idCamera;
+class idDeclEmail;
+class idDeclPDA;
+class idDeclSkin;
+class idDeclVideo;
+class idDict;
+class idFuncMountedObject;
+class idItem;
+class idLexer;
+class idLight;
+class idMaterial;
+class idPhysics;
+class idPlayer;
+class idProjectile;
+class idRestoreGame;
+class idSWF;
+class idSaveGame;
+class idUserInterface;
+class idWeapon;
+
+struct sysEvent_t;
+
+template <class type_> class idPredictedValue;
 
 /*
 ===============================================================================
@@ -39,8 +103,8 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-class idMenuHandler_PDA;
 class idMenuHandler_HUD;
+class idMenuHandler_PDA;
 class idMenuScreen_HUD;
 class idTarget_SetPrimaryObjective;
 

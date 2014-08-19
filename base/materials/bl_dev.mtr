@@ -1,0 +1,57 @@
+// this file is GPLv3
+
+textures/bl/dev/16x16_gray
+{
+    stone
+	qer_editorimage textures/dev/16gray.tga
+	diffusemap textures/dev/16gray.tga
+}
+
+textures/bl/dev/16x16_red
+{
+    stone
+	qer_editorimage textures/dev/16red.tga
+	diffusemap textures/dev/16red.tga
+}
+
+textures/bl/dev/16x16_blue
+{
+    stone
+	qer_editorimage textures/dev/16blue.tga
+	diffusemap textures/dev/16blue.tga
+}
+
+textures/bl/dev/16x16_green
+{
+    stone
+    qer_editorimage textures/dev/16green.tga
+	diffusemap textures/dev/16green.tga
+}
+
+textures/bl/dev/16x16_yellow
+{
+    stone
+	qer_editorimage textures/dev/16yellow.tga
+	diffusemap textures/dev/16yellow.tga
+}
+
+textures/bl/dev/16x16_fucsia
+{
+    stone
+	qer_editorimage textures/dev/16fucsia.tga
+	diffusemap textures/dev/16fucsia.tga
+}
+
+textures/bl/dev/16x16_cian
+{
+    stone
+	qer_editorimage textures/dev/16cian.tga
+	diffusemap textures/dev/16cian.tga
+}
+
+textures/bl/dev/16x16_orange
+{
+    stone
+	qer_editorimage textures/dev/16orange.tga
+	diffusemap textures/dev/16orange.tga
+}

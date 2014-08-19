@@ -27,9 +27,9 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <stdlib.h>
 
-
+#include "../idlib/containers/List.h"
 #include "AASFile.h"
 #include "AASFile_local.h"
 

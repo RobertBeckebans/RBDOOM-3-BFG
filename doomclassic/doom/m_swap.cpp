@@ -26,20 +26,11 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
-
 
 #ifdef __GNUG__
 #pragma implementation "m_swap.h"
 #endif
 #include "m_swap.h"
-
-
-// Not needed with big endian.
-#ifdef __BIG_ENDIAN__
-
-#endif
 
 
 

@@ -26,8 +26,17 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include <stddef.h>
+
+#include "../idlib/Str.h"
+#include "../idlib/sys/sys_types.h"
+#include "../swf/SWF_ParmList.h"
+#include "../swf/SWF_ScriptVar.h"
+
+class idSWFScriptFunction;
+class idSWFScriptObject;
+
 #pragma hdrstop
-#include "precompiled.h"
 
 void idSWFParmList::Append( const idSWFScriptVar& other )
 {

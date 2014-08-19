@@ -40,6 +40,7 @@
 #ifndef _zip12_H
 #define _zip12_H
 
+#include "zconf.h"
 #ifdef __cplusplus
 extern "C" {
 #endif

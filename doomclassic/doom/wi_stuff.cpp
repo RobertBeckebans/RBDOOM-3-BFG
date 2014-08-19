@@ -26,40 +26,35 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
-#include "Main.h"
-#include "sys/sys_session.h"
-#include "sys/sys_signin.h"
-//#include "DoomLeaderboards.h"
-#include "d3xp/Game_local.h"
-
-
 #include <stdio.h>
+#include <string.h>
 
-#include "z_zone.h"
-
+#include "../../doomclassic/doom/d_event.h"
+#include "../../doomclassic/doom/d_ticcmd.h"
+#include "../../doomclassic/doom/defs.h"
+#include "../../doomclassic/doom/doomdef.h"
+#include "../../doomclassic/doom/doomlib.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/r_defs.h"
+#include "../../doomclassic/doom/structs.h"
+#include "../../doomclassic/doom/typedefs.h"
+#include "../d3xp/Player.h" // IWYU pragma: keep
+#include "../framework/Common.h"
+#include "../../doomclassic/doom/d_player.h"
+#include "Precompiled.h"
+#include "g_game.h"
+#include "globaldata.h"
+#include "i_system.h"
 #include "m_random.h"
 #include "m_swap.h"
-
-#include "i_system.h"
-
-#include "w_wad.h"
-
-#include "g_game.h"
-
-#include "r_local.h"
 #include "s_sound.h"
-
-#include "doomstat.h"
-
 // Data.
 #include "sounds.h"
-
 // Needs access to LFB.
 #include "v_video.h"
-
+#include "w_wad.h"
 #include "wi_stuff.h"
+#include "z_zone.h"
 
 
 //

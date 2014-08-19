@@ -27,8 +27,24 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <stddef.h>
 
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../framework/DeclManager.h"
+#include "../idlib/Lexer.h"
+#include "../idlib/Str.h"
+#include "../idlib/Token.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/StrList.h"
+
+#if defined(USE_OPENAL)
+#include "../sound/OpenAL/AL_SoundSample.h"
+#else
+#include "../sound/XAudio2/XA2_SoundSample.h"
+#endif
+
+#include "../sound/sound.h"
 #include "snd_local.h"
 
 extern idCVar s_maxSamples;

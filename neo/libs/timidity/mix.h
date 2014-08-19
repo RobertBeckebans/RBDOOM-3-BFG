@@ -22,6 +22,9 @@ mix.h
 
 */
 
+#include <stdint.h>
+#include <sys/types.h>
+
 extern void mix_voice( int32_t  *buf, int v,  int32_t  c);
 extern int recompute_envelope(int v);
 extern void apply_envelope_to_amp(int v);

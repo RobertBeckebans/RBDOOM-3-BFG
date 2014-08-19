@@ -26,7 +26,11 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+#include <stddef.h>
+
+#include "../framework/CVarSystem.h"
+#include "../idlib/Str.h"
+#include "../sys/sys_session.h"
 #include "sys_lobby_backend.h"
 #include "sys_lobby_backend_direct.h"
 

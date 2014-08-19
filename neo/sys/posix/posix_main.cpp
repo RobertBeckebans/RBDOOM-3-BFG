@@ -26,23 +26,39 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#include "../../idlib/precompiled.h"
-#include "../sys_local.h"
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <errno.h>
 #include <dirent.h>
-#include <unistd.h>
-#include <sys/mman.h>
-#include <sys/time.h>
-#include <pwd.h>
-#include <pthread.h>
 #include <dlfcn.h>
-#include <termios.h>
-#include <signal.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <fnmatch.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/select.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <termios.h>
+#include <time.h>
+#include <unistd.h>
+
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/EditField.h"
+#include "../framework/FileSystem.h"
+#include "../framework/Licensee.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/StrList.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_filesystem.h"
+#include "../idlib/sys/sys_types.h"
+#include "../sys/sys_public.h"
+#include "../sys_local.h"
 
 // RB begin
 #if defined(__ANDROID__)
@@ -57,6 +73,8 @@ If you have questions concerning this license or the applicable additional terms
 // RB end
 
 #include "posix_public.h"
+
+class idFile;
 
 #define					MAX_OSPATH 256
 #define					COMMAND_HISTORY 64
@@ -995,7 +1013,6 @@ void Posix_LateInit()
 	Posix_InitConsoleInput();
 	com_pid.SetInteger( getpid() );
 	common->Printf( "pid: %d\n", com_pid.GetInteger() );
-//	common->Printf( "%d MB System Memory\n", Sys_GetSystemRam() );
 	
 //#ifndef ID_DEDICATED
 	//common->Printf( "%d MB Video Memory\n", Sys_GetVideoRam() );
@@ -1157,11 +1174,6 @@ void tty_Show()
 		if( buf[0] )
 		{
 			write( STDOUT_FILENO, buf, strlen( buf ) );
-			
-			// RB begin
-#if defined(__ANDROID__)
-			//__android_log_print(ANDROID_LOG_DEBUG, "RBDoom3_DEBUG", "%s", buf);
-#endif
 			// RB end
 			
 			int back = strlen( buf ) - input_field.GetCursor();

@@ -26,11 +26,56 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
 #pragma hdrstop
 
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "../d3xp/Game.h"
+#include "../framework/BuildVersion.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/Common_dialog.h"
+#include "../framework/Console.h"
+#include "../framework/DeclEntityDef.h"
+#include "../framework/DeclManager.h"
+#include "../framework/File.h"
+#include "../framework/FileSystem.h"
+#include "../framework/File_Manifest.h"
+#include "../framework/File_SaveGame.h"
+#include "../framework/Licensee.h"
+#include "../framework/UsercmdGen.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Dict.h"
+#include "../idlib/Heap.h"
+#include "../idlib/LangDict.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/StrStatic.h"
+#include "../idlib/Thread.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/StaticList.h"
+#include "../idlib/containers/StrList.h"
+#include "../idlib/math/Math.h"
+#include "../renderer/Material.h"
+#include "../renderer/RenderSystem.h"
+#include "../renderer/RenderWorld.h"
+#include "../renderer/VertexCache.h"
+#include "../sound/sound.h"
+#include "../swf/SWF.h"
+#include "../swf/SWF_ScriptObject.h"
+#include "../swf/SWF_SpriteInstance.h"
+#include "../swf/SWF_TextInstance.h"
+#include "../sys/sys_public.h"
+#include "../sys/sys_session.h"
+#include "../sys/sys_signin.h"
+#include "../ui/UserInterface.h"
 #include "Common_local.h"
-#include "../sys/sys_lobby_backend.h"
+#include "sys/sys_savegame.h"
+
+class idSWFScriptFunction;
 
 
 #define LAUNCH_TITLE_DOOM_EXECUTABLE		"doom1.exe"

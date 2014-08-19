@@ -26,7 +26,16 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+#include <string.h>                     // for memcpy, NULL
+#include "../idlib/BitMsg.h"            // for idBitMsg
+#include "../idlib/Dict.h"              // for idDict, idKeyValue
+#include "../idlib/Lib.h"               // for idLib, MAX_STRING_CHARS
+#include "../idlib/Str.h"               // for idStr
+#include "../idlib/math/Math.h"         // for idMath, IEEE_FLT_SIGNBITSET
+#include "../idlib/math/Vector.h"       // for idVec3
+#include "../sys/sys_public.h"          // for netadr_t, netadrtype_t
+#include "../idlib/sys/sys_assert.h"             // for assert
+#include "../idlib/sys/sys_types.h"              // for uint64, byte, int64
 
 /*
 ================================================================================================

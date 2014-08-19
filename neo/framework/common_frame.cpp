@@ -27,12 +27,41 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
 #pragma hdrstop
 
+#include <stddef.h>
+#include <algorithm>
+
+#include "../../doomclassic/doom/doominterface.h"
+#include "../../doomclassic/doom/doomtype.h"
+#include "../../doomclassic/doom/typedefs.h"
+#include "../d3xp/Game.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/Common_dialog.h"
+#include "../framework/Console.h"
+#include "../framework/EventLoop.h"
+#include "../framework/UsercmdGen.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Dict.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/Array.h"
+#include "../idlib/math/Simd.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/RenderSystem.h"
+#include "../renderer/RenderWorld.h"
+#include "../sound/sound.h"
+#include "../swf/SWF.h"
+#include "../sys/sys_public.h"
+#include "../sys/sys_session.h"
+#include "../sys/sys_signin.h"
 #include "Common_local.h"
-#include "../renderer/Image.h"
-#include "../renderer/ImageOpts.h"
+#include "sys/sys_savegame.h"
+
+struct emptyCommand_t;
 
 // RB begin
 #if defined(USE_DOOMCLASSIC)
@@ -40,6 +69,11 @@ If you have questions concerning this license or the applicable additional terms
 #include "../../doomclassic/doom/globaldata.h"
 #endif
 // RB end
+
+#ifdef _WIN32
+// KORTEMIK: namespaces collide
+#undef min
+#endif
 
 /*
 

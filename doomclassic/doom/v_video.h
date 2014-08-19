@@ -29,12 +29,14 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __V_VIDEO__
 #define __V_VIDEO__
 
-#include "doomtype.h"
-
+#include "../../doomclassic/doom/Precompiled.h"
+#include "../../doomclassic/doom/typedefs.h"
 #include "doomdef.h"
-
+#include "doomtype.h"
 // Needed because we are refering to patches.
 #include "r_data.h"
+
+struct patch_t;
 
 //
 // VIDEO

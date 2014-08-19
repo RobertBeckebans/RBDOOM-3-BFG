@@ -29,6 +29,17 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __GAME_TRIGGER_H__
 #define __GAME_TRIGGER_H__
 
+#include "../cm/CollisionModel.h"
+#include "../d3xp/Entity.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/gamesys/Event.h"
+#include "../idlib/Str.h"
+
+class function_t;
+class idClipModel;
+class idRestoreGame;
+class idSaveGame;
+
 extern const idEventDef EV_Enable;
 extern const idEventDef EV_Disable;
 

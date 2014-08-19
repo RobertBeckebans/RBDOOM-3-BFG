@@ -32,7 +32,15 @@ Contains the DxtEncoder implementation.
 */
 
 #pragma hdrstop
-#include "DXTCodec_local.h"
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "../idlib/containers/Sort.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
 #include "DXTCodec.h"
 
 #define INSET_COLOR_SHIFT		4		// inset the bounding box with ( range >> shift )
@@ -4104,10 +4112,6 @@ void idDxtEncoder::CompressImageDXT5Fast_Generic( const byte* inBuf, byte* outBu
 			
 			EmitAlphaIndices( block, 3, minColor[3], maxColor[3] );
 			
-#ifdef NVIDIA_7X_HARDWARE_BUG_FIX
-			// the colors are already always guaranteed to be sorted properly
-#endif
-			
 			EmitUShort( ColorTo565( maxColor ) );
 			EmitUShort( ColorTo565( minColor ) );
 			
@@ -4428,10 +4432,6 @@ void idDxtEncoder::CompressYCoCgDXT5Fast_Generic( const byte* inBuf, byte* outBu
 			
 			EmitAlphaIndices( block, 3, minColor[3], maxColor[3] );
 			
-#ifdef NVIDIA_7X_HARDWARE_BUG_FIX
-			// the colors are already sorted when selecting the diagonal
-#endif
-			
 			EmitUShort( ColorTo565( maxColor ) );
 			EmitUShort( ColorTo565( minColor ) );
 			
@@ -4492,10 +4492,6 @@ void idDxtEncoder::CompressYCoCgAlphaDXT5Fast( const byte* inBuf, byte* outBuf, 
 			EmitByte( minColor[3] );
 			
 			EmitAlphaIndices( block, 3, minColor[3], maxColor[3] );
-			
-#ifdef NVIDIA_7X_HARDWARE_BUG_FIX
-			// the colors are already sorted when selecting the diagonal
-#endif
 			
 			EmitUShort( ColorTo565( maxColor ) );
 			EmitUShort( ColorTo565( minColor ) );

@@ -27,7 +27,28 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+#include "../idlib/math/Lcp.h"
+
+#include <emmintrin.h>
+#include <math.h>
+#include <stdint.h>
+#include <string.h>
+#include <xmmintrin.h>
+
+#include "../framework/../framework/CVarSystem.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/math/MatX.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/VecX.h"
+#include "Heap.h"
+#include "containers/Sort.h"
+#include "sys/sys_assert.h"
+#include "sys/sys_defines.h"
+#include "sys/sys_intrinsics.h"
+#include "sys/sys_types.h"
+
+class idCmdArgs;
 
 // this file is full of intentional case fall throughs
 //lint -e616

@@ -27,7 +27,11 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include "../idlib/geometry/JointTransform.h"
+
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Quat.h"
+#include "../idlib/math/Vector.h"
 
 /*
 =============

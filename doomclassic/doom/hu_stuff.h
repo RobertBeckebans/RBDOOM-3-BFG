@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __HU_STUFF_H__
 #define __HU_STUFF_H__
 
+#include "../../doomclassic/doom/doomdef.h"
+#include "../../doomclassic/doom/doomtype.h"
 #include "d_event.h"
 
 

@@ -26,8 +26,13 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+#include <string.h>
+
+#include "../idlib/Heap.h"
+#include "../idlib/sys/sys_types.h"
 #include "../libs/zlib/zlib.h"
+#include "../swf/SWF.h"
+#include "zconf.h"
 
 /*
 ========================

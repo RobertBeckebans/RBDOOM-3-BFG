@@ -26,27 +26,14 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "Precompiled.h"
-#include "globaldata.h"
-
-
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
-#include <string>
 
-#include <errno.h>
-
-#include "i_system.h"
-#include "d_event.h"
+#include "../../doomclassic/doom/doomtype.h"
 #include "d_net.h"
+#include "globaldata.h"
+#include "i_system.h"
 #include "m_argv.h"
-
-#include "doomstat.h"
-
-#include "i_net.h"
-
-#include "doomlib.h"
 
 void	NetSend (void);
 qboolean NetListen (void);

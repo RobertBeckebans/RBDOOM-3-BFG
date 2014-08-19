@@ -26,12 +26,26 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "precompiled.h"
+#include <math.h>
 
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../framework/DeclManager.h"
+#include "../framework/File.h"
+#include "../framework/TokenParser.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/math/Math.h"
+#include "../idlib/math/Random.h"
+#include "../renderer/Material.h"
+#include "../sound/sound.h"
+#include "../sys/sys_public.h"
+#include "../ui/SimpleWindow.h"
+#include "../ui/Winvar.h"
 #include "DeviceContext.h"
-#include "Window.h"
-#include "UserInterfaceLocal.h"
 #include "GameBearShootWindow.h"
+#include "UserInterfaceLocal.h"
+#include "Window.h"
 
 
 #define BEAR_GRAVITY 240

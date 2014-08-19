@@ -26,14 +26,25 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
+
 #ifndef __AL_SOUNDHARDWARE_H__
 #define __AL_SOUNDHARDWARE_H__
 
-class idSoundSample_OpenAL;
-class idSoundVoice_OpenAL;
-class idSoundHardware_OpenAL;
+#ifdef __APPLE__
+#include <OpenAL/al.h>
+#include <OpenAL/alc.h>
+#else
+#include <AL/al.h>
+#include <AL/alc.h>
+#include <AL/alext.h>
+#endif
 
+#include "../sound/OpenAL/AL_SoundVoice.h"  // for idSoundVoice_OpenAL
 
+#include "../sound/snd_defines.h"
+
+class idSoundVoice;
+class idSoundSample;
 
 /*
 ================================================

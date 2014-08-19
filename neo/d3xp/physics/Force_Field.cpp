@@ -27,10 +27,24 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
-
+#include <assert.h>
+#include <stddef.h>
 
 #include "../Game_local.h"
+#include "../d3xp/Entity.h"
+#include "../d3xp/Game_defines.h"
+#include "../d3xp/WorldSpawn.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../d3xp/gamesys/SaveGame.h"
+#include "../d3xp/physics/Clip.h"
+#include "../d3xp/physics/Force_Field.h"
+#include "../d3xp/physics/Physics.h"
+#include "../d3xp/physics/Physics_Monster.h"
+#include "../d3xp/physics/Physics_Player.h"
+#include "../idlib/Heap.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/math/Random.h"
+#include "../idlib/math/Vector.h"
 
 CLASS_DECLARATION( idForce, idForce_Field )
 END_CLASS

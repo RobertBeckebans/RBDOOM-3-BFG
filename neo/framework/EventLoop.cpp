@@ -26,7 +26,18 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
+#include <stddef.h>
+
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/EventLoop.h"
+#include "../framework/File.h"
+#include "../framework/FileSystem.h"
+#include "../framework/KeyInput.h"
+#include "../idlib/Heap.h"
+#include "../sys/sys_public.h"
+
 #pragma hdrstop
 
 idCVar idEventLoop::com_journal( "com_journal", "0", CVAR_INIT | CVAR_SYSTEM, "1 = record journal, 2 = play back journal", 0, 2, idCmdSystem::ArgCompletion_Integer<0, 2> );

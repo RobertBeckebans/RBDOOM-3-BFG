@@ -27,8 +27,14 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
-#include "Simd_Generic.h"
+#include <string.h>                     // for memcpy, memset
+#include "../idlib/math/Math.h"         // for idMath, idMath::INFINITY
+#include "../idlib/math/Quat.h"         // for idQuat
+#include "../idlib/math/Simd.h"         // for VPCALL
+#include "../idlib/sys/sys_assert.h"             // for assert
+#include "../idlib/sys/sys_types.h"              // for triIndex_t
+
+#include "../idlib/math/Simd_Generic.h"
 
 //===============================================================
 //

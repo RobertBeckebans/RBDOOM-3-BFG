@@ -29,6 +29,10 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __PHYSICS_AF_H__
 #define __PHYSICS_AF_H__
 
+#include "../idlib/math/Lcp.h"
+
+#include "../d3xp/physics/Physics_Base.h"
+
 /*
 ===================================================================================
 

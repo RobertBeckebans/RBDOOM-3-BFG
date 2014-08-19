@@ -27,10 +27,29 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <assert.h>
+#include <stdio.h>
 
-#include "../tr_local.h"
 #include "../../framework/Common_local.h"
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../idlib/Str.h"
+#include "../idlib/geometry/RenderMatrix.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_types.h"
+#include "../libs/glew/include/GL/glew.h"
+#include "../renderer/GLState.h"
+#include "../renderer/GraphicsAPIWrapper.h"
+#include "../renderer/Image.h"
+#include "../renderer/ImageOpts.h"
+#include "../renderer/Material.h"
+#include "../renderer/RenderLog.h"
+#include "../renderer/RenderProgs.h"
+#include "../renderer/RenderSystem.h"
+#include "../renderer/RenderWorld.h"
+#include "../renderer/ResolutionScale.h"
+#include "../sys/sys_public.h"
+#include "../tr_local.h"
 
 idCVar r_drawFlickerBox( "r_drawFlickerBox", "0", CVAR_RENDERER | CVAR_BOOL, "visual test for dropping frames" );
 idCVar stereoRender_warp( "stereoRender_warp", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "use the optical warping renderprog instead of stereoDeGhost" );

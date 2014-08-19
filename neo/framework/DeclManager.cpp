@@ -26,8 +26,47 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "precompiled.h"
 #pragma hdrstop
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <string.h>
+
+#include "../framework/CVarSystem.h"
+#include "../framework/CmdSystem.h"
+#include "../framework/Common.h"
+#include "../framework/DeclAF.h" // IWYU pragma: keep
+#include "../framework/DeclEntityDef.h" // IWYU pragma: keep
+#include "../framework/DeclFX.h" // IWYU pragma: keep
+#include "../framework/DeclManager.h"
+#include "../framework/DeclParticle.h" // IWYU pragma: keep
+#include "../framework/DeclPDA.h"
+#include "../framework/DeclSkin.h"
+#include "../framework/DeclTable.h" // IWYU pragma: keep
+#include "../framework/File.h"
+#include "../framework/FileSystem.h"
+#include "../idlib/BitMsg.h"
+#include "../idlib/CmdArgs.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Lexer.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/Thread.h"
+#include "../idlib/Token.h"
+#include "../idlib/containers/HashIndex.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/hashing/MD5.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/Material.h"
+#include "../sound/sound.h"
+
+class idDeclAF;
+class idDeclEntityDef;
+class idDeclFX;
+class idDeclParticle;
+class idDeclTable;
 
 /*
 

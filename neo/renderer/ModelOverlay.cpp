@@ -28,12 +28,36 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #pragma hdrstop
-#include "precompiled.h"
+#include <assert.h>
+#include <emmintrin.h>
+#include <string.h>
+#include <xmmintrin.h>
 
-#include "tr_local.h"
-#include "Model_local.h"
-
+#include "../framework/CVarSystem.h"
+#include "../framework/Common.h"
+#include "../idlib/Heap.h"
+#include "../idlib/bv/Bounds.h"
+#include "../idlib/geometry/DrawVert.h"
 #include "../idlib/geometry/DrawVert_intrinsics.h"
+#include "../idlib/math/Plane.h"
+#include "../idlib/math/Vector.h"
+#include "../idlib/sys/sys_assert.h"
+#include "../idlib/sys/sys_defines.h"
+#include "../idlib/sys/sys_types.h"
+#include "../renderer/Material.h"
+#include "../renderer/Model.h"
+#include "../renderer/ModelOverlay.h"
+#include "../renderer/RenderSystem.h"
+#include "../renderer/ScreenRect.h"
+#include "../renderer/VertexCache.h"
+#include "../framework/DeclParticle.h"
+#include "Model_local.h"
+#include "SoftwareCache.h"
+#include "sys/sys_intrinsics.h"
+#include "tr_local.h"
+
+class idDemoFile;
+class idJointMat;
 
 /*
 ====================

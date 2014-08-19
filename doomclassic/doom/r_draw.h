@@ -30,6 +30,10 @@ If you have questions concerning this license or the applicable additional terms
 #define __R_DRAW__
 
 
+#include "../../doomclassic/doom/Precompiled.h"
+#include "../../doomclassic/doom/m_fixed.h"
+#include "../../doomclassic/doom/r_defs.h"
+#include "../../doomclassic/doom/typedefs.h"
 #ifdef __GNUG__
 #pragma interface
 #endif

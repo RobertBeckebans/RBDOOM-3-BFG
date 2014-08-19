@@ -28,7 +28,23 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __LISTWINDOW_H
 #define __LISTWINDOW_H
 
+#include <stddef.h>
+
+#include "../idlib/Heap.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/HashTable.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/containers/StrList.h"
+#include "../idlib/math/Vector.h"
+#include "../ui/SimpleWindow.h"
+#include "../ui/Window.h"
+
+class idMaterial;
 class idSliderWindow;
+class idTokenParser;
+class idUserInterfaceLocal;
+class idWinVar;
+struct sysEvent_t;
 
 enum
 {

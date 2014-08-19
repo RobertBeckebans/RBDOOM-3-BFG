@@ -30,6 +30,20 @@ If you have questions concerning this license or the applicable additional terms
 #define __GAME_TARGET_H__
 
 
+#include <string.h>
+
+#include "../d3xp/Entity.h"
+#include "../d3xp/gamesys/Class.h"
+#include "../idlib/Heap.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Interpolate.h"
+#include "../idlib/math/Vector.h"
+#include "../renderer/RenderWorld.h"
+
+class idRestoreGame;
+class idSaveGame;
+class idUserInterface;
 /*
 ===============================================================================
 

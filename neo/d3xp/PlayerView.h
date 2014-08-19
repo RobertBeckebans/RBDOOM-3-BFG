@@ -29,7 +29,22 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __GAME_PLAYERVIEW_H__
 #define __GAME_PLAYERVIEW_H__
 
+#include <stddef.h>
+
+#include "../idlib/Heap.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/Angles.h"
+#include "../idlib/math/Matrix.h"
+#include "../idlib/math/Vector.h"
+#include "../renderer/RenderWorld.h"
+
+class idDict;
+class idMaterial;
 class idMenuHandler_HUD;
+class idPlayer;
+class idRestoreGame;
+class idSaveGame;
 
 /*
 ===============================================================================
@@ -88,8 +103,8 @@ public:
 
 
 
-class idPlayerView;
 class FullscreenFXManager;
+class idPlayerView;
 
 
 /*

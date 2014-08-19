@@ -25,8 +25,19 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
+#include <stddef.h>
+
+#include "../idlib/Heap.h"
+#include "../idlib/Lib.h"
+#include "../idlib/Str.h"
+#include "../idlib/containers/List.h"
+#include "../idlib/math/VectorI.h"
+#include "../swf/SWF.h"
+#include "../swf/SWF_Enums.h"
+#include "../swf/SWF_Sprites.h"
+#include "../swf/SWF_Types.h"
+
 #pragma hdrstop
-#include "precompiled.h"
 
 /*
 ========================

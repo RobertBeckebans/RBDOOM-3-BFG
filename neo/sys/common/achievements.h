@@ -28,6 +28,11 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __WIN_ACHIEVEMENTS_H__
 #define __WIN_ACHIEVEMENTS_H__
 
+#include "../sys/sys_achievements.h"
+
+class idLocalUser;
+template <class T_, int numElements> class idArray;
+
 /*
 ================================================
 idAchievementSystemWin

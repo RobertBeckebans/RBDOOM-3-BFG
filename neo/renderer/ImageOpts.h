@@ -30,6 +30,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __IMAGEOPTS_H__
 #define __IMAGEOPTS_H__
 
+#include <string.h>                     // for memcmp
+
 enum textureType_t
 {
 	TT_DISABLED,
