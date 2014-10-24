@@ -179,6 +179,18 @@ endif()
 #	add_definitions(-DSTANDALONE)
 #endif()
 
+# coldtobi: use system zlib if available.
+# note, on Debian this will be enforced by removing the zlib source tree, so
+# a find_package(ZLIB REQUIRED) is not necessary here.
+find_package(ZLIB)
+if (ZLIB_FOUND)
+    include_directories(${ZLIB_INCLUDE_DIRS})
+    set(ZLIB_LIBRARY ${ZLIB_LIBRARIES})
+else (ZLIB_FOUND)
+    include_directories("libs/zlib")
+    set(ZLIB_LIBRARY "" )
+endif (ZLIB_FOUND)
+
 add_subdirectory(idlib)
 
 file(GLOB AAS_INCLUDES aas/*.h)
@@ -379,8 +391,14 @@ set(JPEG_SOURCES
 file(GLOB PNG_INCLUDES libs/png/*.h)
 file(GLOB PNG_SOURCES libs/png/*.c)
 
-file(GLOB ZLIB_INCLUDES libs/zlib/*.h)
-file(GLOB ZLIB_SOURCES libs/zlib/*.c)
+if (NOT ZLIB_FOUND)
+  file(GLOB ZLIB_INCLUDES libs/zlib/*.h)
+  file(GLOB ZLIB_SOURCES libs/zlib/*.c)
+else (NOT ZLIB_FOUND)
+  set(ZLIB_INCLUDES "")
+  set(ZLIB_SOURCES "")
+endif (NOT ZLIB_FOUND)
+
 
 file(GLOB MINIZIP_INCLUDES libs/zlib/minizip/*.h)
 file(GLOB MINIZIP_SOURCES libs/zlib/minizip/*.c libs/zlib/minizip/*.cpp)
@@ -1134,7 +1152,8 @@ include_directories(
 			#libs/openal/include
 			libs/glew/include
 			#libs/freetype/include
-			libs/zlib)
+			#libs/zlib
+            )
 			
 #link_directories(
 #			${CMAKE_CURRENT_SOURCE_DIR}/libs/curl/lib
@@ -1312,6 +1331,7 @@ if(MSVC)
 		wsock32.lib
 		${OpenAL_LIBRARIES}
 		${FFmpeg_LIBRARIES}
+        ${ZLIB_LIBRARY}
 		)
 		
 	#CMAKE_BINARY_DIR
@@ -1473,6 +1493,7 @@ else()
 			${SDLx_LIBRARY}
 			${OPENAL_LIBRARY}
 			${FFMPEG_LIBRARIES}
+            ${ZLIB_LIBRARY}
 			)
 	endif()
     
