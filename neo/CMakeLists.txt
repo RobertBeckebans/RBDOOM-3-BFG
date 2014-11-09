@@ -5,13 +5,13 @@ project(RBDoom3BFG)
 
 option(USE_MFC_TOOLS
 		"Compile the built-in MFC based tools" OFF)
-		
+
 option(MONOLITH
 		"Embed game logic into main executable" ON)
-		
+
 option(SDL2
 		"Use SDL2 instead of SDL1.2" OFF)
-		
+
 option(OPENAL
 		"Use OpenAL soft instead of XAudio2" OFF)
 
@@ -20,6 +20,9 @@ option(FFMPEG
 
 option(ONATIVE
 		"Optimize for the host CPU" OFF)
+
+option(USE_SYSTEM_LIBGLEW
+		"Use the system libglew instead of the bundled one" OFF)
 
 if(UNIX)
 	set(OPENAL TRUE)
@@ -179,6 +182,7 @@ endif()
 #	add_definitions(-DSTANDALONE)
 #endif()
 
+
 add_subdirectory(idlib)
 
 file(GLOB AAS_INCLUDES aas/*.h)
@@ -312,91 +316,108 @@ file(GLOB RENDERER_OPENGL_SOURCES renderer/OpenGL/*.cpp)
 
 file(GLOB IRRXML_INCLUDES libs/irrxml/src/*.h)
 file(GLOB IRRXML_SOURCES libs/irrxml/src/*.cpp)
-	
-set(JPEG_INCLUDES
-	libs/jpeg-6/jchuff.h
-	libs/jpeg-6/jconfig.h
-	libs/jpeg-6/jdct.h
-	libs/jpeg-6/jdhuff.h
-	libs/jpeg-6/jerror.h
-	libs/jpeg-6/jinclude.h
-	libs/jpeg-6/jmemsys.h
-	libs/jpeg-6/jmorecfg.h
-	libs/jpeg-6/jpegint.h
-	libs/jpeg-6/jpeglib.h
-	libs/jpeg-6/jversion.h)
-	
-set(JPEG_SOURCES
-	libs/jpeg-6/jcapimin.cpp
-	libs/jpeg-6/jcapistd.cpp
-	libs/jpeg-6/jccoefct.cpp
-	libs/jpeg-6/jccolor.cpp
-	libs/jpeg-6/jcdctmgr.cpp
-	libs/jpeg-6/jchuff.cpp
-	libs/jpeg-6/jcinit.cpp
-	libs/jpeg-6/jcmainct.cpp
-	libs/jpeg-6/jcmarker.cpp
-	libs/jpeg-6/jcmaster.cpp
-	libs/jpeg-6/jcomapi.cpp
-	libs/jpeg-6/jcparam.cpp
-	libs/jpeg-6/jcphuff.cpp
-	libs/jpeg-6/jcprepct.cpp
-	libs/jpeg-6/jcsample.cpp
-	libs/jpeg-6/jctrans.cpp
-	libs/jpeg-6/jdapimin.cpp
-	libs/jpeg-6/jdapistd.cpp
-	libs/jpeg-6/jdatadst.cpp
-	libs/jpeg-6/jdatasrc.cpp
-	libs/jpeg-6/jdcoefct.cpp
-	libs/jpeg-6/jdcolor.cpp
-	libs/jpeg-6/jddctmgr.cpp
-	libs/jpeg-6/jdhuff.cpp
-	libs/jpeg-6/jdinput.cpp
-	libs/jpeg-6/jdmainct.cpp
-	libs/jpeg-6/jdmarker.cpp
-	libs/jpeg-6/jdmaster.cpp
-	libs/jpeg-6/jdmerge.cpp
-	libs/jpeg-6/jdphuff.cpp
-	libs/jpeg-6/jdpostct.cpp
-	libs/jpeg-6/jdsample.cpp
-	libs/jpeg-6/jdtrans.cpp
-	libs/jpeg-6/jerror.cpp
-	libs/jpeg-6/jfdctflt.cpp
-	libs/jpeg-6/jfdctfst.cpp
-	libs/jpeg-6/jfdctint.cpp
-	libs/jpeg-6/jidctflt.cpp
-	libs/jpeg-6/jidctfst.cpp
-	libs/jpeg-6/jidctint.cpp
-	libs/jpeg-6/jidctred.cpp
-	#libs/jpeg-6/jload.cpp
-	libs/jpeg-6/jmemmgr.cpp
-	libs/jpeg-6/jmemnobs.cpp
-	#libs/jpeg-6/jpegtran.cpp
-	libs/jpeg-6/jquant1.cpp
-	libs/jpeg-6/jquant2.cpp
-	libs/jpeg-6/jutils.cpp)
 
-file(GLOB PNG_INCLUDES libs/png/*.h)
-file(GLOB PNG_SOURCES libs/png/*.c)
+    set(JPEG_INCLUDES
+        libs/jpeg-6/jchuff.h
+        libs/jpeg-6/jconfig.h
+        libs/jpeg-6/jdct.h
+        libs/jpeg-6/jdhuff.h
+        libs/jpeg-6/jerror.h
+        libs/jpeg-6/jinclude.h
+        libs/jpeg-6/jmemsys.h
+        libs/jpeg-6/jmorecfg.h
+        libs/jpeg-6/jpegint.h
+        libs/jpeg-6/jpeglib.h
+        libs/jpeg-6/jversion.h)
+
+    set(JPEG_SOURCES
+        libs/jpeg-6/jcapimin.cpp
+        libs/jpeg-6/jcapistd.cpp
+        libs/jpeg-6/jccoefct.cpp
+        libs/jpeg-6/jccolor.cpp
+        libs/jpeg-6/jcdctmgr.cpp
+        libs/jpeg-6/jchuff.cpp
+        libs/jpeg-6/jcinit.cpp
+        libs/jpeg-6/jcmainct.cpp
+        libs/jpeg-6/jcmarker.cpp
+        libs/jpeg-6/jcmaster.cpp
+        libs/jpeg-6/jcomapi.cpp
+        libs/jpeg-6/jcparam.cpp
+        libs/jpeg-6/jcphuff.cpp
+        libs/jpeg-6/jcprepct.cpp
+        libs/jpeg-6/jcsample.cpp
+        libs/jpeg-6/jctrans.cpp
+        libs/jpeg-6/jdapimin.cpp
+        libs/jpeg-6/jdapistd.cpp
+        libs/jpeg-6/jdatadst.cpp
+        libs/jpeg-6/jdatasrc.cpp
+        libs/jpeg-6/jdcoefct.cpp
+        libs/jpeg-6/jdcolor.cpp
+        libs/jpeg-6/jddctmgr.cpp
+        libs/jpeg-6/jdhuff.cpp
+        libs/jpeg-6/jdinput.cpp
+        libs/jpeg-6/jdmainct.cpp
+        libs/jpeg-6/jdmarker.cpp
+        libs/jpeg-6/jdmaster.cpp
+        libs/jpeg-6/jdmerge.cpp
+        libs/jpeg-6/jdphuff.cpp
+        libs/jpeg-6/jdpostct.cpp
+        libs/jpeg-6/jdsample.cpp
+        libs/jpeg-6/jdtrans.cpp
+        libs/jpeg-6/jerror.cpp
+        libs/jpeg-6/jfdctflt.cpp
+        libs/jpeg-6/jfdctfst.cpp
+        libs/jpeg-6/jfdctint.cpp
+        libs/jpeg-6/jidctflt.cpp
+        libs/jpeg-6/jidctfst.cpp
+        libs/jpeg-6/jidctint.cpp
+        libs/jpeg-6/jidctred.cpp
+        #libs/jpeg-6/jload.cpp
+        libs/jpeg-6/jmemmgr.cpp
+        libs/jpeg-6/jmemnobs.cpp
+        #libs/jpeg-6/jpegtran.cpp
+        libs/jpeg-6/jquant1.cpp
+        libs/jpeg-6/jquant2.cpp
+        libs/jpeg-6/jutils.cpp)
+
+    file(GLOB PNG_INCLUDES libs/png/*.h)
+    file(GLOB PNG_SOURCES libs/png/*.c)
 
 file(GLOB ZLIB_INCLUDES libs/zlib/*.h)
 file(GLOB ZLIB_SOURCES libs/zlib/*.c)
 
+
 file(GLOB MINIZIP_INCLUDES libs/zlib/minizip/*.h)
 file(GLOB MINIZIP_SOURCES libs/zlib/minizip/*.c libs/zlib/minizip/*.cpp)
-	
-set(GLEW_INCLUDES
-	libs/glew/include/GL/glew.h)
-	
-if(WIN32)
-	set(GLEW_INCLUDES ${GLEW_INCLUDES} libs/glew/include/GL/wglew.h)
-else()
-	set(GLEW_INCLUDES ${GLEW_INCLUDES} libs/glew/include/GL/glxew.h)
-endif()
-	
-set(GLEW_SOURCES
-	libs/glew/src/glew.c)
-	
+
+if(USE_SYSTEM_LIBGLEW)
+find_package(GLEW 1.10 REQUIRED)
+endif(USE_SYSTEM_LIBGLEW)
+
+if (GLEW_FOUND)
+	include_directories(${GLEW_INCLUDE_DIRS})
+	set(GLEW_LIBRARY GLEW)
+	set(GLEW_SOURCES "")
+	set(GLEW_INCLUDES "")
+else (GLEW_FOUND)
+	set(GLEW_INCLUDES
+		libs/glew/include/GL/glew.h)
+
+	if(WIN32)
+		set(GLEW_INCLUDES ${GLEW_INCLUDES} libs/glew/include/GL/wglew.h)
+	else(WIN32)
+		set(GLEW_INCLUDES ${GLEW_INCLUDES} libs/glew/include/GL/glxew.h)
+	endif(WIN32)
+
+	set(GLEW_SOURCES
+		libs/glew/src/glew.c)
+
+	include_directories("libs/glew/include")
+	add_definitions(-DGLEW_STATIC)
+	add_library(glew ${GLEW_SOURCES} ${GLEW_INCLUDES})
+	set(GLEW_LIBRARY "")
+endif (GLEW_FOUND)
+
 set(FREETYPE_SOURCES
 	libs/freetype/src/autofit/autofit.c
 	libs/freetype/src/bdf/bdf.c
@@ -1100,7 +1121,6 @@ set(RBDOOM3_SOURCES
 add_definitions(-DUSE_DOOMCLASSIC)
 
 add_definitions(-D__DOOM__
-				-DGLEW_STATIC
 				#-DBUILD_FREETYPE
 				#-DFT2_BUILD_LIBRARY
 				)
@@ -1132,7 +1152,6 @@ include_directories(
 			idlib
 			#libs/curl/include
 			#libs/openal/include
-			libs/glew/include
 			#libs/freetype/include
 			libs/zlib)
 			
@@ -1312,6 +1331,7 @@ if(MSVC)
 		wsock32.lib
 		${OpenAL_LIBRARIES}
 		${FFmpeg_LIBRARIES}
+        ${GLEW_LIBRARY}
 		)
 		
 	#CMAKE_BINARY_DIR
@@ -1473,6 +1493,7 @@ else()
 			${SDLx_LIBRARY}
 			${OPENAL_LIBRARY}
 			${FFMPEG_LIBRARIES}
+            ${GLEW_LIBRARY}
 			)
 	endif()
     
