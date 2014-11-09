@@ -3247,6 +3247,10 @@ static int RB_DrawShaderPasses( const drawSurf_t* const* const drawSurfs, const 
 			newShaderStage_t* newStage = pStage->newStage;
 			if( newStage != NULL )
 			{
+				if ( lightShader->IsCustomLight() ) 
+				{
+					continue;	
+				}
 				//--------------------------
 				//
 				// new style stages
