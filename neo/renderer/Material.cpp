@@ -2369,7 +2369,7 @@ void idMaterial::ParseMaterial( idLexer& src )
 		// customLight
 		else if( !token.Icmp( "customLight" ) )
 		{
-			ambientLight = true;
+			customLight = true;
 			continue;
 		}
 		// mirror
