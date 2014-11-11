@@ -187,32 +187,6 @@ bool GLimp_Init( glimpParms_t parms )
 		
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 		
-#ifdef __APPLE__
-		r_useOpenGL32.SetInteger( 2 ); // only core profile is supported on OS X
-#endif
-		
-		// RB begin
-		if( r_useOpenGL32.GetInteger() > 0 )
-		{
-			glConfig.driverType = GLDRV_OPENGL32_COMPATIBILITY_PROFILE;
-			
-			SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
-			SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 2 );
-			
-			if( r_debugContext.GetBool() )
-			{
-				SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG );
-			}
-		}
-		
-		if( r_useOpenGL32.GetInteger() > 1 )
-		{
-			glConfig.driverType = GLDRV_OPENGL32_CORE_PROFILE;
-			
-			SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
-		}
-		// RB end
-		
 		// DG: set display num for fullscreen
 		int windowPos = SDL_WINDOWPOS_UNDEFINED;
 		if( parms.fullScreen > 0 )
@@ -234,23 +208,50 @@ bool GLimp_Init( glimpParms_t parms )
 		 * "do fullscreen, but I don't care on what monitor", at least on my box it's the monitor with
 		 * the mouse cursor.
 		 */
-		
-		
+
 		window = SDL_CreateWindow( GAME_NAME,
 								   windowPos,
 								   windowPos,
 								   parms.width, parms.height, flags );
 		// DG end
-		
+
+        if( !window )
+        {
+            common->DPrintf( "Couldn't set GL mode %d/%d/%d: %s",
+                             channelcolorbits, tdepthbits, tstencilbits, SDL_GetError() );
+            continue;
+        }
+
 		context = SDL_GL_CreateContext( window );
-		
-		if( !window )
-		{
-			common->DPrintf( "Couldn't set GL mode %d/%d/%d: %s",
-							 channelcolorbits, tdepthbits, tstencilbits, SDL_GetError() );
-			continue;
-		}
-		
+        SDL_GL_MakeCurrent(window, context);
+
+#ifdef __APPLE__
+        r_useOpenGL32.SetInteger( 2 ); // only core profile is supported on OS X
+#endif
+
+        // RB begin
+        if( r_useOpenGL32.GetInteger() > 0 )
+        {
+            glConfig.driverType = GLDRV_OPENGL32_COMPATIBILITY_PROFILE;
+
+            SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
+            SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 2 );
+
+            if( r_debugContext.GetBool() )
+            {
+                SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG );
+            }
+        }
+        // Is a else required here for OPENGL 2.0?
+
+
+        if( r_useOpenGL32.GetInteger() > 1 )
+        {
+            glConfig.driverType = GLDRV_OPENGL32_CORE_PROFILE;
+            SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
+        }
+        // RB end
+
 		if( SDL_GL_SetSwapInterval( r_swapInterval.GetInteger() ) < 0 )
 			common->Warning( "SDL_GL_SWAP_CONTROL not supported" );
 			
