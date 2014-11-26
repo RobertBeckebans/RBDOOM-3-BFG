@@ -1415,6 +1415,14 @@ static void RB_RenderInteractions( const drawSurf_t* surfList, const viewLight_t
 			const drawSurf_t* const surf = allSurfaces[ sortedSurfNum ];
 			
 			// select the render prog
+			if( lightShader->IsCustomLight())
+				{
+				renderProgManager.BindShader( newStage->glslProgram, newStage->glslProgram );
+				}
+				else
+				{
+					
+				
 			if( lightShader->IsAmbientLight() )
 			{
 				if( surf->jointCache )
@@ -1475,6 +1483,7 @@ static void RB_RenderInteractions( const drawSurf_t* surfList, const viewLight_t
 					else
 					{
 						renderProgManager.BindShader_Interaction();
+						}
 					}
 				}
 			}
@@ -3247,6 +3256,10 @@ static int RB_DrawShaderPasses( const drawSurf_t* const* const drawSurfs, const 
 			newShaderStage_t* newStage = pStage->newStage;
 			if( newStage != NULL )
 			{
+				if ( lightShader->IsCustomLight() ) 
+				{
+					continue;	
+				}
 				//--------------------------
 				//
 				// new style stages
