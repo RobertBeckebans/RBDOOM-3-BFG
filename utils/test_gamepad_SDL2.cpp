@@ -5,7 +5,6 @@
 #include <SDL2/SDL.h>
 
 #define __SDL2_ENABLE_CONTROLLER_HOTPLUG
-#define __SDL2_ENABLE_HAPTIC_RUMBLE
 
 SDL_Joystick *joy = NULL;
 int SDL_joystick_has_hat = 0; // Game controller do not have hats or balls (only joysticks)
@@ -14,12 +13,38 @@ SDL_GameController *gamepad = NULL;
 SDL_JoystickID instanceID = -1; // Joystick instance ID. Changes if there are hotplug events!!!
 int device_index_in_use = -1; // This is the devic number in use
 const int SDL_wanted_joystick_number = 0; // Joystick device index user wants to use
-#ifdef __SDL2_ENABLE_HAPTIC_RUMBLE
 SDL_Haptic *haptic = NULL;
-#endif
 int SDL_joystick_is_gamepad = 0; // True if joystick is a SDL2 recognised gamepad
 
 int SDL_dead_zone = 10000;
+
+void SDL2_Init_Haptic_From_Joystick(void)
+{
+	// Try to open haptic from used joystick
+	if( joy ) {
+		if( SDL_JoystickIsHaptic(joy) ) {
+			haptic = SDL_HapticOpenFromJoystick( joy );
+			if( haptic == NULL ) {
+				printf( "SDL_HapticOpenFromJoystick() failed: %s\n", SDL_GetError() );
+			} else {
+				if( SDL_HapticRumbleSupported(haptic) == SDL_FALSE) {
+					printf( "WARNING: Rumble not supported!\n");
+					SDL_HapticClose(haptic);
+					haptic = NULL;
+				} else {
+					if (SDL_HapticRumbleInit(haptic) != 0) {
+						printf( "WARNING: to initialize rumble: %s\n", SDL_GetError());
+						SDL_HapticClose(haptic);
+						haptic = NULL;
+					}
+				}
+			}
+		} else {
+			printf("Joystick does not support haptics/rumble");
+			haptic = NULL;
+		}
+	}
+}
 
 int main(int argn, char** argv)
 {
@@ -37,11 +62,7 @@ int main(int argn, char** argv)
 	// Joystick initialisation
 	//
 	printf( "Sys_InitInput: Joystick subsystem init\n" );
-#ifdef __SDL2_ENABLE_HAPTIC_RUMBLE
 	if( SDL_Init( SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC) )
-#else
-	if( SDL_Init( SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER ) )
-#endif
 	{
 		printf( "Sys_InitInput: Joystick Init ERROR!\n" );
 	}
@@ -49,10 +70,12 @@ int main(int argn, char** argv)
 	//
 	// Load controller mappings
 	//
+#if SDL_VERSION_ATLEAST(2, 0, 3)
 	// s_ControllerMappings not available in SDL 2.0.2
-//	if( SDL_GameControllerAddMapping(s_ControllerMappings) < 0 ) {
-//		printf("SDL_GameControllerAddMappingsFromFile failed: %s\n", SDL_GetError());
-//	}
+	if( SDL_GameControllerAddMapping(s_ControllerMappings) < 0 ) {
+		printf("SDL_GameControllerAddMappingsFromFile failed: %s\n", SDL_GetError());
+	}
+#endif
 	int num_devices = SDL_GameControllerAddMappingsFromFile("gamecontrollerdb.txt");
 	if( num_devices < 0 ) {
 		printf( "Sys_InitInput: SDL_GameControllerAddMappingsFromFile() failed: %s\n", SDL_GetError());
@@ -61,9 +84,7 @@ int main(int argn, char** argv)
 	}
 
 	// Test for haptic num_devices
-#ifdef __SDL2_ENABLE_HAPTIC_RUMBLE
 	printf( "Sys_InitInput: %d Haptic devices detected.\n", SDL_NumHaptics());
-#endif
 
 	//
 	// Open gamepad/joystick
@@ -136,35 +157,13 @@ int main(int argn, char** argv)
 	} else {
 		gamepad = NULL;
 		joy = NULL;
+		instanceID = -1;
+		device_index_in_use = -1;
 	}
 
-	// Try to open haptic from used joystick
-#ifdef __SDL2_ENABLE_HAPTIC_RUMBLE
-	if( joy ) {
-		if( SDL_JoystickIsHaptic(joy) ) {
-			haptic = SDL_HapticOpenFromJoystick( joy );
-			if( haptic == NULL ) {
-				printf( "SDL_HapticOpenFromJoystick() failed: %s\n", SDL_GetError() );
-			} else {
-				if( SDL_HapticRumbleSupported(haptic) == SDL_FALSE) {
-					printf( "WARNING: Rumble not supported!\n");
-					SDL_HapticClose(haptic);
-					haptic = NULL;
-				} else {
-					if (SDL_HapticRumbleInit(haptic) != 0) {
-						printf( "WARNING: to initialize rumble: %s\n", SDL_GetError());
-						SDL_HapticClose(haptic);
-						haptic = NULL;
-					}
-				}
-			}
-		} else {
-			printf("Joystick does not support haptics/rumble");
-			haptic = NULL;
-		}
-	}
-#endif
-
+	// Start haptic from opened joystick
+	SDL2_Init_Haptic_From_Joystick();
+	
 	//
 	// If no joystick found then exit
 	// NOTE: in SDL2 joysticks can be hot-plugged
@@ -277,6 +276,8 @@ int main(int argn, char** argv)
 						}
 					}
 #endif
+					// Start haptic from opened joystick
+					SDL2_Init_Haptic_From_Joystick();
 					break;
 
 				case SDL_JOYDEVICEREMOVED:
@@ -302,20 +303,15 @@ int main(int argn, char** argv)
 				// SDL controller API events
 				case SDL_CONTROLLERAXISMOTION:
 					if( ev.caxis.value > SDL_dead_zone || ev.caxis.value < -SDL_dead_zone) {
-					printf("SDL_CONTROLLERAXISMOTION    caxis.which = %02i / caxis.axis = %02i / caxis.value = %02i / caxis.name = %s\n", 
+					printf("Controller = %02i axis = %02i value = %02i (axis name) = %s\n", 
 								 ev.caxis.which, ev.caxis.axis, ev.caxis.value,
 								 SDL_GameControllerGetStringForAxis((SDL_GameControllerAxis)ev.caxis.axis) );
 					}
 					break;
 
 				case SDL_CONTROLLERBUTTONDOWN:
-					printf("SDL_CONTROLLERBUTTONDOWN    cbutton.which = %02i / cbutton.button = %02i / cbutton.state = %02i / caxis.name = %s\n", 
-								 ev.cbutton.which, ev.cbutton.button, ev.cbutton.state, 
-								 SDL_GameControllerGetStringForButton((SDL_GameControllerButton)ev.cbutton.button) );
-					break;
-					
 				case SDL_CONTROLLERBUTTONUP:
-					printf("SDL_CONTROLLERBUTTONUP      cbutton.which = %02i / cbutton.button = %02i / cbutton.state = %02i / caxis.name = %s\n", 
+					printf("Controller %02i button %02i state = %02i (button name = %s)\n", 
 								 ev.cbutton.which, ev.cbutton.button, ev.cbutton.state, 
 								 SDL_GameControllerGetStringForButton((SDL_GameControllerButton)ev.cbutton.button) );
 					break;
@@ -368,6 +364,8 @@ int main(int argn, char** argv)
 						}
 					}
 #endif
+					// Start haptic from opened joystick
+					SDL2_Init_Haptic_From_Joystick();
 					break;
 
 				case SDL_CONTROLLERDEVICEREMOVED:
@@ -422,13 +420,11 @@ int main(int argn, char** argv)
 	// 
 	// Close haptics
 	//
-#ifdef __SDL2_ENABLE_HAPTIC_RUMBLE
 	if( haptic ) {
 		SDL_HapticRumbleStop(haptic);
 		SDL_HapticClose( haptic );
-		haptic == NULL;
+		haptic = NULL;
 	}
-#endif
 
 	//
 	// Close joystick
@@ -436,9 +432,17 @@ int main(int argn, char** argv)
 	if( gamepad ) {
 		printf( "Sys_ShutdownInput: closing SDL gamepad.\n" );
 		SDL_GameControllerClose( gamepad );
+		gamepad = NULL;
+		joy = NULL;
+		instanceID = -1;
+		device_index_in_use = -1;
 	} else if( joy ) {
 		printf( "Sys_ShutdownInput: closing SDL joystick.\n" );
-		
+		SDL_JoystickClose( joy );
+		gamepad = NULL;
+		joy = NULL;
+		instanceID = -1;
+		device_index_in_use = -1;
 	} else {
 		printf( "Sys_ShutdownInput: SDL joystick not initialized. Nothing to close.\n" );
 	}
