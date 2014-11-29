@@ -177,6 +177,7 @@ _left       Look left
 _right      Look right
 _lookup     Look up
 _lookdown   Look down
+_zoom       Zoom
 
 "savegame quick"  Quick Save
 "loadgame quick"  Quick Load
@@ -217,18 +218,18 @@ bind "JOY_DPAD_DOWN"  "_impulse8"
 bind "JOY_TRIGGER1"   "_impulse16"
 bind "JOY_TRIGGER2"   "_attack"
 
-bind "JOY1" "_moveup"     // (A/X button)
+bind "JOY1" "_moveup"     // (A/Cross button)
 bind "JOY2" ""            // (B/Circle button)
 bind "JOY3" "_impulse13"  // (X/Square button)
 bind "JOY4" "_use"        // (Y/Triangle button)
 
-bind "JOY5" "_impulse15"  // (L Shoulder)
-bind "JOY6" "_impulse14"  // (R Shoulder)
+bind "JOY5" "_impulse15"  // (Left Shoulder)
+bind "JOY6" "_impulse14"  // (Right Shoulder)
 
-bind "JOY7" "_impulse19"  // (BACK)
-bind "JOY8" ""            // (START) (Used to show the game GUI)
-bind "JOY9" ""            // (XBOX)
+bind "JOY7" "_speed"      // Left Stick
+bind "JOY8" "_movedown"   // Right Stick
 
-bind "JOY10" "_speed"     // (LEFT ANALOG JOY BUTTON)
-bind "JOY11" "_movedown"  // (RIGHT ANALOG JOY BUTTON)
+bind "JOY9"  ""           // (GUIDE)
+bind "JOY10" "_impulse19" // (BACK)
+bind "JOY11" "_zoom"      // (START)
 --------------------------------------------------------------------------
