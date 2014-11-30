@@ -2061,6 +2061,7 @@ int Sys_PollMouseInputEvents( int mouseEvents[MAX_MOUSE_EVENTS][2] )
 
 void Sys_SetRumble( int device, int low, int hi )
 {
+#if SDL_VERSION_ATLEAST(2, 0, 0)
 	int wLeftMotorSpeed = idMath::ClampInt( 0, 65535, low );
 	int wRightMotorSpeed = idMath::ClampInt( 0, 65535, hi );
 	
@@ -2081,6 +2082,7 @@ void Sys_SetRumble( int device, int low, int hi )
 			SDL_HapticRumbleStop(haptic);
 		}
 	}
+#endif
 }
 
 int Sys_PollJoystickInputEvents( int deviceNum )
