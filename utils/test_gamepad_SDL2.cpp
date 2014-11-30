@@ -1,6 +1,9 @@
 /*
  * Test gamepad axis/buttons with SDL
+ * Also tests new SDL2 features: game controller, joystick/gamepad 
+ * hotplug and haptics/rumble.
  * 
+ * (c) Wintermute0110 <wintermute0110@gmail.com> November 2014
  */
 #include <SDL2/SDL.h>
 
@@ -20,6 +23,10 @@ int SDL_dead_zone = 10000;
 
 void SDL2_Init_Haptic_From_Joystick(void)
 {
+	// Test for haptic num_devices
+	// NOTE: mouses may have haptics, and not the joystick in use
+	printf( "Sys_InitInput: %d Haptic devices detected.\n", SDL_NumHaptics());
+
 	// Try to open haptic from used joystick
 	if( joy ) {
 		if( SDL_JoystickIsHaptic(joy) ) {
@@ -70,21 +77,12 @@ int main(int argn, char** argv)
 	//
 	// Load controller mappings
 	//
-#if SDL_VERSION_ATLEAST(2, 0, 3)
-	// s_ControllerMappings not available in SDL 2.0.2
-	if( SDL_GameControllerAddMapping(s_ControllerMappings) < 0 ) {
-		printf("SDL_GameControllerAddMappingsFromFile failed: %s\n", SDL_GetError());
-	}
-#endif
 	int num_devices = SDL_GameControllerAddMappingsFromFile("gamecontrollerdb.txt");
 	if( num_devices < 0 ) {
 		printf( "Sys_InitInput: SDL_GameControllerAddMappingsFromFile() failed: %s\n", SDL_GetError());
 	} else {
 		printf( "Sys_InitInput: SDL_GameControllerAddMappingsFromFile() added %i controller maps\n", num_devices );
 	}
-
-	// Test for haptic num_devices
-	printf( "Sys_InitInput: %d Haptic devices detected.\n", SDL_NumHaptics());
 
 	//
 	// Open gamepad/joystick

@@ -1,6 +1,7 @@
 /*
  * Test gamepad axis/buttons with SDL
  * 
+ * (c) Wintermute0110 <wintermute0110@gmail.com> November 2014
  */
 #include <SDL/SDL.h>
 
