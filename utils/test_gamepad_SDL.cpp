@@ -1,12 +1,14 @@
 /*
  * Test gamepad axis/buttons with SDL
  * 
- * (c) Wintermute0110 <wintermute0110@gmail.com> November 2014
+ * (c) Wintermute0110 <wintermute0110@gmail.com> December 2014
  */
 #include <SDL/SDL.h>
 
 SDL_Joystick* joy = NULL;
 int SDL_joystick_has_hat = 0;
+
+int SDL_dead_zone = 5000;
 
 int main(int argn, char** argv)
 {
@@ -17,25 +19,41 @@ int main(int argn, char** argv)
 
 	SDL_VERSION(&compiled);
 	printf("Sys_InitInput: Compiled with SDL version %d.%d.%d\n", compiled.major, compiled.minor, compiled.patch);
-	// Only available in SDL2
-//	SDL_GetVersion(&linked);
-//	printf("Sys_InitInput: Linked   with SDL version %d.%d.%d\n", linked.major, linked.minor, linked.patch);
+	// SDL_GetVersion(&linked) only available in SDL2
 	
 	//
 	// Joystick initialisation
 	//
 	printf( "Sys_InitInput: Joystick subsystem init\n" );
-	if( SDL_Init( SDL_INIT_JOYSTICK ) )
-	{
-		printf( "Sys_InitInput: Joystick Init ERROR!\n" );
+	// NOTE: in order to receive Joystick events in SDL1 the video subsystem
+	// must be initialised. This will prevent the application from running outside
+	// XWindow.
+	if( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_JOYSTICK ) ) {
+		printf( "Sys_InitInput: SDL_Init() failed: %s\n", SDL_GetError());
+		return 0;
 	}
-	
-	numJoysticks = SDL_NumJoysticks();
-	printf( "Sys_InitInput: Joystick - Found %i joysticks\n", numJoysticks );
-	for( i = 0; i < numJoysticks; i++ )
-		printf( " Joystick %i name '%s'\n", i, SDL_JoystickName( i ) );
 
+	//
+	// Print joystick information
+	//
+	numJoysticks = SDL_NumJoysticks();
+	printf( "Sys_InitInput: Joystick subsytem - Found %i joysticks at startup\n", numJoysticks );
+	for( i = 0; i < numJoysticks; i++ ) {
+		joy = SDL_JoystickOpen( i );
+		if( joy ) {
+			printf( " Joystick number %i (%s)\n", i, SDL_JoystickName( i ) );
+			printf( "  Axes %02d / Buttons %02d / Hats %02d / Balls %02d\n", 
+							SDL_JoystickNumAxes( joy ), SDL_JoystickNumButtons( joy ),
+							SDL_JoystickNumHats( joy ), SDL_JoystickNumBalls( joy ) );
+			SDL_JoystickClose( joy );
+		} else {
+			printf( "Sys_InitInput: SDL_JoystickOpen() failed: %s\n", SDL_GetError());
+		}
+	}
+
+	//
 	// Open first available joystick and use it
+	//
 	if( SDL_NumJoysticks() > 0 )
 	{
 		joy = SDL_JoystickOpen( 0 );
@@ -46,11 +64,10 @@ int main(int argn, char** argv)
 			
 			num_hats = SDL_JoystickNumHats( joy );
 			printf( "Opened joystick number %i (%s)\n", 0, SDL_JoystickName( 0 ) );
-			printf( "Name: %s\n", SDL_JoystickName( 0 ) );
-			printf( "Number of Axes: %d\n", SDL_JoystickNumAxes( joy ) );
-			printf( "Number of Buttons: %d\n", SDL_JoystickNumButtons( joy ) );
-			printf( "Number of Hats: %d\n", num_hats );
-			printf( "Number of Balls: %d\n", SDL_JoystickNumBalls( joy ) );
+			printf( "    axes: %d\n", SDL_JoystickNumAxes( joy ) );
+			printf( " buttons: %d\n", SDL_JoystickNumButtons( joy ) );
+			printf( "    hats: %d\n", num_hats );
+			printf( "   balls: %d\n", SDL_JoystickNumBalls( joy ) );
 			
 			SDL_joystick_has_hat = 0;
 			if( num_hats )
@@ -81,23 +98,42 @@ int main(int argn, char** argv)
 	int run_loop = 1;
 	SDL_Event ev;
 
+	printf("Waiting for joystick events. Press CTRL+C to exit.\n");
+	// SDL_EventState(SDL_JOYAXISMOTION, SDL_ENABLE);
 	while(run_loop) {
-		if( SDL_PollEvent( &ev ) ) {
+		// SDL_PollEvent() poll event returns inmediately if no events. It consuments 100% CPU!!!
+		// SDL_WaitEvent() waits until next event.
+		if( SDL_WaitEvent( &ev ) ) {
 			switch( ev.type ) {
-				case SDL_JOYBUTTONDOWN:
-					printf("SDL_JOYBUTTONDOWN: jbutton.button = %i / jbutton.state = %i\n", ev.jbutton.button, ev.jbutton.state);
+				case SDL_JOYAXISMOTION:
+					// NOTE: jaxis.which is the SDL_JoystickID, not the device index!!!
+					if( ev.jaxis.value > SDL_dead_zone || ev.jaxis.value < -SDL_dead_zone) {
+						printf("Joystick %02i axis %02i value %i\n", 
+									 ev.jaxis.which, ev.jaxis.axis, ev.jaxis.value);
+					}
 					break;
-					
+
+				case SDL_JOYBUTTONDOWN:
 				case SDL_JOYBUTTONUP:
-					printf("SDL_JOYBUTTONUP  : jbutton.button = %i / jbutton.state = %i\n", ev.jbutton.button, ev.jbutton.state);
+					// NOTE: jbutton.which is the SDL_JoystickID, not the device index!!!
+					printf("Joystick %02i button %02i state %i\n", 
+								 ev.jbutton.which, ev.jbutton.button, ev.jbutton.state);
 					break;
 					
 				case SDL_JOYHATMOTION:
-					printf("SDL_JOYBUTTONDOWN: jhat.value = %i\n", ev.jhat.value);
-					break;
-					
-				case SDL_JOYAXISMOTION:
-					printf("SDL_JOYBUTTONDOWN: jaxis.axis = %i / jaxis.value = %i\n", ev.jaxis.axis, ev.jaxis.value);
+					// NOTE: jhat.which is the SDL_JoystickID, not the device index!!!
+					printf("Joystick %02i hat %02i state ", ev.jhat.which, ev.jhat.hat);
+					if( ev.jhat.value & SDL_HAT_UP )
+						printf("SDL_HAT_UP ");
+					if( ev.jhat.value & SDL_HAT_RIGHT )
+						printf("SDL_HAT_RIGHT ");
+					if( ev.jhat.value & SDL_HAT_DOWN )
+						printf("SDL_HAT_DOWN ");
+					if( ev.jhat.value & SDL_HAT_LEFT )
+						printf("SDL_HAT_LEFT ");
+					if( ev.jhat.value == SDL_HAT_CENTERED )
+						printf("SDL_HAT_CENTERED ");
+					printf("\n");
 					break;
 					
 				case SDL_QUIT:
@@ -106,9 +142,10 @@ int main(int argn, char** argv)
 					break;
 				
 				default:
-					printf( "Sys_GetEvent: unknown SDL event %u", ev.type );
+					printf( "Sys_GetEvent: unknown SDL event %u\n", ev.type );
 					break;
 			}
+			fflush(stdout);
 		}
 	}
 
@@ -124,6 +161,11 @@ int main(int argn, char** argv)
 	{
 		printf( "Sys_ShutdownInput: SDL joystick not initialized. Nothing to close.\n" );
 	}
+	
+	//
+	// Shutdown SDL2
+	//
+	SDL_QuitSubSystem( SDL_INIT_JOYSTICK );
 	
 	return 0;
 }
