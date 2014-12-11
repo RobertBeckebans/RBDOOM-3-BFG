@@ -41,3 +41,4 @@ utils/utils.kdev4
 utils/gamecontrollerdb.txt
 utils/test_gamepad_SDL
 utils/test_gamepad_SDL2
+utils/map_gamepad_SDL2
