@@ -3,7 +3,7 @@
  * Also tests new SDL2 features: game controller, joystick/gamepad 
  * hotplug and haptics/rumble.
  * 
- * (c) Wintermute0110 <wintermute0110@gmail.com> November 2014
+ * (c) Wintermute0110 <wintermute0110@gmail.com> December 2014
  */
 #include <SDL2/SDL.h>
 
@@ -19,13 +19,13 @@ const int SDL_wanted_joystick_number = 0; // Joystick device index user wants to
 SDL_Haptic *haptic = NULL;
 int SDL_joystick_is_gamepad = 0; // True if joystick is a SDL2 recognised gamepad
 
-int SDL_dead_zone = 10000;
+int SDL_dead_zone = 5000;
 
 void SDL2_Init_Haptic_From_Joystick(void)
 {
 	// Test for haptic num_devices
 	// NOTE: mouses may have haptics, and not the joystick in use
-	printf( "Sys_InitInput: %d Haptic devices detected.\n", SDL_NumHaptics());
+	printf( "Sys_InitInput: %d haptic devices detected.\n", SDL_NumHaptics());
 
 	// Try to open haptic from used joystick
 	if( joy ) {
@@ -43,6 +43,8 @@ void SDL2_Init_Haptic_From_Joystick(void)
 						printf( "WARNING: to initialize rumble: %s\n", SDL_GetError());
 						SDL_HapticClose(haptic);
 						haptic = NULL;
+					} else {
+						printf( "Sys_InitInput: Rumble initialization OK\n");
 					}
 				}
 			}
@@ -69,9 +71,15 @@ int main(int argn, char** argv)
 	// Joystick initialisation
 	//
 	printf( "Sys_InitInput: Joystick subsystem init\n" );
-	if( SDL_Init( SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC) )
+	// NOTE: In SDL2, and contrary to what happens in SDL1, joystick events are
+	// received even if video is not initialisated.
+	// NOTE: Very interesting. If video is initialised in SDL2 then only button 
+	// UP events work! (Tested with a Logitech F710 wireless)!!!
+	if( SDL_Init( SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC ) )
 	{
-		printf( "Sys_InitInput: Joystick Init ERROR!\n" );
+		printf( "Sys_InitInput: SDL_Init() failed: %s\n", SDL_GetError());
+		
+		return 0;
 	}
 	
 	//
@@ -85,14 +93,35 @@ int main(int argn, char** argv)
 	}
 
 	//
-	// Open gamepad/joystick
+	// Print joystick information
 	//
 	numJoysticks = SDL_NumJoysticks();
 	printf( "Sys_InitInput: Joystick subsytem - Found %i joysticks at startup\n", numJoysticks );
-	for( i = 0; i < numJoysticks; i++ )
-		printf( " Joystick %i is %s game controller\n", i, SDL_IsGameController( i ) ? "a" : "not a");
+	for( i = 0; i < numJoysticks; i++ ) {
+		joy = SDL_JoystickOpen( i );
+		if( joy ) {
+			char guid[64];
+			
+			SDL_JoystickGetGUIDString(SDL_JoystickGetGUID(joy), guid, sizeof (guid));
+			
+			
+			printf( " Joystick number %i (%s)\n", i, SDL_JoystickName( joy ) );
+			printf( "  Joystick number %i is %s game controller\n", 
+							i, SDL_IsGameController( i ) ? "a" : "not a");
+			printf( "  Axes %02d / Buttons %02d / Hats %02d / Balls %02d\n", 
+							SDL_JoystickNumAxes( joy ), SDL_JoystickNumButtons( joy ),
+							SDL_JoystickNumHats( joy ), SDL_JoystickNumBalls( joy ) );
+			printf( "  Instance id %d\n", SDL_JoystickInstanceID( joy ) );
+			printf( "  Guid %s\n", guid);
+			SDL_JoystickClose( joy );
+		} else {
+			printf( "Sys_InitInput: SDL_JoystickOpen() failed: %s\n", SDL_GetError());
+		}
+	}
 
+	//
 	// Open first available joystick and use it
+	//
 	if( numJoysticks > 0 )
 	{
 		int gamepad_idx_to_open = SDL_wanted_joystick_number;
@@ -175,43 +204,42 @@ int main(int argn, char** argv)
 #ifdef __SDL2_ENABLE_CONTROLLER_HOTPLUG
 	printf("SDL2: Joytick hotplug supported\n");
 #endif
-	printf("Waiting for joystick events...\n");
+	printf("Waiting for joystick events. Press CTRL+C to exit.\n");
 	while(run_loop) {
-		// Poll event returns inmediately if no events. It consuments 100% CPU!!!
-		// if( SDL_PollEvent( &ev ) ) {
-		// This waits until next event
+		// SDL_PollEvent() poll event returns inmediately if no events. It consuments 100% CPU!!!
+		// SDL_WaitEvent() waits until next event
 		if( SDL_WaitEvent( &ev ) ) {
 			switch( ev.type ) {
-				// SDL joystick API events
+				// SDL joystick API events /////////////////////////////////////////////////////////
 				case SDL_JOYAXISMOTION:
-					// WARNING: jaxis.which is the SDL_JoystickID, not the device index!!!
+					// NOTE: jaxis.which is the SDL_JoystickID, not the device index!!!
 					if( ev.jaxis.value > SDL_dead_zone || ev.jaxis.value < -SDL_dead_zone) {
-						printf("SDL_JOYAXISMOTION           jaxis.which = %02i / jaxis.axis = %02i / jaxis.value = %02i\n", 
+						printf("Joystick   %02i axis %02i value %i\n", 
 									 ev.jaxis.which, ev.jaxis.axis, ev.jaxis.value);
 					}
 					break;
 
 				case SDL_JOYBUTTONDOWN:
-					// WARNING: jbutton.which is the SDL_JoystickID, not the device index!!!
-					printf("SDL_JOYBUTTONDOWN           jbutton.which = %02i / jbutton.button = %02i / jbutton.state = %02i\n", 
-								 ev.jbutton.which, ev.jbutton.button, ev.jbutton.state);
-					if( haptic ) {
-						if( SDL_HapticRumblePlay(haptic, 0.2, 500) != 0) {
-							printf( "Failed to play rumble: %s\n", SDL_GetError() );
-						}
-					}
-					break;
-					
 				case SDL_JOYBUTTONUP:
-					// WARNING: jbutton.which is the SDL_JoystickID, not the device index!!!
-					printf("SDL_JOYBUTTONUP             jbutton.which = %02i / jbutton.button = %02i / jbutton.state = %02i\n", 
+					// NOTE: jbutton.which is the SDL_JoystickID, not the device index!!!
+					printf("Joystick   %02i button %02i state %i\n", 
 								 ev.jbutton.which, ev.jbutton.button, ev.jbutton.state);
 					break;
 					
 				case SDL_JOYHATMOTION:
-					// WARNING: jhat.which is the SDL_JoystickID, not the device index!!!
-					printf("SDL_JOYHATMOTION            jhat.which = %02i / jhat.value = %02i\n", 
-								  ev.jhat.which, ev.jhat.value);
+					// NOTE: jhat.which is the SDL_JoystickID, not the device index!!!
+					printf("Joystick   %02i hat %02i state ", ev.jhat.which, ev.jhat.hat);
+					if( ev.jhat.value & SDL_HAT_UP )
+						printf("SDL_HAT_UP ");
+					if( ev.jhat.value & SDL_HAT_RIGHT )
+						printf("SDL_HAT_RIGHT ");
+					if( ev.jhat.value & SDL_HAT_DOWN )
+						printf("SDL_HAT_DOWN ");
+					if( ev.jhat.value & SDL_HAT_LEFT )
+						printf("SDL_HAT_LEFT ");
+					if( ev.jhat.value == SDL_HAT_CENTERED )
+						printf("SDL_HAT_CENTERED ");
+					printf("\n");
 					break;
 
 				// SDL2 joystick hotplug events
@@ -219,7 +247,7 @@ int main(int argn, char** argv)
 					// WARNING: which is the joystick device index for the SDL_CONTROLLERDEVICEADDED event 
 					// but it is the instance id for the SDL_CONTROLLERDEVICEREMOVED 
 					// or SDL_CONTROLLERDEVICEREMAPPED event.
-					printf("SDL_JOYDEVICEADDED          jdevice.which = %02i (%s) [DEVICE INDEX]\n", 
+					printf("SDL_JOYDEVICEADDED jdevice.which %02i (%s) [DEVICE INDEX]\n", 
 								 ev.jdevice.which, SDL_JoystickNameForIndex(ev.jdevice.which));
 #ifdef __SDL2_ENABLE_CONTROLLER_HOTPLUG
 					if( gamepad ) {
@@ -282,7 +310,7 @@ int main(int argn, char** argv)
 					// WARNING: which is the joystick device index for the SDL_CONTROLLERDEVICEADDED event 
 					// but it is the instance id for the SDL_CONTROLLERDEVICEREMOVED 
 					// or SDL_CONTROLLERDEVICEREMAPPED event.
-					printf("SDL_JOYDEVICEREMOVED        jdevice.which = %02i [INSTANCE ID]\n", ev.jdevice.which);
+					printf("SDL_JOYDEVICEREMOVED jdevice.which %02i [INSTANCE ID]\n", ev.jdevice.which);
 #ifdef __SDL2_ENABLE_CONTROLLER_HOTPLUG
 					if( joy && instanceID == ev.jdevice.which ) {
 						// If a joystick is in use opened check if the user unplugged it
@@ -298,18 +326,18 @@ int main(int argn, char** argv)
 #endif
 					break;
 					
-				// SDL controller API events
+				// SDL controller API events ///////////////////////////////////////////////////////
 				case SDL_CONTROLLERAXISMOTION:
 					if( ev.caxis.value > SDL_dead_zone || ev.caxis.value < -SDL_dead_zone) {
-					printf("Controller = %02i axis = %02i value = %02i (axis name) = %s\n", 
-								 ev.caxis.which, ev.caxis.axis, ev.caxis.value,
-								 SDL_GameControllerGetStringForAxis((SDL_GameControllerAxis)ev.caxis.axis) );
+						printf("Controller %02i axis %02i value %02i axis name %s\n", 
+									ev.caxis.which, ev.caxis.axis, ev.caxis.value,
+									SDL_GameControllerGetStringForAxis((SDL_GameControllerAxis)ev.caxis.axis) );
 					}
 					break;
 
 				case SDL_CONTROLLERBUTTONDOWN:
 				case SDL_CONTROLLERBUTTONUP:
-					printf("Controller %02i button %02i state = %02i (button name = %s)\n", 
+					printf("Controller %02i button %02i state %i button name %s\n", 
 								 ev.cbutton.which, ev.cbutton.button, ev.cbutton.state, 
 								 SDL_GameControllerGetStringForButton((SDL_GameControllerButton)ev.cbutton.button) );
 					break;
@@ -318,7 +346,7 @@ int main(int argn, char** argv)
 					// WARNING: which is the joystick device index for the SDL_CONTROLLERDEVICEADDED event 
 					// but it is the instance id for the SDL_CONTROLLERDEVICEREMOVED 
 					// or SDL_CONTROLLERDEVICEREMAPPED event.
-					printf("SDL_CONTROLLERDEVICEADDED   cdevice.which = %02i (%s) [DEVICE INDEX]\n", 
+					printf("SDL_CONTROLLERDEVICEADDED cdevice.which %02i (%s) [DEVICE INDEX]\n", 
 								 ev.cdevice.which, SDL_GameControllerNameForIndex(ev.cdevice.which));
 #ifdef __SDL2_ENABLE_CONTROLLER_HOTPLUG
 					if( gamepad ) { 
@@ -370,7 +398,7 @@ int main(int argn, char** argv)
 					// WARNING: which is the joystick device index for the SDL_CONTROLLERDEVICEADDED event 
 					// but it is the instance id for the SDL_CONTROLLERDEVICEREMOVED 
 					// or SDL_CONTROLLERDEVICEREMAPPED event.
-					printf("SDL_CONTROLLERDEVICEREMOVED cdevice.which = %02i [INSTANCE ID]\n", ev.cdevice.which );
+					printf("SDL_CONTROLLERDEVICEREMOVED cdevice.which %02i [INSTANCE ID]\n", ev.cdevice.which );
 #ifdef __SDL2_ENABLE_CONTROLLER_HOTPLUG
 					if( gamepad && instanceID == ev.cdevice.which) {
 						// If a gamepad is in use opened check if the user unplugged it
@@ -444,6 +472,11 @@ int main(int argn, char** argv)
 	} else {
 		printf( "Sys_ShutdownInput: SDL joystick not initialized. Nothing to close.\n" );
 	}
+	
+	//
+	// Shutdown SDL2
+	//
+	SDL_QuitSubSystem( SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC );
 	
 	return 0;
 }
