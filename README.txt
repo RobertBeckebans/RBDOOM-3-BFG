@@ -234,6 +234,17 @@ You will also have to run download_depot for your language:
 		Japanese: 208208
 Combining the contents of both depots will provide the necessary game files for the engine.
 
+Alternatively, also using the Linux version of Steam, creating the file appmanifest_208200.acf with the following contents:
+	"AppState"
+    	{
+      		"AppID"  "APPID"
+      		"Universe" "1"
+      		"StateFlags" "1026"
+	 }
+And then restarting Steam will prompt Doom 3 BFG edition to start downloading. You will be able to monitor download progress
+as though it were a normal game.
+
+
 Anyway:
 
 1. Install Doom 3 BFG in Steam (Windows version), make sure it's getting 
