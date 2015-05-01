@@ -51,11 +51,11 @@ public:
 	idDemoFile();
 	~idDemoFile();
 	
-	const char* 	GetName()
+	const char* 	GetName() const
 	{
 		return ( f ? f->GetName() : "" );
 	}
-	const char* 	GetFullPath()
+	const char* 	GetFullPath() const
 	{
 		return ( f ? f->GetFullPath() : "" );
 	}

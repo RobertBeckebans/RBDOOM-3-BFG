@@ -160,7 +160,7 @@ idDeclEntityDef::Print
 Dumps all key/value pairs, including inherited ones
 ================
 */
-void idDeclEntityDef::Print()
+void idDeclEntityDef::Print() const
 {
 	dict.Print();
 }

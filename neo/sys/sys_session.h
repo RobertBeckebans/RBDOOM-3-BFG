@@ -412,6 +412,8 @@ public:
 	virtual void						DrawDebugNetworkHUD() const = 0;
 	virtual void						DrawDebugNetworkHUD2() const = 0;
 	virtual void						DrawDebugNetworkHUD_ServerSnapshotMetrics( bool draw ) = 0;
+
+	virtual ~idLobbyBase() {}
 };
 
 /*

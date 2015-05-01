@@ -830,6 +830,8 @@ public:
 	
 	virtual void			OpenURL( const char* url, bool quit ) = 0;
 	virtual void			StartProcess( const char* exePath, bool quit ) = 0;
+
+	virtual ~idSys() {}
 };
 
 extern idSys* 				sys;

@@ -62,6 +62,31 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
 	add_definitions(-Werror=format-security)
 	add_definitions(-Werror=format)
 	add_definitions(-mmmx -msse -msse2)
+
+	add_definitions(-std=c++03)
+
+	add_definitions(-Wdelete-non-virtual-dtor)
+	add_definitions(-Wnon-virtual-dtor)
+	add_definitions(-Wctor-dtor-privacy)
+
+	#add_definitions(-Wold-style-cast)
+	add_definitions(-Wsign-promo)
+	add_definitions(-Wliteral-suffix)
+	add_definitions(-Wnarrowing)
+	add_definitions(-Wnoexcept)
+	add_definitions(-Wreorder)
+	add_definitions(-Wstrict-null-sentinel)
+	add_definitions(-Woverloaded-virtual)
+
+	#add_definitions(-fvtable-verify=std)
+	# perhaps someday:
+	#add_definitions(-Weffc++)
+	add_definitions(-Wall)
+	add_definitions(-Wno-unknown-pragmas)
+	add_definitions(-Wno-unused-local-typedefs)
+	add_definitions(-Wno-unused-function)
+	#add_definitions(-pedantic) 
+
 	if(WIN32)
 		# require msvcr70.dll or newer for _aligned_malloc etc
 		# I think it is from Visual C++ .NET 2002, so it should be available on any remotely modern system.

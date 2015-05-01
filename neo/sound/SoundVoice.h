@@ -91,6 +91,8 @@ public:
 	{
 		return pitch;
 	}
+
+	virtual ~idSoundVoice_Base() {}
 	
 protected:
 	idVec3		position;			// Position of the sound relative to listener

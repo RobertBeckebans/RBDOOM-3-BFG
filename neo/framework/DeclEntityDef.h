@@ -46,7 +46,7 @@ public:
 	virtual const char* 	DefaultDefinition() const;
 	virtual bool			Parse( const char* text, const int textLength, bool allowBinaryVersion );
 	virtual void			FreeData();
-	virtual void			Print();
+	virtual void			Print() const;
 };
 
 #endif /* !__DECLENTITYDEF_H__ */

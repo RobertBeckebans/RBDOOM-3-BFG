@@ -44,6 +44,8 @@ public:
 	}
 	virtual void Set( class idSWFScriptObject* object, const idSWFScriptVar& value ) = 0;
 	virtual idSWFScriptVar Get( class idSWFScriptObject* object ) = 0;
+	
+	virtual ~idSWFScriptNativeVariable() {}
 };
 
 #define SWF_NATIVE_VAR_DECLARE( x ) \

@@ -128,7 +128,7 @@ class idSoundSample
 public:
 	idSoundSample();
 	
-	~idSoundSample(); // destructor should be public so lists of  soundsamples can be destroyed etc
+	virtual ~idSoundSample(); // destructor should be public so lists of  soundsamples can be destroyed etc
 	
 	// Loads and initializes the resource based on the name.
 	virtual void	 LoadResource();

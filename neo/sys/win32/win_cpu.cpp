@@ -854,7 +854,7 @@ typedef struct bitFlag_s {
 
 static byte fpuState[128], *statePtr = fpuState;
 static char fpuString[2048];
-static bitFlag_t controlWordFlags[] = {
+static const bitFlag_t controlWordFlags[] = {
 	{ "Invalid operation", 0 },
 	{ "Denormalized operand", 1 },
 	{ "Divide-by-zero", 2 },
@@ -864,19 +864,19 @@ static bitFlag_t controlWordFlags[] = {
 	{ "Infinity control", 12 },
 	{ "", 0 }
 };
-static char *precisionControlField[] = {
+static const char *precisionControlField[] = {
 	"Single Precision (24-bits)",
 	"Reserved",
 	"Double Precision (53-bits)",
 	"Double Extended Precision (64-bits)"
 };
-static char *roundingControlField[] = {
+static const char *roundingControlField[] = {
 	"Round to nearest",
 	"Round down",
 	"Round up",
 	"Round toward zero"
 };
-static bitFlag_t statusWordFlags[] = {
+static const bitFlag_t statusWordFlags[] = {
 	{ "Invalid operation", 0 },
 	{ "Denormalized operand", 1 },
 	{ "Divide-by-zero", 2 },

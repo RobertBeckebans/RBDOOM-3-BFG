@@ -112,6 +112,8 @@ public:
 	virtual void VPCALL ConvertJointMatsToJointQuats( idJointQuat* jointQuats, const idJointMat* jointMats, const int numJoints ) = 0;
 	virtual void VPCALL TransformJoints( idJointMat* jointMats, const int* parents, const int firstJoint, const int lastJoint ) = 0;
 	virtual void VPCALL UntransformJoints( idJointMat* jointMats, const int* parents, const int firstJoint, const int lastJoint ) = 0;
+
+	virtual ~idSIMDProcessor() {};
 };
 
 // pointer to SIMD processor

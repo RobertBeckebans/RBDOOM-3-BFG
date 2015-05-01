@@ -580,9 +580,9 @@ void idGameBearShootWindow::Draw( int time, float x, float y )
 idGameBearShootWindow::Activate
 =============================
 */
-const char* idGameBearShootWindow::Activate( bool activate )
+void idGameBearShootWindow::Activate( bool activate, idStr& act )
 {
-	return "";
+	;
 }
 
 /*

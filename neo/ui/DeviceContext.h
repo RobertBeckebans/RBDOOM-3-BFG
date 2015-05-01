@@ -43,7 +43,7 @@ class idDeviceContext
 {
 public:
 	idDeviceContext();
-	~idDeviceContext() { }
+	virtual ~idDeviceContext() { }
 	
 	void				Init();
 	void				Shutdown();

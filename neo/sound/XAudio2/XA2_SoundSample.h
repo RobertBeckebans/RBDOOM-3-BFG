@@ -133,7 +133,7 @@ protected:
 	friend class idSoundHardware_XAudio2;
 	friend class idSoundVoice_XAudio2;
 	
-	~idSoundSample_XAudio2();
+	virtual ~idSoundSample_XAudio2();
 	
 	bool			LoadWav( const idStr& name );
 	bool			LoadAmplitude( const idStr& name );

@@ -86,7 +86,7 @@ public:
 	idParser( const char* filename, int flags = 0, bool OSPath = false );
 	idParser( const char* ptr, int length, const char* name, int flags = 0 );
 	// destructor
-	~idParser();
+	virtual ~idParser();
 	// load a source file
 	int				LoadFile( const char* filename, bool OSPath = false );
 	// load a source from the given memory with the given length

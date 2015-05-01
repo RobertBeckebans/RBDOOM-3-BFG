@@ -46,13 +46,13 @@ public:
 	void			FinishCompress();
 	float			GetCompressionRatio() const;
 	
-	const char* 	GetName();
-	const char* 	GetFullPath();
+	const char* 	GetName() const;
+	const char* 	GetFullPath() const;
 	int				Read( void* outData, int outLength );
 	int				Write( const void* inData, int inLength );
-	int				Length();
-	ID_TIME_T			Timestamp();
-	int				Tell();
+	int				Length() const;
+	ID_TIME_T		Timestamp() const;
+	int				Tell() const;
 	void			ForceFlush();
 	void			Flush();
 	int				Seek( long offset, fsOrigin_t origin );
@@ -108,7 +108,7 @@ float idCompressor_None::GetCompressionRatio() const
 idCompressor_None::GetName
 ================
 */
-const char* idCompressor_None::GetName()
+const char* idCompressor_None::GetName() const
 {
 	if( file )
 	{
@@ -125,7 +125,7 @@ const char* idCompressor_None::GetName()
 idCompressor_None::GetFullPath
 ================
 */
-const char* idCompressor_None::GetFullPath()
+const char* idCompressor_None::GetFullPath() const
 {
 	if( file )
 	{
@@ -170,7 +170,7 @@ int idCompressor_None::Read( void* outData, int outLength )
 idCompressor_None::Length
 ================
 */
-int idCompressor_None::Length()
+int idCompressor_None::Length() const
 {
 	if( file )
 	{
@@ -187,7 +187,7 @@ int idCompressor_None::Length()
 idCompressor_None::Timestamp
 ================
 */
-ID_TIME_T idCompressor_None::Timestamp()
+ID_TIME_T idCompressor_None::Timestamp() const
 {
 	if( file )
 	{
@@ -204,7 +204,7 @@ ID_TIME_T idCompressor_None::Timestamp()
 idCompressor_None::Tell
 ================
 */
-int idCompressor_None::Tell()
+int idCompressor_None::Tell() const
 {
 	if( file )
 	{

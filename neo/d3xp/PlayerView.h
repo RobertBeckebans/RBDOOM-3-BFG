@@ -136,6 +136,8 @@ public:
 	{
 		return alpha;
 	};
+
+	virtual ~FxFader() {}
 };
 
 
