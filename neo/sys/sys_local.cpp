@@ -66,7 +66,7 @@ double idSysLocal::ClockTicksPerSecond()
 	return Sys_ClockTicksPerSecond();
 }
 
-cpuid_t idSysLocal::GetProcessorId()
+xcpuid_t idSysLocal::GetProcessorId()
 {
 	return Sys_GetProcessorId();
 }

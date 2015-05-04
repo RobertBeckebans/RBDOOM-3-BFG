@@ -110,6 +110,8 @@ else()
 			)
 	endforeach()
 	
+	find_package(OpenGL REQUIRED)
+	include_directories(${OPENGL_INCLUDE_DIR})
 	include_directories(.)
 	
 	# precompiled magic for GCC/clang, adapted from https://gist.github.com/573926

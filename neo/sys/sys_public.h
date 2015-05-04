@@ -40,7 +40,7 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-enum cpuid_t
+enum xcpuid_t
 {
 	CPUID_NONE							= 0x00000,
 	CPUID_UNSUPPORTED					= 0x00001,	// unsupported (386/486)
@@ -517,7 +517,7 @@ double			Sys_GetClockTicks();
 double			Sys_ClockTicksPerSecond();
 
 // returns a selection of the CPUID_* flags
-cpuid_t			Sys_GetProcessorId();
+xcpuid_t			Sys_GetProcessorId();
 const char* 	Sys_GetProcessorString();
 
 // returns true if the FPU stack is empty
@@ -808,7 +808,7 @@ public:
 	
 	virtual double			GetClockTicks() = 0;
 	virtual double			ClockTicksPerSecond() = 0;
-	virtual cpuid_t			GetProcessorId() = 0;
+	virtual xcpuid_t			GetProcessorId() = 0;
 	virtual const char* 	GetProcessorString() = 0;
 	virtual const char* 	FPU_GetState() = 0;
 	virtual bool			FPU_StackIsEmpty() = 0;

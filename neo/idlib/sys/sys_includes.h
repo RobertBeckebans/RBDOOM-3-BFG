@@ -109,7 +109,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include <windows.h>						// for gl.h
 
-#elif defined(__linux__) || defined(__FreeBSD__)
+#elif defined(__unix__)
 
 #include <signal.h>
 #include <pthread.h>

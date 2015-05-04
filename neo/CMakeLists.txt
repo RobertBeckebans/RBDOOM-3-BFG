@@ -1421,7 +1421,7 @@ else()
 		${SYS_INCLUDES} ${SYS_SOURCES})
 	
 	find_package(OpenGL REQUIRED)
-	include_directories(${OPENGL_INCLUDE_DIRS})
+	include_directories(${OPENGL_INCLUDE_DIR})
 
 	if(UNIX)
 		if(FFMPEG)
@@ -1548,11 +1548,13 @@ else()
 	
 
 	if(NOT WIN32)
-		if(NOT "${CMAKE_SYSTEM}" MATCHES "Darwin")
+		if(NOT ("${CMAKE_SYSTEM}" MATCHES "Darwin" OR
+			"${CMAKE_SYSTEM}" MATCHES "OpenBSD"))
 			set(RT_LIBRARY rt)
 		endif()
 
-		if(NOT "${CMAKE_SYSTEM}" MATCHES "FreeBSD")
+		if(NOT ("${CMAKE_SYSTEM}" MATCHES "FreeBSD" OR
+			"${CMAKE_SYSTEM}" MATCHES "OpenBSD"))
 			set(DL_LIBRARY dl)
 		endif()
 

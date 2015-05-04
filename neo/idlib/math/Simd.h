@@ -92,7 +92,7 @@ public:
 		cpuid = CPUID_NONE;
 	}
 	
-	cpuid_t							cpuid;
+	xcpuid_t							cpuid;
 	
 	virtual const char* VPCALL		GetName() const = 0;
 	

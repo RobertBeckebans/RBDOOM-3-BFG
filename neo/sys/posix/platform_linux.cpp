@@ -78,7 +78,7 @@ const char* Sys_EXEPath()
 Sys_GetProcessorId
 ===============
 */
-cpuid_t Sys_GetProcessorId()
+xcpuid_t Sys_GetProcessorId()
 {
 	return CPUID_GENERIC;
 }

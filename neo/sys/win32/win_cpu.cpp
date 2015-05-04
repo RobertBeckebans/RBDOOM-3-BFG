@@ -769,7 +769,7 @@ void Sys_CPUCount( int & numLogicalCPUCores, int & numPhysicalCPUCores, int & nu
 Sys_GetCPUId
 ================
 */
-cpuid_t Sys_GetCPUId()
+xcpuid_t Sys_GetCPUId()
 {
 	// RB: we assume a modern x86 chip
 #if defined(_WIN64)
@@ -778,7 +778,7 @@ cpuid_t Sys_GetCPUId()
 	flags |= CPUID_SSE;
 	flags |= CPUID_SSE2;
 
-	return (cpuid_t)flags;
+	return (xcpuid_t)flags;
 #else
 	int flags;
 
@@ -834,7 +834,7 @@ cpuid_t Sys_GetCPUId()
 		flags |= CPUID_DAZ;
 	}
 
-	return (cpuid_t)flags;
+	return (xcpuid_t)flags;
 #endif
 }
 

@@ -38,7 +38,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "../../../sys/posix/posix_public.h"
 #endif
 
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__OpenBSD__)
 #include <pthread_np.h> // for pthread_set_name_np
 #endif
 
@@ -71,7 +71,7 @@ static int Sys_SetThreadName( pthread_t handle, const char* name )
 	ret = pthread_setname_np( handle, name );
 	if( ret != 0 )
 		idLib::common->Printf( "Setting threadname \"%s\" failed, reason: %s (%i)\n", name, strerror( errno ), errno );
-#elif defined(__FreeBSD__)
+#elif defined(__FreeBSD__) || defined(__OpenBSD__)
 	// according to http://www.freebsd.org/cgi/man.cgi?query=pthread_set_name_np&sektion=3
 	// the interface is void pthread_set_name_np(pthread_t tid, const char *name);
 	pthread_set_name_np( handle, name ); // doesn't return anything
@@ -94,7 +94,7 @@ static int Sys_GetThreadName( pthread_t handle, char* namebuf, size_t buflen )
 	ret = pthread_getname_np( handle, namebuf, buflen );
 	if( ret != 0 )
 		idLib::common->Printf( "Getting threadname failed, reason: %s (%i)\n", strerror( errno ), errno );
-#elif defined(__FreeBSD__)
+#elif defined(__FreeBSD__) || defined(__OpenBSD__)
 	// seems like there is no pthread_getname_np equivalent on FreeBSD
 	idStr::snPrintf( namebuf, buflen, "Can't read threadname on this platform!" );
 #endif

@@ -182,7 +182,7 @@ void Sys_CPUCount( int& numLogicalCPUCores, int& numPhysicalCPUCores, int& numCP
 Sys_GetCPUId
 ================
 */
-cpuid_t Sys_GetCPUId()
+xcpuid_t Sys_GetCPUId()
 {
 	int flags;
 	
@@ -241,7 +241,7 @@ cpuid_t Sys_GetCPUId()
 	}
 	*/
 	
-	return ( cpuid_t )flags;
+	return ( xcpuid_t )flags;
 }
 
 

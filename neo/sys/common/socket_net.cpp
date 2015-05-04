@@ -64,7 +64,7 @@ Note that other POSIX systems may need some small changes, e.g. in Sys_InitNetwo
 #include <errno.h>
 #include <sys/select.h>
 #include <net/if.h>
-#if defined(__APPLE__) || defined(__FreeBSD__)
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__)
 #include <ifaddrs.h>
 #endif
 
@@ -954,7 +954,7 @@ void Sys_InitNetworking()
 	}
 	free( pAdapterInfo );
 	
-#elif defined(__APPLE__) || defined(__FreeBSD__)
+#elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__)
 	// haven't been able to clearly pinpoint which standards or RFCs define SIOCGIFCONF, SIOCGIFADDR, SIOCGIFNETMASK ioctls
 	// it seems fairly widespread, in Linux kernel ioctl, and in BSD .. so let's assume it's always available on our targets
 	
@@ -1013,7 +1013,7 @@ void Sys_InitNetworking()
 		// DG end
 		num_interfaces++;
 	}
-#else // not _WIN32, OSX or FreeBSD
+#else // not _WIN32, OSX, FreeBSD or OpenBSD
 	int		s;
 	char	buf[ MAX_INTERFACES * sizeof( ifreq ) ];
 	ifconf	ifc;

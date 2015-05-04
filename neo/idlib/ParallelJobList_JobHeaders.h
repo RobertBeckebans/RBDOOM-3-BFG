@@ -62,7 +62,7 @@ If you have questions concerning this license or the applicable additional terms
 #include <signal.h>
 // RB end
 // Yamagi begin
-#elif defined(__FreeBSD__)
+#elif defined(__unix__)
 #include <signal.h>
 #endif
 // Yamagi end
