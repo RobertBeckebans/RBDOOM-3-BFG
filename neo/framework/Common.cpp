@@ -59,7 +59,7 @@ struct version_s
 {
 	version_s()
 	{
-		sprintf( string, "%s.%d%s %s %s %s", ENGINE_VERSION, BUILD_NUMBER, BUILD_DEBUG, BUILD_STRING, __DATE__, __TIME__ );
+		sprintf( string, "%s.%d%s %s", ENGINE_VERSION, BUILD_NUMBER, BUILD_DEBUG, BUILD_STRING );
 	}
 	char	string[256];
 } version;
