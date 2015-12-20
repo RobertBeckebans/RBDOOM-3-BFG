@@ -400,6 +400,26 @@ public:
 		BindShader_Builtin( BUILTIN_POSTPROCESS );
 	}
 	
+	void	BindShader_Screen()
+	{
+		BindShader_Builtin( BUILTIN_SCREEN );
+	}
+	
+	void	BindShader_Tonemap()
+	{
+		BindShader_Builtin( BUILTIN_TONEMAP );
+	}
+	
+	void	BindShader_Brightpass()
+	{
+		BindShader_Builtin( BUILTIN_BRIGHTPASS );
+	}
+	
+	void	BindShader_HDRGlareChromatic()
+	{
+		BindShader_Builtin( BUILTIN_HDR_GLARE_CHROMATIC );
+	}
+	
 #if 0
 	void	BindShader_ZCullReconstruct()
 	{
@@ -507,6 +527,12 @@ protected:
 		BUILTIN_SKYBOX,
 		BUILTIN_WOBBLESKY,
 		BUILTIN_POSTPROCESS,
+		// RB begin
+		BUILTIN_SCREEN,
+		BUILTIN_TONEMAP,
+		BUILTIN_BRIGHTPASS,
+		BUILTIN_HDR_GLARE_CHROMATIC,
+		// RB end
 		BUILTIN_STEREO_DEGHOST,
 		BUILTIN_STEREO_WARP,
 		BUILTIN_ZCULL_RECONSTRUCT,
@@ -530,6 +556,7 @@ protected:
 		USE_GPU_SKINNING,
 		LIGHT_POINT,
 		LIGHT_PARALLEL,
+		BRIGHTPASS,
 		
 		MAX_SHADER_MACRO_NAMES,
 	};

@@ -77,6 +77,7 @@ typedef enum
 	TD_DEPTH,				// depth buffer copy for motion blur
 	// RB begin
 	TD_SHADOW_ARRAY,		// 2D depth buffer array for shadow mapping
+	TD_RGBA16F,
 	// RB end
 } textureUsage_t;
 
@@ -120,7 +121,7 @@ public:
 	// These perform an implicit Bind() on the current texture unit
 	// FIXME: should we implement cinematics this way, instead of with explicit calls?
 	void		GenerateImage( const byte* pic, int width, int height,
-							   textureFilter_t filter, textureRepeat_t repeat, textureUsage_t usage );
+							   textureFilter_t filter, textureRepeat_t repeat, textureUsage_t usage, int msaaSamples = 0 );
 	void		GenerateCubeImage( const byte* pic[6], int size,
 								   textureFilter_t filter, textureUsage_t usage );
 								   
@@ -375,6 +376,11 @@ public:
 	idImage*			jitterImage4;
 	idImage*			jitterImage16;
 	idImage*			randomImage256;
+	idImage*			currentRenderHDRImage;
+	idImage*			currentRenderHDRImageNoMSAA;
+	idImage*			currentRenderHDRImageQuarter;
+	idImage*			currentRenderHDRImage64;
+	idImage*			bloomRender[2];
 	// RB end
 	idImage* 			scratchImage;
 	idImage* 			scratchImage2;
