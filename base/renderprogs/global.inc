@@ -225,6 +225,17 @@ float rand( float2 co ) {
     return frac( sin( dot( co.xy, float2( 12.9898, 78.233 ) ) ) * 43758.5453 );
 }
 
+// RB begin
+#ifndef PI
+#define PI	3.14159265358979323846
+#endif
+
+#define DEG2RAD( a )				( ( a ) * PI / 180.0f )
+#define RAD2DEG( a )				( ( a ) * 180.0f / PI )
+
+static const half4 LUMINANCE_VECTOR = half4( 0.2125, 0.7154, 0.0721, 0.0 );
+// RB end
+
 #define _half2( x )		half2( x )
 #define _half3( x )		half3( x )
 #define _half4( x )		half4( x )
