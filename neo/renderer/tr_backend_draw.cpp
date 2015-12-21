@@ -3884,11 +3884,15 @@ static void RB_CalculateAdaptation()
 		float logLuminance = log( luminance + 1 );
 		//if( logLuminance > 0 )
 		{
-			sum += logLuminance;
+			sum += luminance;
 		}
 	}
+#if 0
 	sum /= ( 64.0f * 64.0f );
 	avgLuminance = exp( sum );
+#else
+	avgLuminance = sum / ( 64.0f * 64.0f );
+#endif
 	
 	// the user's adapted luminance level is simulated by closing the gap between
 	// adapted luminance and current luminance by 2% every frame, based on a
@@ -3930,7 +3934,7 @@ static void RB_CalculateAdaptation()
 	if( r_hdrKey.GetFloat() <= 0 )
 	{
 		// calculation from: Perceptual Effects in Real-time Tone Mapping - Krawczyk et al.
-		backEnd.hdrKey = 1.03 - 2.0 / ( 2.0 + log10f( backEnd.hdrAverageLuminance + 1.0f ) );
+		backEnd.hdrKey = 1.03 - ( 2.0 / ( 2.0 + ( backEnd.hdrAverageLuminance + 1.0f ) ) );
 	}
 	else
 	{
@@ -3976,7 +3980,18 @@ static void RB_Tonemap( const viewDef_t* viewDef )
 	{
 		globalImages->currentRenderHDRImage->Bind();
 	}
-	renderProgManager.BindShader_Tonemap();
+	
+	GL_SelectTexture( 1 );
+	globalImages->heatmap7Image->Bind();
+	
+	if( r_hdrDebug.GetBool() )
+	{
+		renderProgManager.BindShader_HDRDebug();
+	}
+	else
+	{
+		renderProgManager.BindShader_Tonemap();
+	}
 	
 	float screenCorrectionParm[4];
 	if( viewDef->is2Dgui )
@@ -3998,6 +4013,10 @@ static void RB_Tonemap( const viewDef_t* viewDef )
 	// Draw
 	RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 	
+	// unbind heatmap
+	globalImages->BindNull();
+	
+	// unbind _currentRender
 	GL_SelectTexture( 0 );
 	globalImages->BindNull();
 	
@@ -4010,7 +4029,7 @@ static void RB_Tonemap( const viewDef_t* viewDef )
 
 static void RB_Bloom( const viewDef_t* viewDef )
 {
-	if( viewDef->is2Dgui )
+	if( viewDef->is2Dgui || !r_useHDR.GetBool() )
 	{
 		return;
 	}
