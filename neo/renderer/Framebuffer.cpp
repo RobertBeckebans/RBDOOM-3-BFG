@@ -179,10 +179,15 @@ void Framebuffer::CheckFramebuffers()
 		
 		if( r_multiSamples.GetBool() )
 		{
+			globalImages->currentRenderHDRImageNoMSAA->Resize( glConfig.nativeScreenWidth, glConfig.nativeScreenHeight );
+			
 			globalFramebuffers.hdrFBO->Bind();
 			globalFramebuffers.hdrFBO->AttachImage2D( GL_TEXTURE_2D_MULTISAMPLE, globalImages->currentRenderHDRImage, 0 );
 			globalFramebuffers.hdrFBO->AttachImageDepth( GL_TEXTURE_2D_MULTISAMPLE, globalImages->currentDepthImage );
 			globalFramebuffers.hdrFBO->Check();
+			
+			globalFramebuffers.hdrNonMSAAFBO->width = glConfig.nativeScreenWidth;
+			globalFramebuffers.hdrNonMSAAFBO->height = glConfig.nativeScreenHeight;
 		}
 		else
 		{
@@ -191,6 +196,9 @@ void Framebuffer::CheckFramebuffers()
 			globalFramebuffers.hdrFBO->AttachImageDepth( GL_TEXTURE_2D, globalImages->currentDepthImage );
 			globalFramebuffers.hdrFBO->Check();
 		}
+		
+		globalFramebuffers.hdrFBO->width = glConfig.nativeScreenWidth;
+		globalFramebuffers.hdrFBO->height = glConfig.nativeScreenHeight;
 		
 		// HDR quarter
 		/*
@@ -205,6 +213,9 @@ void Framebuffer::CheckFramebuffers()
 		for( int i = 0; i < 2; i++ )
 		{
 			globalImages->bloomRender[i]->Resize( glConfig.nativeScreenWidth / 4, glConfig.nativeScreenHeight / 4 );
+			
+			globalFramebuffers.bloomRenderFBO[i]->width = glConfig.nativeScreenWidth / 4;
+			globalFramebuffers.bloomRenderFBO[i]->height = glConfig.nativeScreenHeight / 4;
 			
 			globalFramebuffers.bloomRenderFBO[i]->Bind();
 			globalFramebuffers.bloomRenderFBO[i]->AttachImage2D( GL_TEXTURE_2D, globalImages->bloomRender[i], 0 );
