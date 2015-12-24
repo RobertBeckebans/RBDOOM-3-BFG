@@ -4643,7 +4643,7 @@ void RB_PostProcess( const void* data )
 	float screenCorrectionParm[4];
 	screenCorrectionParm[0] = 1.0f / GRAIN_SIZE;
 	screenCorrectionParm[1] = 1.0f / GRAIN_SIZE;
-	screenCorrectionParm[2] = 1.0f;
+	screenCorrectionParm[2] = r_filmGrain_exposure.GetFloat();;
 	screenCorrectionParm[3] = 1.0f;
 	SetFragmentParm( RENDERPARM_SCREENCORRECTIONFACTOR, screenCorrectionParm ); // rpScreenCorrectionFactor
 	

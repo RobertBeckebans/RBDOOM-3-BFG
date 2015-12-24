@@ -258,6 +258,7 @@ idCVar r_ldrContrastThreshold( "r_ldrContrastThreshold", "1.1", CVAR_RENDERER | 
 idCVar r_ldrContrastOffset( "r_ldrContrastOffset", "3", CVAR_RENDERER | CVAR_FLOAT, "" );
 
 idCVar r_useFilmicPostProcessEffects( "r_useFilmicPostProcessEffects", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "apply several post process effects to mimic a filmic look" );
+idCVar r_filmGrain_exposure( "r_filmGrain_exposure", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_FLOAT, "exposure of the film grain layer" );
 // RB end
 
 const char* fileExten[3] = { "tga", "png", "jpg" };

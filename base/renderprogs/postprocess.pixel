@@ -123,7 +123,7 @@ void FilmgrainPass( inout float4 color )
 	//float Y = dot( LUMINANCE_VECTOR, noiseColor );
 	//noiseColor.rgb = float3( Y, Y, Y );
 	
-	float exposureFactor = 1.0;
+	float exposureFactor = rpScreenCorrectionFactor.z;
 	exposureFactor = sqrt( exposureFactor );
 	const float noiseIntensity = 1.7; //rpScreenCorrectionFactor.z;
 	
