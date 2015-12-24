@@ -221,6 +221,16 @@ public:
 	{
 		BindShader_Builtin( BUILTIN_VERTEX_COLOR );
 	}
+	
+	void	BindShader_AmbientLighting()
+	{
+		BindShader_Builtin( BUILTIN_AMBIENT_LIGHTING );
+	}
+	
+	void	BindShader_AmbientLightingSkinned()
+	{
+		BindShader_Builtin( BUILTIN_AMBIENT_LIGHTING_SKINNED );
+	}
 	// RB end
 	
 	void	BindShader_Texture( )
@@ -496,6 +506,8 @@ protected:
 		// RB begin
 		BUILTIN_COLOR_SKINNED,
 		BUILTIN_VERTEX_COLOR,
+		BUILTIN_AMBIENT_LIGHTING,
+		BUILTIN_AMBIENT_LIGHTING_SKINNED,
 		// RB end
 		BUILTIN_SIMPLESHADE,
 		BUILTIN_TEXTURED,
