@@ -384,6 +384,8 @@ public:
 	idImage*			bloomRender[2];
 	idImage*			heatmap5Image;
 	idImage*			heatmap7Image;
+	idImage*			smaaAreaImage;
+	idImage*			smaaSearchImage;
 	// RB end
 	idImage* 			scratchImage;
 	idImage* 			scratchImage2;
