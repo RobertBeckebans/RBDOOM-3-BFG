@@ -147,16 +147,39 @@ static void R_RGBA8Image( idImage* image )
 
 static void R_DepthImage( idImage* image )
 {
-	byte	data[DEFAULT_SIZE][DEFAULT_SIZE][4];
-	
-	memset( data, 0, sizeof( data ) );
-	data[0][0][0] = 16;
-	data[0][0][1] = 32;
-	data[0][0][2] = 48;
-	data[0][0][3] = 96;
-	
-	image->GenerateImage( ( byte* )data, DEFAULT_SIZE, DEFAULT_SIZE, TF_NEAREST, TR_CLAMP, TD_DEPTH );
+	// RB: NULL data and MSAA support
+	int msaaSamples = r_multiSamples.GetInteger();
+	image->GenerateImage( NULL, glConfig.nativeScreenWidth, glConfig.nativeScreenHeight, TF_NEAREST, TR_CLAMP, TD_DEPTH, msaaSamples );
+	// RB end
 }
+
+// RB begin
+static void R_HDR_RGBA16FImage_ResNative( idImage* image )
+{
+	int msaaSamples = r_multiSamples.GetInteger();
+	image->GenerateImage( NULL, glConfig.nativeScreenWidth, glConfig.nativeScreenHeight, TF_NEAREST, TR_CLAMP, TD_RGBA16F, msaaSamples );
+}
+
+static void R_HDR_RGBA16FImage_ResNative_NoMSAA( idImage* image )
+{
+	image->GenerateImage( NULL, glConfig.nativeScreenWidth, glConfig.nativeScreenHeight, TF_NEAREST, TR_CLAMP, TD_RGBA16F );
+}
+
+static void R_HDR_RGBA16FImage_ResQuarter( idImage* image )
+{
+	image->GenerateImage( NULL, glConfig.nativeScreenWidth / 4, glConfig.nativeScreenHeight / 4, TF_NEAREST, TR_CLAMP, TD_RGBA16F );
+}
+
+static void R_HDR_RGBA16FImage_ResQuarter_Linear( idImage* image )
+{
+	image->GenerateImage( NULL, glConfig.nativeScreenWidth / 4, glConfig.nativeScreenHeight / 4, TF_LINEAR, TR_CLAMP, TD_LOOKUP_TABLE_RGBA );
+}
+
+static void R_HDR_RGBA16FImage_Res64( idImage* image )
+{
+	image->GenerateImage( NULL, 64, 64, TF_NEAREST, TR_CLAMP, TD_RGBA16F );
+}
+// RB end
 
 static void R_AlphaNotchImage( idImage* image )
 {
@@ -565,6 +588,143 @@ static void R_CreateRandom256Image( idImage* image )
 	
 	image->GenerateImage( ( byte* )data, 256, 256, TF_NEAREST, TR_REPEAT, TD_LOOKUP_TABLE_RGBA );
 }
+
+
+
+static void R_CreateHeatmap5ColorsImage( idImage* image )
+{
+	int		x, y;
+	byte	data[16][FALLOFF_TEXTURE_SIZE][4];
+	
+	const int numColors = 5;
+	static idVec4 colors[numColors] = { colorBlue, colorCyan, colorGreen, colorYellow, colorRed };
+	
+	memset( data, 0, sizeof( data ) );
+	for( x = 0 ; x < FALLOFF_TEXTURE_SIZE; x++ )
+	{
+		int index1, index2;
+		
+		float value = x / ( float )FALLOFF_TEXTURE_SIZE;
+		
+		float lerp = 0.0f;
+		
+		if( value <= 0.0 )
+		{
+			index1 = index2 = 0;
+		}
+		else if( value >= 1.0f )
+		{
+			index1 = index2 = numColors - 1;
+		}
+		else
+		{
+			value = value * ( numColors - 1 );
+			index1 = idMath::Floor( value );
+			index2 = index1 + 1;
+			lerp = value - float( index1 );
+		}
+		
+		idVec4 color( 0, 0, 0, 1 );
+		
+		color.x = ( colors[index2].x - colors[index1].x ) * lerp + colors[index1].x;
+		color.y = ( colors[index2].y - colors[index1].y ) * lerp + colors[index1].y;
+		color.z = ( colors[index2].z - colors[index1].z ) * lerp + colors[index1].z;
+		
+		for( y = 0 ; y < 16 ; y++ )
+		{
+			data[y][x][0] = color.x * 255;
+			data[y][x][1] = color.y * 255;
+			data[y][x][2] = color.z * 255;
+			data[y][x][3] = 255;
+		}
+	}
+	
+	image->GenerateImage( ( byte* )data, FALLOFF_TEXTURE_SIZE, 16, TF_LINEAR, TR_CLAMP, TD_LOOKUP_TABLE_RGBA );
+}
+
+static void R_CreateHeatmap7ColorsImage( idImage* image )
+{
+	int		x, y;
+	byte	data[16][FALLOFF_TEXTURE_SIZE][4];
+	
+	const int numColors = 7;
+	static idVec4 colors[numColors] = { colorBlack, colorBlue, colorCyan, colorGreen, colorYellow, colorRed, colorWhite };
+	
+	memset( data, 0, sizeof( data ) );
+	for( x = 0 ; x < FALLOFF_TEXTURE_SIZE; x++ )
+	{
+		int index1, index2;
+		
+		float value = x / ( float )FALLOFF_TEXTURE_SIZE;
+		
+		float lerp = 0.0f;
+		
+		if( value <= 0.0 )
+		{
+			index1 = index2 = 0;
+		}
+		else if( value >= 1.0f )
+		{
+			index1 = index2 = numColors - 1;
+		}
+		else
+		{
+			value = value * ( numColors - 1 );
+			index1 = idMath::Floor( value );
+			index2 = index1 + 1;
+			lerp = value - float( index1 );
+		}
+		
+		idVec4 color( 0, 0, 0, 1 );
+		
+		color.x = ( colors[index2].x - colors[index1].x ) * lerp + colors[index1].x;
+		color.y = ( colors[index2].y - colors[index1].y ) * lerp + colors[index1].y;
+		color.z = ( colors[index2].z - colors[index1].z ) * lerp + colors[index1].z;
+		
+		for( y = 0 ; y < 16 ; y++ )
+		{
+			data[y][x][0] = color.x * 255;
+			data[y][x][1] = color.y * 255;
+			data[y][x][2] = color.z * 255;
+			data[y][x][3] = 255;
+		}
+	}
+	
+	image->GenerateImage( ( byte* )data, FALLOFF_TEXTURE_SIZE, 16, TF_LINEAR, TR_CLAMP, TD_LOOKUP_TABLE_RGBA );
+}
+
+static void R_CreateGrainImage1( idImage* image )
+{
+	const static int GRAIN_SIZE = 128;
+	
+	static byte	data[GRAIN_SIZE][GRAIN_SIZE][4];
+	
+	idRandom2 random( Sys_Milliseconds() );
+	
+	for( int i = 0 ; i < GRAIN_SIZE ; i++ )
+	{
+		for( int j = 0 ; j < GRAIN_SIZE ; j++ )
+		{
+#if 0
+			//int value = 127 - 8 + ( rand() & 15 ); //random.RandomInt( 127 );
+			int value = 127 - 8 + random.RandomInt( 15 );
+			
+			data[i][j][0] = value;
+			data[i][j][1] = value;
+			data[i][j][2] = value;
+			data[i][j][3] = 0;
+#else
+			data[i][j][0] = 127 - 8 + random.RandomInt( 15 );
+			data[i][j][1] = 127 - 8 + random.RandomInt( 15 );
+			data[i][j][2] = 127 - 8 + random.RandomInt( 15 );
+			data[i][j][3] = 0;
+#endif
+		}
+	}
+	
+	image->GenerateImage( ( byte* )data, GRAIN_SIZE, GRAIN_SIZE, TF_NEAREST, TR_REPEAT, TD_LOOKUP_TABLE_RGBA );
+}
+
 // RB end
 
 /*
@@ -597,6 +757,19 @@ void idImageManager::CreateIntrinsicImages()
 	jitterImage16 = globalImages->ImageFromFunction( "_jitter16", R_CreateJitterImage16 );
 	
 	randomImage256 = globalImages->ImageFromFunction( "_random256", R_CreateRandom256Image );
+	
+	currentRenderHDRImage = globalImages->ImageFromFunction( "_currentRenderHDR", R_HDR_RGBA16FImage_ResNative );
+	currentRenderHDRImageNoMSAA = globalImages->ImageFromFunction( "_currentRenderHDRNoMSAA", R_HDR_RGBA16FImage_ResNative_NoMSAA );
+	currentRenderHDRImageQuarter = globalImages->ImageFromFunction( "_currentRenderHDRQuarter", R_HDR_RGBA16FImage_ResQuarter );
+	currentRenderHDRImage64 = globalImages->ImageFromFunction( "_currentRenderHDR64", R_HDR_RGBA16FImage_Res64 );
+	
+	bloomRender[0] = globalImages->ImageFromFunction( "_bloomRender0", R_HDR_RGBA16FImage_ResQuarter_Linear );
+	bloomRender[1] = globalImages->ImageFromFunction( "_bloomRender1", R_HDR_RGBA16FImage_ResQuarter_Linear );
+	
+	heatmap5Image = ImageFromFunction( "_heatmap5", R_CreateHeatmap5ColorsImage );
+	heatmap7Image = ImageFromFunction( "_heatmap7", R_CreateHeatmap7ColorsImage );
+	
+	grainImage1 = globalImages->ImageFromFunction( "_grain1", R_CreateGrainImage1 );
 	// RB end
 	
 	// scratchImage is used for screen wipes/doublevision etc..
