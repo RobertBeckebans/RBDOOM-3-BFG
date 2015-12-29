@@ -42,35 +42,54 @@ struct PS_OUT
 	float4 color : COLOR;
 };
 
-float linterp( float t )
-{
-	return saturate( 1.0 - abs( 2.0 * t - 1.0 ) );
+float3 bloom_round_sampled( float2 sample_texcoord, bool achromatic, float exposure ) {
+    const float gaussFact[9] = float[9](0.13298076, 0.12579441, 0.10648267, 0.08065691, 0.05467002, 0.03315905, 0.01799699, 0.00874063, 0.00379866);
+    const float3 chromaticOffsets[9] = float3[](
+	float3(0.5, 0.5, 0.5), // w
+	float3(0.8, 0.3, 0.3),
+//	float3(1.0, 0.2, 0.2), // r
+	float3(0.5, 0.2, 0.8),
+	float3(0.2, 0.2, 1.0), // b
+	float3(0.2, 0.3, 0.9),
+	float3(0.2, 0.9, 0.2), // g
+	float3(0.3, 0.5, 0.3),
+	float3(0.3, 0.5, 0.3),
+	float3(0.3, 0.5, 0.3)
+	//float3(0.3, 0.5, 0.3)
+	);
+	const int samples = 9;
+	
+	float3 sum = float3( 0.0 );	
+	
+	float scale = 6.5; // bloom width
+    float2 expansion = rpWindowCoord.xy * scale; //rpWindowCoord.xy being the samples of the effect
+    const float weightScale = 2.3; // bloom strength //this is a magical number...
+    float3 weight; 
+	
+	for( int i = 0; i < samples; i++ )
+    {
+        if ( achromatic ) {
+            // no color tinting
+            weight = float3( 1.0, 1.0, 1.0 ) * gaussFact[ i ] * weightScale;;
+        } else {
+            // old color tinting
+            weight = chromaticOffsets[ i ] * weightScale * gaussFact[ i ];
+        }
+
+		float4 colour = tex2D( samp0, sample_texcoord + float2( float( i ), 0 ) * expansion );
+        sum += colour.rgb * weight.rgb;
+        colour = tex2D( samp0, sample_texcoord + float2( float( -i ), 0 ) * expansion );
+        sum += colour.rgb * weight.rgb;
+        colour = tex2D( samp0, sample_texcoord + float2( 0, float( i ) ) * expansion );
+        sum += colour.rgb * weight.rgb;
+        colour = tex2D( samp0, sample_texcoord + float2( 0, float( -i ) ) * expansion );
+        sum += colour.rgb * weight.rgb;
+	}
+    return sum * exposure;
 }
 
-float remap( float t, float a, float b )
-{
-	return saturate( ( t - a ) / ( b - a ) );
-}
-
-float3 spectrumoffset( float t )
-{
-	float lo = step( t, 0.5 );
-	float hi = 1.0 - lo;
-	float w = linterp( remap( t, 1.0 / 6.0, 5.0 / 6.0 ) );
-	float3 ret = float3( lo, 1.0, hi ) * float3( 1.0 - w, w, 1.0 - w );
-
-	return ret; // pow( ret, float3( 1.0 / 2.2 ) );
-}
-
-void main( PS_IN fragment, out PS_OUT result )
-{
-	float2 st = fragment.texcoord0;
-	
-	// base color with tone mapping applied
-	float4 color = tex2D( samp0, st );
-	
-	const float gaussFact[9] = float[9](0.13298076, 0.12579441, 0.10648267, 0.08065691, 0.05467002, 0.03315905, 0.01799699, 0.00874063, 0.00379866);
-	
+float3 bloom_streak_sampled( float2 sample_texcoord, float exposure ) {
+    const float gaussFact[9] = float[9](0.13298076, 0.12579441, 0.10648267, 0.08065691, 0.05467002, 0.03315905, 0.01799699, 0.00874063, 0.00379866);
 	const float3 chromaticOffsets[9] = float3[](
 	float3(0.5, 0.5, 0.5), // w
 	float3(0.8, 0.3, 0.3),
@@ -85,44 +104,71 @@ void main( PS_IN fragment, out PS_OUT result )
 	//float3(0.3, 0.5, 0.3)
 	);
 	
-	float3 sumColor = float3( 0.0 );
-	float3 sumSpectrum = float3( 0.0 );
-
-	const int tap = 4;
+	float3 sum = float3( 0.0 );
 	const int samples = 9;
 	
 	float scale = 13.0; // bloom width
-	const float weightScale = 2.3; // bloom strength
+    float2 expansion = rpWindowCoord.xy * scale; //rpWindowCoord.xy being the samples of the effect
+	const float weightScale = 2.3; // bloom strength //this is a magical number...
+
+	for( int i = 0; i < samples; i++ )
+    {
+		
+        float weight = gaussFact[ i ] * weightScale;
+        float3 chormaOff = chromaticOffsets[ i ] * weight;
+		float4 colour = tex2D( samp0, sample_texcoord + float2( float( i ), 0 ) * expansion );
+        sum += colour.rgb * chormaOff.rgb;
+        colour = tex2D( samp0, sample_texcoord + float2( float( -i ), 0 ) * expansion );
+        sum += colour.rgb * chormaOff.rgb;
+	}
+    return sum * exposure;
+}
+/*
+float3 bloom_streak_inverse_sampled( float2 sample_texcoord, float exposure ) {
+    const float gaussFact[9] = float[9](0.13298076, 0.12579441, 0.10648267, 0.08065691, 0.05467002, 0.03315905, 0.01799699, 0.00874063, 0.00379866);
+	const float3 chromaticOffsets[9] = float3[](
+	float3(0.5, 0.5, 0.5), // w
+	float3(0.8, 0.3, 0.3),
+//	float3(1.0, 0.2, 0.2), // r
+	float3(0.5, 0.2, 0.8),
+	float3(0.2, 0.2, 1.0), // b
+	float3(0.2, 0.3, 0.9),
+	float3(0.2, 0.9, 0.2), // g
+	float3(0.3, 0.5, 0.3),
+	float3(0.3, 0.5, 0.3),
+	float3(0.3, 0.5, 0.3)
+	//float3(0.3, 0.5, 0.3)
+	);
+	
+	float3 sum = float3( 0.0 );
+	const int samples = 9;
+	
+	float scale = 13.0; // bloom width
+    float2 expansion = rpWindowCoord.xy * scale; //rpWindowCoord.xy being the samples of the effect
+    //float2 inversion = float2( -1, -1 );
+	const float weightScale = 2.3; // bloom strength //this is a magical number...
+    //float colour_reinforcement;
 	
 	for( int i = 0; i < samples; i++ )
     {
-	    //float t = ( ( float( 4 + ( i ) ) ) / ( float( samples ) - 1.0 ) );
-		//float t = log2( float( i ) / ( float( samples ) - 1.0 ) );
-		//float t = ( float( i ) / ( float( samples ) - 1.0 ) );
 		
-		//float3 so = spectrumoffset( t );
-		float3 so = chromaticOffsets[ i ];
-		float4 color = tex2D( samp0, st + float2( float( i ), 0 ) * rpWindowCoord.xy * scale );
-			
-		float weight = gaussFact[ i ];
-		sumColor += color.rgb * ( so.rgb * weight * weightScale );
+        float weight = gaussFact[ i ] * weightScale;
+        float3 chormaOff = chromaticOffsets[ i ] * weight;
+		float4 colour = tex2D( samp0, sample_texcoord + float2( float( i ), 0 ) * expansion );
+        //colour_reinforcement = ( ( colour.r + colour.g + colour.b ) / 3 ) -1;
+        sum += colour.rgb * chormaOff.rgb;// * colour_reinforcement;
+        colour = tex2D( samp0, sample_texcoord + float2( float( -i ), 0 ) * expansion );
+        //colour_reinforcement = ( ( colour.r + colour.g + colour.b ) / 3 ) -1;
+        sum += colour.rgb * chormaOff.rgb;// * colour_reinforcement;
 	}
-	
-#if 1
-	for( int i = 1; i < samples; i++ )
-    {
-	    //float t = ( ( float( 4 + ( i ) ) ) / ( float( samples ) - 1.0 ) );
-		
-		//float3 so = spectrumoffset( t );
-		float3 so = chromaticOffsets[ i ];
-		float4 color = tex2D( samp0, st + float2( float( -i ), 0 ) * rpWindowCoord.xy * scale );
-			
-		float weight = gaussFact[ i ];
-		sumColor += color.rgb * ( so.rgb * weight * weightScale );
-	}
-#endif
-	
-	result.color = float4( sumColor, 1.0 );
-	//result.color = float4( sumColor / float(samples), 1.0 );
-	//result.color = float4( sumColor / sumSpectrum, 1.0 );
+    return sum * exposure;
+}
+*/
+
+void main( PS_IN fragment, out PS_OUT result )
+{
+    float4 fog_bloom = float4( bloom_round_sampled( fragment.texcoord0, true, 0.175 ), 1.0 );
+    float4 bloom_streak = float4( bloom_streak_sampled( fragment.texcoord0, 0.25 ), 1.0 );
+	result.color = fog_bloom + bloom_streak; // + float4( bloom_streak_inverse_sampled( fragment.texcoord0 ), 1.0 );
+
 }
