@@ -65,6 +65,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	half3 lightVector = normalize( fragment.texcoord0.xyz );
 	half3 viewVector = normalize( fragment.texcoord6.xyz );
 	half3 diffuseMap = sRGBToLinearRGB( ConvertYCoCgToRGB( YCoCG ) );
+	//diffuseMap.r = 1.0;
 
 	half3 localNormal;
 	// RB begin
