@@ -794,6 +794,7 @@ void R_SetNewMode( const bool fullInit )
 				break;
 				
 			default:
+				parms.multiSamples = 0;
 				break;
 		}
 		
