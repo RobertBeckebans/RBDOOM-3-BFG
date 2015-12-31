@@ -1791,7 +1791,7 @@ RB_AmbientPass
 */
 static void RB_AmbientPass( const drawSurf_t* const* drawSurfs, int numDrawSurfs )
 {
-	if( r_forceAmbient.GetFloat() <= 0 || r_skipAmbient.GetBool() )
+	if( ( r_forceAmbient.GetFloat() <= 0 || r_skipAmbient.GetBool() ) && !r_useSSGI.GetBool() )
 	{
 		return;
 	}
@@ -1807,6 +1807,13 @@ static void RB_AmbientPass( const drawSurf_t* const* drawSurfs, int numDrawSurfs
 		return;
 	}
 	
+	const bool hdrIsActive = ( r_useHDR.GetBool() && globalFramebuffers.hdrFBO != NULL && globalFramebuffers.hdrFBO->IsBound() );
+	
+	//if( hdrIsActive && r_useSSLR.GetBool() )
+	//{
+	//	Framebuffer::Unbind();
+	//}
+	
 	renderLog.OpenMainBlock( MRB_FILL_DEPTH_BUFFER );
 	renderLog.OpenBlock( "RB_AmbientPassFast" );
 	
@@ -1820,6 +1827,8 @@ static void RB_AmbientPass( const drawSurf_t* const* drawSurfs, int numDrawSurfs
 	// with the general purpose path
 	//GL_State( GLS_DEFAULT );
 	GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHMASK | GLS_DEPTHFUNC_EQUAL );
+	
+	GL_Color( colorWhite );
 	
 	const float lightScale = 1.0f; //r_lightScale.GetFloat();
 	const idVec4 lightColor = colorWhite * lightScale;
@@ -1869,14 +1878,29 @@ static void RB_AmbientPass( const drawSurf_t* const* drawSurfs, int numDrawSurfs
 		//}
 		//else
 		{
-			// take lighting from grid
-			if( drawSurf->jointCache )
+			if( r_useSSGI.GetBool() )
 			{
-				renderProgManager.BindShader_AmbientLightingSkinned();
+				// fill geometry buffer with normal/roughness information
+				if( drawSurf->jointCache )
+				{
+					renderProgManager.BindShader_SmallGeometryBufferSkinned();
+				}
+				else
+				{
+					renderProgManager.BindShader_SmallGeometryBuffer();
+				}
 			}
 			else
 			{
-				renderProgManager.BindShader_AmbientLighting();
+				// draw Quake 4 style ambient
+				if( drawSurf->jointCache )
+				{
+					renderProgManager.BindShader_AmbientLightingSkinned();
+				}
+				else
+				{
+					renderProgManager.BindShader_AmbientLighting();
+				}
 			}
 		}
 		
@@ -1901,6 +1925,12 @@ static void RB_AmbientPass( const drawSurf_t* const* drawSurfs, int numDrawSurfs
 				
 				SetVertexParm( RENDERPARM_LOCALLIGHTORIGIN, localLightDirection.ToFloatPtr() );
 			}
+			
+			// RB: we want to store the normals in world space so we need the model -> world matrix
+			idRenderMatrix modelMatrix;
+			idRenderMatrix::Transpose( *( idRenderMatrix* )drawSurf->space->modelMatrix, modelMatrix );
+			
+			SetVertexParms( RENDERPARM_MODELMATRIX_X, modelMatrix[0], 4 );
 		}
 		
 #if 0
@@ -2102,6 +2132,30 @@ static void RB_AmbientPass( const drawSurf_t* const* drawSurfs, int numDrawSurfs
 	
 	renderLog.CloseBlock();
 	renderLog.CloseMainBlock();
+	
+	if( r_useSSGI.GetBool() )
+	{
+		GL_SelectTexture( 0 );
+		globalImages->currentNormalsImage->Bind();
+		
+		// FIXME: this copies RGBA16F into _currentNormals if HDR is enabled
+		const idScreenRect& viewport = backEnd.viewDef->viewport;
+		globalImages->currentNormalsImage->CopyFramebuffer( viewport.x1, viewport.y1, viewport.GetWidth(), viewport.GetHeight() );
+		
+		if( r_ssgiDebug.GetInteger() != 1 )
+		{
+			GL_Clear( true, false, false, STENCIL_SHADOW_TEST_VALUE, 0.0f, 0.0f, 0.0f, 0.0f, false );
+		}
+		
+		//if( hdrIsActive )
+		//{
+		//	globalFramebuffers.hdrFBO->Bind();
+		//}
+		
+		renderProgManager.Unbind();
+		
+		globalImages->BindNull();
+	}
 }
 
 // RB end
