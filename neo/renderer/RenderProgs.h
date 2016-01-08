@@ -465,6 +465,11 @@ public:
 		BindShader_Builtin( BUILTIN_AMBIENT_OCCLUSION );
 	}
 	
+	void	BindShader_AmbientOcclusionAndOutput()
+	{
+		BindShader_Builtin( BUILTIN_AMBIENT_OCCLUSION_AND_OUTPUT );
+	}
+	
 	void	BindShader_AmbientOcclusionBlur()
 	{
 		BindShader_Builtin( BUILTIN_AMBIENT_OCCLUSION_BLUR );
@@ -598,6 +603,7 @@ protected:
 		BUILTIN_SMAA_NEIGHBORHOOD_BLENDING,
 		
 		BUILTIN_AMBIENT_OCCLUSION,
+		BUILTIN_AMBIENT_OCCLUSION_AND_OUTPUT,
 		BUILTIN_AMBIENT_OCCLUSION_BLUR,
 		BUILTIN_AMBIENT_OCCLUSION_BLUR_AND_OUTPUT,
 		// RB end
