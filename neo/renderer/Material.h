@@ -52,6 +52,7 @@ typedef enum
 {
 	TF_LINEAR,
 	TF_NEAREST,
+	TF_NEAREST_MIPMAP,		// RB: no linear interpolation but explicit mip-map levels for hierarchical depth buffer
 	TF_DEFAULT				// use the user-specified r_textureFilter
 } textureFilter_t;
 
