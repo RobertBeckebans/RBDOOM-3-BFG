@@ -1791,13 +1791,19 @@ RB_AmbientPass
 */
 static void RB_AmbientPass( const drawSurf_t* const* drawSurfs, int numDrawSurfs, bool fillGbuffer )
 {
-	if( fillGbuffer && !r_useSSGI.GetBool() )
+	if( fillGbuffer )
 	{
-		return;
+		if( !r_useSSGI.GetBool() )
+		{
+			return;
+		}
 	}
-	else if( r_forceAmbient.GetFloat() <= 0 || r_skipAmbient.GetBool() )
+	else
 	{
-		return;
+		if( r_forceAmbient.GetFloat() <= 0 || r_skipAmbient.GetBool() )
+		{
+			return;
+		}
 	}
 	
 	if( numDrawSurfs == 0 )
@@ -4547,9 +4553,9 @@ static void RB_Bloom( const viewDef_t* viewDef )
 }
 
 
-void RB_SSAO()
+static void RB_SSAO( const viewDef_t* viewDef )
 {
-	if( !backEnd.viewDef->viewEntitys )
+	if( !viewDef->viewEntitys || viewDef->is2Dgui )
 	{
 		// 3D views only
 		return;
@@ -4561,7 +4567,7 @@ void RB_SSAO()
 	}
 	
 	// FIXME very expensive to enable this in subviews
-	if( backEnd.viewDef->isSubview )
+	if( viewDef->isSubview )
 	{
 		return;
 	}
@@ -4715,7 +4721,7 @@ void RB_SSAO()
 	{
 		globalFramebuffers.ambientOcclusionFBO[0]->Bind();
 		
-		glClearColor( 1, 0, 0, 1 );
+		glClearColor( 0, 0, 0, 0 );
 		glClear( GL_COLOR_BUFFER_BIT );
 		
 		renderProgManager.BindShader_AmbientOcclusion();
@@ -4851,6 +4857,10 @@ void RB_SSAO()
 		RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 	}
 	
+	renderProgManager.Unbind();
+	
+	GL_State( GLS_DEFAULT );
+	GL_Cull( CT_FRONT_SIDED );
 	
 	GL_CheckErrors();
 }
@@ -4995,7 +5005,7 @@ void RB_DrawViewInternal( const viewDef_t* viewDef, const int stereoEye )
 		globalImages->currentDepthImage->CopyDepthbuffer( viewport.x1, viewport.y1, viewport.GetWidth(), viewport.GetHeight() );
 	}
 	
-	RB_SSAO();
+	RB_SSAO( viewDef );
 	
 	//-------------------------------------------------
 	// now draw any non-light dependent shading passes
