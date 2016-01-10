@@ -495,6 +495,16 @@ public:
 		BindShader_Builtin( BUILTIN_DEEP_GBUFFER_RADIOSITY_SSGI );
 	}
 	
+	void	BindShader_DeepGBufferRadiosityBlur()
+	{
+		BindShader_Builtin( BUILTIN_DEEP_GBUFFER_RADIOSITY_BLUR );
+	}
+	
+	void	BindShader_DeepGBufferRadiosityBlurAndOutput()
+	{
+		BindShader_Builtin( BUILTIN_DEEP_GBUFFER_RADIOSITY_BLUR_AND_OUTPUT );
+	}
+	
 #if 0
 	void	BindShader_ZCullReconstruct()
 	{
@@ -625,6 +635,8 @@ protected:
 		BUILTIN_AMBIENT_OCCLUSION_RECONSTRUCT_CSZ,
 		
 		BUILTIN_DEEP_GBUFFER_RADIOSITY_SSGI,
+		BUILTIN_DEEP_GBUFFER_RADIOSITY_BLUR,
+		BUILTIN_DEEP_GBUFFER_RADIOSITY_BLUR_AND_OUTPUT,
 		// RB end
 		BUILTIN_STEREO_DEGHOST,
 		BUILTIN_STEREO_WARP,
