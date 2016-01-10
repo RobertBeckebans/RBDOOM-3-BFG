@@ -4732,7 +4732,7 @@ static void RB_SSAO( const viewDef_t* viewDef )
 	{
 		if( r_ssgiDebug.GetInteger() <= 0 )
 		{
-			GL_State( GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO | GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS );
+			GL_State( GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO | GLS_ALPHAMASK | GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS );
 		}
 		
 		if( hdrIsActive )
@@ -4767,7 +4767,7 @@ static void RB_SSAO( const viewDef_t* viewDef )
 	SetVertexParms( RENDERPARM_MODELMATRIX_X, cameraToWorldMatrix[0], 4 );
 	//SetVertexParms( RENDERPARM_MODELMATRIX_X, backEnd.viewDef->unprojectionToWorldRenderMatrix[0], 4 );
 #endif
-	SetVertexParms( RENDERPARM_PROJMATRIX_X, backEnd.viewDef->unprojectionToCameraRenderMatrix[0], 4 );
+	SetVertexParms( RENDERPARM_MODELMATRIX_X, backEnd.viewDef->unprojectionToCameraRenderMatrix[0], 4 );
 	
 	
 	float jitterTexOffset[4];
@@ -4900,13 +4900,11 @@ static void RB_SSGI( const viewDef_t* viewDef )
 	GL_Viewport( 0, 0, screenWidth, screenHeight );
 	GL_Scissor( 0, 0, screenWidth, screenHeight );
 	
-#if 1
 	if( !hdrIsActive )
 	{
 		const idScreenRect& viewport = viewDef->viewport;
 		globalImages->currentRenderImage->CopyFramebuffer( viewport.x1, viewport.y1, viewport.GetWidth(), viewport.GetHeight() );
 	}
-#endif
 	
 #if 1
 	// build hierarchical depth buffer
@@ -4987,13 +4985,15 @@ static void RB_SSGI( const viewDef_t* viewDef )
 	else
 #endif
 	{
-		if( r_ssgiDebug.GetInteger() <= 0 )
+		if( r_ssgiDebug.GetInteger() > 0 )
 		{
-			GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS );
+			// replace current
+			GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS );
 		}
 		else
 		{
-			GL_State( GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO | GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS );
+			// add result to main color
+			GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS );
 		}
 		
 		if( hdrIsActive )
@@ -5028,7 +5028,7 @@ static void RB_SSGI( const viewDef_t* viewDef )
 	SetVertexParms( RENDERPARM_MODELMATRIX_X, cameraToWorldMatrix[0], 4 );
 	//SetVertexParms( RENDERPARM_MODELMATRIX_X, backEnd.viewDef->unprojectionToWorldRenderMatrix[0], 4 );
 #endif
-	SetVertexParms( RENDERPARM_PROJMATRIX_X, backEnd.viewDef->unprojectionToCameraRenderMatrix[0], 4 );
+	SetVertexParms( RENDERPARM_MODELMATRIX_X, backEnd.viewDef->unprojectionToCameraRenderMatrix[0], 4 );
 	
 	
 	float jitterTexOffset[4];
@@ -5060,7 +5060,14 @@ static void RB_SSGI( const viewDef_t* viewDef )
 	}
 	
 	GL_SelectTexture( 2 );
-	globalImages->currentRenderImage->Bind();
+	if( hdrIsActive )
+	{
+		globalImages->currentRenderHDRImage->Bind();
+	}
+	else
+	{
+		globalImages->currentRenderImage->Bind();
+	}
 	
 	RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 	
@@ -5098,13 +5105,15 @@ static void RB_SSGI( const viewDef_t* viewDef )
 			Framebuffer::Unbind();
 		}
 		
-		if( r_ssgiDebug.GetInteger() <= 0 )
+		if( r_ssgiDebug.GetInteger() > 0 )
 		{
-			GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS );
+			// replace current
+			GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS );
 		}
 		else
 		{
-			GL_State( GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO | GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS );
+			// add result to main color
+			GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS );
 		}
 		
 		renderProgManager.BindShader_DeepGBufferRadiosityBlurAndOutput();
