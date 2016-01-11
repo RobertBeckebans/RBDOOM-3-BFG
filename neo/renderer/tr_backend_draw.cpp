@@ -3897,6 +3897,17 @@ static int RB_DrawShaderPasses( const drawSurf_t* const* const drawSurfs, const 
 	GL_Cull( CT_FRONT_SIDED );
 	GL_Color( 1.0f, 1.0f, 1.0f );
 	
+	// disable stencil shadow test
+	GL_State( GLS_DEFAULT );
+	
+	// unbind texture units
+	for( int i = 0; i < 7; i++ )
+	{
+		GL_SelectTexture( i );
+		globalImages->BindNull();
+	}
+	GL_SelectTexture( 0 );
+	
 	renderLog.CloseBlock();
 	return i;
 }
@@ -4765,9 +4776,9 @@ static void RB_SSAO( const viewDef_t* viewDef )
 	}
 	
 	SetVertexParms( RENDERPARM_MODELMATRIX_X, cameraToWorldMatrix[0], 4 );
-	//SetVertexParms( RENDERPARM_MODELMATRIX_X, backEnd.viewDef->unprojectionToWorldRenderMatrix[0], 4 );
+	//SetVertexParms( RENDERPARM_MODELMATRIX_X, viewDef->unprojectionToWorldRenderMatrix[0], 4 );
 #endif
-	SetVertexParms( RENDERPARM_MODELMATRIX_X, backEnd.viewDef->unprojectionToCameraRenderMatrix[0], 4 );
+	SetVertexParms( RENDERPARM_MODELMATRIX_X, viewDef->unprojectionToCameraRenderMatrix[0], 4 );
 	
 	
 	float jitterTexOffset[4];
@@ -4781,7 +4792,7 @@ static void RB_SSAO( const viewDef_t* viewDef )
 		jitterTexOffset[0] = 0;
 		jitterTexOffset[1] = 0;
 	}
-	jitterTexOffset[2] = backEnd.viewDef->renderView.time[0] * 0.001f;
+	jitterTexOffset[2] = viewDef->renderView.time[0] * 0.001f;
 	jitterTexOffset[3] = 0.0f;
 	SetFragmentParm( RENDERPARM_JITTERTEXOFFSET, jitterTexOffset ); // rpJitterTexOffset
 	
@@ -4810,18 +4821,14 @@ static void RB_SSAO( const viewDef_t* viewDef )
 		
 		renderProgManager.BindShader_AmbientOcclusionBlur();
 		
-		//const idScreenRect& viewport = backEnd.viewDef->viewport;
-		//globalImages->currentAOImage->CopyFramebuffer( viewport.x1, viewport.y1, viewport.GetWidth(), viewport.GetHeight() );
-		
 		// set axis parameter
-		
 		jitterTexScale[0] = 1;
 		jitterTexScale[1] = 0;
 		jitterTexScale[2] = 0;
 		jitterTexScale[3] = 0;
 		SetFragmentParm( RENDERPARM_JITTERTEXSCALE, jitterTexScale ); // rpJitterTexScale
 		
-		GL_SelectTexture( 0 );
+		GL_SelectTexture( 2 );
 		globalImages->ambientOcclusionImage[0]->Bind();
 		
 		RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
@@ -4842,8 +4849,6 @@ static void RB_SSAO( const viewDef_t* viewDef )
 			GL_State( GLS_SRCBLEND_DST_COLOR | GLS_DSTBLEND_ZERO | GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS );
 		}
 		
-		//globalImages->currentAOImage->CopyFramebuffer( viewport.x1, viewport.y1, viewport.GetWidth(), viewport.GetHeight() );
-		
 		renderProgManager.BindShader_AmbientOcclusionBlurAndOutput();
 		
 		// set axis parameter
@@ -4853,7 +4858,7 @@ static void RB_SSAO( const viewDef_t* viewDef )
 		jitterTexScale[3] = 0;
 		SetFragmentParm( RENDERPARM_JITTERTEXSCALE, jitterTexScale ); // rpJitterTexScale
 		
-		GL_SelectTexture( 0 );
+		GL_SelectTexture( 2 );
 		globalImages->ambientOcclusionImage[1]->Bind();
 		
 		RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
@@ -4906,7 +4911,6 @@ static void RB_SSGI( const viewDef_t* viewDef )
 		globalImages->currentRenderImage->CopyFramebuffer( viewport.x1, viewport.y1, viewport.GetWidth(), viewport.GetHeight() );
 	}
 	
-#if 1
 	// build hierarchical depth buffer
 	if( r_useHierarchicalDepthBuffer.GetBool() )
 	{
@@ -4961,17 +4965,14 @@ static void RB_SSGI( const viewDef_t* viewDef )
 			RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 		}
 	}
-#endif
 	
 	// set the window clipping
 	GL_Viewport( 0, 0, screenWidth, screenHeight );
 	GL_Scissor( 0, 0, screenWidth, screenHeight );
 	
 	GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS );
-	//GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS );
 	GL_Cull( CT_TWO_SIDED );
 	
-#if 1
 	if( r_ssgiFiltering.GetBool() )
 	{
 		globalFramebuffers.ambientOcclusionFBO[0]->Bind();
@@ -4983,7 +4984,6 @@ static void RB_SSGI( const viewDef_t* viewDef )
 		renderProgManager.BindShader_DeepGBufferRadiosity();
 	}
 	else
-#endif
 	{
 		if( r_ssgiDebug.GetInteger() > 0 )
 		{
@@ -5026,9 +5026,9 @@ static void RB_SSGI( const viewDef_t* viewDef )
 	}
 	
 	SetVertexParms( RENDERPARM_MODELMATRIX_X, cameraToWorldMatrix[0], 4 );
-	//SetVertexParms( RENDERPARM_MODELMATRIX_X, backEnd.viewDef->unprojectionToWorldRenderMatrix[0], 4 );
+	//SetVertexParms( RENDERPARM_MODELMATRIX_X, viewDef->unprojectionToWorldRenderMatrix[0], 4 );
 #endif
-	SetVertexParms( RENDERPARM_MODELMATRIX_X, backEnd.viewDef->unprojectionToCameraRenderMatrix[0], 4 );
+	SetVertexParms( RENDERPARM_MODELMATRIX_X, viewDef->unprojectionToCameraRenderMatrix[0], 4 );
 	
 	
 	float jitterTexOffset[4];
@@ -5042,7 +5042,7 @@ static void RB_SSGI( const viewDef_t* viewDef )
 		jitterTexOffset[0] = 0;
 		jitterTexOffset[1] = 0;
 	}
-	jitterTexOffset[2] = backEnd.viewDef->renderView.time[0] * 0.001f;
+	jitterTexOffset[2] = viewDef->renderView.time[0] * 0.001f;
 	jitterTexOffset[3] = 0.0f;
 	SetFragmentParm( RENDERPARM_JITTERTEXOFFSET, jitterTexOffset ); // rpJitterTexOffset
 	
@@ -5071,7 +5071,6 @@ static void RB_SSGI( const viewDef_t* viewDef )
 	
 	RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 	
-#if 1
 	if( r_ssgiFiltering.GetBool() )
 	{
 		float jitterTexScale[4];
@@ -5089,7 +5088,7 @@ static void RB_SSGI( const viewDef_t* viewDef )
 		jitterTexScale[3] = 0;
 		SetFragmentParm( RENDERPARM_JITTERTEXSCALE, jitterTexScale ); // rpJitterTexScale
 		
-		GL_SelectTexture( 0 );
+		GL_SelectTexture( 2 );
 		globalImages->ambientOcclusionImage[0]->Bind();
 		
 		RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
@@ -5125,12 +5124,11 @@ static void RB_SSGI( const viewDef_t* viewDef )
 		jitterTexScale[3] = 0;
 		SetFragmentParm( RENDERPARM_JITTERTEXSCALE, jitterTexScale ); // rpJitterTexScale
 		
-		GL_SelectTexture( 0 );
+		GL_SelectTexture( 2 );
 		globalImages->ambientOcclusionImage[1]->Bind();
 		
 		RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 	}
-#endif
 	
 	renderProgManager.Unbind();
 	
@@ -5284,6 +5282,7 @@ void RB_DrawViewInternal( const viewDef_t* viewDef, const int stereoEye )
 	// darken the scene using the screen space ambient occlusion result
 	//-------------------------------------------------
 	//RB_SSAO( viewDef );
+	//RB_SSGI( viewDef );
 	
 	//-------------------------------------------------
 	// now draw any non-light dependent shading passes
@@ -5664,6 +5663,11 @@ void RB_PostProcess( const void* data )
 	// only do the post process step if resolution scaling is enabled. Prevents the unnecessary copying of the framebuffer and
 	// corresponding full screen quad pass.
 	if( rs_enable.GetInteger() == 0 && !r_useFilmicPostProcessEffects.GetBool() && r_antiAliasing.GetInteger() == 0 )
+	{
+		return;
+	}
+	
+	if( r_ssgiDebug.GetInteger() > 0 )
 	{
 		return;
 	}
