@@ -389,7 +389,8 @@ const char* idRenderProgManager::GLSLMacroNames[MAX_SHADER_MACRO_NAMES] =
 	"LIGHT_POINT",
 	"LIGHT_PARALLEL",
 	"BRIGHTPASS",
-	"HDR_DEBUG"
+	"HDR_DEBUG",
+	"USE_SRGB"
 };
 // RB end
 
@@ -549,6 +550,10 @@ idStr StripDeadCode( const idStr& in, const char* name, const idStrList& compile
 	//idLexer src( LEXFL_NOFATALERRORS );
 	idParser_EmbeddedGLSL src( LEXFL_NOFATALERRORS );
 	src.LoadMemory( in.c_str(), in.Length(), name );
+	
+	idStrStatic<256> sourceName = "filename ";
+	sourceName += name;
+	src.AddDefine( sourceName );
 	src.AddDefine( "PC" );
 	
 	for( int i = 0; i < compileMacros.Num(); i++ )
@@ -1606,6 +1611,9 @@ idStr ConvertCG2GLSL( const idStr& in, const char* name, bool isVertexProgram, i
 	
 	idStr out;
 	
+	// RB: tell shader debuggers what shader we look at
+	idStr filenameHint = "// filename " + idStr( name ) + "\n";
+	
 	// RB: changed to allow multiple versions of GLSL
 	if( isVertexProgram )
 	{
@@ -1615,6 +1623,7 @@ idStr ConvertCG2GLSL( const idStr& in, const char* name, bool isVertexProgram, i
 			case GLDRV_OPENGL_ES3:
 			{
 				out.ReAllocate( idStr::Length( vertexInsert_GLSL_ES_1_0 ) + in.Length() * 2, false );
+				out += filenameHint;
 				out += vertexInsert_GLSL_ES_1_0;
 				break;
 			}
@@ -1622,6 +1631,7 @@ idStr ConvertCG2GLSL( const idStr& in, const char* name, bool isVertexProgram, i
 			case GLDRV_OPENGL_MESA:
 			{
 				out.ReAllocate( idStr::Length( vertexInsert_GLSL_ES_3_00 ) + in.Length() * 2, false );
+				out += filenameHint;
 				out += vertexInsert_GLSL_ES_3_00;
 				break;
 			}
@@ -1629,6 +1639,7 @@ idStr ConvertCG2GLSL( const idStr& in, const char* name, bool isVertexProgram, i
 			default:
 			{
 				out.ReAllocate( idStr::Length( vertexInsert_GLSL_1_50 ) + in.Length() * 2, false );
+				out += filenameHint;
 				out += vertexInsert_GLSL_1_50;
 				break;
 			}
@@ -1644,6 +1655,7 @@ idStr ConvertCG2GLSL( const idStr& in, const char* name, bool isVertexProgram, i
 			case GLDRV_OPENGL_ES3:
 			{
 				out.ReAllocate( idStr::Length( fragmentInsert_GLSL_ES_1_0 ) + in.Length() * 2, false );
+				out += filenameHint;
 				out += fragmentInsert_GLSL_ES_1_0;
 				break;
 			}
@@ -1651,6 +1663,7 @@ idStr ConvertCG2GLSL( const idStr& in, const char* name, bool isVertexProgram, i
 			case GLDRV_OPENGL_MESA:
 			{
 				out.ReAllocate( idStr::Length( fragmentInsert_GLSL_ES_3_00 ) + in.Length() * 2, false );
+				out += filenameHint;
 				out += fragmentInsert_GLSL_ES_3_00;
 				break;
 			}
@@ -1658,6 +1671,7 @@ idStr ConvertCG2GLSL( const idStr& in, const char* name, bool isVertexProgram, i
 			default:
 			{
 				out.ReAllocate( idStr::Length( fragmentInsert_GLSL_1_50 ) + in.Length() * 2, false );
+				out += filenameHint;
 				out += fragmentInsert_GLSL_1_50;
 				break;
 			}
