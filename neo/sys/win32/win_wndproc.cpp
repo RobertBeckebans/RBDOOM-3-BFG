@@ -188,7 +188,7 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 						glConfig.nativeScreenHeight = rect.bottom - rect.top;
 						
 						// save the window size in cvars if we aren't fullscreen
-						int style = GetWindowLong( hWnd, GWL_STYLE );
+						LONG_PTR style = GetWindowLongPtr( hWnd, GWL_STYLE );
 						if( ( style & WS_POPUP ) == 0 )
 						{
 							r_windowWidth.SetInteger( glConfig.nativeScreenWidth );
@@ -204,7 +204,7 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 			RECT r;
 			
 			// save the window origin in cvars if we aren't fullscreen
-			int style = GetWindowLong( hWnd, GWL_STYLE );
+			LONG_PTR style = GetWindowLongPtr( hWnd, GWL_STYLE );
 			if( ( style & WS_POPUP ) == 0 )
 			{
 				xPos = ( short ) LOWORD( lParam ); // horizontal position

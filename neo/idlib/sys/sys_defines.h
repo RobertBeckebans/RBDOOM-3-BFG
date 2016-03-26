@@ -40,7 +40,11 @@ If you have questions concerning this license or the applicable additional terms
 // Win32
 #if defined(WIN32) || defined(_WIN32)
 
+#if defined(WIN64) || defined(_WIN64)
+#define	CPUSTRING						"x86_64"
+#else
 #define	CPUSTRING						"x86"
+#endif
 
 #define	BUILD_STRING					"win-" CPUSTRING
 
@@ -108,7 +112,7 @@ If you have questions concerning this license or the applicable additional terms
 #if defined(__i386__)
 #define	CPUSTRING						"x86"
 #elif defined(__x86_64__)
-#define CPUSTRING						"x86_86"
+#define CPUSTRING						"x86_64"
 #else
 #error unknown CPU
 #endif

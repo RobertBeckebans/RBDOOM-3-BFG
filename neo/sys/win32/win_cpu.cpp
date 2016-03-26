@@ -32,6 +32,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "win_local.h"
 
+#include <intrin.h>
+
 #pragma warning(disable:4740)	// warning C4740: flow in or out of inline asm code suppresses global optimization
 #pragma warning(disable:4731)	// warning C4731: 'XXX' : frame pointer register 'ebx' modified by inline assembly code
 
@@ -102,15 +104,6 @@ Sys_ClockTicksPerSecond
 */
 double Sys_ClockTicksPerSecond() {
 	static double ticks = 0;
-#if 0
-
-	if ( !ticks ) {
-		LARGE_INTEGER li;
-		QueryPerformanceFrequency( &li );
-		ticks = li.QuadPart;
-	}
-
-#else
 
 	if ( !ticks ) {
 		HKEY hKey;
@@ -135,7 +128,6 @@ double Sys_ClockTicksPerSecond() {
 		}
 	}
 
-#endif
 	return ticks;
 }
 
@@ -153,10 +145,9 @@ double Sys_ClockTicksPerSecond() {
 HasCPUID
 ================
 */
-// RB: no checks on Win64
-#if !defined(_WIN64)
 static bool HasCPUID() {
-	__asm 
+#if !defined(_WIN64)
+	__asm
 	{
 		pushfd						// save eflags
 		pop		eax
@@ -185,8 +176,11 @@ err:
 	return false;
 good:
 	return true;
-}
+#else
+    // Looks like all x86_64 support cpuid opcode.
+	return true;
 #endif
+}
 
 #define _REG_EAX		0
 #define _REG_EBX		1
@@ -198,41 +192,21 @@ good:
 CPUID
 ================
 */
-// RB: no checks on Win64
-#if !defined(_WIN64)
-static void CPUID( int func, unsigned regs[4] ) {
-	unsigned regEAX, regEBX, regECX, regEDX;
-
-	__asm pusha
-	__asm mov eax, func
-	__asm __emit 00fh
-	__asm __emit 0a2h
-	__asm mov regEAX, eax
-	__asm mov regEBX, ebx
-	__asm mov regECX, ecx
-	__asm mov regEDX, edx
-	__asm popa
-
-	regs[_REG_EAX] = regEAX;
-	regs[_REG_EBX] = regEBX;
-	regs[_REG_ECX] = regECX;
-	regs[_REG_EDX] = regEDX;
+static void CPUID( int func, int regs[4] ) {
+  __cpuid(regs, func);
 }
-#endif
 
 /*
 ================
 IsAMD
 ================
 */
-// RB: no checks on Win64
-#if !defined(_WIN64)
 static bool IsAMD() {
 	char pstring[16];
 	char processorString[13];
 
 	// get name of processor
-	CPUID( 0, ( unsigned int * ) pstring );
+	CPUID( 0, ( int * ) pstring );
 	processorString[0] = pstring[4];
 	processorString[1] = pstring[5];
 	processorString[2] = pstring[6];
@@ -252,17 +226,14 @@ static bool IsAMD() {
 	}
 	return false;
 }
-#endif
 
 /*
 ================
 HasCMOV
 ================
 */
-// RB: no checks on Win64
-#if !defined(_WIN64)
 static bool HasCMOV() {
-	unsigned regs[4];
+	int regs[4];
 
 	// get CPU feature bits
 	CPUID( 1, regs );
@@ -273,17 +244,14 @@ static bool HasCMOV() {
 	}
 	return false;
 }
-#endif
 
 /*
 ================
 Has3DNow
 ================
 */
-// RB: no checks on Win64
-#if !defined(_WIN64)
 static bool Has3DNow() {
-	unsigned regs[4];
+	int regs[4];
 
 	// check AMD-specific functions
 	CPUID( 0x80000000, regs );
@@ -299,17 +267,14 @@ static bool Has3DNow() {
 
 	return false;
 }
-#endif
 
 /*
 ================
 HasMMX
 ================
 */
-// RB: no checks on Win64
-#if !defined(_WIN64)
 static bool HasMMX() {
-	unsigned regs[4];
+	int regs[4];
 
 	// get CPU feature bits
 	CPUID( 1, regs );
@@ -320,17 +285,14 @@ static bool HasMMX() {
 	}
 	return false;
 }
-#endif
 
 /*
 ================
 HasSSE
 ================
 */
-// RB: no checks on Win64
-#if !defined(_WIN64)
 static bool HasSSE() {
-	unsigned regs[4];
+	int regs[4];
 
 	// get CPU feature bits
 	CPUID( 1, regs );
@@ -341,17 +303,14 @@ static bool HasSSE() {
 	}
 	return false;
 }
-#endif
 
 /*
 ================
 HasSSE2
 ================
 */
-// RB: no checks on Win64
-#if !defined(_WIN64)
 static bool HasSSE2() {
-	unsigned regs[4];
+	int regs[4];
 
 	// get CPU feature bits
 	CPUID( 1, regs );
@@ -362,17 +321,14 @@ static bool HasSSE2() {
 	}
 	return false;
 }
-#endif
 
 /*
 ================
 HasSSE3
 ================
 */
-// RB: no checks on Win64
-#if !defined(_WIN64)
 static bool HasSSE3() {
-	unsigned regs[4];
+	int regs[4];
 
 	// get CPU feature bits
 	CPUID( 1, regs );
@@ -383,7 +339,6 @@ static bool HasSSE3() {
 	}
 	return false;
 }
-#endif
 
 /*
 ================
@@ -539,7 +494,7 @@ HasHTT
 // RB: no checks on Win64
 #if !defined(_WIN64)
 static bool HasHTT() {
-	unsigned regs[4];
+	int regs[4];
 	int logicalNum, physicalNum, HTStatusFlag;
 
 	// get CPU feature bits
@@ -569,7 +524,7 @@ static bool HasDAZ() {
 	__declspec(align(16)) unsigned char FXSaveArea[512];
 	unsigned char *FXArea = FXSaveArea;
 	DWORD dwMask = 0;
-	unsigned regs[4];
+	int regs[4];
 
 	// get CPU feature bits
 	CPUID( 1, regs );
@@ -771,28 +726,13 @@ Sys_GetCPUId
 */
 cpuid_t Sys_GetCPUId()
 {
-	// RB: we assume a modern x86 chip
-#if defined(_WIN64)
-	int flags = CPUID_GENERIC;
-	
-	flags |= CPUID_SSE;
-	flags |= CPUID_SSE2;
-
-	return (cpuid_t)flags;
-#else
-	int flags;
-
 	// verify we're at least a Pentium or 486 with CPUID support
 	if ( !HasCPUID() ){
 		return CPUID_UNSUPPORTED;
 	}
 
 	// check for an AMD
-	if ( IsAMD() ) {
-		flags = CPUID_AMD;
-	} else {
-		flags = CPUID_INTEL;
-	}
+	int flags = IsAMD() ? CPUID_AMD : CPUID_INTEL;
 
 	// check for Multi Media Extensions
 	if ( HasMMX() ) {
@@ -804,6 +744,9 @@ cpuid_t Sys_GetCPUId()
 		flags |= CPUID_3DNOW;
 	}
 
+#if defined(_WIN64)
+	flags |= CPUID_SSE | CPUID_SSE2;
+#else
 	// check for Streaming SIMD Extensions
 	if ( HasSSE() ) {
 		flags |= CPUID_SSE | CPUID_FTZ;
@@ -813,12 +756,15 @@ cpuid_t Sys_GetCPUId()
 	if ( HasSSE2() ) {
 		flags |= CPUID_SSE2;
 	}
+#endif
 
 	// check for Streaming SIMD Extensions 3 aka Prescott's New Instructions
 	if ( HasSSE3() ) {
 		flags |= CPUID_SSE3;
 	}
 
+// RB: we assume a modern x86 chip
+#if !defined(_WIN64)
 	// check for Hyper-Threading Technology
 	if ( HasHTT() ) {
 		flags |= CPUID_HTT;
