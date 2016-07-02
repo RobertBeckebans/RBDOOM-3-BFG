@@ -101,7 +101,10 @@ unsigned char* WriteInt(void* b, unsigned int i)
 // Format - 0(1 track only), 1(1 or more tracks, each play same time), 2(1 or more, each play seperatly)
 void Midi_CreateHeader(MidiHeaderChunk_t* header, short format, short track_count,  short division)
 {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmultichar"
 	WriteInt(header->name, 'MThd');
+#pragma GCC diagnostic pop
 	WriteInt(&header->length, 6);
 	WriteShort(&header->format, format);
 	WriteShort(&header->ntracks, track_count);
@@ -341,7 +344,10 @@ int Mus2Midi(unsigned char* bytes, unsigned char* out, int* len)
 	}
 
 	// Write out track header
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmultichar"
 	WriteInt(midiTrackHeader.name, 'MTrk');
+#pragma GCC diagnostic pop
 	WriteInt(&midiTrackHeader.length, out - midiTrackHeaderOut - sizeof(midiTrackHeader));
 	memcpy(midiTrackHeaderOut, &midiTrackHeader, sizeof(midiTrackHeader));
 	
@@ -354,4 +360,3 @@ int Mus2Midi(unsigned char* bytes, unsigned char* out, int* len)
 	}*/
 	return 1;
 }
-

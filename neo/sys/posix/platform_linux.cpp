@@ -319,7 +319,7 @@ void Sys_DoStartProcess( const char* exeName, bool dofork )
 		if( use_system )
 		{
 			printf( "system %s\n", exeName );
-			system( exeName );
+			verify( system( exeName ) != -1 );
 			sleep( 1 );	// on some systems I've seen that starting the new process and exiting this one should not be too close
 		}
 		else

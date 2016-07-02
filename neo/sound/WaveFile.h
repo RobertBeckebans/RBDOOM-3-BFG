@@ -106,6 +106,9 @@ public:
 		FORMAT_EXTENSIBLE	= 0xFFFF,
 	};
 	
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmultichar"
+
 #pragma pack( push, 1 )
 	struct waveFmt_t
 	{
@@ -241,6 +244,7 @@ private:
 	
 	
 };
+#pragma GCC diagnostic pop
 
 /*
 ========================

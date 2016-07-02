@@ -36,6 +36,8 @@ Contains the WaveFile implementation.
 
 #include "WaveFile.h"
 
+#pragma GCC diagnostic ignored "-Wmultichar"
+
 /*
 ========================
 idWaveFile::Open

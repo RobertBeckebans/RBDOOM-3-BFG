@@ -1074,29 +1074,33 @@ void Posix_InitConsoleInput()
 terminal support utilities
 ================
 */
+static void verified_write( int fn, const void *buf, size_t count )
+{
+	verify( write( fn, buf, count ) == count );
+}
 
 void tty_Del()
 {
 	char key;
 	key = '\b';
-	write( STDOUT_FILENO, &key, 1 );
+	verified_write( STDOUT_FILENO, &key, 1 );
 	key = ' ';
-	write( STDOUT_FILENO, &key, 1 );
+	verified_write( STDOUT_FILENO, &key, 1 );
 	key = '\b';
-	write( STDOUT_FILENO, &key, 1 );
+	verified_write( STDOUT_FILENO, &key, 1 );
 }
 
 void tty_Left()
 {
 	char key = '\b';
-	write( STDOUT_FILENO, &key, 1 );
+	verified_write( STDOUT_FILENO, &key, 1 );
 }
 
 void tty_Right()
 {
 	char key = 27;
-	write( STDOUT_FILENO, &key, 1 );
-	write( STDOUT_FILENO, "[C", 2 );
+	verified_write( STDOUT_FILENO, &key, 1 );
+	verified_write( STDOUT_FILENO, "[C", 2 );
 }
 
 // clear the display of the line currently edited
@@ -1144,7 +1148,7 @@ void tty_Show()
 		char* buf = input_field.GetBuffer();
 		if( buf[0] )
 		{
-			write( STDOUT_FILENO, buf, strlen( buf ) );
+			verified_write( STDOUT_FILENO, buf, strlen( buf ) );
 			
 			// RB begin
 #if defined(__ANDROID__)
@@ -1209,7 +1213,7 @@ char* Posix_ConsoleInput()
 					idStr::Copynz( input_ret, input_field.GetBuffer(), sizeof( input_ret ) );
 					assert( hidden );
 					tty_Show();
-					write( STDOUT_FILENO, &key, 1 );
+					verified_write( STDOUT_FILENO, &key, 1 );
 					input_field.Clear();
 					if( history_count < COMMAND_HISTORY )
 					{
