@@ -40,6 +40,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "../idlib/Lib.h"
 #include "../idlib/Parser.h"
 #include "../idlib/Str.h"
+#include "../idlib/StrStatic.h"
 #include "../idlib/Token.h"
 #include "../idlib/containers/List.h"
 #include "../idlib/containers/Sort.h"

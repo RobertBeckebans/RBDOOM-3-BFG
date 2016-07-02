@@ -99,14 +99,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	half lambert = ldotN;
 #endif
 
-	half3 diffuseColor = diffuseMap * sRGBToLinearRGB( rpDiffuseModifier.xyz );
-	half3 specularColor = specMap.xyz * specularContribution * sRGBToLinearRGB( rpSpecularModifier.xyz * 1.0 );
-	half3 lightColor =  sRGBToLinearRGB( lightProj.xyz * lightFalloff.xyz );
-	
-	half rim =  1.0f - saturate( hDotN );
-	half rimPower = 16.0f;
-	half3 rimColor = diffuseColor * lightProj.xyz * lightFalloff.xyz * 1.0f * pow( rim, rimPower ) * fragment.color.rgb;// * halfLdotN;
-	
+
 	//
 	// shadow mapping
 	//

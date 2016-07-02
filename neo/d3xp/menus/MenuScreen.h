@@ -1857,7 +1857,6 @@ inline void InvitePartyOrFriends()
 	}
 }
 
->>>>>>> 7b5fc61... added option to game setting to turn on or off muzzleflashes
 #endif
 
 #endif // __MENUSCREEN_H__
