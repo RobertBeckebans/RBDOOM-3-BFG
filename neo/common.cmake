@@ -37,6 +37,8 @@ file(GLOB RENDERER_JOBS_STATICSHADOWVOLUME_SOURCES renderer/jobs/staticshadowvol
 file(GLOB RENDERER_OPENGL_INCLUDES renderer/OpenGL/*.h)
 file(GLOB RENDERER_OPENGL_SOURCES renderer/OpenGL/*.cpp)
 
+file(GLOB RENDERER_SMAA_INCLUDES renderer/SMAA/*.h)
+
 set(SOUND_INCLUDES
   sound/snd_defines.h
   sound/snd_local.h
@@ -354,6 +356,8 @@ source_group("renderer\\jobs\\staticshadowvolume" FILES ${RENDERER_JOBS_STATICSH
 source_group("renderer\\OpenGL" FILES ${RENDERER_OPENGL_INCLUDES})
 source_group("renderer\\OpenGL" FILES ${RENDERER_OPENGL_SOURCES})
 
+source_group("renderer\\SMAA" FILES ${RENDERER_SMAA_INCLUDES})
+
 source_group("sound" FILES ${SOUND_INCLUDES})
 source_group("sound" FILES ${SOUND_SOURCES})
 
@@ -425,6 +429,7 @@ set(OpenTechBFG_INCLUDES
   ${RENDERER_JOBS_PRELIGHTSHADOWVOLUME_INCLUDES}
   ${RENDERER_JOBS_STATICSHADOWVOLUME_INCLUDES}
   ${RENDERER_OPENGL_INCLUDES}
+  ${RENDERER_SMAA_INCLUDES}
   ${SOUND_INCLUDES}
   ${UI_INCLUDES}
   ${SWF_INCLUDES}
