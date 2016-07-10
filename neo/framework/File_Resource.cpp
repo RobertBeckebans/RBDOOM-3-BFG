@@ -367,12 +367,13 @@ void idResourceContainer::ExtractResourceFile( const char* _fileName, const char
 		idResourceCacheEntry rt;
 		rt.Read( &memFile );
 		rt.filename.BackSlashesToSlashes();
-		rt.filename.ToLower();
+		//rt.filename.ToLower(); // PW: Some files are case sensitive, so this causes errors
 		byte* fbuf = NULL;
 		if( _copyWavs && ( rt.filename.Find( ".idwav" ) >= 0 ||  rt.filename.Find( ".idxma" ) >= 0 ||  rt.filename.Find( ".idmsf" ) >= 0 ) )
 		{
-			rt.filename.SetFileExtension( "wav" );
+			//rt.filename.SetFileExtension( "wav" ); // PW: This seems to set the extension of EVERY file in the archive to WAV (including BIKs!)
 			rt.filename.Replace( "generated/", "" );
+			// PW: This part just does not work. I have not removed it because I am still working on the file extracting facilities.
 			//int len = fileSystem->GetFileLength( rt.filename );
 			//fbuf = ( byte* )Mem_Alloc( len, TAG_RESOURCE );
 			//fileSystem->ReadFile( rt.filename, ( void** )&fbuf, NULL );
