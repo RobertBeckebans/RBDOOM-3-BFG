@@ -314,7 +314,7 @@ void idResourceContainer::UpdateResourceFile( const char* _filename, const idStr
 
 /*
 ========================
-idResourceContainer::ExtractResourceFile
+idResourceContainer::SetContainerIndex
 ========================
 */
 void idResourceContainer::SetContainerIndex( const int& _idx )
@@ -344,6 +344,7 @@ void idResourceContainer::ExtractResourceFile( const char* _fileName, const char
 	inFile->ReadBig( magic );
 	if( magic != RESOURCE_FILE_MAGIC )
 	{
+		idLib::Warning( "%s is not a resource file!\n", _fileName );
 		delete inFile;
 		return;
 	}
@@ -372,16 +373,16 @@ void idResourceContainer::ExtractResourceFile( const char* _fileName, const char
 		{
 			rt.filename.SetFileExtension( "wav" );
 			rt.filename.Replace( "generated/", "" );
-			int len = fileSystem->GetFileLength( rt.filename );
-			fbuf = ( byte* )Mem_Alloc( len, TAG_RESOURCE );
-			fileSystem->ReadFile( rt.filename, ( void** )&fbuf, NULL );
+			//int len = fileSystem->GetFileLength( rt.filename );
+			//fbuf = ( byte* )Mem_Alloc( len, TAG_RESOURCE );
+			//fileSystem->ReadFile( rt.filename, ( void** )&fbuf, NULL );
 		}
-		else
-		{
+		//else
+		//{
 			inFile->Seek( rt.offset, FS_SEEK_SET );
 			fbuf = ( byte* )Mem_Alloc( rt.length, TAG_RESOURCE );
 			inFile->Read( fbuf, rt.length );
-		}
+		//}
 		idStr outName = _outPath;
 		outName.AppendPath( rt.filename );
 		idFile* outFile = fileSystem->OpenExplicitFileWrite( outName );
