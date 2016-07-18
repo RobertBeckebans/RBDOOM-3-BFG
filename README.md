@@ -312,8 +312,9 @@ __________________________________________
 	All 3 light types are supported which means parallel lights (sun) use
 	scene independent cascaded shadow mapping.
 	The implementation is very fast with single taps (400 fps average per
-	scene on a GTX 660 ti OC) however I defaulted it to 16 taps so the shadows look
-	really good which should give you stable 100 fps on todays hardware (2014).
+	scene on a GTX 660 ti OC) however I defaulted it to 12 taps using a Poisson 
+	disc algorithm so the shadows look really good which should give you 
+	stable 100 fps on todays hardware (2014).
 
 - Changed light interaction shaders to use Half-Lambert lighting like in Half-Life 2 to 
 	make the game less dark. https://developer.valvesoftware.com/wiki/Half_Lambert
