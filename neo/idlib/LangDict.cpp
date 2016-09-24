@@ -165,7 +165,7 @@ bool idLangDict::Load( const byte* buffer, const int bufferLen, const char* name
 	
 	// in all but retail builds, ensure that the byte-order mark is NOT MISSING so that
 	// we can avoid debugging UTF-8 code
-#ifndef ID_RETAIL
+#ifdef _DEBUG
 	utf8Encoding_t encoding = idLocalization::VerifyUTF8( buffer, bufferLen, name );
 	if( encoding == UTF8_ENCODED_BOM )
 	{
