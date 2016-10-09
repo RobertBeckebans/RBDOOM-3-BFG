@@ -847,7 +847,7 @@ void RemoveFileFromAllManifests( const char* filename, idList< idFileManifest >&
 
 /*
 ================
-idFileSystemLocal::AddPerPlatformResources
+idFileSystemLocal::AddRenderProgs
 ================
 */
 void idFileSystemLocal::AddRenderProgs( idStrList& files )
@@ -885,7 +885,7 @@ void idFileSystemLocal::AddRenderProgs( idStrList& files )
 
 /*
 ================
-idFileSystemLocal::AddSoundResources
+idFileSystemLocal::AddFonts
 ================
 */
 void idFileSystemLocal::AddFonts( idStrList& files )
