@@ -314,7 +314,7 @@ void idResourceContainer::UpdateResourceFile( const char* _filename, const idStr
 
 /*
 ========================
-idResourceContainer::ExtractResourceFile
+idResourceContainer::SetContainerIndex
 ========================
 */
 void idResourceContainer::SetContainerIndex( const int& _idx )
