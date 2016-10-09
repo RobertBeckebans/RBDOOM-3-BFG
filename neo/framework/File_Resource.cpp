@@ -400,7 +400,7 @@ void idResourceContainer::ExtractResourceFile( const char* _fileName, const char
 
 /*
 ========================
-idResourceContainer::Open
+idResourceContainer::WriteResourceFile
 ========================
 */
 void idResourceContainer::WriteResourceFile( const char* manifestName, const idStrList& manifest, const bool& _writeManifest )
