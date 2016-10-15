@@ -126,7 +126,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	float L = ( 1.0 - exp( -Yr * exposure ) );
 	color.rgb *= L;
 	
-	// Kodak filmic tone mappping, includes gamma correction
+	// Kodak filmic tone mapping, includes gamma correction
 	//float3 rgb = max( float3( 0 ), color.rgb - float3( 0.004 ) );
 	//color.rgb = rgb * ( float3( 0.5 ) + 6.2 * rgb ) / ( float3( 0.06 ) + rgb * ( float3( 1.7 ) + 6.2 * rgb ) );
 	

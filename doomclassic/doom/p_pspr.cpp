@@ -358,7 +358,7 @@ A_WeaponReady
 	if (player->pendingweapon != wp_nochange || !player->health)
 	{
 		// change weapon
-		//  (pending weapon should allready be validated)
+		//  (pending weapon should already be validated)
 		newstate = (statenum_t)weaponinfo[player->readyweapon].downstate;
 		P_SetPsprite (player, ps_weapon, newstate);
 		return;	

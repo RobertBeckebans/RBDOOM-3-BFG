@@ -111,7 +111,7 @@ void AddPortalToNodes( uPortal_t*  p, node_t* front, node_t* back )
 {
 	if( p->nodes[0] || p->nodes[1] )
 	{
-		common->Error( "AddPortalToNode: allready included" );
+		common->Error( "AddPortalToNode: already included" );
 	}
 	
 	p->nodes[0] = front;
@@ -877,7 +877,7 @@ void FloodAreas_r( node_t* node )
 	
 	if( node->area != -1 )
 	{
-		return;		// allready got it
+		return;		// already got it
 	}
 	if( node->opaque )
 	{
@@ -939,7 +939,7 @@ void FindAreas_r( node_t* node )
 	
 	if( node->area != -1 )
 	{
-		return;		// allready got it
+		return;		// already got it
 	}
 	
 	c_areaFloods = 0;

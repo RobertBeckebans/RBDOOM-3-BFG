@@ -68,9 +68,9 @@ idCVar com_version( "si_version", version.string, CVAR_SYSTEM | CVAR_ROM | CVAR_
 idCVar com_forceGenericSIMD( "com_forceGenericSIMD", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_NOCHEAT, "force generic platform independent SIMD" );
 
 #ifdef ID_RETAIL
-idCVar com_allowConsole( "com_allowConsole", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_INIT, "allow toggling console with the tilde key" );
+idCVar com_allowConsole( "com_allowConsole", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_INIT, "allows one toggling console with the tilde key" );
 #else
-idCVar com_allowConsole( "com_allowConsole", "1", CVAR_BOOL | CVAR_SYSTEM | CVAR_INIT, "allow toggling console with the tilde key" );
+idCVar com_allowConsole( "com_allowConsole", "1", CVAR_BOOL | CVAR_SYSTEM | CVAR_INIT, "allows one toggling console with the tilde key" );
 #endif
 
 idCVar com_developer( "developer", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_NOCHEAT, "developer mode" );
@@ -919,7 +919,7 @@ void idCommonLocal::RenderBink( const char* path )
 		// queue system events ready for polling
 		Sys_GetEvent();
 		
-		// RB: allow to escape video by pressing anything
+		// RB: allows one to escape video by pressing anything
 		int numKeyEvents = Sys_PollKeyboardInputEvents();
 		if( numKeyEvents > 0 )
 		{
