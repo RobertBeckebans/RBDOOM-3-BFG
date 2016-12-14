@@ -33,7 +33,7 @@ If you have questions concerning this license or the applicable additional terms
 extern idCVar g_demoMode;
 
 static const int PEER_UPDATE_INTERVAL = 500;
-static const int MAX_MENU_OPTIONS = 6;
+static const int MAX_MENU_OPTIONS = 7;
 
 void idMenuHandler_Shell::Update()
 {
@@ -505,6 +505,7 @@ void idMenuHandler_Shell::Initialize( const char* swfFile, idSoundWorld* sw )
 		BIND_SHELL_SCREEN( SHELL_AREA_RESOLUTION, idMenuScreen_Shell_Resolution, this );
 		BIND_SHELL_SCREEN( SHELL_AREA_CONTROLLER_LAYOUT, idMenuScreen_Shell_ControllerLayout, this );
 		BIND_SHELL_SCREEN( SHELL_AREA_DEV, idMenuScreen_Shell_Dev, this );
+		BIND_SHELL_SCREEN( SHELL_AREA_MODS, idMenuScreen_Shell_Mods, this );
 		BIND_SHELL_SCREEN( SHELL_AREA_LEADERBOARDS, idMenuScreen_Shell_Leaderboards, this );
 		BIND_SHELL_SCREEN( SHELL_AREA_GAMEPAD, idMenuScreen_Shell_Gamepad, this );
 		BIND_SHELL_SCREEN( SHELL_AREA_MATCH_SETTINGS, idMenuScreen_Shell_MatchSettings, this );
@@ -760,6 +761,7 @@ enum shellCommandsPC_t
 	SHELL_CMD_DEV,
 	SHELL_CMD_CAMPAIGN,
 	SHELL_CMD_MULTIPLAYER,
+	SHELL_CMD_MODS,
 	SHELL_CMD_SETTINGS,
 	SHELL_CMD_CREDITS,
 	SHELL_CMD_QUIT
@@ -836,6 +838,7 @@ void idMenuHandler_Shell::SetupPCOptions()
 #endif
 			navOptions.Append( "#str_swf_campaign" );	// singleplayer
 			navOptions.Append( "#str_swf_multiplayer" );	// multiplayer
+			navOptions.Append( "MODS" );
 			navOptions.Append( "#str_swf_settings" );	// settings
 			navOptions.Append( "#str_swf_credits" );	// credits
 			navOptions.Append( "#str_swf_quit" );	// quit
@@ -867,6 +870,14 @@ void idMenuHandler_Shell::SetupPCOptions()
 				buttonWidget->ClearEventActions();
 				buttonWidget->AddEventAction( WIDGET_EVENT_PRESS ).Set( WIDGET_ACTION_COMMAND, SHELL_CMD_MULTIPLAYER, index );
 				buttonWidget->SetDescription( "#str_02215" );
+			}
+			index++;
+			buttonWidget = dynamic_cast< idMenuWidget_MenuButton* >( &menuBar->GetChildByIndex( index ) );
+			if( buttonWidget != NULL )
+			{
+				buttonWidget->ClearEventActions();
+				buttonWidget->AddEventAction( WIDGET_EVENT_PRESS ).Set( WIDGET_ACTION_COMMAND, SHELL_CMD_MODS, index );
+				buttonWidget->SetDescription( "Load a Mod" );
 			}
 			index++;
 			buttonWidget = dynamic_cast< idMenuWidget_MenuButton* >( &menuBar->GetChildByIndex( index ) );
@@ -1080,6 +1091,12 @@ bool idMenuHandler_Shell::HandleAction( idWidgetAction& action, const idWidgetEv
 				case SHELL_CMD_CREDITS:
 				{
 					nextScreen = SHELL_AREA_CREDITS;
+					transition = MENU_TRANSITION_SIMPLE;
+					break;
+				}
+				case SHELL_CMD_MODS:
+				{
+					nextScreen = SHELL_AREA_MODS;
 					transition = MENU_TRANSITION_SIMPLE;
 					break;
 				}
