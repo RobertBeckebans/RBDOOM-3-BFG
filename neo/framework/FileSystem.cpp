@@ -135,6 +135,8 @@ public:
 	virtual void			Restart();
 	virtual void			Shutdown( bool reloading );
 	virtual bool			IsInitialized() const;
+	virtual idModList*		ListMods();
+	virtual void			FreeModList(idModList *modList);
 	virtual idFileList* 	ListFiles( const char* relativePath, const char* extension, bool sort = false, bool fullRelativePath = false, const char* gamedir = NULL );
 	virtual idFileList* 	ListFilesTree( const char* relativePath, const char* extension, bool sort = false, const char* gamedir = NULL );
 	virtual void			FreeFileList( idFileList* fileList );
@@ -2463,6 +2465,58 @@ idFileSystemLocal::FreeFileList
 void idFileSystemLocal::FreeFileList( idFileList* fileList )
 {
 	delete fileList;
+}
+
+/*
+===============
+idFileSystemLocal::ListMods
+===============
+*/
+idModList *idFileSystemLocal::ListMods() 
+{
+	//adapted from original doom3 source
+	const char* basePath = fs_basepath.GetString();
+	idStrList dirs;
+	idModList* list = new idModList;
+
+	ListOSFiles(basePath, "/", dirs);
+
+	dirs.Remove(".");
+	dirs.Remove("..");
+	dirs.Remove("base");
+
+	for (int i = 0; i < dirs.Num(); i++)
+	{
+		list->mods.Append(dirs[i]);
+
+		idStr descfile = BuildOSPath(basePath, dirs[i], "description.txt");	
+		idFile* f = OpenFileRead(descfile, FS_READ);
+
+		if (f)
+		{
+			//TODO: needs revision
+			void *buffer;
+			idStr description;
+			f->Read(buffer, f->Length());
+			description = (const char*)buffer;
+			list->descriptions.Append(description);
+		}
+		else
+		{
+			common->DWarning("Error reading %s", descfile.c_str());
+		}
+	}
+
+	return list;
+}
+
+/*
+===============
+idFileSystemLocal::FreeModList
+===============
+*/
+void idFileSystemLocal::FreeModList(idModList *modList) {
+	delete modList;
 }
 
 /*

@@ -185,6 +185,7 @@ bool idMenuScreen_Shell_Mods::HandleAction(idWidgetAction& action, const idWidge
 		if ((modIndex < modOptions.Num()) && (modOptions[modIndex].dir != NULL))
 		{
 			//load mod
+			//From original doom3 source
 			idStr args = "+set fs_game ";
 			args.Append(modOptions[modIndex].dir);
 			unsigned int exitCode;
@@ -200,13 +201,18 @@ bool idMenuScreen_Shell_Mods::HandleAction(idWidgetAction& action, const idWidge
 }
 
 void idMenuScreen_Shell_Mods::SetupModOptions()
-{
-	//From original doom3 source
-	
+{	
 	modOptions.Append(modOption_t(BASE_GAMEDIR, GAME_NAME));
+
+	idModList *mods = fileSystem->ListMods();
+		
+	for (int i = 0; i < mods->GetNumMods(); i++)
+	{
+		modOptions.Append(modOption_t(mods->GetMod(i), mods->GetDescription(i)));
+	}
 	
 	idList< idList< idStr, TAG_IDLIB_LIST_MENU >, TAG_IDLIB_LIST_MENU > menuOptions;
-	
+
 	for (int i = 0; i < modOptions.Num(); ++i)
 	{
 		idList< idStr > option;
@@ -215,4 +221,6 @@ void idMenuScreen_Shell_Mods::SetupModOptions()
 	}
 	
 	options->SetListData(menuOptions);
+
+	fileSystem->FreeModList(mods);
 }
