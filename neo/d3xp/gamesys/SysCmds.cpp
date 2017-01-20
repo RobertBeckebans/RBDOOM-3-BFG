@@ -1870,11 +1870,8 @@ static void Cmd_DeleteSelected_f( const idCmdArgs& args )
 	{
 		return;
 	}
-	
-	if( player )
-	{
-		player->dragEntity.DeleteSelected();
-	}
+
+	player->dragEntity.DeleteSelected();
 }
 
 /*
@@ -2073,10 +2070,7 @@ static void Cmd_BindRagdoll_f( const idCmdArgs& args )
 		return;
 	}
 	
-	if( player )
-	{
-		player->dragEntity.BindSelected();
-	}
+	player->dragEntity.BindSelected();
 }
 
 /*
@@ -2094,10 +2088,7 @@ static void Cmd_UnbindRagdoll_f( const idCmdArgs& args )
 		return;
 	}
 	
-	if( player )
-	{
-		player->dragEntity.UnbindSelected();
-	}
+	player->dragEntity.UnbindSelected();
 }
 
 /*
