@@ -314,6 +314,14 @@ static void R_CheckCvars()
 				break;
 		}
 	}
+
+	if (r_useHDR.IsModified() || r_useHalfLambertLighting.IsModified() )
+	{
+		r_useHDR.ClearModified();
+		r_useHalfLambertLighting.ClearModified();
+		renderProgManager.KillAllShaders();
+		renderProgManager.LoadAllShaders();
+	}
 	
 	// RB: turn off shadow mapping for OpenGL drivers that are too slow
 	switch( glConfig.driverType )
@@ -831,14 +839,7 @@ const emptyCommand_t* idRenderSystemLocal::SwapCommandBuffers_FinishCommandBuffe
 	
 	// possibly change the stereo3D mode
 	// PC
-	if( glConfig.nativeScreenWidth == 1280 && glConfig.nativeScreenHeight == 1470 )
-	{
-		glConfig.stereo3Dmode = STEREO3D_HDMI_720;
-	}
-	else
-	{
-		glConfig.stereo3Dmode = GetStereoScopicRenderingMode();
-	}
+	UpdateStereo3DMode();
 	
 	// prepare the new command buffer
 	guiModel->BeginFrame();
