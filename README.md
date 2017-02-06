@@ -312,11 +312,21 @@ __________________________________________
 	All 3 light types are supported which means parallel lights (sun) use
 	scene independent cascaded shadow mapping.
 	The implementation is very fast with single taps (400 fps average per
-	scene on a GTX 660 ti OC) however I defaulted it to 16 taps so the shadows look
-	really good which should give you stable 100 fps on todays hardware (2014).
+	scene on a GTX 660 ti OC) however I defaulted it to 12 taps using a Poisson 
+	disc algorithm so the shadows look really good which should give you 
+	stable 100 fps on todays hardware (2014).
 
 - Changed light interaction shaders to use Half-Lambert lighting like in Half-Life 2 to 
 	make the game less dark. https://developer.valvesoftware.com/wiki/Half_Lambert
+
+- True 64 bit HDR lighting with adaptive tone mapping and gamma-correct rendering in linear RGB space
+
+- Enhanced Subpixel Morphological Antialiasing
+	For more information see "Anti-Aliasing Methods in CryENGINE 3" and the docs at http://www.iryoku.com/smaa/
+
+- Filmic post process effects like Technicolor color grading and film grain
+
+- Additional ambient render pass to make the game less dark similar to the Quake 4 r_forceAmbient technique
 
 
 ___________________________________________________
@@ -324,8 +334,21 @@ ___________________________________________________
 9) CONSOLE VARIABLES
 __________________________________________
 
+r_antiAliasing - Different Anti-Aliasing modes
+
 r_useShadowMapping 1 - Use soft shadow mapping instead of hard stencil shadows
 
+r_useHDR [0 or 1] - Use High Dynamic Range lighting
+
+r_hdrAutoExposure [0 or 1] - Adaptive tonemapping with HDR
+	This allows to have very bright or very dark scenes but the camera will adopt to it so the scene won't loose details
+
+r_exposure [0 .. 1] - Default 0.5, Controls brightness and affects HDR exposure key
+	This is what you change in the video brightness options
+
+r_useSSAO [0 .. 1] - Use Screen Space Ambient Occlusion to darken the corners in the scene
+
+r_useFilmicPostProcessEffects [0 or 1] - Apply several post process effects to mimic a filmic look"
 
 ___________________________________________________
 
@@ -336,6 +359,12 @@ Doom 3 wasn't designed to work with shadow maps so:
 
 - Some lights cause shadow acne with shadow mapping
 - Some shadows might almost disappear due to the shadow filtering
+
+Also keep in mind following things:
+
+- HDR does not work with old-school stencil shadows
+
+- MSAA anti-aliasing modes don't work with HDR: Use SMAA
 
 ___________________________________________________
 

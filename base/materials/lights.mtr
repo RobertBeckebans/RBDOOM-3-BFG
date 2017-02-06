@@ -50,7 +50,6 @@ lights/ambientLight2
 // if none is set
 lights/squarelight1
 {
-	ambientLight
 	lightFalloffImage	makeintensity( lights/squarelight1a.png )
 	{
 		forceHighQuality
