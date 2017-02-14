@@ -56,7 +56,7 @@ public:
 	}
 	void SetName( const char* _name )
 	{
-		delete []name;
+		delete[] name;
 		name = NULL;
 		if( _name )
 		{
