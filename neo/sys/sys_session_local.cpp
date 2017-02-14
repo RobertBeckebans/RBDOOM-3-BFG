@@ -3217,7 +3217,7 @@ idSessionLocal::ReadLeaderboardFromMsg
 */
 const leaderboardDefinition_t* idSessionLocal::ReadLeaderboardFromMsg( idBitMsg& msg, column_t* stats )
 {
-	int id = msg.ReadLong();
+	int id = msg.ReadInt();
 	
 	const leaderboardDefinition_t* leaderboard = Sys_FindLeaderboardDef( id );
 	
@@ -4614,7 +4614,7 @@ void idSessionLocal::HandleDedicatedServerQueryRequest( lobbyAddress_t& remoteAd
 	
 	// DG: use int instead of long for 64bit compatibility
 	const unsigned int localChecksum = NetGetVersionChecksum();
-	const unsigned int remoteChecksum = msg.ReadLong();
+	const unsigned int remoteChecksum = msg.ReadInt();
 	// DG end
 	
 	if( remoteChecksum != localChecksum )

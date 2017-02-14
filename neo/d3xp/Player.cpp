@@ -11994,10 +11994,10 @@ void idPlayer::ReadPlayerStateFromSnapshot( const idBitMsg& msg )
 	int newStepUpDelta = 0;
 	
 	newBobCycle = msg.ReadByte();
-	newStepUpTime = msg.ReadLong();
+	newStepUpTime = msg.ReadInt();
 	newStepUpDelta = msg.ReadFloat();
 	
-	inventory.weapons = msg.ReadLong();
+	inventory.weapons = msg.ReadInt();
 	inventory.armor = msg.ReadByte();
 	
 	inventory.ReadAmmoFromSnapshot( msg, GetEntityNumber() );

@@ -570,7 +570,7 @@ void idGameLocal::ServerProcessReliableMessage( int clientNum, int type, const i
 		}
 		case GAME_RELIABLE_MESSAGE_VCHAT:
 		{
-			int index = msg.ReadLong();
+			int index = msg.ReadInt();
 			bool team = msg.ReadBits( 1 ) != 0;
 			mpGame.ProcessVoiceChat( clientNum, team, index );
 			break;
@@ -588,7 +588,7 @@ void idGameLocal::ServerProcessReliableMessage( int clientNum, int type, const i
 			
 			event->spawnId = msg.ReadBits( 32 );
 			event->event = msg.ReadByte();
-			event->time = msg.ReadLong();
+			event->time = msg.ReadInt();
 			
 			event->paramsSize = msg.ReadBits( idMath::BitsForInteger( MAX_EVENT_PARAM_SIZE ) );
 			if( event->paramsSize )
@@ -640,9 +640,9 @@ void idGameLocal::ServerProcessReliableMessage( int clientNum, int type, const i
 			const int victimNum = msg.ReadShort();
 			idVec3 dir;
 			msg.ReadVectorFloat( dir );
-			const int damageDefIndex = msg.ReadLong();
+			const int damageDefIndex = msg.ReadInt();
 			const float damageScale = msg.ReadFloat();
-			const int location = msg.ReadLong();
+			const int location = msg.ReadInt();
 			
 			if( gameLocal.entities[victimNum] == NULL )
 			{
@@ -761,7 +761,7 @@ void idGameLocal::ClientReadSnapshot( const idSnapShot& ss )
 		if( snapObjectNum == SNAP_PORTALS )
 		{
 			// update portals for opened doors
-			int numPortals = msg.ReadLong();
+			int numPortals = msg.ReadInt();
 			assert( numPortals == gameRenderWorld->NumPortals() );
 			for( int i = 0; i < numPortals; i++ )
 			{
@@ -808,7 +808,7 @@ void idGameLocal::ClientReadSnapshot( const idSnapShot& ss )
 				continue;
 			}
 			
-			usercmdLastClientMilliseconds[playerNumber] = msg.ReadLong();
+			usercmdLastClientMilliseconds[playerNumber] = msg.ReadInt();
 			continue;
 		}
 		if( snapObjectNum < SNAP_ENTITIES || snapObjectNum >= SNAP_ENTITIES_END )
@@ -1085,7 +1085,7 @@ void idGameLocal::ClientProcessReliableMessage( int type, const idBitMsg& msg )
 		}
 		case GAME_RELIABLE_MESSAGE_SOUND_INDEX:
 		{
-			int index = gameLocal.ClientRemapDecl( DECL_SOUND, msg.ReadLong() );
+			int index = gameLocal.ClientRemapDecl( DECL_SOUND, msg.ReadInt() );
 			if( index >= 0 && index < declManager->GetNumDecls( DECL_SOUND ) )
 			{
 				const idSoundShader* shader = declManager->SoundByIndex( index );
@@ -1110,7 +1110,7 @@ void idGameLocal::ClientProcessReliableMessage( int type, const idBitMsg& msg )
 			
 			event->spawnId = msg.ReadBits( 32 );
 			event->event = msg.ReadByte();
-			event->time = msg.ReadLong();
+			event->time = msg.ReadInt();
 			
 			event->paramsSize = msg.ReadBits( idMath::BitsForInteger( MAX_EVENT_PARAM_SIZE ) );
 			if( event->paramsSize )
@@ -1153,7 +1153,7 @@ void idGameLocal::ClientProcessReliableMessage( int type, const idBitMsg& msg )
 		}
 		case GAME_RELIABLE_MESSAGE_LOBBY_COUNTDOWN:
 		{
-			int timeRemaining = msg.ReadLong();
+			int timeRemaining = msg.ReadInt();
 			Shell_UpdateClientCountdown( timeRemaining );
 			break;
 		}

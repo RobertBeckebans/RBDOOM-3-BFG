@@ -5776,7 +5776,7 @@ void idEntity::ReadColorFromSnapshot( const idBitMsg& msg )
 {
 	idVec4 color;
 	
-	UnpackColor( msg.ReadLong(), color );
+	UnpackColor( msg.ReadInt(), color );
 	renderEntity.shaderParms[ SHADERPARM_RED ] = color[0];
 	renderEntity.shaderParms[ SHADERPARM_GREEN ] = color[1];
 	renderEntity.shaderParms[ SHADERPARM_BLUE ] = color[2];
@@ -6012,7 +6012,7 @@ bool idEntity::ClientReceiveEvent( int event, int time, const idBitMsg& msg )
 				common->DPrintf( "ent 0x%x: start sound shader too old (%d ms)\n", entityNumber, gameLocal.realClientTime - time );
 				return true;
 			}
-			index = gameLocal.ClientRemapDecl( DECL_SOUND, msg.ReadLong() );
+			index = gameLocal.ClientRemapDecl( DECL_SOUND, msg.ReadInt() );
 			if( index >= 0 && index < declManager->GetNumDecls( DECL_SOUND ) )
 			{
 				shader = declManager->SoundByIndex( index, false );
@@ -6597,8 +6597,8 @@ bool idAnimatedEntity::ClientReceiveEvent( int event, int time, const idBitMsg& 
 			localOrigin[2] = msg.ReadFloat();
 			localNormal = msg.ReadDir( 24 );
 			localDir = msg.ReadDir( 24 );
-			damageDefIndex = gameLocal.ClientRemapDecl( DECL_ENTITYDEF, msg.ReadLong() );
-			materialIndex = gameLocal.ClientRemapDecl( DECL_MATERIAL, msg.ReadLong() );
+			damageDefIndex = gameLocal.ClientRemapDecl( DECL_ENTITYDEF, msg.ReadInt() );
+			materialIndex = gameLocal.ClientRemapDecl( DECL_MATERIAL, msg.ReadInt() );
 			const idDeclEntityDef* damageDef = static_cast<const idDeclEntityDef*>( declManager->DeclByIndex( DECL_ENTITYDEF, damageDefIndex ) );
 			const idMaterial* collisionMaterial = static_cast<const idMaterial*>( declManager->DeclByIndex( DECL_MATERIAL, materialIndex ) );
 			AddLocalDamageEffect( jointNum, localOrigin, localNormal, localDir, damageDef, collisionMaterial );

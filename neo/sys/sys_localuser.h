@@ -79,7 +79,7 @@ public:
 	
 	void ReadFromMsg( const idBitMsg& msg )
 	{
-		handle = msg.ReadLong();
+		handle = msg.ReadInt();
 	}
 	
 	void Serialize( idSerializer& ser );
