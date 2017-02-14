@@ -2188,9 +2188,8 @@ static int CM_FindSplitter( const cm_node_t* node, const idBounds& bounds, int* 
 						continue;
 					}
 					// find the most centered splitter
-					t = abs( ( bounds[1][type] - dist ) - ( dist - bounds[0][type] ) );
-					if( t < bestt )
-					{
+					t = idMath::Fabs((bounds[1][type] - dist) - (dist - bounds[0][type]));
+					if ( t < bestt ) {
 						bestt = t;
 						*planeType = type;
 						*planeDist = dist;
@@ -2213,9 +2212,8 @@ static int CM_FindSplitter( const cm_node_t* node, const idBounds& bounds, int* 
 						continue;
 					}
 					// find the most centered splitter
-					t = abs( ( bounds[1][type] - dist ) - ( dist - bounds[0][type] ) );
-					if( t < bestt )
-					{
+					t = idMath::Fabs((bounds[1][type] - dist) - (dist - bounds[0][type]));
+					if ( t < bestt ) {
 						bestt = t;
 						*planeType = type;
 						*planeDist = dist;
