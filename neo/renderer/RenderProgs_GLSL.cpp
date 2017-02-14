@@ -549,6 +549,11 @@ idStr StripDeadCode( const idStr& in, const char* name, const idStrList& compile
 	{
 		src.AddDefine( "USE_GPU_SKINNING" );
 	}
+
+	if( !r_useShadowMapping.GetBool() && r_selfShadow.GetBool() && r_selfShadowAdjust.GetBool() )
+	{
+		src.AddDefine( "USE_SELF_SHADOW_ADJUST" );
+	}
 	
 	if( r_useUniformArrays.GetBool() )
 	{
@@ -2180,10 +2185,22 @@ void idRenderProgManager::LoadGLSLProgram( const int programIndex, const int ver
 	if( linked == GL_FALSE )
 	{
 		glDeleteProgram( program );
-		idLib::Error( "While linking GLSL program %d with vertexShader %s and fragmentShader %s\n",
-					  programIndex,
-					  ( vertexShaderIndex >= 0 ) ? vertexShaders[vertexShaderIndex].name.c_str() : "<Invalid>",
-					  ( fragmentShaderIndex >= 0 ) ? fragmentShaders[ fragmentShaderIndex ].name.c_str() : "<Invalid>" );
+		if( vertexShaders[vertexShaderIndex].name == "interactionSM" ||
+			vertexShaders[fragmentShaderIndex].name == "interactionSM" )
+		{
+			r_useShadowMapping.SetBool( false );
+			idLib::Warning( "While linking GLSL program %d with vertexShader %s and fragmentShader %s\n",
+						  programIndex,
+						  ( vertexShaderIndex >= 0 ) ? vertexShaders[vertexShaderIndex].name.c_str() : "<Invalid>",
+						  ( fragmentShaderIndex >= 0 ) ? fragmentShaders[ fragmentShaderIndex ].name.c_str() : "<Invalid>" );
+		}
+		else
+		{
+			idLib::Error( "While linking GLSL program %d with vertexShader %s and fragmentShader %s\n",
+						  programIndex,
+						  ( vertexShaderIndex >= 0 ) ? vertexShaders[vertexShaderIndex].name.c_str() : "<Invalid>",
+						  ( fragmentShaderIndex >= 0 ) ? fragmentShaders[ fragmentShaderIndex ].name.c_str() : "<Invalid>" );
+		}
 		return;
 	}
 	

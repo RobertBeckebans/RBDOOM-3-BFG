@@ -1064,6 +1064,8 @@ extern idCVar r_singleLight;				// suppress all but one light
 extern idCVar r_singleEntity;				// suppress all but one entity
 extern idCVar r_singleArea;					// only draw the portal area the view is actually in
 extern idCVar r_singleSurface;				// suppress all but one surface on each entity
+extern idCVar r_selfShadow;					// allows all materials to cast shadows on themselves
+extern idCVar r_selfShadowAdjust;			// adjust shaders to work around self shadow popping artifacts
 extern idCVar r_shadowPolygonOffset;		// bias value added to depth test for stencil shadow drawing
 extern idCVar r_shadowPolygonFactor;		// scale value for stencil shadow drawing
 
