@@ -2407,7 +2407,7 @@ void idMultiplayerGame::ReadFromSnapshot( const idBitMsg& msg )
 	}
 	
 	newState = ( idMultiplayerGame::gameState_t )msg.ReadByte();
-	nextStateSwitch = msg.ReadInt();
+	nextStateSwitch = msg.ReadLong();
 	if( newState != gameState && newState < STATE_COUNT )
 	{
 		gameLocal.DPrintf( "%s -> %s\n", GameStateStrings[ gameState ], GameStateStrings[ newState ] );
@@ -3591,7 +3591,7 @@ void idMultiplayerGame::ClientReadStartState( const idBitMsg& msg )
 {
 	// read the state in preparation for reading snapshot updates
 	gameState = ( idMultiplayerGame::gameState_t )msg.ReadByte();
-	matchStartedTime = msg.ReadInt( );
+	matchStartedTime = msg.ReadLong( );
 	startFragLimit = msg.ReadShort( );
 	
 	int client;
@@ -3625,7 +3625,7 @@ idMultiplayerGame::ClientReadWarmupTime
 */
 void idMultiplayerGame::ClientReadWarmupTime( const idBitMsg& msg )
 {
-	warmupEndTime = msg.ReadInt();
+	warmupEndTime = msg.ReadLong();
 }
 
 /*
@@ -3635,7 +3635,7 @@ idMultiplayerGame::ClientReadWarmupTime
 */
 void idMultiplayerGame::ClientReadMatchStartedTime( const idBitMsg& msg )
 {
-	matchStartedTime = msg.ReadInt();
+	matchStartedTime = msg.ReadLong();
 }
 
 

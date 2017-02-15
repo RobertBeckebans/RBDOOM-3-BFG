@@ -358,7 +358,7 @@ public:
 		}
 		else
 		{
-			value = msg->ReadIntLong();
+			value = msg->ReadLongLong();
 		}
 	}
 	void	Serialize( uint64& value )
@@ -370,7 +370,7 @@ public:
 		}
 		else
 		{
-			value = msg->ReadIntLong();
+			value = msg->ReadLongLong();
 		}
 	}
 	void	Serialize( int32& value )
@@ -382,7 +382,7 @@ public:
 		}
 		else
 		{
-			value = msg->ReadInt();
+			value = msg->ReadLong();
 		}
 	}
 	void	Serialize( uint32& value )
@@ -394,7 +394,7 @@ public:
 		}
 		else
 		{
-			value = msg->ReadInt();
+			value = msg->ReadLong();
 		}
 	}
 	void	Serialize( int16& value )
@@ -478,7 +478,7 @@ public:
 		}
 		else
 		{
-			value.SetSeed( msg->ReadInt() );
+			value.SetSeed( msg->ReadLong() );
 		}
 	}
 	void	Serialize( idVec3& value )

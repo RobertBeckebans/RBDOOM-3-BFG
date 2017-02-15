@@ -157,9 +157,9 @@ struct lobbyUser_t
 	{
 		address.ReadFromMsg( msg );
 		lobbyUserID.ReadFromMsg( msg );
-		peerIndex = msg.ReadInt();
+		peerIndex = msg.ReadLong();
 		pingMs = msg.ReadShort();
-		partyToken = msg.ReadInt();
+		partyToken = msg.ReadLong();
 		msg.ReadString( gamertag, MAX_GAMERTAG );
 		ReadClientMutableData( msg );
 	}

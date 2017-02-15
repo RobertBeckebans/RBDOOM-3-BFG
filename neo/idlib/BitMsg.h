@@ -269,8 +269,8 @@ public:
 	int				ReadByte() const;
 	int				ReadShort() const;
 	int				ReadUShort() const;
-	int				ReadInt() const;
-	int64			ReadIntLong() const;
+	int				ReadLong() const;
+	int64			ReadLongLong() const;
 	float			ReadFloat() const;
 	float			ReadFloat( int exponentBits, int mantissaBits ) const;
 	float			ReadAngle8() const;
@@ -312,7 +312,7 @@ public:
 	}
 	int32			ReadDeltaLong( int32 oldValue ) const
 	{
-		return oldValue + ReadInt();
+		return oldValue + ReadLong();
 	}
 	float			ReadDeltaFloat( float oldValue ) const
 	{
@@ -933,20 +933,20 @@ ID_INLINE int idBitMsg::ReadUShort() const
 
 /*
 ========================
-idBitMsg::ReadInt
+idBitMsg::ReadLong
 ========================
 */
-ID_INLINE int idBitMsg::ReadInt() const
+ID_INLINE int idBitMsg::ReadLong() const
 {
 	return ReadBits( 32 );
 }
 
 /*
 ========================
-idBitMsg::ReadIntLong
+idBitMsg::ReadLongLong
 ========================
 */
-ID_INLINE int64 idBitMsg::ReadIntLong() const
+ID_INLINE int64 idBitMsg::ReadLongLong() const
 {
 	int64 a = ReadBits( 32 );
 	int64 b = ReadBits( 32 );

@@ -521,7 +521,7 @@ void idLobby::HandlePacket( lobbyAddress_t& remoteAddress, idBitMsg fragMsg, idP
 		}
 		else if( userData == OOB_BANDWIDTH_TEST )
 		{
-			int seqNum = msg.ReadInt();
+			int seqNum = msg.ReadLong();
 			// TODO: We should read the random data and verify the MD5 checksum
 			
 			int time = Sys_Milliseconds();
@@ -1755,7 +1755,7 @@ idLobby::CheckVersion
 */
 bool idLobby::CheckVersion( idBitMsg& msg, lobbyAddress_t peerAddress )
 {
-	const unsigned int remoteChecksum = msg.ReadInt(); // DG: use int instead of long for 64bit compatibility
+	const unsigned int remoteChecksum = msg.ReadLong(); // DG: use int instead of long for 64bit compatibility
 	
 	if( net_checkVersion.GetInteger() == 1 )
 	{
@@ -2493,12 +2493,12 @@ void idLobby::HandleHelloAck( int p, idBitMsg& msg )
 	SetPeerConnectionState( p, CONNECTION_ESTABLISHED );
 	
 	// Obtain what our peer index is on the host is
-	peerIndexOnHost = msg.ReadInt();
+	peerIndexOnHost = msg.ReadLong();
 	
 	// If we connected to a party lobby, get the party token from the lobby owner
 	if( lobbyType == TYPE_PARTY )
 	{
-		partyToken = msg.ReadInt();
+		partyToken = msg.ReadLong();
 	}
 	
 	// Read match parms
@@ -2810,7 +2810,7 @@ void idLobby::HandleReliableMsg( int p, idBitMsg& msg, const lobbyAddress_t* rem
 		VERIFY_FROM_HOST( p, lobbyType, RELIABLE_PARTY_USER_CONNECT_DENIED );
 		
 		// Remove this user from the sign-in manager, so we don't keep trying to add them
-		if( !sessionCB->GetSignInManager().RemoveLocalUserByHandle( localUserHandle_t( msg.ReadInt() ) ) )
+		if( !sessionCB->GetSignInManager().RemoveLocalUserByHandle( localUserHandle_t( msg.ReadLong() ) ) )
 		{
 			NET_VERBOSE_PRINT( "NET: RELIABLE_PARTY_USER_CONNECT_DENIED, local user not found\n" );
 			return;
@@ -2869,7 +2869,7 @@ void idLobby::HandleReliableMsg( int p, idBitMsg& msg, const lobbyAddress_t* rem
 		VERIFY_CONNECTED_PEER( p, actingGameStateLobbyType, RELIABLE_LOADING_DONE );
 		
 		unsigned int networkChecksum = 0; // DG: use int instead of long for 64bit compatibility
-		networkChecksum = msg.ReadInt();
+		networkChecksum = msg.ReadLong();
 		
 		peer.networkChecksum = networkChecksum;
 		peer.loaded = true;
@@ -2885,7 +2885,7 @@ void idLobby::HandleReliableMsg( int p, idBitMsg& msg, const lobbyAddress_t* rem
 		VERIFY_CONNECTED_PEER( p, actingGameStateLobbyType, RELIABLE_SNAPSHOT_ACK );
 		
 		// update our base state for his last received snapshot
-		int snapNum = msg.ReadInt();
+		int snapNum = msg.ReadLong();
 		float receivedBps = msg.ReadQuantizedUFloat< BANDWIDTH_REPORTING_MAX, BANDWIDTH_REPORTING_BITS >();
 		
 		// Update reported received bps
@@ -2909,7 +2909,7 @@ void idLobby::HandleReliableMsg( int p, idBitMsg& msg, const lobbyAddress_t* rem
 	else if( reliableType == RELIABLE_UPDATE_MATCH_PARMS )
 	{
 		VERIFY_CONNECTED_PEER( p, TYPE_GAME, RELIABLE_UPDATE_MATCH_PARMS );
-		int msgType = msg.ReadInt();
+		int msgType = msg.ReadLong();
 		sessionCB->HandlePeerMatchParamUpdate( p, msgType );
 		
 	}
@@ -4012,9 +4012,9 @@ void idLobby::HandleBandwidhTestValue( int p, idBitMsg& msg )
 		return;
 	}
 	
-	int totalTime = msg.ReadInt();
-	int totalGoodSeq = msg.ReadInt();
-	int totalReceivedBytes = msg.ReadInt();
+	int totalTime = msg.ReadLong();
+	int totalGoodSeq = msg.ReadLong();
+	int totalReceivedBytes = msg.ReadLong();
 	
 	// This is the % of complete packets we received. If the packets used in the BWC are big enough to fragment, then pctPackets
 	// will be lower than bytesPct (we will have received a larger PCT of overall bandwidth than PCT of full packets received).
@@ -4198,7 +4198,7 @@ void idLobby::HandleReliablePing( int p, idBitMsg& msg )
 		return;
 	}
 	
-	ping.timestamp = msg.ReadInt();
+	ping.timestamp = msg.ReadLong();
 	
 	if( IsHost() )
 	{

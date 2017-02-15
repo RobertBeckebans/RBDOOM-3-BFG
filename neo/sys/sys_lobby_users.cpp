@@ -887,7 +887,7 @@ idLobby::HandleHeadsetStateChange
 */
 void idLobby::HandleHeadsetStateChange( int fromPeer, idBitMsg& msg )
 {
-	int userCount = msg.ReadInt();
+	int userCount = msg.ReadLong();
 	
 	for( int i = 0; i < userCount; ++i )
 	{

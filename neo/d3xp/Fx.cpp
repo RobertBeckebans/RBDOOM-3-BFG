@@ -899,8 +899,8 @@ void idEntityFx::ReadFromSnapshot( const idBitMsg& msg )
 	
 	GetPhysics()->ReadFromSnapshot( msg );
 	ReadBindFromSnapshot( msg );
-	fx_index = gameLocal.ClientRemapDecl( DECL_FX, msg.ReadInt() );
-	start_time = msg.ReadInt();
+	fx_index = gameLocal.ClientRemapDecl( DECL_FX, msg.ReadLong() );
+	start_time = msg.ReadLong();
 	
 	if( fx_index != -1 && start_time > 0 && !fxEffect && started < 0 )
 	{
