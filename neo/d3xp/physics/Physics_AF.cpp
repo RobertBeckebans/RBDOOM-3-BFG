@@ -9039,7 +9039,7 @@ void idPhysics_AF::ReadFromSnapshot( const idBitMsg& msg )
 	int i, num;
 	idCQuat quat;
 	
-	current.atRest = msg.ReadInt();
+	current.atRest = msg.ReadLong();
 	current.noMoveTime = msg.ReadFloat();
 	current.activateTime = msg.ReadFloat();
 	current.pushVelocity[0] = msg.ReadDeltaFloat( 0.0f, AF_VELOCITY_EXPONENT_BITS, AF_VELOCITY_MANTISSA_BITS );
