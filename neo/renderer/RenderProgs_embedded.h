@@ -8255,7 +8255,7 @@ static const cgShaderDef_t cg_renderprogs[] =
 		"#if defined( USE_SELF_SHADOW_ADJUST ) && defined( USE_GPU_SKINNING )\n"
 		"	half ldotN = saturate( (dot3( localNormal, lightVector ) - 1.0) * 1.5 + 1.0 );\n"
 		"#else\n"
-		"	half ldotN = saturate( dot3( localNormal, lightVector ) );\n"
+		"	half ldotN = saturate( (dot3( localNormal, lightVector ) - 1.0) * 1.5 + 1.0 );\n"
 		"#endif\n"
 		"\n"
 		"#if defined(USE_HALF_LAMBERT)\n"
