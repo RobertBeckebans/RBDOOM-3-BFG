@@ -8,9 +8,12 @@ option(USE_MFC_TOOLS
 		
 option(MONOLITH
 		"Embed game logic into main executable" ON)
+
+option(USE_PRECOMPILED_HEADERS
+		"Use precompiled headers during build" ON)
 		
 option(SDL2
-		"Use SDL2 instead of SDL1.2" OFF)
+		"Use SDL2 instead of SDL1.2" ON)
 		
 option(OPENAL
 		"Use OpenAL soft instead of XAudio2" OFF)
@@ -24,6 +27,9 @@ option(ONATIVE
 option(WINRT
 		"Build for Windows RT" OFF)
 		
+option(WINDOWS10
+		"Build for Windows 10" OFF)
+		
 option(USE_SYSTEM_ZLIB
                 "Use the system zlib instead of the bundled one" OFF)
 
@@ -35,6 +41,12 @@ option(USE_SYSTEM_LIBJPEG
 
 option(USE_SYSTEM_LIBGLEW
                 "Use the system libglew instead of the bundled one" OFF)
+
+set(CPU_TYPE "" CACHE STRING "When set, passes this string as CPU-ID which will be embedded into the binary.")
+
+set(CPU_OPTIMIZATION "-mmmx -msse -msse2" CACHE STRING "Which CPU specific optimitations should be used beside the compiler's default?")
+
+option(USE_INTRINSICS "Compile using intrinsics (e.g mmx, sse, msse2)" ON)
 
 if(UNIX)
 	set(OPENAL TRUE)
@@ -61,7 +73,15 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
 	#add_definitions(-Wall)
 	add_definitions(-Werror=format-security)
 	add_definitions(-Werror=format)
-	add_definitions(-mmmx -msse -msse2)
+	if(CPU_TYPE)
+		add_definitions(-DCPUSTRING="${CPU_TYPE}")
+	endif()
+	if (CPU_OPTIMIZATION)
+		add_definitions(${CPU_OPTIMIZATION})
+	endif()
+	if (USE_INTRINSICS)
+		add_definitions(-DUSE_INTRINSICS)
+	endif()
 	if(WIN32)
 		# require msvcr70.dll or newer for _aligned_malloc etc
 		# I think it is from Visual C++ .NET 2002, so it should be available on any remotely modern system.
@@ -78,12 +98,12 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
 	#endif()
 	
 	# the warnings are used for every profile anyway, so put them in a variable
-	set(my_warn_flags "-Wno-pragmas -Wno-unused-variable -Wno-unused-but-set-variable -Wno-switch -Wno-unused-value -Winvalid-pch -Wno-multichar")
+	set(my_warn_flags "-Wno-pragmas -Wno-unused-variable -Wno-switch -Wno-unused-value -Winvalid-pch -Wno-multichar")
 	
 	if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
 		# append clang-specific settings for warnings (the second one make sure clang doesn't complain
 		# about unknown -W flags, like -Wno-unused-but-set-variable)
-		set(my_warn_flags "${my_warn_flags} -Wno-local-type-template-args -Wno-unknown-warning-option -Wno-inline-new-delete")
+		set(my_warn_flags "${my_warn_flags} -Wno-local-type-template-args -Wno-unknown-warning-option -Wno-inline-new-delete -Wno-switch-enum")
 	endif()
 	
 	if(NOT CMAKE_CROSSCOMPILING AND ONATIVE)
@@ -176,8 +196,12 @@ elseif(MSVC)
                                        #-DUSE_OPENAL
 					-DUSE_EXCEPTIONS)
         ## Check for Version ##
-        if( WINRT ) # Windows RT
-                add_definitions(-DUSE_WINRT)
+        if( WINRT OR WINDOWS10 ) # Windows RT
+			add_definitions(-DUSE_WINRT)
+        endif()
+
+        if (USE_INTRINSICS)
+			add_definitions(-DUSE_INTRINSICS)
         endif()
 					
 	if(NOT CMAKE_CL_64)
@@ -264,107 +288,7 @@ file(GLOB FRAMEWORK_ASYNC_INCLUDES framework/async/*.h)
 file(GLOB FRAMEWORK_ASYNC_SOURCES framework/async/*.cpp)
 
 file(GLOB RENDERER_INCLUDES renderer/*.h)
-	# renderer/AutoRender.h
-	# renderer/AutoRenderBink.h
-	# renderer/BinaryImage.h
-	# renderer/BinaryImageData.h
-	# renderer/BoundsTrack.h
-	# renderer/BufferObject.h
-	# renderer/Cinematic.h
-	# renderer/Font.h
-	# renderer/GLMatrix.h
-	# renderer/GLState.h
-	# renderer/GuiModel.h
-	# renderer/Image.h
-	# renderer/ImageOpts.h
-	# renderer/Interaction.h
-	# renderer/Material.h
-	# renderer/Model.h
-	# renderer/ModelDecal.h
-	# renderer/ModelManager.h
-	# renderer/ModelOverlay.h
-	# renderer/Model_ase.h
-	# #renderer/Model_ColladaHelper.h
-	# #renderer/Model_ColladaParser.h
-	# renderer/Model_local.h
-	# renderer/Model_lwo.h
-	# renderer/Model_ma.h
-	# renderer/Model_md3.h
-	# renderer/RenderLog.h
-	# renderer/RenderProgs.h
-	# renderer/RenderSystem.h
-	# renderer/RenderTexture.h
-	# renderer/RenderWorld.h
-	# renderer/RenderWorld_local.h
-	# renderer/ResolutionScale.h
-	# renderer/ScreenRect.h
-	# renderer/simplex.h
-	# renderer/tr_local.h
-	# renderer/VertexCache.h)
-
-
 file(GLOB RENDERER_SOURCES renderer/*.cpp)
-	# renderer/AutoRender.cpp
-	# renderer/Cinematic.cpp
-	# renderer/Framebuffer.cpp
-	# renderer/GLShader.cpp
-	# renderer/GuiModel.cpp
-	# renderer/Image_files.cpp
-	# renderer/Image_init.cpp
-	# renderer/Image_load.cpp
-	# renderer/Image_process.cpp
-	# renderer/Image_program.cpp
-	# renderer/Interaction.cpp
-	# renderer/Material.cpp
-	# renderer/Model.cpp
-	# renderer/ModelDecal.cpp
-	# renderer/ModelManager.cpp
-	# renderer/ModelOverlay.cpp
-	# renderer/Model_ase.cpp
-	# renderer/Model_beam.cpp
-	# #renderer/Model_ColladaParser.cpp
-	# renderer/Model_liquid.cpp
-	# renderer/Model_lwo.cpp
-	# renderer/Model_ma.cpp
-	# renderer/Model_md3.cpp
-	# renderer/Model_md5.cpp
-	# renderer/Model_prt.cpp
-	# renderer/Model_sprite.cpp
-	# renderer/RenderEntity.cpp
-	# renderer/RenderSystem.cpp
-	# renderer/RenderSystem_init.cpp
-	# renderer/RenderWorld.cpp
-	# renderer/RenderWorld_demo.cpp
-	# renderer/RenderWorld_load.cpp
-	# renderer/RenderWorld_portals.cpp
-	# renderer/VertexCache.cpp
-	# renderer/draw_arb.cpp
-	# renderer/draw_arb2.cpp
-	# renderer/draw_glsl.cpp
-	# renderer/draw_common.cpp
-	# renderer/draw_exp.cpp
-	# renderer/draw_nv10.cpp
-	# renderer/draw_nv20.cpp
-	# renderer/draw_r200.cpp
-	# renderer/tr_backend.cpp
-	# renderer/tr_deform.cpp
-	# renderer/tr_font.cpp
-	# renderer/tr_guisurf.cpp
-	# renderer/tr_light.cpp
-	# renderer/tr_lightrun.cpp
-	# renderer/tr_main.cpp
-	# renderer/tr_math.cpp
-	# renderer/tr_orderIndexes.cpp
-	# renderer/tr_polytope.cpp
-	# renderer/tr_render.cpp
-	# renderer/tr_rendertools.cpp
-	# renderer/tr_shadowbounds.cpp
-	# renderer/tr_stencilshadow.cpp
-	# renderer/tr_subview.cpp
-	# renderer/tr_trace.cpp
-	# renderer/tr_trisurf.cpp
-	# renderer/tr_turboshadow.cpp)
-	
 file(GLOB RENDERER_COLOR_INCLUDES renderer/Color/*.h)
 file(GLOB RENDERER_COLOR_SOURCES renderer/Color/*.cpp)
 file(GLOB RENDERER_DXT_INCLUDES renderer/DXT/*.h)
@@ -379,6 +303,7 @@ file(GLOB RENDERER_JOBS_STATICSHADOWVOLUME_INCLUDES renderer/jobs/staticshadowvo
 file(GLOB RENDERER_JOBS_STATICSHADOWVOLUME_SOURCES renderer/jobs/staticshadowvolume/*.cpp)
 file(GLOB RENDERER_OPENGL_INCLUDES renderer/OpenGL/*.h)
 file(GLOB RENDERER_OPENGL_SOURCES renderer/OpenGL/*.cpp)
+file(GLOB RENDERER_SMAA_INCLUDES renderer/SMAA/*.h)
 
 file(GLOB IRRXML_INCLUDES libs/irrxml/src/*.h)
 file(GLOB IRRXML_SOURCES libs/irrxml/src/*.cpp)
@@ -595,6 +520,8 @@ set(OGGVORBIS_SOURCES
 	libs/oggvorbis/vorbissrc/bitrate.c
 	libs/oggvorbis/vorbissrc/vorbisfile.c)
 
+file(GLOB RAPIDJSON_INCLUDES libs/rapidjson/include/rapidjson/*.h)
+	
 file(GLOB SYS_INCLUDES sys/*.h)
 file(GLOB SYS_SOURCES sys/*.cpp)
 
@@ -967,6 +894,8 @@ source_group("renderer\\jobs\\staticshadowvolume" FILES ${RENDERER_JOBS_STATICSH
 source_group("renderer\\OpenGL" FILES ${RENDERER_OPENGL_INCLUDES})
 source_group("renderer\\OpenGL" FILES ${RENDERER_OPENGL_SOURCES})
 
+source_group("renderer\\SMAA" FILES ${RENDERER_SMAA_INCLUDES})
+
 source_group("libs\\irrxml" FILES ${IRRXML_INCLUDES})
 source_group("libs\\irrxml" FILES ${IRRXML_SOURCES})
 
@@ -984,6 +913,8 @@ source_group("libs\\zlib\\minizip" FILES ${MINIZIP_SOURCES})
 
 source_group("libs\\glew" FILES ${GLEW_INCLUDES})
 source_group("libs\\glew" FILES ${GLEW_SOURCES})
+
+source_group("libs\\rapidjson" FILES ${RAPIDJSON_INCLUDES})
 
 source_group("libs\\freetype" FILES ${FREETYPE_SOURCES})
 
@@ -1129,12 +1060,14 @@ set(RBDOOM3_INCLUDES
 			${RENDERER_JOBS_PRELIGHTSHADOWVOLUME_INCLUDES}
 			${RENDERER_JOBS_STATICSHADOWVOLUME_INCLUDES}
 			${RENDERER_OPENGL_INCLUDES}
-			#${IRRXML_INCLUDES}
+			${RENDERER_SMAA_INCLUDES}
+			${IRRXML_INCLUDES}
 			${JPEG_INCLUDES}
 			${PNG_INCLUDES}
 			${ZLIB_INCLUDES}
 			${MINIZIP_INCLUDES}
 			${GLEW_INCLUDES}
+			${RAPIDJSON_INCLUDES}
 			#${FREETYPE_SOURCES}
 			${SOUND_INCLUDES}
 			#${OGGVORBIS_INCLUDES}
@@ -1164,7 +1097,7 @@ set(RBDOOM3_SOURCES
 			${RENDERER_JOBS_PRELIGHTSHADOWVOLUME_SOURCES}
 			${RENDERER_JOBS_STATICSHADOWVOLUME_SOURCES}
 			${RENDERER_OPENGL_SOURCES}
-			#${IRRXML_SOURCES}
+			${IRRXML_SOURCES}
 			${JPEG_SOURCES}
 			${PNG_SOURCES}
 			${ZLIB_SOURCES}
@@ -1243,9 +1176,20 @@ if(MSVC)
 		# endif()
 		
 	# else()
+	
+	if(WINDOWS10)
+		set(DirectX_LIBRARIES
+			dinput8
+			dsound
+			dxguid
+			#dxerr
+			Xinput
+			xaudio2.lib
+			)
+	else()
 		find_package(DirectX REQUIRED)
 		include_directories(${DirectX_INCLUDE_DIR})
-	#endif()
+	endif()
 	
 	if(OPENAL)
 		add_definitions(-DUSE_OPENAL)
@@ -1347,33 +1291,35 @@ if(MSVC)
 
 	list(REMOVE_DUPLICATES RBDOOM3_SOURCES)
 	
-	set(RBDOOM3_PRECOMPILED_SOURCES ${RBDOOM3_SOURCES})
-	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${TIMIDITY_SOURCES} ${JPEG_SOURCES} ${PNG_SOURCES} ${ZLIB_SOURCES} ${GLEW_SOURCES})
-	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/libs/zlib/minizip/ioapi.c)
-	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTDecoder.cpp)
-	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder.cpp)
-	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder_SSE2.cpp)
-	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/jobs/dynamicshadowvolume/DynamicShadowVolume.cpp)
-	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/jobs/prelightshadowvolume/PreLightShadowVolume.cpp)
-	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/jobs/staticshadowvolume/StaticShadowVolume.cpp)
-	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/jobs/ShadowShared.cpp)
-	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/RenderLog.cpp)
-        list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/framework/precompiled.cpp)
-
+	if(USE_PRECOMPILED_HEADERS) 
+		set(RBDOOM3_PRECOMPILED_SOURCES ${RBDOOM3_SOURCES})
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${TIMIDITY_SOURCES} ${JPEG_SOURCES} ${PNG_SOURCES} ${ZLIB_SOURCES} ${GLEW_SOURCES})
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/libs/zlib/minizip/ioapi.c)
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTDecoder.cpp)
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder.cpp)
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder_SSE2.cpp)
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/jobs/dynamicshadowvolume/DynamicShadowVolume.cpp)
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/jobs/prelightshadowvolume/PreLightShadowVolume.cpp)
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/jobs/staticshadowvolume/StaticShadowVolume.cpp)
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/jobs/ShadowShared.cpp)
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/RenderLog.cpp)
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/framework/precompiled.cpp)
 	
-        set_source_files_properties(
-            ${RBDOOM3_PRECOMPILED_SOURCES}
-            PROPERTIES
-            COMPILE_FLAGS "/Yuprecompiled.h"
-            OBJECT_DEPENDS "precompiled.pch"
-
-            )
 	
-	set_source_files_properties(framework/precompiled.cpp
-        PROPERTIES
-        COMPILE_FLAGS "/Ycprecompiled.h"
-        OBJECT_OUTPUTS "precompiled.pch"
-        )
+		set_source_files_properties(
+		${RBDOOM3_PRECOMPILED_SOURCES}
+		PROPERTIES
+		COMPILE_FLAGS "/Yuprecompiled.h"
+		OBJECT_DEPENDS "precompiled.pch"
+
+		)
+		
+		set_source_files_properties(framework/precompiled.cpp
+		PROPERTIES
+		COMPILE_FLAGS "/Ycprecompiled.h"
+		OBJECT_OUTPUTS "precompiled.pch"
+		)
+	endif()
 	
 	list(APPEND RBDOOM3_SOURCES ${WIN32_RESOURCES})
 	
@@ -1404,6 +1350,7 @@ if(MSVC)
         ${PNG_LIBRARY}
         ${JPEG_LIBRARY}
         ${GLEW_LIBRARY}
+		${CMAKE_DL_LIBS}
 		)
 		
 	#CMAKE_BINARY_DIR
@@ -1479,88 +1426,91 @@ else()
 
 	list(REMOVE_DUPLICATES RBDOOM3_SOURCES)
 	
-	set(RBDOOM3_PRECOMPILED_SOURCES ${RBDOOM3_SOURCES})
-	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${TIMIDITY_SOURCES} ${JPEG_SOURCES} ${PNG_SOURCES} ${ZLIB_SOURCES} ${GLEW_SOURCES})
-	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/libs/zlib/minizip/ioapi.c)
-	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTDecoder.cpp)
-	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder.cpp)
-	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder_SSE2.cpp)
-	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/jobs/dynamicshadowvolume/DynamicShadowVolume.cpp)
-	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/jobs/prelightshadowvolume/PreLightShadowVolume.cpp)
-	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/jobs/staticshadowvolume/StaticShadowVolume.cpp)
-	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/jobs/ShadowShared.cpp)
-	list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/RenderLog.cpp)
+	if(USE_PRECOMPILED_HEADERS) 	
+		set(RBDOOM3_PRECOMPILED_SOURCES ${RBDOOM3_SOURCES})
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${TIMIDITY_SOURCES} ${JPEG_SOURCES} ${PNG_SOURCES} ${ZLIB_SOURCES} ${GLEW_SOURCES})
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/libs/zlib/minizip/ioapi.c)
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTDecoder.cpp)
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder.cpp)
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/DXT/DXTEncoder_SSE2.cpp)
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/jobs/dynamicshadowvolume/DynamicShadowVolume.cpp)
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/jobs/prelightshadowvolume/PreLightShadowVolume.cpp)
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/jobs/staticshadowvolume/StaticShadowVolume.cpp)
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/jobs/ShadowShared.cpp)
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/RenderLog.cpp)
 
-	foreach( src_file ${RBDOOM3_PRECOMPILED_SOURCES} )
-		#message(STATUS "-include precompiled.h for ${src_file}")
-		set_source_files_properties(
-			${src_file}
-			PROPERTIES
-			COMPILE_FLAGS "-include ${CMAKE_CURRENT_SOURCE_DIR}/idlib/precompiled.h"
-			)
-	endforeach()
+		foreach( src_file ${RBDOOM3_PRECOMPILED_SOURCES} )
+			#message(STATUS "-include precompiled.h for ${src_file}")
+			set_source_files_properties(
+				${src_file}
+				PROPERTIES
+				COMPILE_FLAGS "-include ${CMAKE_CURRENT_SOURCE_DIR}/idlib/precompiled.h"
+				)
+		endforeach()
 
-	# precompiled magic for GCC/clang, adapted from https://gist.github.com/573926
-	STRING(TOUPPER "CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}" _flags_var_name)
-	SET(_compiler_FLAGS ${${_flags_var_name}})
-	GET_DIRECTORY_PROPERTY(_directory_flags INCLUDE_DIRECTORIES)
-	FOREACH(item ${_directory_flags})
-		LIST(APPEND _compiler_FLAGS " -I${item}")
-	ENDFOREACH(item)
-
+		# precompiled magic for GCC/clang, adapted from https://gist.github.com/573926
+		STRING(TOUPPER "CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}" _flags_var_name)
+		SET(_compiler_FLAGS ${${_flags_var_name}})
+		GET_DIRECTORY_PROPERTY(_directory_flags INCLUDE_DIRECTORIES)
+		FOREACH(item ${_directory_flags})
+			LIST(APPEND _compiler_FLAGS " -I${item}")
+		ENDFOREACH(item)
+	endif()
+		
 	GET_DIRECTORY_PROPERTY(_directory_flags DEFINITIONS)
 	LIST(APPEND _compiler_FLAGS ${_directory_flags})
 	SEPARATE_ARGUMENTS(_compiler_FLAGS)
 	
-	# we need to recreate the precompiled header for RBDoom3BFG 
-	# (i.e. can't use the one created for idlib before)
-	# because some definitions (e.g. -D__IDLIB__ -D__DOOM_DLL__) differ
-	add_custom_target(precomp_header_rbdoom3bfg ALL
-	                  COMMAND ${CMAKE_CXX_COMPILER} ${_compiler_FLAGS} -x c++-header idlib/precompiled.h -o idlib/precompiled.h.gch
-	                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	                  COMMENT "Creating idlib/precompiled.h.gch for RBDoom3BFG"
-	                  )
+	if(USE_PRECOMPILED_HEADERS)
+		# we need to recreate the precompiled header for RBDoom3BFG 
+		# (i.e. can't use the one created for idlib before)
+		# because some definitions (e.g. -D__IDLIB__ -D__DOOM_DLL__) differ
+		add_custom_target(precomp_header_rbdoom3bfg ALL
+				COMMAND ${CMAKE_CXX_COMPILER} ${_compiler_FLAGS} -x c++-header idlib/precompiled.h -o idlib/precompiled.h.gch
+				WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+				COMMENT "Creating idlib/precompiled.h.gch for RBDoom3BFG"
+				)
+	endif()
 	
 	if(WIN32)
 		set(remove_command "del")
 	else()
 		set(remove_command "rm")
 	endif()
-	# it's ugly enough that the precompiled header binary needs to be in the 
-	# source directory (instead of the build directory), so let's at least
-	# delete it after build.
-	add_custom_target(rm_precomp_header ALL
-	                  COMMAND ${remove_command} "idlib/precompiled.h.gch"
-	                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	                  COMMENT "remove idlib/precompiled.h.gch"
-	                  )
 	
-	# make sure this is run after creating idlib
-	add_dependencies(precomp_header_rbdoom3bfg idlib)
+	if (USE_PRECOMPILED_HEADERS)
+		# it's ugly enough that the precompiled header binary needs to be in the 
+		# source directory (instead of the build directory), so let's at least
+		# delete it after build.
+		add_custom_target(rm_precomp_header ALL
+				COMMAND ${remove_command} "idlib/precompiled.h.gch"
+				WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+				COMMENT "remove idlib/precompiled.h.gch"
+				)
+				
+		# make sure this is run after creating idlib
+		add_dependencies(precomp_header_rbdoom3bfg idlib)
+	endif()
 	
 	add_executable(RBDoom3BFG WIN32 ${RBDOOM3_SOURCES})
-	
-	# make sure precompiled header is created before executable is compiled
-	add_dependencies(RBDoom3BFG precomp_header_rbdoom3bfg)
-	
-	# make sure precompiled header is deleted after executable is compiled
-	add_dependencies(rm_precomp_header RBDoom3BFG)
-	
+
+	if (USE_PRECOMPILED_HEADERS)
+		# make sure precompiled header is created before executable is compiled
+		add_dependencies(RBDoom3BFG precomp_header_rbdoom3bfg)
+		
+		# make sure precompiled header is deleted after executable is compiled
+		add_dependencies(rm_precomp_header RBDoom3BFG)
+	endif()	
 
 	if(NOT WIN32)
 		if(NOT "${CMAKE_SYSTEM}" MATCHES "Darwin")
 			set(RT_LIBRARY rt)
 		endif()
 
-		if(NOT "${CMAKE_SYSTEM}" MATCHES "FreeBSD")
-			set(DL_LIBRARY dl)
-		endif()
-
 		target_link_libraries(RBDoom3BFG
 			idlib
 			${OPENGL_LIBRARIES}
 			pthread
-			${DL_LIBRARY}
 			${RT_LIBRARY}
 			${SDLx_LIBRARY}
 			${OPENAL_LIBRARY}
@@ -1569,6 +1519,7 @@ else()
             ${PNG_LIBRARY}
             ${JPEG_LIBRARY}
             ${GLEW_LIBRARY}
+	    ${CMAKE_DL_LIBS}
 			)
 	endif()
     

@@ -3,7 +3,8 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2013-2014 Robert Beckebans
+Copyright (C) 2013-2016 Robert Beckebans
+Copyright (C) 2014-2016 Kot in Action Creative Artel
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -94,6 +95,16 @@ enum graphicsDriverType_t
 	GLDRV_OPENGL_ES2,
 	GLDRV_OPENGL_ES3,
 	GLDRV_OPENGL_MESA,						// fear this, it is probably the best to disable GPU skinning and run shaders in GLSL ES 1.0
+	GLDRV_OPENGL_MESA_CORE_PROFILE
+};
+
+enum antiAliasingMode_t
+{
+	ANTI_ALIASING_NONE,
+	ANTI_ALIASING_SMAA_1X,
+	ANTI_ALIASING_MSAA_2X,
+	ANTI_ALIASING_MSAA_4X,
+	ANTI_ALIASING_MSAA_8X
 };
 // RB end
 
@@ -299,6 +310,7 @@ public:
 	
 	// dump all 2D drawing so far this frame to the demo file
 	virtual void			WriteDemoPics() = 0;
+	virtual void			WriteEndFrame() = 0;
 	
 	// draw the 2D pics that were saved out with the current demo frame
 	virtual void			DrawDemoPics() = 0;
