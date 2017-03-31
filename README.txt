@@ -35,7 +35,7 @@ This file contains the following sections:
 	
 	7) INSTALLATION, GETTING THE GAMEDATA, RUNNING THE GAME
 	
-	8) CHANGES
+	8) OVERALL CHANGES
 	
 	9) CONSOLE VARIABLES
 	
@@ -43,7 +43,9 @@ This file contains the following sections:
 	
 	11) BUG REPORTS
 	
-	12) CODE LICENSE EXCEPTIONS
+	12) GAME MODIFICATIONS
+	
+	13) CODE LICENSE EXCEPTIONS
 
 
 
@@ -102,20 +104,6 @@ The Doom 3 BFG Edition GPL Source Code release does not include functionality en
 of stencil shadows via the "depth fail" method, a functionality commonly known as "Carmack's Reverse".
 
 
-Mods:
------
-
-The Doom 3 BFG Edition GPL Source Code release allow mod editing, in order for it to accept any change in your
-mod directory, you should first specify your mod directory adding the following command to the launcher:
-
-"+set fs_game modDirectoryName"
-
-as well as force the content of your mod directory over the content of the game with the following command:
-
-"+set fs_resourceLoadPriority 0"
-
-so it would end up looking like: RBDoom3BFG +set fs_resourceLoadPriority 0 +set fs_game mymod
-
 
 _______________________________
 
@@ -159,7 +147,9 @@ __________________________________________________________
 5. Use the VC13 solution to compile what you need:
 	RBDOOM-3-BFG/build/RBDoom3BFG.sln
 	
-6. Download ffmpeg-20140405-git-ec8789a-win32-shared.7z from ffmpeg.zeranoe.com/builds/win32/shared
+6. Download ffmpeg-20151105-git-c878082-win32-shared.7z from ffmpeg.zeranoe.com/builds/win32/shared
+ 	or
+	ffmpeg-20151105-git-c878082-win64-shared.7z from ffmpeg.zeranoe.com/builds/win64/shared
 
 7. Extract the FFmpeg DLLs to your current build directory under RBDOOM-3-BFG/build/
 
@@ -174,13 +164,17 @@ _________________________
  
 	On Debian or Ubuntu:
 
-		> apt-get install cmake libsdl1.2-dev libopenal-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev
+		> apt-get install cmake libsdl2-dev libopenal-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev
 	
 	On Fedora
 
 		// TODO add ffmpeg libs for bink videos
 		
 		> yum install cmake SDL-devel openal-devel
+	
+	On ArchLinux 
+	
+		> sudo pacman -S sdl2 ffmpeg openal cmake
 	
 	On openSUSE (tested in 13.1)
 	
@@ -190,7 +184,7 @@ _________________________
 		"libffmpeg1-devel" requires the PackMan repository. If you don't have that repo, and don't want to add it, remove the "libffmpeg1-devel" option and compile without ffmpeg support.
 		If you have the repo and compiles with ffmpeg support, make sure you download "libffmpeg1-devel", and not "libffmpeg-devel".
 	
-	Instead of SDL1.2 development files you can also use SDL2. Install SDL 2.0 and add to the cmake parameters -DSDL2=ON
+	Instead of SDL2 development files you can also use SDL1.2. Install SDL 1.2 and add to the cmake parameters -DSDL2=OFF
 	
 	SDL2 has better input support (especially in the console) and better 
 	support for multiple displays (especially in fullscreen mode).
@@ -226,13 +220,22 @@ unfortunately requires Steam for Windows - Steam for Linux or OSX won't do, beca
 Even the DVD version of Doom 3 BFG only contains encrytped data that is decoded
 by Steam on install.
 
-Fortunately, you can run Steam in Wine to install Doom3 BFG and afterwards copy the 
-game data somewhere else to use it with native executables.
-Winetricks ( http://winetricks.org/ ) makes installing Windows Steam on Linux really easy.
+On Linux and OSX the easiest way to install is with SteamCMD: https://developer.valvesoftware.com/wiki/SteamCMD
+See the description on https://developer.valvesoftware.com/wiki/SteamCMD#Linux (OS X is directly below that) on how to install SteamCMD on your system. You won't have to create a new user.
+
+Then you can download Doom 3 BFG with
+
+> ./steamcmd.sh +@sSteamCmdForcePlatformType windows +login <YOUR_STEAM_LOGIN_NAME> +force_install_dir ./doom3bfg/ +app_update 208200 validate +quit
+
+(replace <YOUR_STEAM_LOGIN_NAME> with your steam login name)
+When it's done you should have the normal windows installation of Doom 3 BFG in ./doom3bfg/ and the needed files in ./doom3bfg/base/
+That number is the "AppID" of Doom 3 BFG; if you wanna use this to get the data of other games you own, you can look up the AppID at https://steamdb.info/
+
+NOTE that we've previously recommended using download_depot in the Steam console to install the game data. That turned out to be unreliable and result in broken, unusable game data. So use SteamCMD instead, as described above.
 
 Anyway:
 
-1. Install Doom 3 BFG in Steam (Windows version), make sure it's getting 
+1. Install Doom 3 BFG in Steam (Windows version) or SteamCMD, make sure it's getting
    updated/patched.
 
 2. Create your own Doom 3 BFG directory, e.g. /path/to/Doom3BFG/
@@ -240,6 +243,7 @@ Anyway:
 3. Copy the game-data's base dir from Steam to that directory 
    (e.g. /path/to/Doom3BFG/), it's in
 	/your/path/to/Steam/steamapps/common/DOOM 3 BFG Edition/base/
+	or, if you used SteamCMD, in the path you used above.
 
 4. Copy your RBDoom3BFG executable that you created in 5) or 6) and the FFmpeg DLLs to your own 
    Doom 3 BFG directory (/path/to/Doom3BFG).
@@ -268,7 +272,7 @@ Anyway:
 
 ___________________________________________________
 
-8) CHANGES
+8) OVERALL CHANGES
 __________________________________________
 
 - Flexible build system using CMake
@@ -283,6 +287,8 @@ __________________________________________
 
 - Bink video support through FFmpeg
 
+- PNG image support
+
 - Soft shadows using PCF hardware shadow mapping
 
 	The implementation uses sampler2DArrayShadow and PCF which usually
@@ -291,19 +297,41 @@ __________________________________________
 	All 3 light types are supported which means parallel lights (sun) use
 	scene independent cascaded shadow mapping.
 	The implementation is very fast with single taps (400 fps average per
-	scene on a GTX 660 ti OC) however I defaulted it to 16 taps so the shadows look
+	scene on a GTX 660 ti OC) however I defaulted it to 12 taps using a Poisson disc algorithm so the shadows look
 	really good which should give you stable 100 fps on todays hardware (2014).
 
 - Changed light interaction shaders to use Half-Lambert lighting like in Half-Life 2 to 
 	make the game less dark. https://developer.valvesoftware.com/wiki/Half_Lambert
 
+- True 64 bit HDR lighting with adaptive tone mapping and gamma-correct rendering in linear RGB space
+
+- Enhanced Subpixel Morphological Antialiasing
+	For more information see "Anti-Aliasing Methods in CryENGINE 3" and the docs at http://www.iryoku.com/smaa/
+
+- Filmic post process effects like Technicolor color grading and film grain
+
+- Additional ambient render pass to make the game less dark similar to the Quake 4 r_forceAmbient technique
 
 ___________________________________________________
 
 9) CONSOLE VARIABLES
 __________________________________________
 
-r_useShadowMapping 1 - Use soft shadow mapping instead of hard stencil shadows
+r_antiAliasing - Different Anti-Aliasing modes
+
+r_useShadowMapping [0 or 1] - Use soft shadow mapping instead of hard stencil shadows
+
+r_useHDR [0 or 1] - Use High Dynamic Range lighting
+
+r_hdrAutoExposure [0 or 1] - Adaptive tonemapping with HDR
+	This allows to have very bright or very dark scenes but the camera will adopt to it so the scene won't loose details
+	
+r_exposure [0 .. 1] - Default 0.5, Controls brightness and affects HDR exposure key
+	This is what you change in the video brightness options
+
+r_useSSAO [0 .. 1] - Use Screen Space Ambient Occlusion to darken the corners in the scene
+	
+r_useFilmicPostProcessEffects [0 or 1] - Apply several post process effects to mimic a filmic look"
 
 
 ___________________________________________________
@@ -311,9 +339,12 @@ ___________________________________________________
 10) KNOWN ISSUES
 __________________________________________
 
-Doom 3 wasn't designed to work with shadow maps so:
+- HDR does not work with old-school stencil shadows
+
+- MSAA anti-aliasing modes don't work with HDR: Use SMAA
 
 - Some lights cause shadow acne with shadow mapping
+
 - Some shadows might almost disappear due to the shadow filtering
 
 ___________________________________________________
@@ -340,15 +371,31 @@ If you want to report an issue with the game, you should make sure that your rep
     * If you are sending a console log, make sure to enable developer output:
 
               RBDoom3BFG.exe +set developer 1 +set logfile 2
+			  
+		You can find your qconsole.log on Windows in C:\Users\<your user name>\Saved Games\id Software\RBDOOM 3 BFG\base\
 
 NOTE: We cannot help you with OS-specific issues like configuring OpenGL correctly, configuring ALSA or configuring the network.
 	
 
+___________________________________________________
+
+12) GAME MODIFCATIONS
+__________________________________________
 	
+The Doom 3 BFG Edition GPL Source Code release allows mod editing, in order for it to accept any change in your
+mod directory, you should first specify your mod directory adding the following command to the launcher:
+
+"+set fs_game modDirectoryName"
+
+so it would end up looking like: RBDoom3BFG +set fs_game modDirectoryName
+
+
+IMPORTANT: RBDOOM-3-BFG does not support old Doom 3 modiciations that include sourcecode modifications in binary form (.dll)
+You can fork RBDOOM-3-BFG and create a new renamed binary that includes all required C++ game code modifications.
 	
 ____________________________________________________________________________________
 
-12) CODE LICENSE EXCEPTIONS - The parts that are not covered by the GPL:
+13) CODE LICENSE EXCEPTIONS - The parts that are not covered by the GPL:
 _______________________________________________________________________
 
 

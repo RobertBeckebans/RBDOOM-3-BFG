@@ -169,10 +169,10 @@ public:
 	virtual void			EnableBackgroundCache( bool enable );
 	virtual void			BeginLevelLoad( const char* name, char* _blockBuffer, int _blockBufferSize );
 	virtual void			EndLevelLoad();
-	virtual bool			InProductionMode()
-	{
-		return ( resourceFiles.Num() > 0 ) | ( com_productionMode.GetInteger() != 0 );
-	}
+	
+	// RB begin
+	virtual bool			InProductionMode();
+	// RB end
 	virtual bool			UsingResourceFiles()
 	{
 		return resourceFiles.Num() > 0;
@@ -307,7 +307,7 @@ idCVar  idFileSystemLocal::fs_game_base( "fs_game_base", "", CVAR_SYSTEM | CVAR_
 
 idCVar	fs_basepath( "fs_basepath", "", CVAR_SYSTEM | CVAR_INIT, "" );
 idCVar	fs_savepath( "fs_savepath", "", CVAR_SYSTEM | CVAR_INIT, "" );
-idCVar	fs_resourceLoadPriority( "fs_resourceLoadPriority", "1", CVAR_SYSTEM , "if 1, open requests will be honored from resource files first; if 0, the resource files are checked after normal search paths" );
+idCVar	fs_resourceLoadPriority( "fs_resourceLoadPriority", "0", CVAR_SYSTEM , "if 1, open requests will be honored from resource files first; if 0, the resource files are checked after normal search paths" );
 idCVar	fs_enableBackgroundCaching( "fs_enableBackgroundCaching", "1", CVAR_SYSTEM , "if 1 allow the 360 to precache game files in the background" );
 
 idFileSystemLocal	fileSystemLocal;
@@ -782,6 +782,15 @@ void idFileSystemLocal::EndLevelLoad()
 	resourceBufferSize = 0;
 	
 }
+
+// RB begin
+bool idFileSystemLocal::InProductionMode()
+{
+	//return fs_resourceLoadPriority.GetBool() && ( resourceFiles.Num() > 0 ) || ( com_productionMode.GetInteger() != 0 );
+	
+	return ( com_productionMode.GetInteger() != 0 );
+}
+// RB end
 
 bool FileExistsInAllManifests( const char* filename, idList< idFileManifest >& manifests )
 {
@@ -2262,7 +2271,7 @@ int idFileSystemLocal::GetFileList( const char* relativePath, const idStrList& e
 				}
 				
 				// ensure we have a path, and not just a filename containing the path
-				if( rt.filename[ pathLength ] == '\0' || rt.filename[pathLength - 1] != '/' )
+				if( rt.filename[ pathLength ] == '\0' || ( pathLength && rt.filename[pathLength - 1] != '/' ) )
 				{
 					continue;
 				}
