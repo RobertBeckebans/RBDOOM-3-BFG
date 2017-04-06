@@ -57,7 +57,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "../sys/sys_public.h"
 #include "tr_local.h"
 
-#if USE_CEGUI
+#ifdef USE_CEGUI
 #include "../cegui/CEGUI_Hooks.h" // DG: the renderer must update cegui at the end of the frame
 #endif // USE_CEGUI
 
