@@ -1554,9 +1554,11 @@ void idCommonLocal::Shutdown()
 	delete loadGUI;
 	loadGUI = NULL;
 	
+#ifdef USE_CEGUI
 	printf( "idCEGUI::Destroy();\n" );
 	idCEGUI::Destroy();
-	
+#endif
+
 	printf( "ImGuiHook::Destroy();\n" );
 	ImGuiHook::Destroy();
 	

@@ -504,7 +504,7 @@ protected:
 idMenuHandler_Scoreboard
 ================================================
 */
-class idMenuHandler_Scoreboard : public ::idMenuHandler_Scoreboard_Interface, public idMenuHandler
+class idMenuHandler_Scoreboard : public idMenuHandler_Scoreboard_Interface, public idMenuHandler
 {
 public:
 
