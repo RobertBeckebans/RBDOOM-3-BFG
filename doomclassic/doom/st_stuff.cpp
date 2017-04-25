@@ -243,71 +243,94 @@ If you have questions concerning this license or the applicable additional terms
 // Massive bunches of cheat shit
 //  to keep it from being easy to figure them out.
 // Yeah, right...
+//GK: re-write char sequences
+//GK: Using VS Debugger I find out which chars are recognized from the game and they are literraly different from the original chars
 const unsigned char	cheat_mus_seq[] =
 {
-	0xb2, 0x26, 0xb6, 0xae, 0xea, 1, 0, 0, 0xff
+	'\x17',' ','2','\x16','\x1f',0xff
+	//0xb2, 0x26, 0xb6, 0xae, 0xea, 1, 0, 0, 0xff
 };
 
 const unsigned char	cheat_choppers_seq[] =
 {
-	0xb2, 0x26, 0xe2, 0x32, 0xf6, 0x2a, 0x2a, 0xa6, 0x6a, 0xea, 0xff // id...
+	'\x17',' ','.','#','\x18','\x19','\x19','\x12','\x13','\x1f',0xff
+	//0xb2, 0x26, 0xe2, 0x32, 0xf6, 0x2a, 0x2a, 0xa6, 0x6a, 0xea, 0xff // id...
 };
 
 const unsigned char	cheat_god_seq[] =
 {
-	0xb2, 0x26, 0x26, 0xaa, 0x26, 0xff  // iddqd
+	'\x17',' ',' ','\x10',' ',0xff
+	//0xb2, 0x26, 0x26, 0xaa, 0x26, 0xff  // iddqd
 };
 
 const unsigned char	cheat_ammo_seq[] =
 {
-	0xb2, 0x26, 0xf2, 0x66, 0xa2, 0xff	// idkfa
+	'\x17',' ','%','!','\x1e',0xff
+	//0xb2, 0x26, 0xf2, 0x66, 0xa2, 0xff	// idkfa
 };
 
 const unsigned char	cheat_ammonokey_seq[] =
 {
-	0xb2, 0x26, 0x66, 0xa2, 0xff	// idfa
+	'\x17',' ','!','\x1e',0xff
+	//0xb2, 0x26, 0x66, 0xa2, 0xff	// idfa
 };
 
 
 // Smashing Pumpkins Into Samml Piles Of Putried Debris. 
 const unsigned char	cheat_noclip_seq[] =
 {
-	0xb2, 0x26, 0xea, 0x2a, 0xb2,	// idspispopd
-		0xea, 0x2a, 0xf6, 0x2a, 0x26, 0xff
+	'\x17',' ','\x1f','\x19','\x17','\x1f','\x19','\x18','\x19',' ',0xff
+	//0xb2, 0x26, 0xea, 0x2a, 0xb2,	// idspispopd
+	//0xea, 0x2a, 0xf6, 0x2a, 0x26, 0xff
 };
 
 //
 const unsigned char	cheat_commercial_noclip_seq[] =
 {
-	0xb2, 0x26, 0xe2, 0x36, 0xb2, 0x2a, 0xff	// idclip
-}; 
+	'\x17',' ','.','&','\x17','\x19',0xff
+	//0xb2, 0x26, 0xe2, 0x36, 0xb2, 0x2a, 0xff	// idclip
+};
 
 
 
 const unsigned char	cheat_powerup_seq[7][10] =
 {
-	{ 0xb2, 0x26, 0x62, 0xa6, 0x32, 0xf6, 0x36, 0x26, 0x6e, 0xff }, 	// beholdv
-	{ 0xb2, 0x26, 0x62, 0xa6, 0x32, 0xf6, 0x36, 0x26, 0xea, 0xff }, 	// beholds
-	{ 0xb2, 0x26, 0x62, 0xa6, 0x32, 0xf6, 0x36, 0x26, 0xb2, 0xff }, 	// beholdi
-	{ 0xb2, 0x26, 0x62, 0xa6, 0x32, 0xf6, 0x36, 0x26, 0x6a, 0xff }, 	// beholdr
-	{ 0xb2, 0x26, 0x62, 0xa6, 0x32, 0xf6, 0x36, 0x26, 0xa2, 0xff }, 	// beholda
-	{ 0xb2, 0x26, 0x62, 0xa6, 0x32, 0xf6, 0x36, 0x26, 0x36, 0xff }, 	// beholdl
-	{ 0xb2, 0x26, 0x62, 0xa6, 0x32, 0xf6, 0x36, 0x26, 0xff }		// behold
+	{ '\x17',' ','0','\x12','#','\x18','&',' ','/',0xff },
+	//{ 0xb2, 0x26, 0x62, 0xa6, 0x32, 0xf6, 0x36, 0x26, 0x6e, 0xff }, 	// beholdv
+	{ '\x17',' ','0','\x12','#','\x18','&',' ','\x1f',0xff },
+	//{ 0xb2, 0x26, 0x62, 0xa6, 0x32, 0xf6, 0x36, 0x26, 0xea, 0xff }, 	// beholds
+	{ '\x17',' ','0','\x12','#','\x18','&',' ','\x17',0xff },
+	//{ 0xb2, 0x26, 0x62, 0xa6, 0x32, 0xf6, 0x36, 0x26, 0xb2, 0xff }, 	// beholdi
+	{ '\x17',' ','0','\x12','#','\x18','&',' ','\x13',0xff },
+	//{ 0xb2, 0x26, 0x62, 0xa6, 0x32, 0xf6, 0x36, 0x26, 0x6a, 0xff }, 	// beholdr
+	{ '\x17',' ','0','\x12','#','\x18','&',' ','\x1e',0xff },
+	//{ 0xb2, 0x26, 0x62, 0xa6, 0x32, 0xf6, 0x36, 0x26, 0xa2, 0xff }, 	// beholda
+	{ '\x17',' ','0','\x12','#','\x18','&',' ','&',0xff },
+	//{ 0xb2, 0x26, 0x62, 0xa6, 0x32, 0xf6, 0x36, 0x26, 0x36, 0xff }, 	// beholdl
+	{ '\x17',' ','0','\x12','#','\x18','&',' ',0xff },
+	//{ 0xb2, 0x26, 0x62, 0xa6, 0x32, 0xf6, 0x36, 0x26, 0xff }		// behold
 };
 
 
 const unsigned char	cheat_clev_seq[] =
 {
-	0xb2, 0x26,  0xe2, 0x36, 0xa6, 0x6e, 1, 0, 0, 0xff	// idclev
+	'\x17',' ','.','&','\x12','/',0xff
+	//0xb2, 0x26,  0xe2, 0x36, 0xa6, 0x6e, 1, 0, 0, 0xff	// idclev
 };
 
 
 // my position cheat
 const unsigned char	cheat_mypos_seq[] =
 {
-	0xb2, 0x26, 0xb6, 0xba, 0x2a, 0xf6, 0xea, 0xff	// idmypos
-}; 
-
+	'\x17',' ','2','\x15','\x19','\x18','\x1f',0xff
+	//0xb2, 0x26, 0xb6, 0xba, 0x2a, 0xf6, 0xea, 0xff	// idmypos
+};
+//GK begin
+unsigned char cheat[14];
+int p = 0;
+char buf[3];
+clock_t start;
+//GK End
 
 // Now what?
 cheatseq_t	cheat_mus = cheatseq_t( cheat_mus_seq, 0 );
@@ -387,9 +410,48 @@ ST_Responder (event_t* ev)
 			// b. - enabled for more debug fun.
 			// if (::g->gameskill != sk_nightmare) {
 
+			//GK store cheat sequence
+			if ((ev->data1 == 23 && p<14) || p>0) {
+				if (start == NULL) {
+					cheat[p] = ev->data1;
+					p++;
+				}
+				else {
+					if (((clock() - start) / CLOCKS_PER_SEC) < CHEAT_TIME) {
+						cheat[p] = ev->data1;
+						p++;
+					}
+					else {
+						//Reset cheat sequence
+						for (int u = 0; u < 14; u++) {
+							cheat[u] = NULL;
+						}
+						p = 0;
+						start = NULL;
+						cheat[p] = ev->data1;
+						p++;
+					}
+				}
+			}
+			if (ev->data1 == 23 && p == 1) {
+				start = clock();
+			}
+			//Reset cheat sequence
+			if (p >= 14) {
+				for (int u = 0; u < 14; u++) {
+					cheat[u] = NULL;
+				}
+				p = 0;
+				start = NULL;
+			}
 			// 'dqd' cheat for toggleable god mode
-			if (cht_CheckCheat(&cheat_god, ev->data1))
+			if (cht_CheckCheat(cheat_god_seq, cheat))
 			{
+				for (int u = 0; u < 14; u++) {
+					cheat[u] = NULL;
+				}
+				p = 0;
+				start = NULL;
 				::g->plyr->cheats ^= CF_GODMODE;
 				if (::g->plyr->cheats & CF_GODMODE)
 				{
@@ -399,64 +461,84 @@ ST_Responder (event_t* ev)
 					::g->plyr->health = 100;
 					::g->plyr->message = STSTR_DQDON;
 				}
-				else 
+				else
 					::g->plyr->message = STSTR_DQDOFF;
 			}
 			// 'fa' cheat for killer fucking arsenal
-			else if (cht_CheckCheat(&cheat_ammonokey, ev->data1))
+			else if (cht_CheckCheat(cheat_ammonokey_seq, cheat))
 			{
+				for (int u = 0; u < 14; u++) {
+					cheat[u] = NULL;
+				}
+				p = 0;
+				start = NULL;
 				::g->plyr->armorpoints = 200;
 				::g->plyr->armortype = 2;
 
-				for (i=0;i<NUMWEAPONS;i++)
+				for (i = 0; i<NUMWEAPONS; i++)
 					::g->plyr->weaponowned[i] = true;
 
-				for (i=0;i<NUMAMMO;i++)
+				for (i = 0; i<NUMAMMO; i++)
 					::g->plyr->ammo[i] = ::g->plyr->maxammo[i];
 
 				::g->plyr->message = STSTR_FAADDED;
 			}
 			// 'kfa' cheat for key full ammo
-			else if (cht_CheckCheat(&cheat_ammo, ev->data1))
+			else if (cht_CheckCheat(cheat_ammo_seq, cheat))
 			{
+				for (int u = 0; u < 14; u++) {
+					cheat[u] = NULL;
+				}
+				p = 0;
+				start = NULL;
 				::g->plyr->armorpoints = 200;
 				::g->plyr->armortype = 2;
 
-				for (i=0;i<NUMWEAPONS;i++)
+				for (i = 0; i<NUMWEAPONS; i++)
 					::g->plyr->weaponowned[i] = true;
 
-				for (i=0;i<NUMAMMO;i++)
+				for (i = 0; i<NUMAMMO; i++)
 					::g->plyr->ammo[i] = ::g->plyr->maxammo[i];
 
-				for (i=0;i<NUMCARDS;i++)
+				for (i = 0; i<NUMCARDS; i++)
 					::g->plyr->cards[i] = true;
 
 				::g->plyr->message = STSTR_KFAADDED;
 			}
 			// 'mus' cheat for changing music
-			else if (cht_CheckCheat(&cheat_mus, ev->data1))
+			else if (cht_CheckCheat(cheat_mus_seq, cheat, true))
 			{
-
-				char	buf[3];
+				for (int u = 0; u < 14; u++) {
+					cheat[u] = NULL;
+				}
+				p = 0;
+				start = NULL;
+				//char	buf[3];
 				int		musnum;
+				for (int o = 0; o < 3; o++) {
+					if (buf[o] == 11) { //0=11 so set it to 1
+						buf[o] = 1;
+					}
+				}
 
 				::g->plyr->message = STSTR_MUS;
-				cht_GetParam(&cheat_mus, buf);
+				//cht_GetParam(&cheat_mus, buf);
 
 				if (::g->gamemode == commercial)
 				{
-					musnum = mus_runnin + (buf[0]-'0')*10 + buf[1]-'0' - 1;
+					//GK: Buffers are geting number + 1 (except 0 which equals 11)
+					musnum = mus_runnin + (buf[0] - 1) * 10 + (buf[1] - 1) - 1;
 
-					if (((buf[0]-'0')*10 + buf[1]-'0') > 35)
+					if (((buf[0] - 1) * 10 + buf[1] - 1) > 35)
 						::g->plyr->message = STSTR_NOMUS;
 					else
 						S_ChangeMusic(musnum, 1);
 				}
 				else
 				{
-					musnum = mus_e1m1 + (buf[0]-'1')*9 + (buf[1]-'1');
+					musnum = mus_e1m1 + (buf[0] - 2) * 9 + (buf[1] - 2);
 
-					if (((buf[0]-'1')*9 + buf[1]-'1') > 31)
+					if (((buf[0] - 2) * 9 + buf[1] - 2) > 31)
 						::g->plyr->message = STSTR_NOMUS;
 					else
 						S_ChangeMusic(musnum, 1);
@@ -464,9 +546,14 @@ ST_Responder (event_t* ev)
 			}
 			// Simplified, accepting both "noclip" and "idspispopd".
 			// no clipping mode cheat
-			else if ( cht_CheckCheat(&cheat_noclip, ev->data1) 
-				|| cht_CheckCheat(&cheat_commercial_noclip,ev->data1) )
-			{	
+			else if (cht_CheckCheat(cheat_noclip_seq, cheat)
+				|| cht_CheckCheat(cheat_commercial_noclip_seq, cheat))
+			{
+				for (int u = 0; u < 14; u++) {
+					cheat[u] = NULL;
+				}
+				p = 0;
+				start = NULL;
 				::g->plyr->cheats ^= CF_NOCLIP;
 
 				if (::g->plyr->cheats & CF_NOCLIP)
@@ -475,13 +562,18 @@ ST_Responder (event_t* ev)
 					::g->plyr->message = STSTR_NCOFF;
 			}
 			// 'behold?' power-up cheats
-			for (i=0;i<6;i++)
+			for (i = 0; i<6; i++)
 			{
-				if (cht_CheckCheat(&::g->cheat_powerup[i], ev->data1))
+				if (cht_CheckCheat(cheat_powerup_seq[i], cheat))
 				{
+					for (int u = 0; u < 14; u++) {
+						cheat[u] = NULL;
+					}
+					p = 0;
+					start = NULL;
 					if (!::g->plyr->powers[i])
-						P_GivePower( ::g->plyr, i);
-					else if (i!=pw_strength)
+						P_GivePower(::g->plyr, i);
+					else if (i != pw_strength)
 						::g->plyr->powers[i] = 1;
 					else
 						::g->plyr->powers[i] = 0;
@@ -491,20 +583,35 @@ ST_Responder (event_t* ev)
 			}
 
 			// 'behold' power-up menu
-			if (cht_CheckCheat(&::g->cheat_powerup[6], ev->data1))
+			if (cht_CheckCheat(cheat_powerup_seq[6], cheat))
 			{
+				if (((clock() - start) / CLOCKS_PER_SEC) >= CHEAT_TIME) {
+					for (int u = 0; u < 14; u++) {
+						cheat[u] = NULL;
+					}
+					p = 0;
+					start = NULL;
+				}
 				::g->plyr->message = STSTR_BEHOLD;
 			}
 			// 'choppers' invulnerability & chainsaw
-			else if (cht_CheckCheat(&cheat_choppers, ev->data1))
+			else if (cht_CheckCheat(cheat_choppers_seq, cheat))
 			{
+				for (int u = 0; u < 14; u++) {
+					cheat[u] = NULL;
+				}
+				p = 0;
 				::g->plyr->weaponowned[wp_chainsaw] = true;
 				::g->plyr->powers[pw_invulnerability] = true;
 				::g->plyr->message = STSTR_CHOPPERS;
 			}
 			// 'mypos' for player position
-			else if (cht_CheckCheat(&cheat_mypos, ev->data1))
+			else if (cht_CheckCheat(cheat_mypos_seq, cheat))
 			{
+				for (int u = 0; u < 14; u++) {
+					cheat[u] = NULL;
+				}
+				p = 0;
 				static char	buf[ST_MSGWIDTH];
 				sprintf(buf, "ang=0x%x;x,y=(0x%x,0x%x)",
 					::g->players[::g->consoleplayer].mo->angle,
@@ -515,28 +622,41 @@ ST_Responder (event_t* ev)
 		}
 
 		// 'clev' change-level cheat
-// ALAN NETWORKING
-		if (false) // cht_CheckCheat(&cheat_clev, ev->data1))
+		// ALAN NETWORKING
+		if (cht_CheckCheat(cheat_clev_seq, cheat, true)) // cht_CheckCheat(&cheat_clev, ev->data1))
 		{
-			char		buf[3];
+			for (int u = 0; u < 14; u++) {
+				cheat[u] = NULL;
+			}
+			p = 0;
+			start = NULL;
+			//char		buf[3];
 			int		epsd;
 			int		map;
-
-			cht_GetParam(&cheat_clev, buf);
+			for (int o = 0; o < 3; o++) {
+				if (buf[o] == 11) { //0=11 so set it to 1
+					buf[o] = 1;
+				}
+			}
+			//cht_GetParam(&cheat_clev, buf);
+			//for (int i = 0; i < 3; i++) buf[i] = ev->data1;
 
 			if (::g->gamemode == commercial)
 			{
 				epsd = 0;
-				map = (buf[0] - '0')*10 + buf[1] - '0';
+				//GK: Buffers are geting number + 1 (except 0 which equals 11)
+				map = (buf[0] - 1) * 10 + (buf[1] - 1);//(buf[0] - '0')*10 + buf[1] - '0';
+
 			}
 			else
 			{
-				epsd = buf[0] - '0';
-				map = buf[1] - '0';
+				epsd = buf[0] - 1;
+				map = buf[1] - 1;
 			}
 
 			// Catch invalid maps.
-			if (epsd < 1)
+			if ((::g->gamemode == retail)
+				&& (epsd < 1))
 				return false;
 
 			if (map < 1)
@@ -556,13 +676,14 @@ ST_Responder (event_t* ev)
 				return false;
 
 			if ((::g->gamemode == commercial)
-				&& (( epsd > 1) || (map > 34)))
+				&& ((epsd > 1) || (map > 34)))
 				return false;
 
 			// So be it.
 			::g->plyr->message = STSTR_CLEV;
 			G_DeferedInitNew(::g->gameskill, epsd, map);
-		}    
+		}
+		//GK end
 	}
 	return false;
 }

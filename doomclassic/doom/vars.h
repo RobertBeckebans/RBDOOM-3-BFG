@@ -322,6 +322,8 @@ int		myargc;
 char**		myargv;
 // m_argv.vars end // 
 //  m_cheat.vars begin // 
+//GK check if you want to enable classic cheats
+qboolean classiccheats = false;
 int		firsttime ;
 unsigned char	cheat_xlate_table[256];
 unsigned char cheatbuffer[256];

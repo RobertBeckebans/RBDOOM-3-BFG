@@ -125,7 +125,9 @@ If you have questions concerning this license or the applicable additional terms
 #define GOTPLASMA	"You got the plasma gun!"
 #define GOTSHOTGUN	"You got the shotgun!"
 #define GOTSHOTGUN2	"You got the super shotgun!"
-
+//GK begin
+#define GOTSECRET	"You found A Secret!"
+//GK End
 //
 // P_Doors.C
 //

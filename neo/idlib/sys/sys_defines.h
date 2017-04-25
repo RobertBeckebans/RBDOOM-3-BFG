@@ -39,9 +39,13 @@ If you have questions concerning this license or the applicable additional terms
 
 // Win32
 #if defined(WIN32) || defined(_WIN32)
-
+//GK begin
+#if defined(_M_IX86)
 #define	CPUSTRING						"x86"
-
+#else
+#define	CPUSTRING						"x64"
+#endif
+//GK end
 #define	BUILD_STRING					"win-" CPUSTRING
 
 #ifdef _MSC_VER

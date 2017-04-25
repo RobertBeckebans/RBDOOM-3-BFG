@@ -110,20 +110,38 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
 		add_definitions(-march=native)
 	endif()
 
+	if(NOT SET_UP_CONFIGURATIONS_DONE)
+    set(SET_UP_CONFIGURATIONS_DONE 1)
+
+    #GK: Use 3 configurations Debug,Release and Retail
+    if(CMAKE_CONFIGURATION_TYPES) 
+        set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Retail" CACHE STRING "" FORCE) 
+    else()
+        if(NOT CMAKE_BUILD_TYPE)
+            message("Defaulting to release build.")
+            set(CMAKE_BUILD_TYPE Release CACHE STRING "" FORCE)
+        endif()
+        set_property(CACHE CMAKE_BUILD_TYPE PROPERTY HELPSTRING "Choose the type of build")
+        
+        set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug;Release;Retail")
+    endif()
+	
 	set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -D_DEBUG -O0 -ggdb -fno-strict-aliasing ${my_warn_flags}")
 	#set(CMAKE_C_FLAGS_DEBUGALL "${CMAKE_C_FLAGS_DEBUGALL} -g -ggdb -D_DEBUG -fno-strict-aliasing ${my_warn_flags}")
 	#set(CMAKE_C_FLAGS_PROFILE "${CMAKE_C_FLAGS_PROFILE} -g -ggdb -D_DEBUG -O1 -fno-omit-frame-pointer -fno-strict-aliasing ${my_warn_flags}")
 	set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -ffast-math -fno-unsafe-math-optimizations -fomit-frame-pointer -fno-strict-aliasing ${my_warn_flags}")
-	set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} -g -O3 -ffast-math -fno-unsafe-math-optimizations -fomit-frame-pointer -fno-strict-aliasing ${my_warn_flags}")
-	set(CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL} -Os -ffast-math -fno-unsafe-math-optimizations -fomit-frame-pointer -fno-strict-aliasing ${my_warn_flags}")
+	#set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} -g -O3 -ffast-math -fno-unsafe-math-optimizations -fomit-frame-pointer -fno-strict-aliasing ${my_warn_flags}")
+	#set(CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL} -Os -ffast-math -fno-unsafe-math-optimizations -fomit-frame-pointer -fno-strict-aliasing ${my_warn_flags}")
+	set(CMAKE_C_FLAGS_RETAIL "${CMAKE_C_FLAGS_RELEASE} -DID_RETAIL -O3 -ffast-math -fno-unsafe-math-optimizations -fomit-frame-pointer -fno-strict-aliasing ${my_warn_flags}")
 	
 	set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
 	#set(CMAKE_CXX_FLAGS_DEBUGALL ${CMAKE_C_FLAGS_DEBUGALL})
 	#set(CMAKE_CXX_FLAGS_PROFILE ${CMAKE_C_FLAGS_PROFILE})
 	set(CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
-	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO ${CMAKE_C_FLAGS_RELWITHDEBINFO})
-	set(CMAKE_CXX_FLAGS_MINSIZEREL ${CMAKE_C_FLAGS_MINSIZEREL})
-
+	#set(CMAKE_CXX_FLAGS_RELWITHDEBINFO ${CMAKE_C_FLAGS_RELWITHDEBINFO})
+	#set(CMAKE_CXX_FLAGS_MINSIZEREL ${CMAKE_C_FLAGS_MINSIZEREL})
+	set(CMAKE_CXX_FLAGS_RETAIL "${CMAKE_C_FLAGS_RELEASE} -DID_RETAIL")
+endif()
 elseif(MSVC)
 	
 	# Multiprocessor support for compiling
@@ -168,22 +186,41 @@ elseif(MSVC)
 		# set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MP ${WINRT_OPTIONS}")
 		# set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /MP /Oi /Oy ${WINRT_OPTIONS}")
 	# else()
+		if(NOT SET_UP_CONFIGURATIONS_DONE)
+    set(SET_UP_CONFIGURATIONS_DONE 1)
+
+    #GK: Use 3 configurations Debug,Release and Retail
+    if(CMAKE_CONFIGURATION_TYPES) 
+        set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Retail" CACHE STRING "" FORCE) 
+    else()
+        if(NOT CMAKE_BUILD_TYPE)
+            message("Defaulting to release build.")
+            set(CMAKE_BUILD_TYPE Release CACHE STRING "" FORCE)
+        endif()
+        set_property(CACHE CMAKE_BUILD_TYPE PROPERTY HELPSTRING "Choose the type of build")
+        
+        set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug;Release;Retail")
+    endif()
 		set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /D _DEBUG /MP /MTd")
 		set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MP /Oi /Oy /MT")
-		set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} /MP /Oi /MTd")
-		set(CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL} /MP /Oi /Oy /MT")
+		#set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} /MP /Oi /MTd")
+		#set(CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL} /MP /Oi /Oy /MT")
+		set(CMAKE_C_FLAGS_RETAIL "${CMAKE_C_FLAGS_RELEASE} /D ID_RETAIL /MP /Oi /Oy /MT")
 		
 		set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MP /MTd")
 		set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MP /Oi /Oy /MT")
-		set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MP /MTd")
-		set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /MP /Oi /Oy /MT")
+		#set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MP /MTd")
+		#set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /MP /Oi /Oy /MT")
+		set(CMAKE_CXX_FLAGS_RETAIL "${CMAKE_CXX_FLAGS_RELEASE} /D ID_RETAIL /MP /Oi /Oy /MT")
 		
 		# RB: without /SAFESEH:NO we can't link against ffmpeg libs and VS2013 or we have to build our own
 		# libs for newer compilers
 		set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /SAFESEH:NO")
-		set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "${CMAKE_EXE_LINKER_FLAGS_MINSIZEREL} /SAFESEH:NO")
+		#set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "${CMAKE_EXE_LINKER_FLAGS_MINSIZEREL} /SAFESEH:NO")
 		set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /SAFESEH:NO")
-		set(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO} /SAFESEH:NO")
+		#set(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO} /SAFESEH:NO")
+		set(CMAKE_EXE_LINKER_FLAGS_RETAIL "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /SAFESEH:NO")
+		endif()
 	# endif()
 	
 
@@ -216,6 +253,7 @@ elseif(MSVC)
 		# 2: Use MFC in a Shared DLL 
 		set(CMAKE_MFC_FLAG 2)
 	endif()
+	
 endif()
 
 #if(STANDALONE)
@@ -1176,20 +1214,20 @@ if(MSVC)
 		# endif()
 		
 	# else()
-	
-	if(WINDOWS10)
-		set(DirectX_LIBRARIES
-			dinput8
-			dsound
-			dxguid
+	#GK: DXSDK 2010 can STILL BEEN INSTALLED on Windows 10 and been used even by the LATEST VERSION OF VS
+	#if(WINDOWS10)
+	#	set(DirectX_LIBRARIES
+	#		dinput8
+	#		dsound
+	#		dxguid
 			#dxerr
-			Xinput
-			xaudio2.lib
-			)
-	else()
+	#		Xinput
+	#		xaudio2.lib
+	#		)
+	#else()
 		find_package(DirectX REQUIRED)
 		include_directories(${DirectX_INCLUDE_DIR})
-	endif()
+	#endif()
 	
 	if(OPENAL)
 		add_definitions(-DUSE_OPENAL)
@@ -1324,6 +1362,11 @@ if(MSVC)
 	list(APPEND RBDOOM3_SOURCES ${WIN32_RESOURCES})
 	
 	add_executable(RBDoom3BFG WIN32 ${RBDOOM3_INCLUDES} ${RBDOOM3_SOURCES})
+	#GK: Allow to compile and run the game from VS
+	set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT RBDoom3BFG)
+	set_target_properties(RBDoom3BFG PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "C:/Program Files (x86)/Steam/steamapps/common/DOOM 3 BFG Edition")
+	#GK: TODO add +set r_fullscreen "0" command line (VS DEBUGGER and Fullscreen not a good mix)
+	#set_target_properties(RBDoom3BFG PROPERTIES COMMAND_LINE_ARGUMENTS " +set r_fullscreen 0")
 		
 	#add_custom_command(TARGET RBDoom3BFG
     #               PRE_BUILD

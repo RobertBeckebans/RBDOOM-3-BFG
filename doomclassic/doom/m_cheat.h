@@ -46,17 +46,25 @@ struct cheatseq_t
     
 };
 
+/*int
+cht_CheckCheatN
+( cheatseq_t*		cht,
+char			key );*/
+
 int
 cht_CheckCheat
-( cheatseq_t*		cht,
-  char			key );
+(const unsigned char*	cht,
+	unsigned char*		key,
+	bool buffer = false);
 
-
-void
+/*void
 cht_GetParam
-( cheatseq_t*		cht,
-  char*			buffer );
+(cheatseq_t*	cht,
+char*			buffer );*/
 
+extern char buf[3];
+extern int p;
+#define CHEAT_TIME 5
 
 #endif
 

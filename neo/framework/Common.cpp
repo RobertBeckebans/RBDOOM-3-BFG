@@ -249,6 +249,9 @@ doom set test blah + map test
 #define		MAX_CONSOLE_LINES	32
 int			com_numConsoleLines;
 idCmdArgs	com_consoleLines[MAX_CONSOLE_LINES];
+//GK begin
+char* classicargv[32];
+//GK end
 
 /*
 ==================
@@ -261,6 +264,11 @@ void idCommonLocal::ParseCommandLine( int argc, const char* const* argv )
 	
 	com_numConsoleLines = 0;
 	current_count = 0;
+	//GK begin
+	int j = 0;
+	classicargv[j] = "doomlauncher";
+	j++;
+	//GK end
 	// API says no program path
 	for( i = 0; i < argc; i++ )
 	{
@@ -281,6 +289,21 @@ void idCommonLocal::ParseCommandLine( int argc, const char* const* argv )
 			com_numConsoleLines++;
 			com_consoleLines[ com_numConsoleLines - 1 ].AppendArg( argv[ i ] + 1 );
 		}
+		//GK begin
+		else if (argv[i][0] == '-') {
+
+			while (i<argc && argv[i][0] != '+') {
+				classicargv[j] = strdup(argv[i]);
+				i++;
+				j++;
+			}
+			if (i >= argc)
+				break;
+			if (argv[i][0] == '+') {
+				i = i - 1;
+			}
+		}
+		//GK end
 		else
 		{
 			if( !com_numConsoleLines )

@@ -173,14 +173,17 @@ mline_t thintriangle_guy[] =
 
 
 
-
-const unsigned char cheat_amap_seq[] = 
-{ 
-	0xb2, 0x26, 0x26, 0x2e, 0xff 
+//GK: Using VS Debugger I find out which chars are recognized from the game and they are literraly different from the original chars
+const unsigned char cheat_amap_seq[] =
+{
+	'\x17',' ',' ','\x14',0xff,
+	//0xb2, 0x26, 0x26, 0x2e, 0xff 
 };
-cheatseq_t cheat_amap = cheatseq_t( cheat_amap_seq, 0 );
+cheatseq_t cheat_amap = cheatseq_t(cheat_amap_seq, 0);
 
-
+unsigned char cheatcode[5];
+int pos = 0;
+//GK End
 //extern byte ::g->screens[][SCREENWIDTH*SCREENHEIGHT];
 
 
@@ -581,8 +584,24 @@ AM_Responder
 			::g->cheatstate=0;
 			rc = false;
 		}
-		if (!::g->deathmatch && cht_CheckCheat(&cheat_amap, ev->data1))
+		//GK begin
+		if ((ev->data1 == 23 && pos<5) || pos>0) {
+			cheatcode[pos] = ev->data1;
+			pos++;
+		}
+		if (pos >= 5) {
+			for (int u = 0; u < 5; u++) {
+				cheatcode[u] = NULL;
+			}
+			pos = 0;
+		}
+		if (!::g->deathmatch && cht_CheckCheat(cheat_amap_seq, cheatcode))
 		{
+			for (int u = 0; u < 5; u++) {
+				cheatcode[u] = NULL;
+			}
+			pos = 0;
+			//GK end
 			rc = false;
 			::g->cheating = (::g->cheating+1) % 3;
 		}

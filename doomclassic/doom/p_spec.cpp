@@ -1031,6 +1031,8 @@ void P_PlayerInSpecialSector (player_t* player)
 	case 9:
 		// SECRET SECTOR
 		player->secretcount++;
+		//GK send message when secret found
+		::g->plyr->message = GOTSECRET;
 		sector->special = 0;
 
 

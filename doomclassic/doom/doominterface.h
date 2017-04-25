@@ -35,7 +35,8 @@ If you have questions concerning this license or the applicable additional terms
 #include <string>
 
 class idUserCmdMgr;
-
+//GK : Use extern to communicate between DOOM 3 BFG and classic DOOM
+extern char* classicargv[32];
 class DoomInterface
 {
 public:

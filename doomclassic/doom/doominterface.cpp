@@ -106,7 +106,20 @@ void DoomInterface::Startup( int playerscount, bool multiplayer )
 			printf( "\n" );
 			DoomLib::InitGame(mpArgc[i], mpArgVPtr[i] );
 		} else {
-			DoomLib::InitGame(localdargc, (char **)dargv[i] );
+			//GK begin
+			if (classicargv[1] != NULL && classicargv[1] != '\0') {
+				int o = 0;
+				while (classicargv[o] != NULL && classicargv[o] != '\0') {
+					o++;
+				}
+				localdargc = o;
+				DoomLib::InitGame(localdargc, classicargv);
+			}
+			else {
+				localdargc = 1;
+				DoomLib::InitGame(localdargc,(char **) dargv[i]);
+			}
+			//GK end
 		}
 
 		if( DoomLib::skipToLoad ) {

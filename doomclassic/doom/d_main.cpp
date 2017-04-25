@@ -404,7 +404,7 @@ void D_DoAdvanceDemo (void)
 		::g->demosequence = (::g->demosequence+1)%8;
 	else
 		::g->demosequence = (::g->demosequence+1)%6;
-
+	//GK: Change "INTERPIC" with "TITLEPIC"
 	switch (::g->demosequence)
 	{
 	case 0:
@@ -414,7 +414,8 @@ void D_DoAdvanceDemo (void)
 			::g->pagetic = 8 * TICRATE;
 
 		::g->gamestate = GS_DEMOSCREEN;
-		::g->pagename = (char *)"INTERPIC";
+		//GK change INTERPIC with TITLEPIC
+		::g->pagename = (char *)"TITLEPIC";
 
 		if ( ::g->gamemode == commercial )
 			S_StartMusic(mus_dm2ttl);
@@ -428,7 +429,7 @@ void D_DoAdvanceDemo (void)
 	case 2:
 		::g->pagetic = 3 * TICRATE;
 		::g->gamestate = GS_DEMOSCREEN;
-		::g->pagename = (char *)"INTERPIC";
+		::g->pagename = (char *)"TITLEPIC";
 		break;
 	case 3:
 		G_DeferedPlayDemo ("demo2");
@@ -436,7 +437,7 @@ void D_DoAdvanceDemo (void)
 	case 4:
 		::g->pagetic = 3 * TICRATE;
 		::g->gamestate = GS_DEMOSCREEN;
-		::g->pagename = (char *)"INTERPIC";
+		::g->pagename = (char *)"TITLEPIC";
 		break;
 	case 5:
 		G_DeferedPlayDemo ("demo3");
@@ -445,7 +446,7 @@ void D_DoAdvanceDemo (void)
 	case 6:
 		::g->pagetic = 3 * TICRATE;
 		::g->gamestate = GS_DEMOSCREEN;
-		::g->pagename = (char *)"INTERPIC";
+		::g->pagename = (char *)"TITLEPIC";
 		break;
 	case 7:
 		G_DeferedPlayDemo ("demo4");
@@ -539,6 +540,8 @@ void D_DoomMain (void)
 	FindResponseFile ();
 
 	IdentifyVersion ();
+	//GK: Find the position of -doom,-doom2 and -both
+	M_initParam();
 
 	setbuf (stdout, NULL);
 	::g->modifiedgame = false;
@@ -546,7 +549,9 @@ void D_DoomMain (void)
 	// TODO: Networking
 	//const bool isDeathmatch = gameLocal->GetMatchParms().GetGameType() == GAME_TYPE_PVP;
 	const bool isDeathmatch = false;
-
+	//GK begin
+	::g->classiccheats = M_CheckParm("-classich");
+	//GK End
 	::g->nomonsters = M_CheckParm ("-nomonsters") || isDeathmatch;
 	::g->respawnparm = M_CheckParm ("-respawn");
 	::g->fastparm = M_CheckParm ("-fast");
@@ -613,11 +618,29 @@ void D_DoomMain (void)
 	p = M_CheckParm ("-file");
 	if (p)
 	{
+		//GK: Check if it is having double -file parameter for both and for specific games
+		int q = -1;
+		if (::g->gamemode == retail) {
+			q = M_CheckParm("-doom");
+		}
+		else if (::g->gamemode == commercial) {
+			q = M_CheckParm("-doom2");
+		}
+		int np = 0;
+		if (q > p) {
+			np = M_CheckParm("-file",true);
+		}
+		//GK End
 		// the parms after p are ::g->wadfile/lump names,
 		// until end of parms or another - preceded parm
 		::g->modifiedgame = true;            // homebrew levels
 		while (++p != ::g->myargc && ::g->myargv[p][0] != '-')
 			D_AddFile (::g->myargv[p]);
+		//GK begin
+		if (np>0)
+			while (++np != ::g->myargc && ::g->myargv[np][0] != '-')
+				D_AddFile(::g->myargv[np]);
+		//GK End
 	}
 
 	p = M_CheckParm ("-playdemo");
