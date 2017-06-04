@@ -235,6 +235,7 @@ public:
 	
 	idLobbyBackend() : type( TYPE_INVALID ), isLocal( false ), isHost( false ) {}
 	idLobbyBackend( lobbyBackendType_t lobbyType ) : type( lobbyType ), isLocal( false ), isHost( false ) {}
+	virtual ~idLobbyBackend() ID_NOEXCEPT ID_DEFAULT_DESTRUCTOR
 	
 	virtual void			StartHosting( const idMatchParameters& p, float skillLevel, lobbyBackendType_t type ) = 0;
 	virtual void			StartFinding( const idMatchParameters& p, int numPartyUsers, float skillLevel ) = 0;
@@ -327,6 +328,8 @@ protected:
 class idLobbyToSessionCB
 {
 public:
+	virtual ~idLobbyToSessionCB() ID_NOEXCEPT ID_DEFAULT_DESTRUCTOR
+
 	virtual class idLobbyBackend* 				GetLobbyBackend( idLobbyBackend::lobbyBackendType_t type ) const = 0;
 	virtual bool								CanJoinLocalHost() const = 0;
 	

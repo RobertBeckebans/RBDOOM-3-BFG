@@ -947,6 +947,8 @@ idSessionCallbacks
 class idSessionCallbacks
 {
 public:
+	virtual ~idSessionCallbacks() ID_NOEXCEPT ID_DEFAULT_DESTRUCTOR
+
 	virtual idLobby& 				GetPartyLobby() = 0;
 	virtual idLobby& 				GetGameLobby() = 0;
 	virtual idLobby& 				GetActingGameStateLobby() = 0;

@@ -264,6 +264,24 @@ extern volatile int ignoredReturnValue;
 #define MAX_UNSIGNED_TYPE( x )	( ( ( ( 1U << ( ( sizeof( x ) - 1 ) * 8 ) ) - 1 ) << 8 ) | 255U )
 #define MIN_UNSIGNED_TYPE( x )	0
 
+#if __cplusplus >= 201103L && !defined(_MSC_VER)
+#define ID_USE_NOEXCEPT
+#define ID_USE_DEFAULT
+#endif
+
+#ifdef ID_USE_NOEXCEPT
+#define ID_NOEXCEPT noexcept
+#else
+#define ID_NOEXCEPT
+#endif
+
+#ifdef ID_USE_DEFAULT
+#define ID_DEFAULT_DESTRUCTOR = default;
+#else
+#define ID_DEFAULT_DESTRUCTOR {}
+#endif
+
+
 #endif
 
 
