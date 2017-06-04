@@ -2168,7 +2168,7 @@ static int CM_FindSplitter( const cm_node_t* node, const idBounds& bounds, int* 
 		// start with the largest axis first
 		type = axis[i];
 		bestt = size[i];
-		// if the node is small anough in this axis direction
+		// if the node is small enough in this axis direction
 		if( !forceSplit && bestt < MIN_NODE_SIZE )
 		{
 			break;
