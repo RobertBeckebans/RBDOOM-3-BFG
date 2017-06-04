@@ -1028,7 +1028,7 @@ void idCommonLocal::LoadGameDLL()
 	gameExport_t	gameExport;
 	GetGameAPI_t	GetGameAPI;
 	
-	fileSystem->FindDLL( "game", dllPath, true );
+	fileSystem->FindDLL( "game", dllPath );
 	
 	if( !dllPath[ 0 ] )
 	{
