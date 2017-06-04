@@ -8888,10 +8888,12 @@ void idPlayer::Think()
 	{
 		if( ( usercmd.buttons & BUTTON_ZOOM ) && weapon.GetEntity() )
 		{
+            weapon.GetEntity()->SetIronsight( true );
 			zoomFov.Init( gameLocal.time, 200.0f, CalcFov( false ), weapon.GetEntity()->GetZoomFov() );
 		}
 		else
 		{
+            weapon.GetEntity()->SetIronsight( false );
 			zoomFov.Init( gameLocal.time, 200.0f, zoomFov.GetCurrentValue( gameLocal.time ), DefaultFov() );
 		}
 	}
@@ -11355,7 +11357,7 @@ void idPlayer::ClientThink( const int curTime, const float fraction, const bool 
 			{
 				zoomFov.Init( gameLocal.time, 200.0f, zoomFov.GetCurrentValue( gameLocal.time ), DefaultFov() );
 			}
-		}
+		}        
 	}
 	
 	// clear the ik before we do anything else so the skeleton doesn't get updated twice

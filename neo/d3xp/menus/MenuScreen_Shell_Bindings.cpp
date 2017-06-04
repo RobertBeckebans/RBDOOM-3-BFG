@@ -57,6 +57,7 @@ static bindInfo_t keyboardBinds[] =
 	{ "#str_02116",	"_lookUp"								},	// LOOK UP
 	{ "#str_02117",	"_lookDown"								},	// LOOK DOWN
 	{ "#str_02121",	"_impulse19"							},	// PDA / SCOREBOARD
+	{ "#str_swf_action_zoom",	"_zoom"						},	// ZOOM
 	
 	{ "#str_02093",			""								},	// HEADING
 	{ "#str_00100177",	"_impulse0"							},	// FISTS / GRABBER

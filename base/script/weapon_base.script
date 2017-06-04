@@ -1,0 +1,30 @@
+// this file is WTFPL2
+
+object weapon_base {
+    boolean WEAPON_ATTACK;
+    boolean WEAPON_RELOAD;
+    boolean WEAPON_RAISEWEAPON; // shouldn't we erase the last "WEAPON" of those two?
+    boolean WEAPON_LOWERWEAPON; 
+    boolean WEAPON_IRONSIGHT; // new boolean for a new weapon animation
+    boolean WEAPON_NETRELOAD;
+    boolean WEAPON_NETENDRELOAD;
+    boolean WEAPON_NETFIRING;
+    boolean WEAPON_START_FIRING; //called by the player script
+
+    void    UpdateSkin();
+
+    string  GetFireAnim()   { return "fire"; }; //called by the player script
+    void    NetCatchup()    { weaponState( "Idle", 0 ); };
+    void    EnterCinematic(){};
+    void    ExitCinematic() {}; // those are implemented in sub-scriptobjects
+    void    WeaponStolen()  {};
+    void    OwnerDied()     {};
+};
+
+void weapon_base::UpdateSkin() {
+    if ( isInvisible() ) {
+        setSkin( getKey( "skin_invisible" ) );
+    } else {
+        setSkin( "" );
+    }
+}
