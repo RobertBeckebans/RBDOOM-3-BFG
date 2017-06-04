@@ -264,6 +264,13 @@ extern volatile int ignoredReturnValue;
 #define MAX_UNSIGNED_TYPE( x )	( ( ( ( 1U << ( ( sizeof( x ) - 1 ) * 8 ) ) - 1 ) << 8 ) | 255U )
 #define MIN_UNSIGNED_TYPE( x )	0
 
+
+#if defined(_MSC_VER)
+#define ID_FORCE_RESULT_USAGE
+#else
+#define ID_FORCE_RESULT_USAGE __attribute__((warn_unused_result))
+#endif
+
 #endif
 
 

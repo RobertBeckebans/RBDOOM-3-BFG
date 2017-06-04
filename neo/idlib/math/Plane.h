@@ -116,8 +116,8 @@ public:
 	
 	bool			LineIntersection( const idVec3& start, const idVec3& end ) const;
 	// intersection point is start + dir * scale
-	bool			RayIntersection( const idVec3& start, const idVec3& dir, float& scale ) const;
-	bool			PlaneIntersection( const idPlane& plane, idVec3& start, idVec3& dir ) const;
+	bool			RayIntersection( const idVec3& start, const idVec3& dir, float& scale ) const ID_FORCE_RESULT_USAGE;
+	bool			PlaneIntersection( const idPlane& plane, idVec3& start, idVec3& dir ) const ID_FORCE_RESULT_USAGE;
 	
 	int				GetDimension() const;
 	

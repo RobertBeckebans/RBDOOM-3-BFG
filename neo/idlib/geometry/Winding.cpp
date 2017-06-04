@@ -1745,8 +1745,7 @@ bool idWinding::RayIntersection( const idPlane& windingPlane, const idVec3& star
 	}
 	if( !backFaceCull || lastside )
 	{
-		windingPlane.RayIntersection( start, dir, scale );
-		return true;
+		return windingPlane.RayIntersection( start, dir, scale );
 	}
 	return false;
 }

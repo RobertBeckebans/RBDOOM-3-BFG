@@ -118,7 +118,7 @@ public:
 	// returns true if the line or ray intersects the winding
 	bool			LineIntersection( const idPlane& windingPlane, const idVec3& start, const idVec3& end, bool backFaceCull = false ) const;
 	// intersection point is start + dir * scale
-	bool			RayIntersection( const idPlane& windingPlane, const idVec3& start, const idVec3& dir, float& scale, bool backFaceCull = false ) const;
+	bool			RayIntersection( const idPlane& windingPlane, const idVec3& start, const idVec3& dir, float& scale, bool backFaceCull = false ) const ID_FORCE_RESULT_USAGE;
 	
 	static float	TriangleArea( const idVec3& a, const idVec3& b, const idVec3& c );
 	
