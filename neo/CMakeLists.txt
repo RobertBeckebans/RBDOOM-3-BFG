@@ -70,6 +70,13 @@ endif()
 
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
 	add_definitions(-pipe)
+	# Selection of cpp standard
+	if( 0 )
+		# C++11
+		add_definitions(-std=c++11)
+	else()
+		# C++03
+	endif()
 	#add_definitions(-Wall)
 	add_definitions(-Werror=format-security)
 	add_definitions(-Werror=format)
