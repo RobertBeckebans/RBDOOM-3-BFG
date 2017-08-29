@@ -175,16 +175,17 @@ void W_AddFile ( const char *filename)
 		numlumps += header.numlumps;
     }
 
-    
 	// Fill in lumpinfo
-	if (lumpinfo == NULL) {
-		lumpinfo = (lumpinfo_t*)malloc( numlumps*sizeof(lumpinfo_t) );
-	} else {
-		lumpinfo = (lumpinfo_t*)realloc( lumpinfo, numlumps*sizeof(lumpinfo_t) );
-	}
+    auto newMem = static_cast<lumpinfo_t*> (realloc(lumpinfo, numlumps * sizeof(lumpinfo_t)));
 
-	if (!lumpinfo)
-		I_Error ("Couldn't realloc lumpinfo");
+    if (newMem)
+    {
+        lumpinfo = newMem;
+    }
+    else
+    {
+        I_Error("Couldn't realloc lumpinfo");
+    }
 
 	lump_p = &lumpinfo[startlump];
 
