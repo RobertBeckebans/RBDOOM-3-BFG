@@ -3400,12 +3400,13 @@ static void RB_DrawInteractions( const viewDef_t* viewDef )
 				else
 				{
 					// always clear whole S-Cull tiles
-					idScreenRect rect;
-					rect.x1 = ( vLight->scissorRect.x1 +  0 ) & ~15;
-					rect.y1 = ( vLight->scissorRect.y1 +  0 ) & ~15;
-					rect.x2 = ( vLight->scissorRect.x2 + 15 ) & ~15;
-					rect.y2 = ( vLight->scissorRect.y2 + 15 ) & ~15;
-					
+                    idScreenRect rect {
+                        (vLight->scissorRect.x1 + 0) & ~15,
+                        (vLight->scissorRect.y1 + 0) & ~15,
+                        (vLight->scissorRect.x2 + 15) & ~15,
+                        (vLight->scissorRect.y2 + 15) & ~15
+                    };
+
 					if( !backEnd.currentScissor.Equals( rect ) && r_useScissor.GetBool() )
 					{
 						GL_Scissor( backEnd.viewDef->viewport.x1 + rect.x1,

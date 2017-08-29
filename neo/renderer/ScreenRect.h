@@ -42,6 +42,12 @@ to keep it compact, instead of just using the idBounds class
 class idScreenRect
 {
 public:
+    idScreenRect() = default;
+
+    explicit idScreenRect(short x1, short y1, short x2, short y2)
+        : x1(x1), y1(y1), x2(x2), y2(y2)
+    {
+    }
 	// Inclusive pixel bounds inside viewport
 	short		x1;
 	short		y1;
