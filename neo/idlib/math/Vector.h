@@ -113,9 +113,8 @@ ID_INLINE idVec2::idVec2()
 }
 
 ID_INLINE idVec2::idVec2( const float x, const float y )
+    : x(x), y(y)
 {
-	this->x = x;
-	this->y = y;
 }
 
 ID_INLINE void idVec2::Set( const float x, const float y )
@@ -372,8 +371,8 @@ public:
 	
 	idVec3();
 	explicit idVec3( const float xyz )
+        : x(xyz), y(xyz), z(xyz)
 	{
-		Set( xyz, xyz, xyz );
 	}
 	explicit idVec3( const float x, const float y, const float z );
 	
@@ -449,10 +448,8 @@ ID_INLINE idVec3::idVec3()
 }
 
 ID_INLINE idVec3::idVec3( const float x, const float y, const float z )
+    : x(x), y(y), z(z)
 {
-	this->x = x;
-	this->y = y;
-	this->z = z;
 }
 
 ID_INLINE float idVec3::operator[]( const int index ) const
@@ -984,12 +981,12 @@ public:
 	
 	idVec4() { }
 	explicit idVec4( const float x )
+        : x(x), y(x), z(x), w(x)
 	{
-		Set( x, x, x, x );
 	}
 	explicit idVec4( const float x, const float y, const float z, const float w )
+        : x(x), y(y), z(z), w(w)
 	{
-		Set( x, y, z, w );
 	}
 	
 	void 			Set( const float x, const float y, const float z, const float w );
@@ -1308,21 +1305,13 @@ ID_INLINE idVec5::idVec5()
 }
 
 ID_INLINE idVec5::idVec5( const idVec3& xyz, const idVec2& st )
+    : x(xyz.x), y(xyz.y), z(xyz.z), s(st.x), t(st.y)
 {
-	x = xyz.x;
-	y = xyz.y;
-	z = xyz.z;
-	s = st[0];
-	t = st[1];
 }
 
 ID_INLINE idVec5::idVec5( const float x, const float y, const float z, const float s, const float t )
+    : x(x), y(y), z(z), s(s), t(t)
 {
-	this->x = x;
-	this->y = y;
-	this->z = z;
-	this->s = s;
-	this->t = t;
 }
 
 ID_INLINE float idVec5::operator[]( const int index ) const

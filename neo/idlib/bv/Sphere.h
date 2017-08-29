@@ -104,15 +104,13 @@ ID_INLINE idSphere::idSphere()
 }
 
 ID_INLINE idSphere::idSphere( const idVec3& point )
+	: origin(point), radius(0.0f)
 {
-	origin = point;
-	radius = 0.0f;
 }
 
 ID_INLINE idSphere::idSphere( const idVec3& point, const float r )
+	: origin(point), radius(r)
 {
-	origin = point;
-	radius = r;
 }
 
 ID_INLINE float idSphere::operator[]( const int index ) const

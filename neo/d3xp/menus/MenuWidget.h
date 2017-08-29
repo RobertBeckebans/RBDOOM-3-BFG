@@ -269,10 +269,8 @@ public:
 	}
 	
 	idWidgetAction( const idWidgetAction& src )
+		: action(src.action), parms(src.parms), scriptFunction(src.scriptFunction)
 	{
-		action = src.action;
-		parms = src.parms;
-		scriptFunction = src.scriptFunction;
 		if( scriptFunction != NULL )
 		{
 			scriptFunction->AddRef();

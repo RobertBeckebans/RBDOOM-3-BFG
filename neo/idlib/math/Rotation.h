@@ -101,11 +101,8 @@ ID_INLINE idRotation::idRotation()
 }
 
 ID_INLINE idRotation::idRotation( const idVec3& rotationOrigin, const idVec3& rotationVec, const float rotationAngle )
+	: origin(rotationOrigin), vec(rotationVec), angle(rotationAngle), axisValid(false)
 {
-	origin = rotationOrigin;
-	vec = rotationVec;
-	angle = rotationAngle;
-	axisValid = false;
 }
 
 ID_INLINE void idRotation::Set( const idVec3& rotationOrigin, const idVec3& rotationVec, const float rotationAngle )

@@ -3560,16 +3560,11 @@ idPhantomObjects::idPhantomObjects
 ===============
 */
 idPhantomObjects::idPhantomObjects()
+	: end_time(0), throw_time(0.0f), shake_time(0.0f), speed(0.0f), min_wait(0), max_wait(0)
 {
-	target			= NULL;
-	end_time		= 0;
-	throw_time 		= 0.0f;
-	shake_time 		= 0.0f;
+    target = NULL;
 	shake_ang.Zero();
-	speed			= 0.0f;
-	min_wait		= 0;
-	max_wait		= 0;
-	fl.neverDormant	= false;
+    fl.neverDormant = false;
 }
 
 /*
