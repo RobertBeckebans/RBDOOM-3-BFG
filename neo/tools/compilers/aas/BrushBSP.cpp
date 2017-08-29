@@ -1096,7 +1096,7 @@ void idBrushBSP::BuildGrid_r( idList<idBrushBSPNode*>& gridCells, idBrushBSPNode
 idBrushBSP::Build
 ============
 */
-void idBrushBSP::Build( idBrushList brushList, int skipContents,
+void idBrushBSP::Build( const idBrushList& brushList, const int skipContents,
 						bool ( *ChopAllowed )( idBrush* b1, idBrush* b2 ),
 						bool ( *MergeAllowed )( idBrush* b1, idBrush* b2 ) )
 {

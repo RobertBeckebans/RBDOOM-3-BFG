@@ -169,7 +169,7 @@ public:
 	{
 		return editText;
 	}
-	void	SetText( idStr val )
+	void	SetText( const idStr& val )
 	{
 		text = val;
 		lengthCalculated = false;

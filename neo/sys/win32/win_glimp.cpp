@@ -1008,7 +1008,7 @@ bool R_GetModeListForDisplay( const int requestedDisplayNum, idList<vidMode_t>& 
 GLW_GetWindowDimensions
 ====================
 */
-static bool GLW_GetWindowDimensions( const glimpParms_t parms, int& x, int& y, int& w, int& h )
+static bool GLW_GetWindowDimensions( const glimpParms_t& parms, int& x, int& y, int& w, int& h )
 {
 	//
 	// compute width and height
