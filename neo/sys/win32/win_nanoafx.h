@@ -54,6 +54,8 @@ public:
 			ptr->AddRef();
 			_ptr = ptr;
 		}
+		
+		return *this;
 	}
 	
 	inline bool operator == ( T* ptr )
