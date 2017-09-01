@@ -1011,7 +1011,7 @@ idBrushBSPNode* idBrushBSP::ProcessGridCell( idBrushBSPNode* node, int skipConte
 	
 	BuildBrushBSP_r( node, planeList, testedPlanes, skipContents );
 	
-	delete testedPlanes;
+	delete[] testedPlanes;
 	
 #ifdef OUPUT_BSP_STATS_PER_GRID_CELL
 	common->Printf( "\r%6d splits\n", numGridCellSplits );
@@ -1096,7 +1096,7 @@ void idBrushBSP::BuildGrid_r( idList<idBrushBSPNode*>& gridCells, idBrushBSPNode
 idBrushBSP::Build
 ============
 */
-void idBrushBSP::Build( idBrushList brushList, int skipContents,
+void idBrushBSP::Build( const idBrushList& brushList, const int skipContents,
 						bool ( *ChopAllowed )( idBrush* b1, idBrush* b2 ),
 						bool ( *MergeAllowed )( idBrush* b1, idBrush* b2 ) )
 {

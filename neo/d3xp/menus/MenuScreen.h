@@ -535,16 +535,12 @@ private:
 struct creditInfo_t
 {
 
-	creditInfo_t()
+	creditInfo_t() : type(-1), entry("")
 	{
-		type = -1;
-		entry = "";
 	}
 	
-	creditInfo_t( int t, const char* val )
+	creditInfo_t( int t, const char* val ) : type(t), entry(val)
 	{
-		type = t;
-		entry = val;
 	}
 	
 	int type;
@@ -779,10 +775,8 @@ protected:
 	struct	doomLeaderboard_t
 	{
 		doomLeaderboard_t() : lb( NULL ) { }
-		doomLeaderboard_t( const leaderboardDefinition_t* _lb, idStr _name )
+		doomLeaderboard_t( const leaderboardDefinition_t* _lb, const idStr& _name ) : lb(_lb), name(_name)
 		{
-			lb = _lb;
-			name = _name;
 		}
 		const leaderboardDefinition_t* 	lb;
 		idStr					name;

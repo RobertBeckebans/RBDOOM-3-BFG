@@ -107,9 +107,7 @@ void idMenuScreen_PDA_Inventory::ShowScreen( const mainMenuTransition_t transiti
 				const char* iname = item->GetString( "inv_name" );
 				const char* iicon = item->GetString( "inv_icon" );
 				const char* itext = item->GetString( "inv_text" );
-				iname = iname;
-				iicon = iicon;
-				itext = itext;
+
 				const idKeyValue* kv = item->MatchPrefix( "inv_id", NULL );
 				if( kv )
 				{

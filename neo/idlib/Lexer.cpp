@@ -2205,20 +2205,10 @@ idLexer::idLexer
 ================
 */
 idLexer::idLexer()
+	: loaded(false), filename(""), flags(0), allocated(false), fileTime(0), length(0), line(0), lastline(0), tokenavailable(0), next(NULL), hadError(false)
 {
-	idLexer::loaded = false;
-	idLexer::filename = "";
-	idLexer::flags = 0;
 	idLexer::SetPunctuations( NULL );
-	idLexer::allocated = false;
-	idLexer::fileTime = 0;
-	idLexer::length = 0;
-	idLexer::line = 0;
-	idLexer::lastline = 0;
-	idLexer::tokenavailable = 0;
-	idLexer::token = "";
-	idLexer::next = NULL;
-	idLexer::hadError = false;
+    idLexer::token = "";
 }
 
 /*
@@ -2227,20 +2217,10 @@ idLexer::idLexer
 ================
 */
 idLexer::idLexer( int flags )
+	: loaded(false), filename(""), flags(flags), allocated(false), fileTime(0), length(0), line(0), lastline(0), tokenavailable(0), next(NULL), hadError(false)
 {
-	idLexer::loaded = false;
-	idLexer::filename = "";
-	idLexer::flags = flags;
 	idLexer::SetPunctuations( NULL );
-	idLexer::allocated = false;
-	idLexer::fileTime = 0;
-	idLexer::length = 0;
-	idLexer::line = 0;
-	idLexer::lastline = 0;
-	idLexer::tokenavailable = 0;
-	idLexer::token = "";
-	idLexer::next = NULL;
-	idLexer::hadError = false;
+    idLexer::token = "";
 }
 
 /*
@@ -2249,14 +2229,10 @@ idLexer::idLexer
 ================
 */
 idLexer::idLexer( const char* filename, int flags, bool OSPath )
+	: loaded(false), flags(flags), allocated(false), next(NULL), hadError(false)
 {
-	idLexer::loaded = false;
-	idLexer::flags = flags;
 	idLexer::SetPunctuations( NULL );
-	idLexer::allocated = false;
-	idLexer::token = "";
-	idLexer::next = NULL;
-	idLexer::hadError = false;
+    idLexer::token = "";
 	idLexer::LoadFile( filename, OSPath );
 }
 
@@ -2266,14 +2242,10 @@ idLexer::idLexer
 ================
 */
 idLexer::idLexer( const char* ptr, int length, const char* name, int flags )
+	: loaded(false), flags(flags), allocated(false), next(NULL), hadError(false)
 {
-	idLexer::loaded = false;
-	idLexer::flags = flags;
 	idLexer::SetPunctuations( NULL );
-	idLexer::allocated = false;
-	idLexer::token = "";
-	idLexer::next = NULL;
-	idLexer::hadError = false;
+    idLexer::token = "";
 	idLexer::LoadMemory( ptr, length, name );
 }
 

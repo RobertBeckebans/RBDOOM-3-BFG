@@ -154,35 +154,17 @@ idWeapon::idWeapon()
 ================
 */
 idWeapon::idWeapon()
+	: owner(NULL), weaponDef(NULL), thread(NULL), muzzleFlashEnd(0), flashColor(vec3_origin), muzzleFlashHandle(-1), worldMuzzleFlashHandle(-1), guiLightHandle(-1), nozzleGlowHandle(-1), grabberState(-1), berserk(2), brassDelay(0), allowDrop(true), isPlayerFlashlight(false), fraccos(0.0f), fraccos2(0.0f)
 {
-	owner					= NULL;
-	worldModel				= NULL;
-	weaponDef				= NULL;
-	thread					= NULL;
-	
+    worldModel = NULL;
+
 	memset( &guiLight, 0, sizeof( guiLight ) );
 	memset( &muzzleFlash, 0, sizeof( muzzleFlash ) );
 	memset( &worldMuzzleFlash, 0, sizeof( worldMuzzleFlash ) );
 	memset( &nozzleGlow, 0, sizeof( nozzleGlow ) );
-	
-	muzzleFlashEnd			= 0;
-	flashColor				= vec3_origin;
-	muzzleFlashHandle		= -1;
-	worldMuzzleFlashHandle	= -1;
-	guiLightHandle			= -1;
-	nozzleGlowHandle		= -1;
-	modelDefHandle			= -1;
-	grabberState			= -1;
-	
-	berserk					= 2;
-	brassDelay				= 0;
-	
-	allowDrop				= true;
-	isPlayerFlashlight		= false;
-	
-	fraccos = 0.0f;
-	fraccos2 = 0.0f;
-	
+
+    modelDefHandle = -1;
+
 	Clear();
 	
 	fl.networkSync = true;

@@ -396,14 +396,11 @@ private:
 class idVarDefName
 {
 public:
-	idVarDefName()
+	idVarDefName() : defs(NULL)
 	{
-		defs = NULL;
 	}
-	idVarDefName( const char* n )
+	idVarDefName( const char* n ) : name(n), defs(NULL)
 	{
-		name = n;
-		defs = NULL;
 	}
 	
 	const char* 			Name() const

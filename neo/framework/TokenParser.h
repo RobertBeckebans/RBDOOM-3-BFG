@@ -37,10 +37,8 @@ public:
 		tokenSubType = 0;
 	}
 	idBinaryToken( const idToken& tok )
+		: token(tok.c_str()), tokenType(tok.type), tokenSubType(tok.subtype)
 	{
-		token = tok.c_str();
-		tokenType = tok.type;
-		tokenSubType = tok.subtype;
 	}
 	bool operator==( const idBinaryToken& b ) const
 	{

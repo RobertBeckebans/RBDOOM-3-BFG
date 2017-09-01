@@ -298,12 +298,9 @@ bool idMenuScreen_Shell_Resolution::HandleAction( idWidgetAction& action, const 
 					class idSWFFuncAcceptVideoChanges : public idSWFScriptFunction_RefCounted
 					{
 					public:
-						idSWFFuncAcceptVideoChanges( idMenuHandler* _menu, gameDialogMessages_t _msg, const optionData_t& _optionData, bool _accept )
+						idSWFFuncAcceptVideoChanges( idMenuHandler* _menu, gameDialogMessages_t _msg, const optionData_t& _optionData, const bool _accept )
+							: menuHandler(_menu), msg(_msg), optionData(_optionData), accept(_accept)
 						{
-							menuHandler = _menu;
-							msg = _msg;
-							optionData = _optionData;
-							accept = _accept;
 						}
 						idSWFScriptVar Call( idSWFScriptObject* thisObject, const idSWFParmList& parms )
 						{
