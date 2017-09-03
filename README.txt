@@ -1,8 +1,8 @@
     ____   ____   ____                           _____  ____   ______ ______
    / __ \ / __ ) / __ \ ____   ____   ____ ___  |__  / / __ ) / ____// ____/
-  / /_/ // __  |/ / / // __ \ / __ \ / __ `__ \  /_ < / __  |/ /_   / / __  
- / _, _// /_/ // /_/ // /_/ // /_/ // / / / / /___/ // /_/ // __/  / /_/ /  
-/_/ |_|/_____//_____/ \____/ \____//_/ /_/ /_//____//_____//_/     \____/   
+  / /_/ // __  |/ / / // __ \ / __ \ / __ `__ \  /_ < / __  |/ /_   / / __
+ / _, _// /_/ // /_/ // /_/ // /_/ // / / / / /___/ // /_/ // __/  / /_/ /
+/_/ |_|/_____//_____/ \____/ \____//_/ /_/ /_//____//_____//_/     \____/
 _________________________________________
 
 
@@ -24,27 +24,27 @@ This file contains the following sections:
 	1) SYSTEM REQUIREMENT
 
 	2) GENERAL NOTES
-	
+
 	3) LICENSE
-	
+
 	4) GETTING THE SOURCE CODE
 
 	5) COMPILING ON WIN32 WITH VISUAL C++ 2013 EXPRESS EDITION
 
 	6) COMPILING ON GNU/LINUX
-	
+
 	7) INSTALLATION, GETTING THE GAMEDATA, RUNNING THE GAME
-	
+
 	8) OVERALL CHANGES
-	
+
 	9) CONSOLE VARIABLES
-	
+
 	10) KNOWN ISSUES
-	
+
 	11) BUG REPORTS
-	
+
 	12) GAME MODIFICATIONS
-	
+
 	13) CODE LICENSE EXCEPTIONS
 
 
@@ -66,7 +66,7 @@ Recommended system requirements:
 
 	CPU: 3 GHz + Intel compatible
 	System Memory: 1024MB+
-	Graphics card: Geforce 9600 GT, ATI HD 5650 or higher. 
+	Graphics card: Geforce 9600 GT, ATI HD 5650 or higher.
 
 
 
@@ -87,7 +87,7 @@ http://store.steampowered.com/app/208200/
 
 Steam:
 ------
-The Doom 3 BFG Edition GPL Source Code release does not include functionality for integrating with 
+The Doom 3 BFG Edition GPL Source Code release does not include functionality for integrating with
 Steam.  This includes roaming profiles, achievements, leaderboards, matchmaking, the overlay, or
 any other Steam features.
 
@@ -121,7 +121,7 @@ ____________________________________________
 4) GETTING THE SOURCE CODE
 ___________________________________
 
-This project's GitHub.net Git repository can be checked out through Git with the following instruction set: 
+This project's GitHub.net Git repository can be checked out through Git with the following instruction set:
 
 	> git clone https://github.com/RobertBeckebans/RBDOOM-3-BFG.git
 
@@ -146,7 +146,7 @@ __________________________________________________________
 
 5. Use the VC13 solution to compile what you need:
 	RBDOOM-3-BFG/build/RBDoom3BFG.sln
-	
+
 6. Download ffmpeg-20151105-git-c878082-win32-shared.7z from ffmpeg.zeranoe.com/builds/win32/shared
  	or
 	ffmpeg-20151105-git-c878082-win64-shared.7z from ffmpeg.zeranoe.com/builds/win64/shared
@@ -161,40 +161,40 @@ _________________________
 
 
 1. You need the following dependencies in order to compile RBDoom3BFG with all features:
- 
+
 	On Debian or Ubuntu:
 
-		> apt-get install cmake libsdl2-dev libopenal-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev
-	
+		> sudo apt-get install cmake libsdl2-dev libopenal-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev
+
 	On Fedora
 
 		// TODO add ffmpeg libs for bink videos
-		
-		> yum install cmake SDL-devel openal-devel
-	
-	On ArchLinux 
-	
+
+		> sudo yum install cmake SDL-devel openal-devel
+
+	On ArchLinux
+
 		> sudo pacman -S sdl2 ffmpeg openal cmake
-	
-	On openSUSE (tested in 13.1)
-	
-		> zypper in openal-soft-devel cmake libSDL-devel libffmpeg1-devel
-	
+
+	On openSUSE (tested in Leap 42.2)
+
+		> sudo zypper in openal-soft-devel cmake libSDL-devel libavcodec-devel libavformat-devel libavutil-devel libswscale-devel
+
 		For SDL 2 replace "libSDL-devel" with "libSDL2-devel".
-		"libffmpeg1-devel" requires the PackMan repository. If you don't have that repo, and don't want to add it, remove the "libffmpeg1-devel" option and compile without ffmpeg support.
-		If you have the repo and compiles with ffmpeg support, make sure you download "libffmpeg1-devel", and not "libffmpeg-devel".
-	
+		The packages libavcodec-devel, libavformat-devel, libavutil-devel and libswscale-devel require the Packman repository.
+		If you don't have that repo, and don't want to add it, do not install the above packages and compile without ffmpeg support.
+
 	Instead of SDL2 development files you can also use SDL1.2. Install SDL 1.2 and add to the cmake parameters -DSDL2=OFF
-	
-	SDL2 has better input support (especially in the console) and better 
+
+	SDL2 has better input support (especially in the console) and better
 	support for multiple displays (especially in fullscreen mode).
 
 
 2. Generate the Makefiles using CMake:
 
 	> cd neo/
-	> ./cmake-eclipse-linux-profile.sh
-	
+	> ./cmake-linux-release.sh
+
 3. Compile RBDOOM-3-BFG targets with
 
 	> cd ../build
@@ -214,7 +214,7 @@ C:\Program Files (x86)\Steam\SteamApps\common\Doom 3 BFG Edition\ directory and 
 
 The following instructions are primarily intented for Linux users and all hackers on other operating systems.
 
-To play the game, you need the game data from a legal copy of the game, which 
+To play the game, you need the game data from a legal copy of the game, which
 unfortunately requires Steam for Windows - Steam for Linux or OSX won't do, because
 (at least currently) the Doom 3 BFG game is only installable on Steam for Windows.
 Even the DVD version of Doom 3 BFG only contains encrytped data that is decoded
@@ -240,14 +240,14 @@ Anyway:
 
 2. Create your own Doom 3 BFG directory, e.g. /path/to/Doom3BFG/
 
-3. Copy the game-data's base dir from Steam to that directory 
+3. Copy the game-data's base dir from Steam to that directory
    (e.g. /path/to/Doom3BFG/), it's in
 	/your/path/to/Steam/steamapps/common/DOOM 3 BFG Edition/base/
 	or, if you used SteamCMD, in the path you used above.
 
-4. Copy your RBDoom3BFG executable that you created in 5) or 6) and the FFmpeg DLLs to your own 
+4. Copy your RBDoom3BFG executable that you created in 5) or 6) and the FFmpeg DLLs to your own
    Doom 3 BFG directory (/path/to/Doom3BFG).
-   
+
    Your own Doom 3 BFG directory now should look like:
 	/path/to/Doom3BFG/
 	 ->	RBDoom3BFG (or RBDoom3BFG.exe on Windows)
@@ -300,7 +300,7 @@ __________________________________________
 	scene on a GTX 660 ti OC) however I defaulted it to 12 taps using a Poisson disc algorithm so the shadows look
 	really good which should give you stable 100 fps on todays hardware (2014).
 
-- Changed light interaction shaders to use Half-Lambert lighting like in Half-Life 2 to 
+- Changed light interaction shaders to use Half-Lambert lighting like in Half-Life 2 to
 	make the game less dark. https://developer.valvesoftware.com/wiki/Half_Lambert
 
 - True 64 bit HDR lighting with adaptive tone mapping and gamma-correct rendering in linear RGB space
@@ -325,12 +325,12 @@ r_useHDR [0 or 1] - Use High Dynamic Range lighting
 
 r_hdrAutoExposure [0 or 1] - Adaptive tonemapping with HDR
 	This allows to have very bright or very dark scenes but the camera will adopt to it so the scene won't loose details
-	
+
 r_exposure [0 .. 1] - Default 0.5, Controls brightness and affects HDR exposure key
 	This is what you change in the video brightness options
 
 r_useSSAO [0 .. 1] - Use Screen Space Ambient Occlusion to darken the corners in the scene
-	
+
 r_useFilmicPostProcessEffects [0 or 1] - Apply several post process effects to mimic a filmic look"
 
 
@@ -360,7 +360,7 @@ The best way for telling us about a bug is by submitting a bug report at our Git
 
 	https://github.com/RobertBeckebans/RBDOOM-3-BFG/issues?state=open
 
-The most important fact about this tracker is that we cannot simply forget to fix the bugs which are posted there. 
+The most important fact about this tracker is that we cannot simply forget to fix the bugs which are posted there.
 It is also a great way to keep track of fixed stuff.
 
 If you want to report an issue with the game, you should make sure that your report includes all information useful to characterize and reproduce the bug.
@@ -371,17 +371,17 @@ If you want to report an issue with the game, you should make sure that your rep
     * If you are sending a console log, make sure to enable developer output:
 
               RBDoom3BFG.exe +set developer 1 +set logfile 2
-			  
+
 		You can find your qconsole.log on Windows in C:\Users\<your user name>\Saved Games\id Software\RBDOOM 3 BFG\base\
 
 NOTE: We cannot help you with OS-specific issues like configuring OpenGL correctly, configuring ALSA or configuring the network.
-	
+
 
 ___________________________________________________
 
 12) GAME MODIFCATIONS
 __________________________________________
-	
+
 The Doom 3 BFG Edition GPL Source Code release allows mod editing, in order for it to accept any change in your
 mod directory, you should first specify your mod directory adding the following command to the launcher:
 
@@ -392,7 +392,7 @@ so it would end up looking like: RBDoom3BFG +set fs_game modDirectoryName
 
 IMPORTANT: RBDOOM-3-BFG does not support old Doom 3 modiciations that include sourcecode modifications in binary form (.dll)
 You can fork RBDOOM-3-BFG and create a new renamed binary that includes all required C++ game code modifications.
-	
+
 ____________________________________________________________________________________
 
 13) CODE LICENSE EXCEPTIONS - The parts that are not covered by the GPL:
@@ -400,7 +400,7 @@ _______________________________________________________________________
 
 
 EXCLUDED CODE:  The code described below and contained in the Doom 3 BFG Edition GPL Source Code release
-is not part of the Program covered by the GPL and is expressly excluded from its terms. 
+is not part of the Program covered by the GPL and is expressly excluded from its terms.
 You are solely responsible for obtaining from the copyright holder a license for such code and complying with the applicable license terms.
 
 
@@ -584,13 +584,13 @@ Timidity
 ---------------------------------------------------------------------------
 neo/libs/timidity/*
 
-Copyright (c) 1995 Tuukka Toivonen 
+Copyright (c) 1995 Tuukka Toivonen
 
 From http://www.cgs.fi/~tt/discontinued.html :
 
 If you'd like to continue hacking on TiMidity, feel free. I'm
-hereby extending the TiMidity license agreement: you can now 
+hereby extending the TiMidity license agreement: you can now
 select the most convenient license for your needs from (1) the
-GNU GPL, (2) the GNU LGPL, or (3) the Perl Artistic License.  
+GNU GPL, (2) the GNU LGPL, or (3) the Perl Artistic License.
 
 
