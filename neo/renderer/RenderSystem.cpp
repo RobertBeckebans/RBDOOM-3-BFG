@@ -331,7 +331,7 @@ static void R_CheckCvars()
 		renderProgManager.LoadAllShaders();
 	}
 	
-	// RB: turn off shadow mapping for OpenGL drivers that are too slow
+	// RB: turn off shadow mapping for OpenGL drivers that are too slo
 	switch( glConfig.driverType )
 	{
 		case GLDRV_OPENGL_ES2:

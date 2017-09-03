@@ -233,7 +233,6 @@ void Framebuffer::CheckFramebuffers()
 			globalFramebuffers.hdrFBO->Check();			
 			globalFramebuffers.hdrNonMSAAFBO->width = screenWidth;
 			globalFramebuffers.hdrNonMSAAFBO->height = screenHeight;
->>>>>>> refs/remotes/RobertBeckebans/master
 		}
 		else
 #endif
