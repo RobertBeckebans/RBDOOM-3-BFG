@@ -68,6 +68,7 @@ idCVar r_displayGLSLCompilerMessages( "r_displayGLSLCompilerMessages", "1", CVAR
 // RB begin
 idCVar r_alwaysExportGLSL( "r_alwaysExportGLSL", "1", CVAR_BOOL, "" );
 // RB end
+idCVar r_sourceGLSL( "r_sourceGLSL", "0", CVAR_BOOL, "Whether if we use GLSL files as source for the shaders or CG files");
 
 #define VERTEX_UNIFORM_ARRAY_NAME				"_va_"
 #define FRAGMENT_UNIFORM_ARRAY_NAME				"_fa_"
@@ -831,6 +832,37 @@ struct typeConversion_t
 	{ "sampler2DMS",		"sampler2DMS" },
 	
 	{ NULL, NULL }
+};
+
+const char* original_GPL_license_wall_of_text =
+{
+		"/*\n"
+		"===========================================================================\n"
+		"\n"
+		"Doom 3 BFG Edition GPL Source Code\n"
+		"Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company. \n"
+		"\n"
+		"This file is part of the Doom 3 BFG Edition GPL Source Code (\"Doom 3 BFG Edition Source Code\").  \n"
+		"\n"
+		"Doom 3 BFG Edition Source Code is free software: you can redistribute it and/or modify\n"
+		"it under the terms of the GNU General Public License as published by\n"
+		"the Free Software Foundation, either version 3 of the License, or\n"
+		"(at your option) any later version.\n"
+		"\n"
+		"Doom 3 BFG Edition Source Code is distributed in the hope that it will be useful,\n"
+		"but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
+		"MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n"
+		"GNU General Public License for more details.\n"
+		"\n"
+		"You should have received a copy of the GNU General Public License\n"
+		"along with Doom 3 BFG Edition Source Code.  If not, see <http://www.gnu.org/licenses/>.\n"
+		"\n"
+		"In addition, the Doom 3 BFG Edition Source Code is also subject to certain additional terms. You should have received a copy of these additional terms immediately following the terms and conditions of the GNU General Public License which accompanied the Doom 3 BFG Edition Source Code.  If not, please request a copy in writing from id Software at the address below.\n"
+		"\n"
+		"If you have questions concerning this license or the applicable additional terms, you may contact in writing id Software LLC, c/o ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.\n"
+		"\n"
+		"===========================================================================\n"
+		"*/\n"
 };
 
 // RB begin
@@ -1610,11 +1642,12 @@ idStr ConvertCG2GLSL( const idStr& in, const char* name, bool isVertexProgram, i
 		program += token;
 	}
 	
-	idStr out;
+	idStr out, extra;
 	
 	// RB: tell shader debuggers what shader we look at
 	idStr filenameHint = "// filename " + idStr( name ) + "\n";
 	
+	extra = filenameHint + original_GPL_license_wall_of_text;
 	// RB: changed to allow multiple versions of GLSL
 	if( isVertexProgram )
 	{
@@ -1624,7 +1657,7 @@ idStr ConvertCG2GLSL( const idStr& in, const char* name, bool isVertexProgram, i
 			case GLDRV_OPENGL_ES3:
 			{
 				out.ReAllocate( idStr::Length( vertexInsert_GLSL_ES_1_0 ) + in.Length() * 2, false );
-				out += filenameHint;
+				out += extra;
 				out += vertexInsert_GLSL_ES_1_0;
 				break;
 			}
@@ -1632,7 +1665,7 @@ idStr ConvertCG2GLSL( const idStr& in, const char* name, bool isVertexProgram, i
 			case GLDRV_OPENGL_MESA:
 			{
 				out.ReAllocate( idStr::Length( vertexInsert_GLSL_ES_3_00 ) + in.Length() * 2, false );
-				out += filenameHint;
+				out += extra;
 				out += vertexInsert_GLSL_ES_3_00;
 				break;
 			}
@@ -1640,7 +1673,7 @@ idStr ConvertCG2GLSL( const idStr& in, const char* name, bool isVertexProgram, i
 			default:
 			{
 				out.ReAllocate( idStr::Length( vertexInsert_GLSL_1_50 ) + in.Length() * 2, false );
-				out += filenameHint;
+				out += extra;
 				out += vertexInsert_GLSL_1_50;
 				break;
 			}
@@ -1656,7 +1689,7 @@ idStr ConvertCG2GLSL( const idStr& in, const char* name, bool isVertexProgram, i
 			case GLDRV_OPENGL_ES3:
 			{
 				out.ReAllocate( idStr::Length( fragmentInsert_GLSL_ES_1_0 ) + in.Length() * 2, false );
-				out += filenameHint;
+				out += extra;
 				out += fragmentInsert_GLSL_ES_1_0;
 				break;
 			}
@@ -1664,7 +1697,7 @@ idStr ConvertCG2GLSL( const idStr& in, const char* name, bool isVertexProgram, i
 			case GLDRV_OPENGL_MESA:
 			{
 				out.ReAllocate( idStr::Length( fragmentInsert_GLSL_ES_3_00 ) + in.Length() * 2, false );
-				out += filenameHint;
+				out += extra;
 				out += fragmentInsert_GLSL_ES_3_00;
 				break;
 			}
@@ -1672,7 +1705,7 @@ idStr ConvertCG2GLSL( const idStr& in, const char* name, bool isVertexProgram, i
 			default:
 			{
 				out.ReAllocate( idStr::Length( fragmentInsert_GLSL_1_50 ) + in.Length() * 2, false );
-				out += filenameHint;
+				out += extra;
 				out += fragmentInsert_GLSL_1_50;
 				break;
 			}
@@ -1728,37 +1761,76 @@ GLuint idRenderProgManager::LoadGLSLShader( GLenum target, const char* name, con
 {
 
 	idStr inFile;
+	idStr inFileCG; //Biel
 	idStr outFileHLSL;
 	idStr outFileGLSL;
 	idStr outFileUniforms;
-	
-	// RB: replaced backslashes
-	inFile.Format( "renderprogs/%s", name );
-	inFile.StripFileExtension();
+	idStr outFileGLSLCopy; //Biel
+	idStr outFileUniformsCopy; //Biel
+
+
+	// added a new input if we use GLSL as source
+	if ( r_sourceGLSL.GetBool() ) {
+		inFileCG.Format( "renderprogs/cg/%s", name );
+		inFileCG.StripFileExtension();
+		outFileGLSL.Format( "renderprogs/%s%s", name, nameOutSuffix );
+		outFileUniforms.Format( "renderprogs/%s%s", name, nameOutSuffix );
+	} else {
+		// RB: replaced backslashes
+		inFile.Format( "renderprogs/%s", name );
+		inFile.StripFileExtension();
+	}
 	outFileHLSL.Format( "renderprogs/hlsl/%s%s", name, nameOutSuffix );
 	outFileHLSL.StripFileExtension();
-	
+
 	switch( glConfig.driverType )
 	{
 		case GLDRV_OPENGL_ES2:
 		case GLDRV_OPENGL_ES3:
 		{
-			outFileGLSL.Format( "renderprogs/glsles-1_0/%s%s", name, nameOutSuffix );
-			outFileUniforms.Format( "renderprogs/glsles-1_0/%s%s", name, nameOutSuffix );
+			if ( r_sourceGLSL.GetBool() ) {
+				inFile.Format( "renderprogs/glsles-1_0/%s", name );
+				inFile.StripFileExtension();
+				outFileGLSLCopy.Format( "renderprogs/glsles-1_0/%s%s", name, nameOutSuffix );
+				outFileGLSLCopy.StripFileExtension();
+				outFileUniformsCopy.Format( "renderprogs/glsles-1_0/%s%s", name, nameOutSuffix );
+				outFileUniformsCopy.StripFileExtension();
+			} else {
+				outFileGLSL.Format( "renderprogs/glsles-1_0/%s%s", name, nameOutSuffix );
+				outFileUniforms.Format( "renderprogs/glsles-1_0/%s%s", name, nameOutSuffix );
+			}
 			break;
 		}
-		
+
 		case GLDRV_OPENGL_MESA:
 		{
-			outFileGLSL.Format( "renderprogs/glsles-3_00/%s%s", name, nameOutSuffix );
-			outFileUniforms.Format( "renderprogs/glsles-3_00/%s%s", name, nameOutSuffix );
+			if ( r_sourceGLSL.GetBool() ) {
+				inFile.Format( "renderprogs/glsles-3_00/%s", name );
+				inFile.StripFileExtension();
+				outFileGLSLCopy.Format( "renderprogs/glsles-3_00/%s%s", name, nameOutSuffix );
+				outFileGLSLCopy.StripFileExtension();
+				outFileUniformsCopy.Format( "renderprogs/glsles-3_00/%s%s", name, nameOutSuffix );
+				outFileUniformsCopy.StripFileExtension();
+			} else {
+				outFileGLSL.Format( "renderprogs/glsles-3_00/%s%s", name, nameOutSuffix );
+				outFileUniforms.Format( "renderprogs/glsles-3_00/%s%s", name, nameOutSuffix );
+			}
 			break;
 		}
-		
+
 		default:
 		{
-			outFileGLSL.Format( "renderprogs/glsl-1_50/%s%s", name, nameOutSuffix );
-			outFileUniforms.Format( "renderprogs/glsl-1_50/%s%s", name, nameOutSuffix );
+			if ( r_sourceGLSL.GetBool() ) {
+				inFile.Format( "renderprogs/%s", name );
+				inFile.StripFileExtension();
+				outFileGLSLCopy.Format( "renderprogs/glsl-1_50/%s%s", name, nameOutSuffix );
+				outFileGLSLCopy.StripFileExtension();
+				outFileUniformsCopy.Format( "renderprogs/glsl-1_50/%s%s", name, nameOutSuffix );
+				outFileUniformsCopy.StripFileExtension();
+			} else {
+				outFileGLSL.Format( "renderprogs/glsl-1_50/%s%s", name, nameOutSuffix );
+				outFileUniforms.Format( "renderprogs/glsl-1_50/%s%s", name, nameOutSuffix );
+			}
 		}
 	}
 	
@@ -1767,47 +1839,89 @@ GLuint idRenderProgManager::LoadGLSLShader( GLenum target, const char* name, con
 	
 	if( target == GL_FRAGMENT_SHADER )
 	{
-		inFile += ".pixel";
+		if ( r_sourceGLSL.GetBool() ) {
+			inFileCG += ".pixel";
+			inFile += "_fragment.glsl";
+		} else {
+			inFile += ".pixel";
+		}
 		outFileHLSL += "_fragment.hlsl";
 		outFileGLSL += "_fragment.glsl";
 		outFileUniforms += "_fragment.uniforms";
+		if ( r_sourceGLSL.GetBool() ) {
+			outFileGLSLCopy += "_fragment.glsl";
+			outFileUniformsCopy += "_fragment.uniforms";
+		}
 	}
 	else
 	{
-		inFile += ".vertex";
+		if ( r_sourceGLSL.GetBool() ) {
+			inFileCG += ".vertex";
+			inFile += "_vertex.glsl";
+		} else {
+			inFile += ".vertex";
+		}
 		outFileHLSL += "_vertex.hlsl";
 		outFileGLSL += "_vertex.glsl";
 		outFileUniforms += "_vertex.uniforms";
+		if ( r_sourceGLSL.GetBool() ) {
+			outFileGLSLCopy += "_vertex.glsl";
+			outFileUniformsCopy += "_vertex.uniforms";
+		}
 	}
-	
-	// first check whether we already have a valid GLSL file and compare it to the hlsl timestamp;
-	ID_TIME_T hlslTimeStamp;
-	int hlslFileLength = fileSystem->ReadFile( inFile.c_str(), NULL, &hlslTimeStamp );
-	
-	ID_TIME_T glslTimeStamp;
-	int glslFileLength = fileSystem->ReadFile( outFileGLSL.c_str(), NULL, &glslTimeStamp );
-	
-	// if the glsl file doesn't exist or we have a newer HLSL file we need to recreate the glsl file.
+	/*
+	if ( r_sourceGLSL.GetBool() ) {
+		idLib::Printf( "Loading this shader named %s with sufix '%s' as a GLSLSource '%s', is it right?\n", name, nameOutSuffix, outFileGLSL.c_str() ); //debug
+	}
+	*/
+	ID_TIME_T cgTimeStamp, glslTimeStamp;
+	int glslFileLength, cgFileLength = 0;
+
+	if ( r_sourceGLSL.GetBool() ) {
+		// no need for time stamps as the GLSL source shader code could be manually made and so be smaller than the original CG shader code
+		glslFileLength = fileSystem->ReadFile( inFile.c_str(), NULL, &glslTimeStamp );
+		cgFileLength = fileSystem->ReadFile( inFileCG.c_str(), NULL, &cgTimeStamp );
+	} else {
+		// first check whether we already have a valid GLSL file and compare it to the CG time stamp;
+		cgFileLength = fileSystem->ReadFile( inFile.c_str(), NULL, &cgTimeStamp );
+		glslFileLength = fileSystem->ReadFile( outFileGLSL.c_str(), NULL, &glslTimeStamp );
+	}
+
+	// if the glsl file doesn't exist or we have a newer cg file we need to recreate the glsl file.
 	idStr programGLSL;
 	idStr programUniforms;
-	if( ( glslFileLength <= 0 ) || ( hlslTimeStamp != FILE_NOT_FOUND_TIMESTAMP && hlslTimeStamp > glslTimeStamp ) || r_alwaysExportGLSL.GetBool() )
+
+	// if there isn't any glsl file, try to guess if we need to create it, but we can't hold true the idea of
+	// the GLSL files always being more heavy than the cg ones, as we might write them manually
+	if( ( glslFileLength <= 0 ) || ( ( cgTimeStamp != FILE_NOT_FOUND_TIMESTAMP && cgTimeStamp > glslTimeStamp ) && ( r_sourceGLSL.GetBool() == false ) ) || r_alwaysExportGLSL.GetBool() )
 	{
-		const char* hlslFileBuffer = NULL;
+		const char* cgFileBuffer;
+		const char* src_path;
 		int len = 0;
 		
-		if( hlslFileLength <= 0 )
+		if( cgFileLength <= 0 )
 		{
-			// hlsl file doesn't even exist bail out
-			hlslFileBuffer = FindEmbeddedSourceShader( inFile.c_str() );
-			if( hlslFileBuffer == NULL )
+			// cg file doesn't even exist bail out
+			if ( r_sourceGLSL.GetBool() ) {
+				src_path = inFileCG.c_str();
+			} else {
+				src_path = inFile.c_str();
+			}
+			cgFileBuffer = FindEmbeddedSourceShader( src_path );
+			if( cgFileBuffer == NULL )
 			{
 				return false;
 			}
-			len = strlen( hlslFileBuffer );
+			len = strlen( cgFileBuffer );
 		}
 		else
 		{
-			len = fileSystem->ReadFile( inFile.c_str(), ( void** ) &hlslFileBuffer );
+			if ( r_sourceGLSL.GetBool() ) {
+				src_path = inFileCG.c_str();
+			} else {
+				src_path = inFile.c_str();
+			}
+			len = fileSystem->ReadFile( src_path, ( void** ) &cgFileBuffer );
 		}
 		
 		if( len <= 0 )
@@ -1825,15 +1939,24 @@ GLuint idRenderProgManager::LoadGLSLShader( GLenum target, const char* name, con
 			}
 		}
 		
-		idStr hlslCode( hlslFileBuffer );
-		idStr programHLSL = StripDeadCode( hlslCode, inFile, compileMacros, builtin );
-		programGLSL = ConvertCG2GLSL( programHLSL, inFile, target == GL_VERTEX_SHADER, programUniforms );
+		idStr cgCode( cgFileBuffer );
+		idStr programCg = StripDeadCode( cgCode, inFile, compileMacros, builtin );
+		programGLSL = ConvertCG2GLSL( programCg, inFile, target == GL_VERTEX_SHADER, programUniforms );
 		
-		fileSystem->WriteFile( outFileHLSL, programHLSL.c_str(), programHLSL.Length(), "fs_savepath" );
+		//HLSL code is just CG code with StrippedDeadCode? so CG is Nvidia copy of HLSL isn't it? well, burn in hell CG!
+		fileSystem->WriteFile( outFileHLSL, programCg.c_str(), programCg.Length(), "fs_savepath" );
 		fileSystem->WriteFile( outFileGLSL, programGLSL.c_str(), programGLSL.Length(), "fs_savepath" );
+		if ( r_sourceGLSL.GetBool() ) {
+			//let's keep a copy anyways
+			fileSystem->WriteFile( outFileGLSLCopy, programGLSL.c_str(), programGLSL.Length(), "fs_savepath" );
+		}
 		if( r_useUniformArrays.GetBool() )
 		{
 			fileSystem->WriteFile( outFileUniforms, programUniforms.c_str(), programUniforms.Length(), "fs_savepath" );
+			if ( r_sourceGLSL.GetBool() ) {
+				// let's keep a copy anyways
+				fileSystem->WriteFile( outFileUniformsCopy, programUniforms.c_str(), programUniforms.Length(), "fs_savepath" );
+			}
 		}
 	}
 	else
