@@ -315,23 +315,15 @@ static void R_CheckCvars()
 		}
 	}
 
-	// reload shaders
-	if (r_useHDR.IsModified()
-		|| r_useHalfLambertLighting.IsModified()
-		|| r_selfShadow.IsModified()
-		|| r_selfShadowAdjust.IsModified()
-		|| r_useShadowMapping.IsModified())
+	if (r_useHDR.IsModified() || r_useHalfLambertLighting.IsModified() )
 	{
 		r_useHDR.ClearModified();
 		r_useHalfLambertLighting.ClearModified();
-		r_selfShadow.ClearModified();
-		r_selfShadowAdjust.ClearModified();
-		r_useShadowMapping.ClearModified();
 		renderProgManager.KillAllShaders();
 		renderProgManager.LoadAllShaders();
 	}
 	
-	// RB: turn off shadow mapping for OpenGL drivers that are too slo
+	// RB: turn off shadow mapping for OpenGL drivers that are too slow
 	switch( glConfig.driverType )
 	{
 		case GLDRV_OPENGL_ES2:

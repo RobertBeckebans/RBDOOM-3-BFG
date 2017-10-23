@@ -227,12 +227,11 @@ void Framebuffer::CheckFramebuffers()
 
 			globalFramebuffers.hdrNonMSAAFBO->width = screenWidth;
 			globalFramebuffers.hdrNonMSAAFBO->height = screenHeight;
+			
 			globalFramebuffers.hdrFBO->Bind();
 			globalFramebuffers.hdrFBO->AttachImage2D( GL_TEXTURE_2D_MULTISAMPLE, globalImages->currentRenderHDRImage, 0 );
 			globalFramebuffers.hdrFBO->AttachImageDepth( GL_TEXTURE_2D_MULTISAMPLE, globalImages->currentDepthImage );
-			globalFramebuffers.hdrFBO->Check();			
-			globalFramebuffers.hdrNonMSAAFBO->width = screenWidth;
-			globalFramebuffers.hdrNonMSAAFBO->height = screenHeight;
+			globalFramebuffers.hdrFBO->Check();
 		}
 		else
 #endif
