@@ -494,7 +494,7 @@ WriteVisibleDefs
 
 ================
 */
-void	idRenderWorldLocal::WriteVisibleDefs( const viewDef_t* viewDef )
+void	idRenderWorldLocal::WriteVisibleDefs( const idRenderView* viewDef )
 {
 	// only the main renderWorld writes stuff to demos, not the wipes or
 	// menu renders

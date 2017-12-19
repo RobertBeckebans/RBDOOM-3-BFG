@@ -181,10 +181,9 @@ idRenderModelDecal::GlobalProjectionParmsToLocal
 */
 void idRenderModelDecal::GlobalProjectionParmsToLocal( decalProjectionParms_t& localParms, const decalProjectionParms_t& globalParms, const idVec3& origin, const idMat3& axis )
 {
-	float modelMatrix[16];
-	
-	R_AxisToModelMatrix( axis, origin, modelMatrix );
-	
+#if 0
+	float modelMatrix[16];	
+	R_AxisToModelMatrix( axis, origin, modelMatrix );	
 	for( int j = 0; j < NUM_DECAL_BOUNDING_PLANES; j++ )
 	{
 		R_GlobalPlaneToLocal( modelMatrix, globalParms.boundingPlanes[j], localParms.boundingPlanes[j] );
@@ -194,6 +193,19 @@ void idRenderModelDecal::GlobalProjectionParmsToLocal( decalProjectionParms_t& l
 	R_GlobalPlaneToLocal( modelMatrix, globalParms.textureAxis[0], localParms.textureAxis[0] );
 	R_GlobalPlaneToLocal( modelMatrix, globalParms.textureAxis[1], localParms.textureAxis[1] );
 	R_GlobalPointToLocal( modelMatrix, globalParms.projectionOrigin, localParms.projectionOrigin );
+#else
+	idRenderMatrix modelMatrix;
+	idRenderMatrix::CreateFromOriginAxis( origin, axis, modelMatrix );
+	for( int j = 0; j < NUM_DECAL_BOUNDING_PLANES; j++ )
+	{
+		modelMatrix.InverseTransformPlane( globalParms.boundingPlanes[ j ], localParms.boundingPlanes[ j ] );
+	}
+	modelMatrix.InverseTransformPlane( globalParms.fadePlanes[ 0 ], localParms.fadePlanes[ 0 ] );
+	modelMatrix.InverseTransformPlane( globalParms.fadePlanes[ 1 ], localParms.fadePlanes[ 1 ] );
+	modelMatrix.InverseTransformPlane( globalParms.textureAxis[ 0 ], localParms.textureAxis[ 0 ] );
+	modelMatrix.InverseTransformPlane( globalParms.textureAxis[ 1 ], localParms.textureAxis[ 1 ] );
+	modelMatrix.InverseTransformPoint( globalParms.projectionOrigin, localParms.projectionOrigin );
+#endif
 	localParms.projectionBounds = globalParms.projectionBounds;
 	localParms.projectionBounds.TranslateSelf( -origin );
 	localParms.projectionBounds.RotateSelf( axis.Transpose() );
@@ -610,7 +622,7 @@ void idRenderModelDecal::CreateDeferredDecals( const idRenderModel* model )
 	for( unsigned int i = firstDeferredDecal; i < nextDeferredDecal; i++ )
 	{
 		decalProjectionParms_t& parms = deferredDecals[i & ( MAX_DEFERRED_DECALS - 1 )];
-		if( parms.startTime > tr.viewDef->renderView.time[0] -  DEFFERED_DECAL_TIMEOUT )
+		if( parms.startTime > tr.viewDef->GetGameTimeMS() -  DEFFERED_DECAL_TIMEOUT )
 		{
 			CreateDecal( model, parms );
 		}
@@ -820,7 +832,7 @@ drawSurf_t* idRenderModelDecal::CreateDecalDrawSurf( const viewEntity_t* space, 
 	
 	const decalInfo_t decalInfo = material->GetDecalInfo();
 	const int maxTime = decalInfo.stayTime + decalInfo.fadeTime;
-	const int time = tr.viewDef->renderView.time[0];
+	const int time = tr.viewDef->GetGameTimeMS();
 	
 	int numVerts = 0;
 	int numIndexes = 0;

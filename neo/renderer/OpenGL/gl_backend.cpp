@@ -71,7 +71,7 @@ static void RB_DrawFlickerBox()
 	{
 		return;
 	}
-	if( tr.frameCount & 1 )
+	if( tr.GetFrameCount() & 1 )
 	{
 		glClearColor( 1, 0, 0, 1 );
 	}
@@ -293,9 +293,9 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 				case RC_DRAW_VIEW_3D:
 				{
 					const drawSurfsCommand_t* const dsc = ( const drawSurfsCommand_t* )cmds;
-					const viewDef_t&			eyeViewDef = *dsc->viewDef;
+					const idRenderView&	eyeViewDef = *dsc->viewDef;
 					
-					if( eyeViewDef.renderView.viewEyeBuffer && eyeViewDef.renderView.viewEyeBuffer != stereoEye )
+					if( eyeViewDef.GetStereoEye() && eyeViewDef.GetStereoEye() != stereoEye )
 					{
 						// this is the render view for the other eye
 						continue;
@@ -317,7 +317,7 @@ void RB_StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds 
 				case RC_POST_PROCESS:
 				{
 					postProcessCommand_t* cmd = ( postProcessCommand_t* )cmds;
-					if( cmd->viewDef->renderView.viewEyeBuffer != stereoEye )
+					if( cmd->viewDef->GetStereoEye() != stereoEye )
 					{
 						break;
 					}

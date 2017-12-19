@@ -41,7 +41,9 @@ This is the old DOOM3 matrix code that should really to be replaced with idRende
 ==========================================================================================
 */
 
-void R_AxisToModelMatrix( const idMat3& axis, const idVec3& origin, float modelMatrix[16] );
+#if 0
+
+//void R_AxisToModelMatrix( const idMat3& axis, const idVec3& origin, float modelMatrix[16] );
 void R_MatrixTranspose( const float in[16], float out[16] );
 void R_MatrixMultiply( const float* a, const float* b, float* out );
 
@@ -59,13 +61,15 @@ void R_LocalVectorToGlobal( const float modelMatrix[16], const idVec3& in, idVec
 void R_GlobalPlaneToLocal( const float modelMatrix[16], const idPlane& in, idPlane& out );
 void R_LocalPlaneToGlobal( const float modelMatrix[16], const idPlane& in, idPlane& out );
 
-void R_SetupViewMatrix( viewDef_t* viewDef );
-void R_SetupProjectionMatrix( viewDef_t* viewDef );
+void R_SetupViewMatrix( idRenderView* viewDef );
+void R_SetupProjectionMatrix( idRenderView* viewDef );
 
 // RB begin
-void R_SetupUnprojection( viewDef_t* viewDef );
-void R_SetupProjectionMatrix2( const viewDef_t* viewDef, const float zNear, const float zFar, float out[16] );
+void R_SetupUnprojection( idRenderView* viewDef );
+void R_SetupProjectionMatrix2( const idRenderView* viewDef, const float zNear, const float zFar, float out[16] );
 void R_MatrixFullInverse( const float in[16], float r[16] );
 // RB end
+
+#endif
 
 #endif /* !__GLMATRIX_H__ */

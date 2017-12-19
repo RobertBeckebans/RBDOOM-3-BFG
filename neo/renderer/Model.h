@@ -59,10 +59,10 @@ struct dominantTri_t
 const int SHADOW_CAP_INFINITE	= 64;
 
 class idRenderModelStatic;
-struct viewDef_t;
+struct idRenderView;
 
 // our only drawing geometry type
-struct srfTriangles_t
+typedef struct srfTriangles_t
 {
 	srfTriangles_t() {}
 	
@@ -121,7 +121,8 @@ struct srfTriangles_t
 	vertCacheHandle_t			shadowCache;			// idVec4
 	
 	DISALLOW_COPY_AND_ASSIGN( srfTriangles_t );
-};
+
+} idTriangles;
 
 typedef idList<srfTriangles_t*, TAG_IDLIB_LIST_TRIANGLES> idTriList;
 
@@ -281,7 +282,7 @@ public:
 	// The renderer will delete the returned dynamic model the next view
 	// This isn't const, because it may need to reload a purged model if it
 	// wasn't precached correctly.
-	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel ) = 0;
+	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const idRenderView* view, idRenderModel* cachedModel ) = 0;
 	
 	// Returns the number of joints or 0 if the model is not an MD5
 	virtual int					NumJoints() const = 0;

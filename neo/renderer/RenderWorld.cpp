@@ -349,7 +349,7 @@ void idRenderWorldLocal::UpdateEntityDef( qhandle_t entityHandle, const renderEn
 	
 	def->parms = *re;
 	
-	def->lastModifiedFrameNum = tr.frameCount;
+	def->lastModifiedFrameNum = tr.GetFrameCount();
 	def->archived = false;
 	
 	// optionally immediately issue any callbacks
@@ -525,7 +525,7 @@ void idRenderWorldLocal::UpdateLightDef( qhandle_t lightHandle, const renderLigh
 	}
 	
 	light->parms = *rlight;
-	light->lastModifiedFrameNum = tr.frameCount;
+	light->lastModifiedFrameNum = tr.GetFrameCount();
 	if( common->WriteDemo() && light->archived )
 	{
 		WriteFreeLight( lightHandle );
@@ -893,15 +893,13 @@ Rendering a scene may require multiple views to be rendered
 to handle mirrors,
 ====================
 */
-void idRenderWorldLocal::RenderScene( const renderView_t* renderView )
+void idRenderWorldLocal::RenderScene( const renderView_t* renderViewParms )
 {
 	if( !R_IsInitialized() )
 	{
 		return;
 	}
-	
-	renderView_t copy = *renderView;
-	
+
 	// skip front end rendering work, which will result
 	// in only gui drawing
 	if( r_skipFrontEnd.GetBool() )
@@ -911,9 +909,9 @@ void idRenderWorldLocal::RenderScene( const renderView_t* renderView )
 	
 	SCOPED_PROFILE_EVENT( "RenderWorld::RenderScene" );
 	
-	if( renderView->fov_x <= 0 || renderView->fov_y <= 0 )
+	if( renderViewParms->fov_x <= 0 || renderViewParms->fov_y <= 0 )
 	{
-		common->Error( "idRenderWorld::RenderScene: bad FOVs: %f, %f", renderView->fov_x, renderView->fov_y );
+		common->Error( "idRenderWorld::RenderScene: bad FOVs: %f, %f", renderViewParms->fov_x, renderViewParms->fov_y );
 	}
 	
 	// close any gui drawing
@@ -923,13 +921,10 @@ void idRenderWorldLocal::RenderScene( const renderView_t* renderView )
 	int startTime = Sys_Microseconds();
 	
 	// setup view parms for the initial view
-	viewDef_t* parms = ( viewDef_t* )R_ClearedFrameAlloc( sizeof( *parms ), FRAME_ALLOC_VIEW_DEF );
-	parms->renderView = *renderView;
-	
-	if( tr.takingScreenshot )
-	{
-		parms->renderView.forceUpdate = true;
-	}
+	idRenderView* view = ( idRenderView* )R_ClearedFrameAlloc( sizeof( *view ), FRAME_ALLOC_VIEW_DEF );
+	view->parms = *renderViewParms;
+
+	view->parms.forceUpdate = tr.takingScreenshot;
 	
 	int windowWidth = tr.GetWidth();
 	int windowHeight = tr.GetHeight();
@@ -942,72 +937,47 @@ void idRenderWorldLocal::RenderScene( const renderView_t* renderView )
 		windowHeight = ( windowHeight * r_screenFraction.GetInteger() ) / 100;
 	}
 	tr.CropRenderSize( windowWidth, windowHeight );
-	tr.GetCroppedViewport( &parms->viewport );
+
+	tr.GetCroppedViewport( &view->viewport );
 	
 	// the scissor bounds may be shrunk in subviews even if
 	// the viewport stays the same
 	// this scissor range is local inside the viewport
-	parms->scissor.x1 = 0;
-	parms->scissor.y1 = 0;
-	parms->scissor.x2 = parms->viewport.x2 - parms->viewport.x1;
-	parms->scissor.y2 = parms->viewport.y2 - parms->viewport.y1;
-	
-	parms->isSubview = false;
-	parms->initialViewAreaOrigin = renderView->vieworg;
-	parms->renderWorld = this;
+	view->scissor.x1 = 0;
+	view->scissor.y1 = 0;
+	view->scissor.x2 = view->viewport.x2 - view->viewport.x1;
+	view->scissor.y2 = view->viewport.y2 - view->viewport.y1;
+
+	view->isSubview = false;
+	view->initialViewAreaOrigin = renderViewParms->vieworg;
+	view->renderWorld = this;
 	
 	// see if the view needs to reverse the culling sense in mirrors
 	// or environment cube sides
-	idVec3	cross;
-	cross = parms->renderView.viewaxis[1].Cross( parms->renderView.viewaxis[2] );
-	if( cross * parms->renderView.viewaxis[0] > 0 )
-	{
-		parms->isMirror = false;
-	}
-	else
-	{
-		parms->isMirror = true;
-	}
+	idVec3 cross = view->GetAxis()[1].Cross( view->GetAxis()[2] );
+	view->isMirror = !( cross * view->GetAxis()[ 0 ] > 0 );
 	
 	// save this world for use by some console commands
 	tr.primaryWorld = this;
-	tr.primaryRenderView = *renderView;
-	tr.primaryView = parms;
+	tr.primaryRenderView = *renderViewParms;
+	tr.primaryView = view;
 	
 	// rendering this view may cause other views to be rendered
 	// for mirrors / portals / shadows / environment maps
 	// this will also cause any necessary entities and lights to be
 	// updated to the demo file
-	R_RenderView( parms );
+	R_RenderView( view );
 	
 	// render any post processing after the view and all its subviews has been draw
-	R_RenderPostProcess( parms );
+	R_RenderPostProcess( view );
 	
 	// now write delete commands for any modified-but-not-visible entities, and
 	// add the renderView command to the demo
 	if( common->WriteDemo() )
 	{
-		WriteRenderView( renderView );
+		WriteRenderView( renderViewParms );
 	}
-	
-#if 0
-	for( int i = 0; i < entityDefs.Num(); i++ )
-	{
-		idRenderEntityLocal*	def = entityDefs[i];
-		if( !def )
-		{
-			continue;
-		}
-		if( def->parms.callback )
-		{
-			continue;
-		}
-		if( def->parms.hModel->IsDynamicModel() == DM_CONTINUOUS )
-		{
-		}
-	}
-#endif
-	
+
 	tr.UnCrop();
 	
 	int endTime = Sys_Microseconds();
@@ -1017,6 +987,27 @@ void idRenderWorldLocal::RenderScene( const renderView_t* renderView )
 	// prepare for any 2D drawing after this
 	tr.guiModel->Clear();
 }
+
+/*void CreateRenderView( idRenderWorldLocal *world, const renderView_t & viewParms,
+	const idScreenRect & renderViewport, const idScreenRect & renderScissor, bool forceUpdate )
+{
+	idRenderView* view = ( idRenderView* )R_ClearedFrameAlloc( sizeof( *view ), FRAME_ALLOC_VIEW_DEF );
+	
+	view->parms = viewParms;
+	view->parms.forceUpdate = forceUpdate;
+
+	view->viewport = renderViewport;
+	view->scissor = renderScissor;
+
+	view->isSubview = false;
+	view->initialViewAreaOrigin = viewParms.vieworg;
+	view->renderWorld = world;
+
+	// see if the view needs to reverse the culling sense in mirrors
+	// or environment cube sides
+	idVec3 cross = view->GetAxis()[ 1 ].Cross( view->GetAxis()[ 2 ] );
+	view->isMirror = !( cross * view->GetAxis()[ 0 ] > 0 );
+}*/
 
 /*
 ===================
@@ -1261,12 +1252,12 @@ guiPoint_t idRenderWorldLocal::GuiTrace( qhandle_t entityHandle, const idVec3 st
 	
 	// transform the points into local space
 	idVec3 localStart, localEnd;
-	R_GlobalPointToLocal( def->modelMatrix, start, localStart );
-	R_GlobalPointToLocal( def->modelMatrix, end, localEnd );
+	def->modelRenderMatrix.InverseTransformPoint( start, localStart );
+	def->modelRenderMatrix.InverseTransformPoint( end, localEnd );
 	
 	for( int i = 0; i < model->NumSurfaces(); i++ )
 	{
-		const modelSurface_t* surf = model->Surface( i );
+		auto surf = model->Surface( i );
 		
 		const srfTriangles_t* tri = surf->geometry;
 		if( tri == NULL )
@@ -1285,10 +1276,11 @@ guiPoint_t idRenderWorldLocal::GuiTrace( qhandle_t entityHandle, const idVec3 st
 			continue;
 		}
 		
-		localTrace_t local = R_LocalTrace( localStart, localEnd, 0.0f, tri );
+		auto local = R_LocalTrace( localStart, localEnd, 0.0f, tri );
 		if( local.fraction < 1.0f )
 		{
-			idVec3 origin, axis[3];
+			idVec3 origin; 
+			idMat3 axis;
 			
 			R_SurfaceToTextureAxis( tri, origin, axis );
 			const idVec3 cursor = local.point - origin;
@@ -1340,12 +1332,13 @@ bool idRenderWorldLocal::ModelTrace( modelTrace_t& trace, qhandle_t entityHandle
 	}
 	
 	// transform the points into local space
-	float modelMatrix[16];
-	idVec3 localStart;
-	idVec3 localEnd;
-	R_AxisToModelMatrix( refEnt->axis, refEnt->origin, modelMatrix );
-	R_GlobalPointToLocal( modelMatrix, start, localStart );
-	R_GlobalPointToLocal( modelMatrix, end, localEnd );
+	idVec3 localStart, localEnd;
+
+	idRenderMatrix modelMatrix;
+	idRenderMatrix::CreateFromOriginAxis( refEnt->origin, refEnt->axis, modelMatrix );
+
+	modelMatrix.InverseTransformPoint( start, localStart );
+	modelMatrix.InverseTransformPoint( end, localEnd );
 	
 	// if we have explicit collision surfaces, only collide against them
 	// (FIXME, should probably have a parm to control this)
@@ -1366,7 +1359,7 @@ bool idRenderWorldLocal::ModelTrace( modelTrace_t& trace, qhandle_t entityHandle
 	// only use baseSurfaces, not any overlays
 	for( int i = 0; i < model->NumBaseSurfaces(); i++ )
 	{
-		const modelSurface_t* surf = model->Surface( i );
+		auto surf = model->Surface( i );
 		
 		const idMaterial* shader = R_RemapShaderBySkin( surf->shader, def->parms.customSkin, def->parms.customShader );
 		
@@ -1392,12 +1385,12 @@ bool idRenderWorldLocal::ModelTrace( modelTrace_t& trace, qhandle_t entityHandle
 			}
 		}
 		
-		localTrace_t localTrace = R_LocalTrace( localStart, localEnd, radius, surf->geometry );
+		auto localTrace = R_LocalTrace( localStart, localEnd, radius, surf->geometry );
 		
 		if( localTrace.fraction < trace.fraction )
 		{
 			trace.fraction = localTrace.fraction;
-			R_LocalPointToGlobal( modelMatrix, localTrace.point, trace.point );
+			modelMatrix.TransformPoint( localTrace.point, trace.point );
 			trace.normal = localTrace.normal * refEnt->axis;
 			trace.material = shader;
 			trace.entity = &def->parms;
@@ -1549,18 +1542,21 @@ bool idRenderWorldLocal::Trace( modelTrace_t& trace, const idVec3& start, const 
 				numSurfaces++;
 				
 				// transform the points into local space
-				float modelMatrix[16];
 				idVec3 localStart, localEnd;
-				R_AxisToModelMatrix( def->parms.axis, def->parms.origin, modelMatrix );
-				R_GlobalPointToLocal( modelMatrix, start, localStart );
-				R_GlobalPointToLocal( modelMatrix, end, localEnd );
+
+				idRenderMatrix modelMatrix;
+				idRenderMatrix::CreateFromOriginAxis( def->parms.origin, def->parms.axis, modelMatrix );
+
+				modelMatrix.InverseTransformPoint( start, localStart );
+				modelMatrix.InverseTransformPoint( end, localEnd );
 				
-				localTrace_t localTrace = R_LocalTrace( localStart, localEnd, radius, surf->geometry );
+				auto localTrace = R_LocalTrace( localStart, localEnd, radius, surf->geometry );
 				
 				if( localTrace.fraction < trace.fraction )
 				{
 					trace.fraction = localTrace.fraction;
-					R_LocalPointToGlobal( modelMatrix, localTrace.point, trace.point );
+					///R_LocalPointToGlobal( modelMatrix, localTrace.point, trace.point );
+					modelMatrix.TransformPoint( localTrace.point, trace.point );
 					trace.normal = localTrace.normal * def->parms.axis;
 					trace.material = shader;
 					trace.entity = &def->parms;
@@ -1874,17 +1870,17 @@ We might alternatively choose to do this with an area flow.
 ==================
 */
 void idRenderWorldLocal::PushFrustumIntoTree_r( idRenderEntityLocal* def, idRenderLightLocal* light,
-		const frustumCorners_t& corners, int nodeNum )
+	const frustumCorners_t& corners, int nodeNum )
 {
 	if( nodeNum < 0 )
 	{
 		int areaNum = -1 - nodeNum;
 		portalArea_t* area = &portalAreas[ areaNum ];
-		if( area->viewCount == tr.viewCount )
+		if( area->viewCount == tr.GetViewCount() )
 		{
 			return;	// already added a reference here
 		}
-		area->viewCount = tr.viewCount;
+		area->viewCount = tr.GetViewCount();
 		
 		if( def != NULL )
 		{
@@ -1908,7 +1904,7 @@ void idRenderWorldLocal::PushFrustumIntoTree_r( idRenderEntityLocal* def, idRend
 		// yet, because the test volume may yet wind up being in the
 		// solid part, which would cause bounds slightly poked into
 		// a wall to show up in the next room
-		if( portalAreas[ node->commonChildrenArea ].viewCount == tr.viewCount )
+		if( portalAreas[ node->commonChildrenArea ].viewCount == tr.GetViewCount() )
 		{
 			return;
 		}
@@ -2268,7 +2264,7 @@ void idRenderWorldLocal::DebugPolygon( const idVec4& color, const idWinding& win
 idRenderWorldLocal::DebugScreenRect
 ================
 */
-void idRenderWorldLocal::DebugScreenRect( const idVec4& color, const idScreenRect& rect, const viewDef_t* viewDef, const int lifetime )
+void idRenderWorldLocal::DebugScreenRect( const idVec4& color, const idScreenRect& rect, const idRenderView* viewDef, const int lifetime )
 {
 	int i;
 	float centerx, centery, dScale, hScale, vScale;
@@ -2279,8 +2275,8 @@ void idRenderWorldLocal::DebugScreenRect( const idVec4& color, const idScreenRec
 	centery = ( viewDef->viewport.y2 - viewDef->viewport.y1 ) * 0.5f;
 	
 	dScale = r_znear.GetFloat() + 1.0f;
-	hScale = dScale * idMath::Tan16( DEG2RAD( viewDef->renderView.fov_x * 0.5f ) );
-	vScale = dScale * idMath::Tan16( DEG2RAD( viewDef->renderView.fov_y * 0.5f ) );
+	hScale = dScale * idMath::Tan16( DEG2RAD( viewDef->GetFOVx() * 0.5f ) );
+	vScale = dScale * idMath::Tan16( DEG2RAD( viewDef->GetFOVy() * 0.5f ) );
 	
 	bounds[0][0] = bounds[1][0] = dScale;
 	bounds[0][1] = -( rect.x1 - centerx ) / centerx * hScale;
@@ -2293,7 +2289,7 @@ void idRenderWorldLocal::DebugScreenRect( const idVec4& color, const idScreenRec
 		p[i].x = bounds[0][0];
 		p[i].y = bounds[( i ^ ( i >> 1 ) ) & 1].y;
 		p[i].z = bounds[( i >> 1 ) & 1].z;
-		p[i] = viewDef->renderView.vieworg + p[i] * viewDef->renderView.viewaxis;
+		p[i] = viewDef->GetOrigin() + p[i] * viewDef->GetAxis();
 	}
 	for( i = 0; i < 4; i++ )
 	{

@@ -28,40 +28,44 @@ If you have questions concerning this license or the applicable additional terms
 
 struct guiModelSurface_t
 {
+	// extraGLState
+	// material
+	// numVerts
+	// firstIndex
+	// numIndexes
+
 	const idMaterial* 	material;
 	uint64				glState;
 	int					firstIndex;
 	int					numIndexes;
-	stereoDepthType_t		stereoType;
+	stereoDepthType_t	stereoType;
 };
 
 class idRenderMatrix;
 
-class idGuiModel
+class idRenderModelGui
 {
 public:
-	idGuiModel();
-	
+	idRenderModelGui();
+
 	void	Clear();
 	
-	void	WriteToDemo( idDemoFile* demo );
-	void	ReadFromDemo( idDemoFile* demo );
+	void	WriteToDemo( idDemoFile* );
+	void	ReadFromDemo( idDemoFile* );
 	
 	// allocates memory for verts and indexes in frame-temporary buffer memory
-	void	BeginFrame();
+	void	BeginFrame(); // StartFrame
 	
-	void	EmitToCurrentView( float modelMatrix[16], bool depthHack );
+	void	EmitToView( idRenderView *, const idRenderMatrix & modelMatrix, bool depthHack );
 	void	EmitFullScreen();
 	
 	// the returned pointer will be in write-combined memory, so only make contiguous
 	// 32 bit writes and never read from it.
-	idDrawVert* AllocTris( int numVerts, const triIndex_t* indexes, int numIndexes, const idMaterial* material,
-						   const uint64 glState, const stereoDepthType_t stereoType );
-						   
-	//---------------------------
+	idDrawVert* AllocTris( int numVerts, const triIndex_t* indexes, int numIndexes, const idMaterial*, const uint64 glState, const stereoDepthType_t );
+
 private:
 	void	AdvanceSurf();
-	void	EmitSurfaces( float modelMatrix[16], float modelViewMatrix[16],
+	void	EmitSurfaces( idRenderView *, const idRenderMatrix & modelMatrix, const idRenderMatrix & modelViewMatrix,
 						  bool depthHack, bool allowFullScreenStereoDepth, bool linkAsEntity );
 						  
 	guiModelSurface_t* 			surf;
@@ -78,12 +82,16 @@ private:
 	
 	vertCacheHandle_t			vertexBlock;
 	vertCacheHandle_t			indexBlock;
+
 	idDrawVert* 				vertexPointer;
 	triIndex_t* 				indexPointer;
 	
 	int		numVerts;
 	int		numIndexes;
-	
+
+	// frameCount;
+	// initialized
+
 	idList<guiModelSurface_t, TAG_MODEL>	surfaces;
 };
 

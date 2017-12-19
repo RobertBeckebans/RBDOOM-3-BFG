@@ -47,8 +47,6 @@ R_DeriveEntityData
 */
 void R_DeriveEntityData( idRenderEntityLocal* entity )
 {
-	R_AxisToModelMatrix( entity->parms.axis, entity->parms.origin, entity->modelMatrix );
-	
 	idRenderMatrix::CreateFromOriginAxis( entity->parms.origin, entity->parms.axis, entity->modelRenderMatrix );
 	
 	// calculate the matrix that transforms the unit cube to exactly cover the model in world space
@@ -228,6 +226,21 @@ LIGHT DEFS
 */
 
 /*
+======================
+R_LocalPlaneToGlobal
+
+NOTE: assumes no skewing or scaling transforms
+======================
+*/
+static void LocalPlaneToGlobal( const idRenderMatrix & modelMatrix, const idPlane& in, idPlane& out )
+{
+	out[ 0 ] = in[ 0 ] * modelMatrix[ 0 ][ 0 ] + in[ 1 ] * modelMatrix[ 0 ][ 1 ] + in[ 2 ] * modelMatrix[ 0 ][ 2 ];
+	out[ 1 ] = in[ 0 ] * modelMatrix[ 1 ][ 0 ] + in[ 1 ] * modelMatrix[ 1 ][ 1 ] + in[ 2 ] * modelMatrix[ 1 ][ 2 ];
+	out[ 2 ] = in[ 0 ] * modelMatrix[ 2 ][ 0 ] + in[ 1 ] * modelMatrix[ 2 ][ 1 ] + in[ 2 ] * modelMatrix[ 2 ][ 2 ];
+	out[ 3 ] = in[ 3 ] - modelMatrix[ 0 ][ 3 ] * out[ 0 ] - modelMatrix[ 1 ][ 3 ] * out[ 1 ] - modelMatrix[ 2 ][ 3 ] * out[ 2 ];
+}
+
+/*
 ========================
 R_ComputePointLightProjectionMatrix
 
@@ -352,7 +365,6 @@ Fills everything in based on light->parms
 */
 void R_DeriveLightData( idRenderLightLocal* light )
 {
-
 	// decide which light shader we are going to use
 	if( light->parms.shader != NULL )
 	{
@@ -442,14 +454,16 @@ void R_DeriveLightData( idRenderLightLocal* light )
 	light->lightProject[3][3] = localProject[2][3] * zScale;
 	
 	// transform the lightProject
-	float lightTransform[16];
-	R_AxisToModelMatrix( light->parms.axis, light->parms.origin, lightTransform );
-	for( int i = 0; i < 4; i++ )
 	{
-		idPlane temp = light->lightProject[i];
-		R_LocalPlaneToGlobal( lightTransform, temp, light->lightProject[i] );
+		idRenderMatrix lightTransform;
+		idRenderMatrix::CreateFromOriginAxis( light->parms.origin, light->parms.axis, lightTransform );
+		for( int i = 0; i < 4; i++ )
+		{
+			ALIGNTYPE16 idPlane temp = light->lightProject[ i ];
+			//lightTransform.TransformPlane( temp, light->lightProject[ i ] );	//SEA: WTF ?
+			LocalPlaneToGlobal( lightTransform, temp, light->lightProject[ i ] );
+		}
 	}
-	
 	// adjust global light origin for off center projections and parallel projections
 	// we are just faking parallel by making it a very far off center for now
 	if( light->parms.parallel )

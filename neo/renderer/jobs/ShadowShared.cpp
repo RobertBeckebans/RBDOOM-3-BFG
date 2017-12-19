@@ -91,6 +91,7 @@ static void R_ShadowVolumeCullBits( byte* cullBits, byte& totalOr, const float r
 {
 	assert_16_byte_aligned( cullBits );
 	assert_16_byte_aligned( verts );
+	assert_16_byte_aligned( planes );
 	
 #if defined(USE_INTRINSICS)
 	idODSStreamedArray< idShadowVert, 16, SBT_DOUBLE, 4 > vertsODS( verts, numVerts );
@@ -106,10 +107,10 @@ static void R_ShadowVolumeCullBits( byte* cullBits, byte& totalOr, const float r
 	const __m128i vector_int_mask6		= _mm_set1_epi32( 1 << 6 );
 	const __m128i vector_int_mask7		= _mm_set1_epi32( 1 << 7 );
 	
-	const __m128 p0 = _mm_loadu_ps( planes[0].ToFloatPtr() );
-	const __m128 p1 = _mm_loadu_ps( planes[1].ToFloatPtr() );
-	const __m128 p2 = _mm_loadu_ps( planes[2].ToFloatPtr() );
-	const __m128 p3 = _mm_loadu_ps( planes[3].ToFloatPtr() );
+	const __m128 p0 = _mm_load_ps( planes[0].ToFloatPtr() );
+	const __m128 p1 = _mm_load_ps( planes[1].ToFloatPtr() );
+	const __m128 p2 = _mm_load_ps( planes[2].ToFloatPtr() );
+	const __m128 p3 = _mm_load_ps( planes[3].ToFloatPtr() );
 	
 	const __m128 p0X = _mm_splat_ps( p0, 0 );
 	const __m128 p0Y = _mm_splat_ps( p0, 1 );

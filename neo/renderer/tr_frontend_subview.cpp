@@ -45,6 +45,42 @@ struct orientation_t
 {
 	idVec3		origin;
 	idMat3		axis;
+
+	void MirrorPoint( orientation_t* camera, idVec3& inout_point )
+	{
+		idVec3 local = inout_point - this->origin;
+		idVec3 transformed( 0.0f );
+		for( int i = 0; i < 3; i++ )
+		{
+			float d = local * this->axis[ i ];
+			transformed += d * camera->axis[ i ];
+		}
+
+		inout_point = transformed + camera->origin;
+	}
+
+	void MirrorPoint( const idVec3& in_point, orientation_t* camera, idVec3& out_point )
+	{
+		idVec3 local = in_point - this->origin;
+		idVec3 transformed( 0.0f );
+		for( int i = 0; i < 3; i++ )
+		{
+			float d = local * this->axis[ i ];
+			transformed += d * camera->axis[ i ];
+		}
+
+		out_point = transformed + camera->origin;
+	}
+
+	void MirrorVector( const idVec3& in, orientation_t* camera, idVec3& out )
+	{
+		out.Zero();
+		for( int i = 0; i < 3; i++ )
+		{
+			float d = in * this->axis[ i ];
+			out += d * camera->axis[ i ];
+		}
+	}
 };
 
 /*
@@ -52,7 +88,7 @@ struct orientation_t
 R_MirrorPoint
 =================
 */
-static void R_MirrorPoint( const idVec3 in, orientation_t* surface, orientation_t* camera, idVec3& out )
+static void R_MirrorPoint( const idVec3& in, orientation_t* surface, orientation_t* camera, idVec3& out )
 {
 	const idVec3 local = in - surface->origin;
 	
@@ -71,7 +107,7 @@ static void R_MirrorPoint( const idVec3 in, orientation_t* surface, orientation_
 R_MirrorVector
 =================
 */
-static void R_MirrorVector( const idVec3 in, orientation_t* surface, orientation_t* camera, idVec3& out )
+static void R_MirrorVector( const idVec3& in, orientation_t* surface, orientation_t* camera, idVec3& out )
 {
 	out.Zero();
 	for( int i = 0; i < 3; i++ )
@@ -123,13 +159,19 @@ bool R_PreciseCullSurface( const drawSurf_t* drawSurf, idBounds& ndcBounds )
 	// RB: added check wether GPU skinning is available at all
 	const idJointMat* joints = ( tri->staticModelWithJoints != NULL && r_useGPUSkinning.GetBool() && glConfig.gpuSkinningAvailable ) ? tri->staticModelWithJoints->jointsInverted : NULL;
 	// RB end
+
+	///idRenderMatrix modelMatrix;
+	///idRenderMatrix::Transpose( *( idRenderMatrix* )drawSurf->space->modelMatrix, modelMatrix );
+
+	///idRenderMatrix modelViewMatrix;
+	///idRenderMatrix::Transpose( *( idRenderMatrix* )drawSurf->space->modelViewMatrix, modelViewMatrix );
 	
 	for( int i = 0; i < tri->numVerts; i++ )
 	{
 		const idVec3 vXYZ = idDrawVert::GetSkinnedDrawVertPosition( tri->verts[i], joints );
 		
-		idPlane eye, clip;
-		R_TransformModelToClip( vXYZ, drawSurf->space->modelViewMatrix, tr.viewDef->projectionMatrix, eye, clip );
+		idVec4 eye, clip;
+		idRenderMatrix::TransformModelToClip( vXYZ, drawSurf->space->modelViewMatrix, tr.viewDef->GetProjectionMatrix(), eye, clip );
 		
 		unsigned int pointFlags = 0;
 		for( int j = 0; j < 3; j++ )
@@ -156,7 +198,7 @@ bool R_PreciseCullSurface( const drawSurf_t* drawSurf, idBounds& ndcBounds )
 	
 	// backface and frustum cull
 	idVec3 localViewOrigin;
-	R_GlobalPointToLocal( drawSurf->space->modelMatrix, tr.viewDef->renderView.vieworg, localViewOrigin );
+	drawSurf->space->modelMatrix.InverseTransformPoint( tr.viewDef->GetOrigin(), localViewOrigin );
 	
 	for( int i = 0; i < tri->numIndexes; i += 3 )
 	{
@@ -187,23 +229,22 @@ bool R_PreciseCullSurface( const drawSurf_t* drawSurf, idBounds& ndcBounds )
 		// now find the exact screen bounds of the clipped triangle
 		idFixedWinding w;
 		w.SetNumPoints( 3 );
-		R_LocalPointToGlobal( drawSurf->space->modelMatrix, v1, w[0].ToVec3() );
-		R_LocalPointToGlobal( drawSurf->space->modelMatrix, v2, w[1].ToVec3() );
-		R_LocalPointToGlobal( drawSurf->space->modelMatrix, v3, w[2].ToVec3() );
+		drawSurf->space->modelMatrix.TransformPoint( v1, w[ 0 ].ToVec3() );
+		drawSurf->space->modelMatrix.TransformPoint( v2, w[ 1 ].ToVec3() );
+		drawSurf->space->modelMatrix.TransformPoint( v3, w[ 2 ].ToVec3() );
 		w[0].s = w[0].t = w[1].s = w[1].t = w[2].s = w[2].t = 0.0f;
 		
 		for( int j = 0; j < 4; j++ )
 		{
-			if( !w.ClipInPlace( -tr.viewDef->frustums[FRUSTUM_PRIMARY][j], 0.1f ) )
+			if( !w.ClipInPlace( -tr.viewDef->GetBaseFrustum()[j], 0.1f ) )
 			{
 				break;
 			}
 		}
 		for( int j = 0; j < w.GetNumPoints(); j++ )
 		{
-			idVec3 screen;
-			
-			R_GlobalToNormalizedDeviceCoordinates( w[j].ToVec3(), screen );
+			idVec3 screen;			
+			tr.viewDef->GlobalToNormalizedDeviceCoordinates( w[j].ToVec3(), screen );
 			ndcBounds.AddPoint( screen );
 		}
 	}
@@ -219,23 +260,42 @@ bool R_PreciseCullSurface( const drawSurf_t* drawSurf, idBounds& ndcBounds )
 
 /*
 ========================
+ R_AllocSubView
+========================
+*/
+static idRenderView * R_AllocSubView( const idRenderView * baseView )
+{
+	auto view = ( idRenderView* )R_FrameAlloc( sizeof( idRenderView ) );
+	assert( view );
+
+	// copy the viewport size from the original
+	assert( baseView );
+	memcpy( view, baseView, sizeof( idRenderView ) );
+
+	view->parms.viewID = 0;	// clear to allow player bodies to show up, and suppress view weapons
+	view->isSubview = true;
+
+	//view->superView = baseView;
+	//view->subviewSurface = surf;
+
+	return view;
+}
+
+
+/*
+========================
 R_MirrorViewBySurface
 ========================
 */
-static viewDef_t* R_MirrorViewBySurface( const drawSurf_t* drawSurf )
+static idRenderView* R_MirrorViewBySurface( const idRenderView * const baseView, const drawSurf_t * const drawSurf )
 {
-	// copy the viewport size from the original
-	viewDef_t* parms = ( viewDef_t* )R_FrameAlloc( sizeof( *parms ) );
-	*parms = *tr.viewDef;
-	parms->renderView.viewID = 0;	// clear to allow player bodies to show up, and suppress view weapons
-	
-	parms->isSubview = true;
-	parms->isMirror = true;
-	
+	auto view = R_AllocSubView( baseView );
+	view->isMirror = true;
+
 	// create plane axis for the portal we are seeing
 	idPlane originalPlane, plane;
 	R_PlaneForSurface( drawSurf->frontEndGeo, originalPlane );
-	R_LocalPlaneToGlobal( drawSurf->space->modelMatrix, originalPlane, plane );
+	drawSurf->space->modelMatrix.TransformPlane( originalPlane, plane );
 	
 	orientation_t surface;
 	surface.origin = plane.Normal() * -plane[3];
@@ -250,43 +310,23 @@ static viewDef_t* R_MirrorViewBySurface( const drawSurf_t* drawSurf )
 	camera.axis[2] = surface.axis[2];
 	
 	// set the mirrored origin and axis
-	R_MirrorPoint( tr.viewDef->renderView.vieworg, &surface, &camera, parms->renderView.vieworg );
-	
-	R_MirrorVector( tr.viewDef->renderView.viewaxis[0], &surface, &camera, parms->renderView.viewaxis[0] );
-	R_MirrorVector( tr.viewDef->renderView.viewaxis[1], &surface, &camera, parms->renderView.viewaxis[1] );
-	R_MirrorVector( tr.viewDef->renderView.viewaxis[2], &surface, &camera, parms->renderView.viewaxis[2] );
+	R_MirrorPoint( baseView->GetOrigin(), &surface, &camera, view->parms.vieworg );
+	R_MirrorVector( baseView->GetAxis()[0], &surface, &camera, view->parms.viewaxis[0] );
+	R_MirrorVector( baseView->GetAxis()[1], &surface, &camera, view->parms.viewaxis[1] );
+	R_MirrorVector( baseView->GetAxis()[2], &surface, &camera, view->parms.viewaxis[2] );
 	
 	// make the view origin 16 units away from the center of the surface
 	const idVec3 center = ( drawSurf->frontEndGeo->bounds[0] + drawSurf->frontEndGeo->bounds[1] ) * 0.5f;
 	const idVec3 viewOrigin = center + ( originalPlane.Normal() * 16.0f );
 	
-	R_LocalPointToGlobal( drawSurf->space->modelMatrix, viewOrigin, parms->initialViewAreaOrigin );
-	
-	// set the mirror clip plane
-	parms->numClipPlanes = 1;
-	parms->clipPlanes[0] = -camera.axis[0];
-	
-	parms->clipPlanes[0][3] = -( camera.origin * parms->clipPlanes[0].Normal() );
-	
-	return parms;
-}
+	drawSurf->space->modelMatrix.TransformPoint( viewOrigin, view->initialViewAreaOrigin );
 
-/*
-========================
-R_XrayViewBySurface
-========================
-*/
-static viewDef_t* R_XrayViewBySurface( const drawSurf_t* drawSurf )
-{
-	// copy the viewport size from the original
-	viewDef_t* parms = ( viewDef_t* )R_FrameAlloc( sizeof( *parms ) );
-	*parms = *tr.viewDef;
-	parms->renderView.viewID = 0;	// clear to allow player bodies to show up, and suppress view weapons
+	// set the mirror clip plane
+	view->numClipPlanes = 1;
+	view->clipPlanes[0] = -camera.axis[0];	
+	view->clipPlanes[0][3] = -( camera.origin * view->clipPlanes[0].Normal() );
 	
-	parms->isSubview = true;
-	parms->isXraySubview = true;
-	
-	return parms;
+	return view;
 }
 
 /*
@@ -294,10 +334,10 @@ static viewDef_t* R_XrayViewBySurface( const drawSurf_t* drawSurf )
 R_RemoteRender
 ===============
 */
-static void R_RemoteRender( const drawSurf_t* surf, textureStage_t* stage )
+static void R_RemoteRender( idRenderView * baseView, const drawSurf_t* surf, textureStage_t* stage )
 {
 	// remote views can be reused in a single frame
-	if( stage->dynamicFrameCount == tr.frameCount )
+	if( stage->dynamicFrameCount == tr.GetFrameCount() )
 	{
 		return;
 	}
@@ -307,38 +347,29 @@ static void R_RemoteRender( const drawSurf_t* surf, textureStage_t* stage )
 	{
 		return;
 	}
+
+	auto view = R_AllocSubView( baseView );	
+	view->isMirror = false;
+
+	view->parms = *surf->space->entityDef->parms.remoteRenderView;
+	view->initialViewAreaOrigin = view->GetOrigin();
+
+	tr.CropRenderSize( stage->width, stage->height );
+	tr.GetCroppedViewport( &view->viewport );
 	
-	int stageWidth = stage->width;
-	int stageHeight = stage->height;
+	view->scissor.x1 = 0;
+	view->scissor.y1 = 0;
+	view->scissor.x2 = view->viewport.x2 - view->viewport.x1;
+	view->scissor.y2 = view->viewport.y2 - view->viewport.y1;
 	
-	// copy the viewport size from the original
-	viewDef_t* parms = ( viewDef_t* )R_FrameAlloc( sizeof( *parms ) );
-	*parms = *tr.viewDef;
-	
-	parms->renderView = *surf->space->entityDef->parms.remoteRenderView;
-	parms->renderView.viewID = 0;	// clear to allow player bodies to show up, and suppress view weapons
-	parms->initialViewAreaOrigin = parms->renderView.vieworg;
-	parms->isSubview = true;
-	parms->isMirror = false;
-	
-	
-	tr.CropRenderSize( stageWidth, stageHeight );
-	
-	tr.GetCroppedViewport( &parms->viewport );
-	
-	parms->scissor.x1 = 0;
-	parms->scissor.y1 = 0;
-	parms->scissor.x2 = parms->viewport.x2 - parms->viewport.x1;
-	parms->scissor.y2 = parms->viewport.y2 - parms->viewport.y1;
-	
-	parms->superView = tr.viewDef;
-	parms->subviewSurface = surf;
+	view->baseView = baseView;
+	view->subviewSurface = surf;
 	
 	// generate render commands for it
-	R_RenderView( parms );
+	R_RenderView( view );
 	
 	// copy this rendering to the image
-	stage->dynamicFrameCount = tr.frameCount;
+	stage->dynamicFrameCount = tr.GetFrameCount();
 	if( stage->image == NULL )
 	{
 		stage->image = globalImages->scratchImage;
@@ -353,41 +384,36 @@ static void R_RemoteRender( const drawSurf_t* surf, textureStage_t* stage )
 R_MirrorRender
 =================
 */
-void R_MirrorRender( const drawSurf_t* surf, textureStage_t* stage, idScreenRect scissor )
+static void R_MirrorRender( idRenderView * baseView, const drawSurf_t* surf, textureStage_t* stage )
 {
 	// remote views can be reused in a single frame
-	if( stage->dynamicFrameCount == tr.frameCount )
+	if( stage->dynamicFrameCount == tr.GetFrameCount() )
 	{
 		return;
 	}
 	
 	// issue a new view command
-	viewDef_t* parms = R_MirrorViewBySurface( surf );
-	if( parms == NULL )
-	{
-		return;
-	}
+	idRenderView* view = R_MirrorViewBySurface( baseView, surf );
+
+	tr.CropRenderSize( stage->width, stage->height );	
+	tr.GetCroppedViewport( &view->viewport );
 	
-	tr.CropRenderSize( stage->width, stage->height );
+	view->scissor.x1 = 0;
+	view->scissor.y1 = 0;
+	view->scissor.x2 = view->viewport.x2 - view->viewport.x1;
+	view->scissor.y2 = view->viewport.y2 - view->viewport.y1;
 	
-	tr.GetCroppedViewport( &parms->viewport );
-	
-	parms->scissor.x1 = 0;
-	parms->scissor.y1 = 0;
-	parms->scissor.x2 = parms->viewport.x2 - parms->viewport.x1;
-	parms->scissor.y2 = parms->viewport.y2 - parms->viewport.y1;
-	
-	parms->superView = tr.viewDef;
-	parms->subviewSurface = surf;
+	view->baseView = baseView;
+	view->subviewSurface = surf;
 	
 	// triangle culling order changes with mirroring
-	parms->isMirror = ( ( ( int )parms->isMirror ^ ( int )tr.viewDef->isMirror ) != 0 );
+	view->isMirror = ( ( ( int )view->isMirror ^ ( int )baseView->isMirror ) != 0 );
 	
 	// generate render commands for it
-	R_RenderView( parms );
+	R_RenderView( view );
 	
 	// copy this rendering to the image
-	stage->dynamicFrameCount = tr.frameCount;
+	stage->dynamicFrameCount = tr.GetFrameCount();
 	stage->image = globalImages->scratchImage;
 	
 	tr.CaptureRenderToImage( stage->image->GetName() );
@@ -399,44 +425,37 @@ void R_MirrorRender( const drawSurf_t* surf, textureStage_t* stage, idScreenRect
 R_XrayRender
 =================
 */
-void R_XrayRender( const drawSurf_t* surf, textureStage_t* stage, idScreenRect scissor )
+static void R_XrayRender( idRenderView * baseView, const drawSurf_t* surf, textureStage_t* stage )
 {
 	// remote views can be reused in a single frame
-	if( stage->dynamicFrameCount == tr.frameCount )
+	if( stage->dynamicFrameCount == tr.GetFrameCount() )
 	{
 		return;
 	}
 	
 	// issue a new view command
-	viewDef_t* parms = R_XrayViewBySurface( surf );
-	if( parms == NULL )
-	{
-		return;
-	}
+	auto view = R_AllocSubView( baseView );
+	view->isXraySubview = true;
+
+	tr.CropRenderSize( stage->width, stage->height );
+	tr.GetCroppedViewport( &view->viewport );
 	
-	int stageWidth = stage->width;
-	int stageHeight = stage->height;
+	view->scissor.x1 = 0;
+	view->scissor.y1 = 0;
+	view->scissor.x2 = view->viewport.x2 - view->viewport.x1;
+	view->scissor.y2 = view->viewport.y2 - view->viewport.y1;
 	
-	tr.CropRenderSize( stageWidth, stageHeight );
-	
-	tr.GetCroppedViewport( &parms->viewport );
-	
-	parms->scissor.x1 = 0;
-	parms->scissor.y1 = 0;
-	parms->scissor.x2 = parms->viewport.x2 - parms->viewport.x1;
-	parms->scissor.y2 = parms->viewport.y2 - parms->viewport.y1;
-	
-	parms->superView = tr.viewDef;
-	parms->subviewSurface = surf;
+	view->baseView = baseView;
+	view->subviewSurface = surf;
 	
 	// triangle culling order changes with mirroring
-	parms->isMirror = ( ( ( int )parms->isMirror ^ ( int )tr.viewDef->isMirror ) != 0 );
+	view->isMirror = ( ( ( int )view->isMirror ^ ( int )baseView->isMirror ) != 0 );
 	
 	// generate render commands for it
-	R_RenderView( parms );
+	R_RenderView( view );
 	
 	// copy this rendering to the image
-	stage->dynamicFrameCount = tr.frameCount;
+	stage->dynamicFrameCount = tr.GetFrameCount();
 	stage->image = globalImages->scratchImage2;
 	
 	tr.CaptureRenderToImage( stage->image->GetName(), true );
@@ -448,7 +467,7 @@ void R_XrayRender( const drawSurf_t* surf, textureStage_t* stage, idScreenRect s
 R_GenerateSurfaceSubview
 ==================
 */
-bool R_GenerateSurfaceSubview( const drawSurf_t* drawSurf )
+static bool R_GenerateSurfaceSubview( idRenderView * baseView, const drawSurf_t * drawSurf )
 {
 	// for testing the performance hit
 	if( r_skipSubviews.GetBool() )
@@ -462,38 +481,36 @@ bool R_GenerateSurfaceSubview( const drawSurf_t* drawSurf )
 		return false;
 	}
 	
-	const idMaterial* shader = drawSurf->material;
-	
 	// never recurse through a subview surface that we are
 	// already seeing through
-	viewDef_t* parms = NULL;
-	for( parms = tr.viewDef; parms != NULL; parms = parms->superView )
+	idRenderView* view = NULL;
+	for( view = baseView; view != NULL; view = view->baseView )
 	{
-		if( parms->subviewSurface != NULL
-				&& parms->subviewSurface->frontEndGeo == drawSurf->frontEndGeo
-				&& parms->subviewSurface->space->entityDef == drawSurf->space->entityDef )
+		if( view->subviewSurface != NULL
+			&& view->subviewSurface->frontEndGeo == drawSurf->frontEndGeo
+			&& view->subviewSurface->space->entityDef == drawSurf->space->entityDef )
 		{
 			break;
 		}
 	}
-	if( parms )
+	if( view )
 	{
 		return false;
 	}
 	
 	// crop the scissor bounds based on the precise cull
-	assert( tr.viewDef != NULL );
-	idScreenRect* v = &tr.viewDef->viewport;
+	assert( baseView != NULL );
+	auto & v = baseView->GetViewport();
 	idScreenRect scissor;
-	scissor.x1 = v->x1 + idMath::Ftoi( ( v->x2 - v->x1 + 1 ) * 0.5f * ( ndcBounds[0][0] + 1.0f ) );
-	scissor.y1 = v->y1 + idMath::Ftoi( ( v->y2 - v->y1 + 1 ) * 0.5f * ( ndcBounds[0][1] + 1.0f ) );
-	scissor.x2 = v->x1 + idMath::Ftoi( ( v->x2 - v->x1 + 1 ) * 0.5f * ( ndcBounds[1][0] + 1.0f ) );
-	scissor.y2 = v->y1 + idMath::Ftoi( ( v->y2 - v->y1 + 1 ) * 0.5f * ( ndcBounds[1][1] + 1.0f ) );
+	scissor.x1 = v.x1 + idMath::Ftoi( ( v.x2 - v.x1 + 1 ) * 0.5f * ( ndcBounds[0][0] + 1.0f ) );
+	scissor.y1 = v.y1 + idMath::Ftoi( ( v.y2 - v.y1 + 1 ) * 0.5f * ( ndcBounds[0][1] + 1.0f ) );
+	scissor.x2 = v.x1 + idMath::Ftoi( ( v.x2 - v.x1 + 1 ) * 0.5f * ( ndcBounds[1][0] + 1.0f ) );
+	scissor.y2 = v.y1 + idMath::Ftoi( ( v.y2 - v.y1 + 1 ) * 0.5f * ( ndcBounds[1][1] + 1.0f ) );
 	
 	// nudge a bit for safety
 	scissor.Expand();
 	
-	scissor.Intersect( tr.viewDef->scissor );
+	scissor.Intersect( baseView->GetScissor() );
 	
 	if( scissor.IsEmpty() )
 	{
@@ -502,21 +519,21 @@ bool R_GenerateSurfaceSubview( const drawSurf_t* drawSurf )
 	}
 	
 	// see what kind of subview we are making
-	if( shader->GetSort() != SS_SUBVIEW )
+	if( drawSurf->material->GetSort() != SS_SUBVIEW )
 	{
-		for( int i = 0; i < shader->GetNumStages(); i++ )
+		for( int i = 0; i < drawSurf->material->GetNumStages(); i++ )
 		{
-			const shaderStage_t*	stage = shader->GetStage( i );
+			auto stage = drawSurf->material->GetStage( i );
 			switch( stage->texture.dynamic )
 			{
 				case DI_REMOTE_RENDER:
-					R_RemoteRender( drawSurf, const_cast<textureStage_t*>( &stage->texture ) );
+					R_RemoteRender( baseView, drawSurf, const_cast<textureStage_t*>( &stage->texture ) );
 					break;
 				case DI_MIRROR_RENDER:
-					R_MirrorRender( drawSurf, const_cast<textureStage_t*>( &stage->texture ), scissor );
+					R_MirrorRender( baseView, drawSurf, const_cast<textureStage_t*>( &stage->texture ) );
 					break;
 				case DI_XRAY_RENDER:
-					R_XrayRender( drawSurf, const_cast<textureStage_t*>( &stage->texture ), scissor );
+					R_XrayRender( baseView, drawSurf, const_cast<textureStage_t*>( &stage->texture ) );
 					break;
 			}
 		}
@@ -524,21 +541,18 @@ bool R_GenerateSurfaceSubview( const drawSurf_t* drawSurf )
 	}
 	
 	// issue a new view command
-	parms = R_MirrorViewBySurface( drawSurf );
-	if( parms == NULL )
-	{
-		return false;
-	}
-	
-	parms->scissor = scissor;
-	parms->superView = tr.viewDef;
-	parms->subviewSurface = drawSurf;
+	view = R_MirrorViewBySurface( baseView, drawSurf );
+
+	view->scissor = scissor;
+
+	view->baseView = baseView;
+	view->subviewSurface = drawSurf;
 	
 	// triangle culling order changes with mirroring
-	parms->isMirror = ( ( ( int )parms->isMirror ^ ( int )tr.viewDef->isMirror ) != 0 );
+	view->isMirror = ( ( ( int )view->isMirror ^ ( int )baseView->isMirror ) != 0 );
 	
 	// generate render commands for it
-	R_RenderView( parms );
+	R_RenderView( view );
 	
 	return true;
 }
@@ -547,15 +561,15 @@ bool R_GenerateSurfaceSubview( const drawSurf_t* drawSurf )
 ================
 R_GenerateSubViews
 
-If we need to render another view to complete the current view,
-generate it first.
+	If we need to render another view to complete the current view,
+	generate it first.
 
-It is important to do this after all drawSurfs for the current
-view have been generated, because it may create a subview which
-would change tr.viewCount.
+	It is important to do this after all drawSurfs for the current
+	view have been generated, because it may create a subview which
+	would change tr.viewCount.
 ================
 */
-bool R_GenerateSubViews( const drawSurf_t* const drawSurfs[], const int numDrawSurfs )
+bool R_GenerateSubViews( idRenderView * renderView )
 {
 	SCOPED_PROFILE_EVENT( "R_GenerateSubViews" );
 	
@@ -568,16 +582,16 @@ bool R_GenerateSubViews( const drawSurf_t* const drawSurfs[], const int numDrawS
 	// scan the surfaces until we either find a subview, or determine
 	// there are no more subview surfaces.
 	bool subviews = false;
-	for( int i = 0; i < numDrawSurfs; i++ )
+	for( int i = 0; i < renderView->numDrawSurfs; i++ )
 	{
-		const drawSurf_t* drawSurf = drawSurfs[i];
+		const drawSurf_t * const drawSurf = renderView->drawSurfs[i];
 		
 		if( !drawSurf->material->HasSubview() )
 		{
 			continue;
 		}
 		
-		if( R_GenerateSurfaceSubview( drawSurf ) )
+		if( R_GenerateSurfaceSubview( renderView, drawSurf ) )
 		{
 			subviews = true;
 		}

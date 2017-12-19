@@ -102,9 +102,9 @@ static void RB_SetMVPWithStereoOffset( const idRenderMatrix& mvp, const float st
 	SetVertexParms( RENDERPARM_MVPMATRIX_X, offset[0], 4 );
 }
 
-static const float zero[4] = { 0, 0, 0, 0 };
-static const float one[4] = { 1, 1, 1, 1 };
-static const float negOne[4] = { -1, -1, -1, -1 };
+static const ALIGNTYPE16 float zero[4] = { 0, 0, 0, 0 };
+static const ALIGNTYPE16 float one[4] = { 1, 1, 1, 1 };
+static const ALIGNTYPE16 float negOne[4] = { -1, -1, -1, -1 };
 
 /*
 ================
@@ -331,13 +331,14 @@ RB_LoadShaderTextureMatrix
 */
 static void RB_LoadShaderTextureMatrix( const float* shaderRegisters, const textureStage_t* texture )
 {
-	float texS[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
-	float texT[4] = { 0.0f, 1.0f, 0.0f, 0.0f };
+	ALIGNTYPE16 float texS[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
+	ALIGNTYPE16 float texT[4] = { 0.0f, 1.0f, 0.0f, 0.0f };
 	
 	if( texture->hasMatrix )
 	{
-		float matrix[16];
+		ALIGNTYPE16 float matrix[16];
 		RB_GetShaderTextureMatrix( shaderRegisters, texture, matrix );
+
 		texS[0] = matrix[0 * 4 + 0];
 		texS[1] = matrix[1 * 4 + 0];
 		texS[2] = matrix[2 * 4 + 0];
@@ -366,8 +367,8 @@ RB_BakeTextureMatrixIntoTexgen
 */
 static void RB_BakeTextureMatrixIntoTexgen( idPlane lightProject[3], const float* textureMatrix )
 {
-	float genMatrix[16];
-	float final[16];
+	ALIGN16( float genMatrix[16] );
+	ALIGN16( float final[16] );
 	
 	genMatrix[0 * 4 + 0] = lightProject[0][0];
 	genMatrix[1 * 4 + 0] = lightProject[0][1];
@@ -389,7 +390,7 @@ static void RB_BakeTextureMatrixIntoTexgen( idPlane lightProject[3], const float
 	genMatrix[2 * 4 + 3] = lightProject[2][2];
 	genMatrix[3 * 4 + 3] = lightProject[2][3];
 	
-	R_MatrixMultiply( genMatrix, textureMatrix, final );
+	idRenderMatrix::Multiply( *( idRenderMatrix* )genMatrix, *( idRenderMatrix* )textureMatrix, *( idRenderMatrix* )final );
 	
 	lightProject[0][0] = final[0 * 4 + 0];
 	lightProject[0][1] = final[1 * 4 + 0];
@@ -424,22 +425,17 @@ static void RB_BindVariableStageImage( const textureStage_t* texture, const floa
 		// offset time by shaderParm[7] (FIXME: make the time offset a parameter of the shader?)
 		// We make no attempt to optimize for multiple identical cinematics being in view, or
 		// for cinematics going at a lower framerate than the renderer.
-		cin = texture->cinematic->ImageForTime( backEnd.viewDef->renderView.time[0] + idMath::Ftoi( 1000.0f * backEnd.viewDef->renderView.shaderParms[11] ) );
+		cin = texture->cinematic->ImageForTime( backEnd.viewDef->GetGameTimeMS() + SEC2MS( backEnd.viewDef->GetMaterialParms()[ 11 ] ) );
 		if( cin.imageY != NULL )
 		{
-			GL_SelectTexture( 0 );
-			cin.imageY->Bind();
-			GL_SelectTexture( 1 );
-			cin.imageCr->Bind();
-			GL_SelectTexture( 2 );
-			cin.imageCb->Bind();
-			
+			GL_BindTexture( 0, cin.imageY );
+			GL_BindTexture( 1, cin.imageCr );
+			GL_BindTexture( 2, cin.imageCb );			
 		}
 		else if( cin.image != NULL )
 		{
 			// Carl: A single RGB image works better with the FFMPEG BINK codec.
-			GL_SelectTexture( 0 );
-			cin.image->Bind();
+			GL_BindTexture( 0, cin.image );
 			
 			/*
 			if( backEnd.viewDef->is2Dgui )
@@ -478,7 +474,7 @@ RB_PrepareStageTexturing
 */
 static void RB_PrepareStageTexturing( const shaderStage_t* pStage,  const drawSurf_t* surf )
 {
-	float useTexGenParm[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	ALIGNTYPE16 float useTexGenParm[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	
 	// set the texture matrix if needed
 	RB_LoadShaderTextureMatrix( surf->shaderRegisters, &pStage->texture );
@@ -488,12 +484,12 @@ static void RB_PrepareStageTexturing( const shaderStage_t* pStage,  const drawSu
 	{
 	
 		// see if there is also a bump map specified
-		const shaderStage_t* bumpStage = surf->material->GetBumpStage();
+		auto bumpStage = surf->material->GetBumpStage();
 		if( bumpStage != NULL )
 		{
 			// per-pixel reflection mapping with bump mapping
-			GL_SelectTexture( 1 );
-			bumpStage->texture.image->Bind();
+			GL_BindTexture( 1, bumpStage->texture.image );
+
 			GL_SelectTexture( 0 );
 			
 			RENDERLOG_PRINTF( "TexGen: TG_REFLECT_CUBE: Bumpy Environment\n" );
@@ -532,14 +528,14 @@ static void RB_PrepareStageTexturing( const shaderStage_t* pStage,  const drawSu
 		const int* parms = surf->material->GetTexGenRegisters();
 		
 		float wobbleDegrees = surf->shaderRegisters[ parms[0] ] * ( idMath::PI / 180.0f );
-		float wobbleSpeed = surf->shaderRegisters[ parms[1] ] * ( 2.0f * idMath::PI / 60.0f );
-		float rotateSpeed = surf->shaderRegisters[ parms[2] ] * ( 2.0f * idMath::PI / 60.0f );
+		float wobbleSpeed   = surf->shaderRegisters[ parms[1] ] * ( 2.0f * idMath::PI / 60.0f );
+		float rotateSpeed   = surf->shaderRegisters[ parms[2] ] * ( 2.0f * idMath::PI / 60.0f );
 		
 		idVec3 axis[3];
 		{
 			// very ad-hoc "wobble" transform
 			float s, c;
-			idMath::SinCos( wobbleSpeed * backEnd.viewDef->renderView.time[0] * 0.001f, s, c );
+			idMath::SinCos( wobbleSpeed * backEnd.viewDef->GetGameTimeSec(), s, c );
 			
 			float ws, wc;
 			idMath::SinCos( wobbleDegrees, ws, wc );
@@ -562,7 +558,7 @@ static void RB_PrepareStageTexturing( const shaderStage_t* pStage,  const drawSu
 		
 		// add the rotate
 		float rs, rc;
-		idMath::SinCos( rotateSpeed * backEnd.viewDef->renderView.time[0] * 0.001f, rs, rc );
+		idMath::SinCos( rotateSpeed * backEnd.viewDef->GetGameTimeSec(), rs, rc );
 		
 		float transform[12];
 		transform[0 * 4 + 0] = axis[0][0] * rc + axis[1][0] * rs;
@@ -586,40 +582,29 @@ static void RB_PrepareStageTexturing( const shaderStage_t* pStage,  const drawSu
 	}
 	else if( ( pStage->texture.texgen == TG_SCREEN ) || ( pStage->texture.texgen == TG_SCREEN2 ) )
 	{
-	
+
 		useTexGenParm[0] = 1.0f;
 		useTexGenParm[1] = 1.0f;
 		useTexGenParm[2] = 1.0f;
 		useTexGenParm[3] = 1.0f;
-		
-		float mat[16];
-		R_MatrixMultiply( surf->space->modelViewMatrix, backEnd.viewDef->projectionMatrix, mat );
-		
+
+		idRenderMatrix mat;
+		idRenderMatrix::Multiply( backEnd.viewDef->GetProjectionMatrix(), surf->space->modelViewMatrix, mat );
+
 		RENDERLOG_PRINTF( "TexGen : %s\n", ( pStage->texture.texgen == TG_SCREEN ) ? "TG_SCREEN" : "TG_SCREEN2" );
 		renderLog.Indent();
-		
-		float plane[4];
-		plane[0] = mat[0 * 4 + 0];
-		plane[1] = mat[1 * 4 + 0];
-		plane[2] = mat[2 * 4 + 0];
-		plane[3] = mat[3 * 4 + 0];
-		SetVertexParm( RENDERPARM_TEXGEN_0_S, plane );
-		RENDERLOG_PRINTF( "TEXGEN_S = %4.3f, %4.3f, %4.3f, %4.3f\n",  plane[0], plane[1], plane[2], plane[3] );
-		
-		plane[0] = mat[0 * 4 + 1];
-		plane[1] = mat[1 * 4 + 1];
-		plane[2] = mat[2 * 4 + 1];
-		plane[3] = mat[3 * 4 + 1];
-		SetVertexParm( RENDERPARM_TEXGEN_0_T, plane );
-		RENDERLOG_PRINTF( "TEXGEN_T = %4.3f, %4.3f, %4.3f, %4.3f\n",  plane[0], plane[1], plane[2], plane[3] );
-		
-		plane[0] = mat[0 * 4 + 3];
-		plane[1] = mat[1 * 4 + 3];
-		plane[2] = mat[2 * 4 + 3];
-		plane[3] = mat[3 * 4 + 3];
-		SetVertexParm( RENDERPARM_TEXGEN_0_Q, plane );
-		RENDERLOG_PRINTF( "TEXGEN_Q = %4.3f, %4.3f, %4.3f, %4.3f\n",  plane[0], plane[1], plane[2], plane[3] );
-		
+
+		SetVertexParm( RENDERPARM_TEXGEN_0_S, mat[ 0 ] );
+		SetVertexParm( RENDERPARM_TEXGEN_0_T, mat[ 1 ] );
+		SetVertexParm( RENDERPARM_TEXGEN_0_Q, mat[ 3 ] );
+
+		if( renderLog.activeLevel )
+		{
+			renderLog.Printf( "TEXGEN_S = %4.3f, %4.3f, %4.3f, %4.3f\n", mat[ 0 ][ 0 ], mat[ 0 ][ 1 ], mat[ 0 ][ 2 ], mat[ 0 ][ 3 ] );
+			renderLog.Printf( "TEXGEN_T = %4.3f, %4.3f, %4.3f, %4.3f\n", mat[ 1 ][ 0 ], mat[ 1 ][ 1 ], mat[ 1 ][ 2 ], mat[ 1 ][ 3 ] );
+			renderLog.Printf( "TEXGEN_Q = %4.3f, %4.3f, %4.3f, %4.3f\n", mat[ 3 ][ 0 ], mat[ 3 ][ 1 ], mat[ 3 ][ 2 ], mat[ 3 ][ 3 ] );
+		}
+
 		renderLog.Outdent();
 		
 	}
@@ -661,7 +646,7 @@ static void RB_FinishStageTexturing( const shaderStage_t* pStage, const drawSurf
 	if( pStage->texture.texgen == TG_REFLECT_CUBE )
 	{
 		// see if there is also a bump map specified
-		const shaderStage_t* bumpStage = surf->material->GetBumpStage();
+		auto bumpStage = surf->material->GetBumpStage();
 		if( bumpStage != NULL )
 		{
 			// per-pixel reflection mapping with bump mapping
@@ -678,7 +663,7 @@ static void RB_FinishStageTexturing( const shaderStage_t* pStage, const drawSurf
 }
 
 // RB: moved this up because we need to call this several times for shadow mapping
-static void RB_ResetViewportAndScissorToDefaultCamera( const viewDef_t* viewDef )
+static void RB_ResetViewportAndScissorToDefaultCamera( const idRenderView* viewDef )
 {
 	// set the window clipping
 	GL_Viewport( viewDef->viewport.x1,
@@ -691,9 +676,24 @@ static void RB_ResetViewportAndScissorToDefaultCamera( const viewDef_t* viewDef 
 				backEnd.viewDef->viewport.y1 + viewDef->scissor.y1,
 				viewDef->scissor.x2 + 1 - viewDef->scissor.x1,
 				viewDef->scissor.y2 + 1 - viewDef->scissor.y1 );
+
 	backEnd.currentScissor = viewDef->scissor;
 }
 // RB end
+
+static void RB_SetScissor( const idScreenRect & scissorRect )
+{
+	if( !backEnd.currentScissor.Equals( scissorRect ) && r_useScissor.GetBool() )
+	{
+		GL_Scissor( 
+			backEnd.viewDef->viewport.x1 + scissorRect.x1,
+			backEnd.viewDef->viewport.y1 + scissorRect.y1,
+			scissorRect.x2 + 1 - scissorRect.x1,
+			scissorRect.y2 + 1 - scissorRect.y1 );
+
+		backEnd.currentScissor = scissorRect;
+	}
+}
 
 /*
 =========================================================================================
@@ -831,13 +831,13 @@ static void RB_FillDepthBufferGeneric( const drawSurf_t* const* drawSurfs, int n
 				
 				GL_Color( color );
 				
-#ifdef USE_CORE_PROFILE
+			#ifdef USE_CORE_PROFILE
 				GL_State( stageGLState );
 				idVec4 alphaTestValue( regs[ pStage->alphaTestRegister ] );
 				SetFragmentParm( RENDERPARM_ALPHA_TEST, alphaTestValue.ToFloatPtr() );
-#else
+			#else
 				GL_State( stageGLState | GLS_ALPHATEST_FUNC_GREATER | GLS_ALPHATEST_MAKE_REF( idMath::Ftob( 255.0f * regs[ pStage->alphaTestRegister ] ) ) );
-#endif
+			#endif
 				
 				if( drawSurf->jointCache )
 				{
@@ -851,8 +851,7 @@ static void RB_FillDepthBufferGeneric( const drawSurf_t* const* drawSurfs, int n
 				RB_SetVertexColorParms( SVC_IGNORE );
 				
 				// bind the texture
-				GL_SelectTexture( 0 );
-				pStage->texture.image->Bind();
+				GL_BindTexture( 0, pStage->texture.image );
 				
 				// set texture matrix and texGens
 				RB_PrepareStageTexturing( pStage, drawSurf );
@@ -1166,16 +1165,13 @@ static void RB_DrawSingleInteraction( drawInteraction_t* din )
 	SetFragmentParm( RENDERPARM_SPECULARMODIFIER, din->specularColor.ToFloatPtr() );
 	
 	// texture 0 will be the per-surface bump map
-	GL_SelectTexture( INTERACTION_TEXUNIT_BUMP );
-	din->bumpImage->Bind();
-	
+	GL_BindTexture( INTERACTION_TEXUNIT_BUMP, din->bumpImage );
+
 	// texture 3 is the per-surface diffuse map
-	GL_SelectTexture( INTERACTION_TEXUNIT_DIFFUSE );
-	din->diffuseImage->Bind();
-	
+	GL_BindTexture( INTERACTION_TEXUNIT_DIFFUSE, din->diffuseImage );
+
 	// texture 4 is the per-surface specular map
-	GL_SelectTexture( INTERACTION_TEXUNIT_SPECULAR );
-	din->specularImage->Bind();
+	GL_BindTexture( INTERACTION_TEXUNIT_SPECULAR, din->specularImage );
 	
 	RB_DrawElementsWithCounters( din->surf );
 }
@@ -1225,20 +1221,13 @@ static void RB_RenderInteractions( const drawSurf_t* surfList, const viewLight_t
 	}
 	
 	// change the scissor if needed, it will be constant across all the surfaces lit by the light
-	if( !backEnd.currentScissor.Equals( vLight->scissorRect ) && r_useScissor.GetBool() )
-	{
-		GL_Scissor( backEnd.viewDef->viewport.x1 + vLight->scissorRect.x1,
-					backEnd.viewDef->viewport.y1 + vLight->scissorRect.y1,
-					vLight->scissorRect.x2 + 1 - vLight->scissorRect.x1,
-					vLight->scissorRect.y2 + 1 - vLight->scissorRect.y1 );
-		backEnd.currentScissor = vLight->scissorRect;
-	}
+	RB_SetScissor( vLight->scissorRect );
 	
 	// perform setup here that will be constant for all interactions
 	if( performStencilTest )
 	{
-		GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHMASK | depthFunc | GLS_STENCIL_FUNC_EQUAL | GLS_STENCIL_MAKE_REF( STENCIL_SHADOW_TEST_VALUE ) | GLS_STENCIL_MAKE_MASK( STENCIL_SHADOW_MASK_VALUE ) );
-		
+		GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHMASK | depthFunc | GLS_STENCIL_FUNC_EQUAL | 
+			GLS_STENCIL_MAKE_REF( STENCIL_SHADOW_TEST_VALUE ) | GLS_STENCIL_MAKE_MASK( STENCIL_SHADOW_MASK_VALUE ) );		
 	}
 	else
 	{
@@ -1339,22 +1328,22 @@ static void RB_RenderInteractions( const drawSurf_t* surfList, const viewLight_t
 		
 		if( vLight->parallel )
 		{
-			float cascadeDistances[4];
-			cascadeDistances[0] = backEnd.viewDef->frustumSplitDistances[0];
-			cascadeDistances[1] = backEnd.viewDef->frustumSplitDistances[1];
-			cascadeDistances[2] = backEnd.viewDef->frustumSplitDistances[2];
-			cascadeDistances[3] = backEnd.viewDef->frustumSplitDistances[3];
-			SetFragmentParm( RENDERPARM_CASCADEDISTANCES, cascadeDistances ); // rpCascadeDistances
+			//float cascadeDistances[4];
+			//cascadeDistances[0] = backEnd.viewDef->GetSplitFrustumDistances()[0];
+			//cascadeDistances[1] = backEnd.viewDef->GetSplitFrustumDistances()[1];
+			//cascadeDistances[2] = backEnd.viewDef->GetSplitFrustumDistances()[2];
+			//cascadeDistances[3] = backEnd.viewDef->GetSplitFrustumDistances()[3];
+			SetFragmentParm( RENDERPARM_CASCADEDISTANCES, backEnd.viewDef->GetSplitFrustumDistances() ); // rpCascadeDistances
 		}
 		
 	}
 	// RB end
 	
-	float lightScale = r_useHDR.GetBool() ? 3.0f : r_lightScale.GetFloat();
+	const float lightScale = r_useHDR.GetBool() ? 3.0f : r_lightScale.GetFloat();
 	
 	for( int lightStageNum = 0; lightStageNum < lightShader->GetNumStages(); lightStageNum++ )
 	{
-		const shaderStage_t*	lightStage = lightShader->GetStage( lightStageNum );
+		auto lightStage = lightShader->GetStage( lightStageNum );
 		
 		// ignore stages that fail the condition
 		if( !lightRegs[ lightStage->conditionRegister ] )
@@ -1366,44 +1355,40 @@ static void RB_RenderInteractions( const drawSurf_t* surfList, const viewLight_t
 			lightScale * lightRegs[ lightStage->color.registers[0] ],
 			lightScale * lightRegs[ lightStage->color.registers[1] ],
 			lightScale * lightRegs[ lightStage->color.registers[2] ],
-			lightRegs[ lightStage->color.registers[3] ] );
+						 lightRegs[ lightStage->color.registers[3] ] );
 		// apply the world-global overbright and the 2x factor for specular
 		const idVec4 diffuseColor = lightColor;
 		const idVec4 specularColor = lightColor * 2.0f;
 		
-		float lightTextureMatrix[16];
+		ALIGN16( float lightTextureMatrix[16] );
 		if( lightStage->texture.hasMatrix )
 		{
 			RB_GetShaderTextureMatrix( lightRegs, &lightStage->texture, lightTextureMatrix );
 		}
 		
 		// texture 1 will be the light falloff texture
-		GL_SelectTexture( INTERACTION_TEXUNIT_FALLOFF );
-		vLight->falloffImage->Bind();
+		GL_BindTexture( INTERACTION_TEXUNIT_FALLOFF, vLight->falloffImage );
 		
 		// texture 2 will be the light projection texture
-		GL_SelectTexture( INTERACTION_TEXUNIT_PROJECTION );
-		lightStage->texture.image->Bind();
+		GL_BindTexture( INTERACTION_TEXUNIT_PROJECTION, lightStage->texture.image );
 		
 		if( r_useShadowMapping.GetBool() )
 		{
 			// texture 5 will be the shadow maps array
-			GL_SelectTexture( INTERACTION_TEXUNIT_SHADOWMAPS );
-			globalImages->shadowImage[vLight->shadowLOD]->Bind();
+			GL_BindTexture( INTERACTION_TEXUNIT_SHADOWMAPS, globalImages->shadowImage[ vLight->shadowLOD ] );
 			
 			// texture 6 will be the jitter texture for soft shadowing
-			GL_SelectTexture( INTERACTION_TEXUNIT_JITTER );
 			if( r_shadowMapSamples.GetInteger() == 16 )
 			{
-				globalImages->jitterImage16->Bind();
+				GL_BindTexture( INTERACTION_TEXUNIT_JITTER, globalImages->jitterImage16 );
 			}
 			else if( r_shadowMapSamples.GetInteger() == 4 )
 			{
-				globalImages->jitterImage4->Bind();
+				GL_BindTexture( INTERACTION_TEXUNIT_JITTER, globalImages->jitterImage4 );
 			}
 			else
 			{
-				globalImages->jitterImage1->Bind();
+				GL_BindTexture( INTERACTION_TEXUNIT_JITTER, globalImages->jitterImage1 );
 			}
 		}
 		
@@ -1524,16 +1509,11 @@ static void RB_RenderInteractions( const drawSurf_t* surfList, const viewLight_t
 				// model-view-projection
 				RB_SetMVP( surf->space->mvp );
 				
-				// RB begin
-				idRenderMatrix modelMatrix;
-				idRenderMatrix::Transpose( *( idRenderMatrix* )surf->space->modelMatrix, modelMatrix );
-				
-				SetVertexParms( RENDERPARM_MODELMATRIX_X, modelMatrix[0], 4 );
+				// RB begin		
+				SetVertexParms( RENDERPARM_MODELMATRIX_X, surf->space->modelMatrix.Ptr(), 4 );
 				
 				// for determining the shadow mapping cascades
-				idRenderMatrix modelViewMatrix, tmp;
-				idRenderMatrix::Transpose( *( idRenderMatrix* )surf->space->modelViewMatrix, modelViewMatrix );
-				SetVertexParms( RENDERPARM_MODELVIEWMATRIX_X, modelViewMatrix[0], 4 );
+				SetVertexParms( RENDERPARM_MODELVIEWMATRIX_X, surf->space->modelViewMatrix.Ptr(), 4 );
 				
 				idVec4 globalLightOrigin( vLight->globalLightOrigin.x, vLight->globalLightOrigin.y, vLight->globalLightOrigin.z, 1.0f );
 				SetVertexParm( RENDERPARM_GLOBALLIGHTORIGIN, globalLightOrigin.ToFloatPtr() );
@@ -1542,18 +1522,18 @@ static void RB_RenderInteractions( const drawSurf_t* surfList, const viewLight_t
 				// tranform the light/view origin into model local space
 				idVec4 localLightOrigin( 0.0f );
 				idVec4 localViewOrigin( 1.0f );
-				R_GlobalPointToLocal( surf->space->modelMatrix, vLight->globalLightOrigin, localLightOrigin.ToVec3() );
-				R_GlobalPointToLocal( surf->space->modelMatrix, backEnd.viewDef->renderView.vieworg, localViewOrigin.ToVec3() );
+				surf->space->modelMatrix.InverseTransformPoint( vLight->globalLightOrigin, localLightOrigin.ToVec3() );
+				surf->space->modelMatrix.InverseTransformPoint( backEnd.viewDef->GetOrigin(), localViewOrigin.ToVec3() );
 				
 				// set the local light/view origin
 				SetVertexParm( RENDERPARM_LOCALLIGHTORIGIN, localLightOrigin.ToFloatPtr() );
 				SetVertexParm( RENDERPARM_LOCALVIEWORIGIN, localViewOrigin.ToFloatPtr() );
 				
 				// transform the light project into model local space
-				idPlane lightProjection[4];
+				ALIGNTYPE16 idPlane lightProjection[4];
 				for( int i = 0; i < 4; i++ )
 				{
-					R_GlobalPlaneToLocal( surf->space->modelMatrix, vLight->lightProject[i], lightProjection[i] );
+					surf->space->modelMatrix.InverseTransformPlane( vLight->lightProject[ i ], lightProjection[ i ] );
 				}
 				
 				// optionally multiply the local light projection by the light texture matrix
@@ -1566,7 +1546,7 @@ static void RB_RenderInteractions( const drawSurf_t* surfList, const viewLight_t
 				SetVertexParm( RENDERPARM_LIGHTPROJECTION_S, lightProjection[0].ToFloatPtr() );
 				SetVertexParm( RENDERPARM_LIGHTPROJECTION_T, lightProjection[1].ToFloatPtr() );
 				SetVertexParm( RENDERPARM_LIGHTPROJECTION_Q, lightProjection[2].ToFloatPtr() );
-				SetVertexParm( RENDERPARM_LIGHTFALLOFF_S, lightProjection[3].ToFloatPtr() );
+				SetVertexParm( RENDERPARM_LIGHTFALLOFF_S,    lightProjection[3].ToFloatPtr() );
 				
 				// RB begin
 				if( r_useShadowMapping.GetBool() )
@@ -1575,45 +1555,28 @@ static void RB_RenderInteractions( const drawSurf_t* surfList, const viewLight_t
 					{
 						for( int i = 0; i < ( r_shadowMapSplits.GetInteger() + 1 ); i++ )
 						{
-							idRenderMatrix modelToShadowMatrix;
-							idRenderMatrix::Multiply( backEnd.shadowV[i], modelMatrix, modelToShadowMatrix );
-							
 							idRenderMatrix shadowClipMVP;
-							idRenderMatrix::Multiply( backEnd.shadowP[i], modelToShadowMatrix, shadowClipMVP );
-							
-							idRenderMatrix shadowWindowMVP;
-							idRenderMatrix::Multiply( renderMatrix_clipSpaceToWindowSpace, shadowClipMVP, shadowWindowMVP );
-							
-							SetVertexParms( ( renderParm_t )( RENDERPARM_SHADOW_MATRIX_0_X + i * 4 ), shadowWindowMVP[0], 4 );
+							idRenderMatrix::Multiply( backEnd.shadowVP[ i ], surf->space->modelMatrix, shadowClipMVP );
+
+							SetVertexParms( ( renderParm_t )( RENDERPARM_SHADOW_MATRIX_0_X + i * 4 ), shadowClipMVP.Ptr(), 4 );
 						}
 					}
 					else if( vLight->pointLight )
 					{
 						for( int i = 0; i < 6; i++ )
 						{
-							idRenderMatrix modelToShadowMatrix;
-							idRenderMatrix::Multiply( backEnd.shadowV[i], modelMatrix, modelToShadowMatrix );
-							
 							idRenderMatrix shadowClipMVP;
-							idRenderMatrix::Multiply( backEnd.shadowP[i], modelToShadowMatrix, shadowClipMVP );
-							
-							idRenderMatrix shadowWindowMVP;
-							idRenderMatrix::Multiply( renderMatrix_clipSpaceToWindowSpace, shadowClipMVP, shadowWindowMVP );
-							
-							SetVertexParms( ( renderParm_t )( RENDERPARM_SHADOW_MATRIX_0_X + i * 4 ), shadowWindowMVP[0], 4 );
+							idRenderMatrix::Multiply( backEnd.shadowVP[ i ], surf->space->modelMatrix, shadowClipMVP );
+
+							SetVertexParms( ( renderParm_t )( RENDERPARM_SHADOW_MATRIX_0_X + i * 4 ), shadowClipMVP.Ptr(), 4 );
 						}
 					}
-					else
+					else // spot light
 					{
-						// spot light
-						
-						idRenderMatrix modelToShadowMatrix;
-						idRenderMatrix::Multiply( backEnd.shadowV[0], modelMatrix, modelToShadowMatrix );
-						
 						idRenderMatrix shadowClipMVP;
-						idRenderMatrix::Multiply( backEnd.shadowP[0], modelToShadowMatrix, shadowClipMVP );
-						
-						SetVertexParms( ( renderParm_t )( RENDERPARM_SHADOW_MATRIX_0_X ), shadowClipMVP[0], 4 );
+						idRenderMatrix::Multiply( backEnd.shadowVP[ 0 ], surf->space->modelMatrix, shadowClipMVP );
+
+						SetVertexParms( ( renderParm_t )( RENDERPARM_SHADOW_MATRIX_0_X ), shadowClipMVP.Ptr(), 4 );
 						
 					}
 				}
@@ -1626,16 +1589,13 @@ static void RB_RenderInteractions( const drawSurf_t* surfList, const viewLight_t
 				renderLog.OpenBlock( surf->material->GetName() );
 				
 				// texture 0 will be the per-surface bump map
-				GL_SelectTexture( INTERACTION_TEXUNIT_BUMP );
-				surfaceShader->GetFastPathBumpImage()->Bind();
+				GL_BindTexture( INTERACTION_TEXUNIT_BUMP, surfaceShader->GetFastPathBumpImage() );
 				
 				// texture 3 is the per-surface diffuse map
-				GL_SelectTexture( INTERACTION_TEXUNIT_DIFFUSE );
-				surfaceShader->GetFastPathDiffuseImage()->Bind();
+				GL_BindTexture( INTERACTION_TEXUNIT_DIFFUSE, surfaceShader->GetFastPathDiffuseImage() );
 				
 				// texture 4 is the per-surface specular map
-				GL_SelectTexture( INTERACTION_TEXUNIT_SPECULAR );
-				surfaceShader->GetFastPathSpecularImage()->Bind();
+				GL_BindTexture( INTERACTION_TEXUNIT_SPECULAR, surfaceShader->GetFastPathSpecularImage() );
 				
 				RB_DrawElementsWithCounters( surf );
 				
@@ -1660,7 +1620,7 @@ static void RB_RenderInteractions( const drawSurf_t* surfList, const viewLight_t
 			// for the "hell writing" that can be shined on them.
 			for( int surfaceStageNum = 0; surfaceStageNum < surfaceShader->GetNumStages(); surfaceStageNum++ )
 			{
-				const shaderStage_t*	surfaceStage = surfaceShader->GetStage( surfaceStageNum );
+				auto surfaceStage = surfaceShader->GetStage( surfaceStageNum );
 				
 				switch( surfaceStage->lighting )
 				{
@@ -1690,8 +1650,7 @@ static void RB_RenderInteractions( const drawSurf_t* surfList, const viewLight_t
 						inter.bumpImage = surfaceStage->texture.image;
 						inter.diffuseImage = NULL;
 						inter.specularImage = NULL;
-						RB_SetupInteractionStage( surfaceStage, surfaceRegs, NULL,
-												  inter.bumpMatrix, NULL );
+						RB_SetupInteractionStage( surfaceStage, surfaceRegs, NULL,  inter.bumpMatrix, NULL );
 						break;
 					}
 					case SL_DIFFUSE:
@@ -1708,8 +1667,7 @@ static void RB_RenderInteractions( const drawSurf_t* surfList, const viewLight_t
 						}
 						inter.diffuseImage = surfaceStage->texture.image;
 						inter.vertexColor = surfaceStage->vertexColor;
-						RB_SetupInteractionStage( surfaceStage, surfaceRegs, diffuseColor.ToFloatPtr(),
-												  inter.diffuseMatrix, inter.diffuseColor.ToFloatPtr() );
+						RB_SetupInteractionStage( surfaceStage, surfaceRegs, diffuseColor.ToFloatPtr(), inter.diffuseMatrix, inter.diffuseColor.ToFloatPtr() );
 						break;
 					}
 					case SL_SPECULAR:
@@ -1726,8 +1684,7 @@ static void RB_RenderInteractions( const drawSurf_t* surfList, const viewLight_t
 						}
 						inter.specularImage = surfaceStage->texture.image;
 						inter.vertexColor = surfaceStage->vertexColor;
-						RB_SetupInteractionStage( surfaceStage, surfaceRegs, specularColor.ToFloatPtr(),
-												  inter.specularMatrix, inter.specularColor.ToFloatPtr() );
+						RB_SetupInteractionStage( surfaceStage, surfaceRegs, specularColor.ToFloatPtr(), inter.specularMatrix, inter.specularColor.ToFloatPtr() );
 						break;
 					}
 				}
@@ -1866,7 +1823,7 @@ static void RB_AmbientPass( const drawSurf_t* const* drawSurfs, int numDrawSurfs
 		int stage = 0;
 		for( ; stage < surfaceMaterial->GetNumStages(); stage++ )
 		{
-			const shaderStage_t* pStage = surfaceMaterial->GetStage( stage );
+			auto pStage = surfaceMaterial->GetStage( stage );
 			// check the stage enable condition
 			if( surfaceRegs[ pStage->conditionRegister ] != 0 )
 			{
@@ -1920,10 +1877,16 @@ static void RB_AmbientPass( const drawSurf_t* const* drawSurfs, int numDrawSurfs
 			backEnd.currentSpace = drawSurf->space;
 			
 			RB_SetMVP( drawSurf->space->mvp );
+
+			// RB: if we want to store the normals in world space so we need the model -> world matrix
+			SetVertexParms( RENDERPARM_MODELMATRIX_X, drawSurf->space->modelMatrix.Ptr(), 4 );
+
+			// RB: if we want to store the normals in camera space so we need the model -> camera matrix
+			SetVertexParms( RENDERPARM_MODELVIEWMATRIX_X, drawSurf->space->modelViewMatrix.Ptr(), 4 );
 			
 			// tranform the view origin into model local space
 			idVec4 localViewOrigin( 1.0f );
-			R_GlobalPointToLocal( drawSurf->space->modelMatrix, backEnd.viewDef->renderView.vieworg, localViewOrigin.ToVec3() );
+			drawSurf->space->modelMatrix.InverseTransformPoint( backEnd.viewDef->GetOrigin(), localViewOrigin.ToVec3() );
 			SetVertexParm( RENDERPARM_LOCALVIEWORIGIN, localViewOrigin.ToFloatPtr() );
 			
 			//if( !isWorldModel )
@@ -1935,17 +1898,6 @@ static void RB_AmbientPass( const drawSurf_t* const* drawSurfs, int numDrawSurfs
 			//
 			//	SetVertexParm( RENDERPARM_LOCALLIGHTORIGIN, localLightDirection.ToFloatPtr() );
 			//}
-			
-			// RB: if we want to store the normals in world space so we need the model -> world matrix
-			idRenderMatrix modelMatrix;
-			idRenderMatrix::Transpose( *( idRenderMatrix* )drawSurf->space->modelMatrix, modelMatrix );
-			
-			SetVertexParms( RENDERPARM_MODELMATRIX_X, modelMatrix[0], 4 );
-			
-			// RB: if we want to store the normals in camera space so we need the model -> camera matrix
-			float modelViewMatrixTranspose[16];
-			R_MatrixTranspose( drawSurf->space->modelViewMatrix, modelViewMatrixTranspose );
-			SetVertexParms( RENDERPARM_MODELVIEWMATRIX_X, modelViewMatrixTranspose, 4 );
 		}
 		
 #if 0
@@ -2008,16 +1960,13 @@ static void RB_AmbientPass( const drawSurf_t* const* drawSurfs, int numDrawSurfs
 			renderLog.OpenBlock( surfaceMaterial->GetName() );
 			
 			// texture 0 will be the per-surface bump map
-			GL_SelectTexture( INTERACTION_TEXUNIT_BUMP );
-			surfaceMaterial->GetFastPathBumpImage()->Bind();
+			GL_BindTexture( INTERACTION_TEXUNIT_BUMP, surfaceMaterial->GetFastPathBumpImage() );
 			
 			// texture 3 is the per-surface diffuse map
-			GL_SelectTexture( INTERACTION_TEXUNIT_DIFFUSE );
-			surfaceMaterial->GetFastPathDiffuseImage()->Bind();
+			GL_BindTexture( INTERACTION_TEXUNIT_DIFFUSE, surfaceMaterial->GetFastPathDiffuseImage() );
 			
 			// texture 4 is the per-surface specular map
-			GL_SelectTexture( INTERACTION_TEXUNIT_SPECULAR );
-			surfaceMaterial->GetFastPathSpecularImage()->Bind();
+			GL_BindTexture( INTERACTION_TEXUNIT_SPECULAR, surfaceMaterial->GetFastPathSpecularImage() );
 			
 			RB_DrawElementsWithCounters( drawSurf );
 			
@@ -2047,7 +1996,7 @@ static void RB_AmbientPass( const drawSurf_t* const* drawSurfs, int numDrawSurfs
 		// perforated surfaces may have multiple alpha tested stages
 		for( stage = 0; stage < surfaceMaterial->GetNumStages(); stage++ )
 		{
-			const shaderStage_t* surfaceStage = surfaceMaterial->GetStage( stage );
+			auto surfaceStage = surfaceMaterial->GetStage( stage );
 			
 			switch( surfaceStage->lighting )
 			{
@@ -2144,7 +2093,7 @@ static void RB_AmbientPass( const drawSurf_t* const* drawSurfs, int numDrawSurfs
 		GL_SelectTexture( 0 );
 		
 		// FIXME: this copies RGBA16F into _currentNormals if HDR is enabled
-		const idScreenRect& viewport = backEnd.viewDef->viewport;
+		const idScreenRect& viewport = backEnd.viewDef->GetViewport();
 		globalImages->currentNormalsImage->CopyFramebuffer( viewport.x1, viewport.y1, viewport.GetWidth(), viewport.GetHeight() );
 		
 		//GL_Clear( true, false, false, STENCIL_SHADOW_TEST_VALUE, 0.0f, 0.0f, 0.0f, 1.0f, false );
@@ -2275,24 +2224,16 @@ static void RB_StencilShadowPass( const drawSurf_t* drawSurfs, const viewLight_t
 			continue;	// a job may have created an empty shadow volume
 		}
 		
-		if( !backEnd.currentScissor.Equals( drawSurf->scissorRect ) && r_useScissor.GetBool() )
-		{
-			// change the scissor
-			GL_Scissor( backEnd.viewDef->viewport.x1 + drawSurf->scissorRect.x1,
-						backEnd.viewDef->viewport.y1 + drawSurf->scissorRect.y1,
-						drawSurf->scissorRect.x2 + 1 - drawSurf->scissorRect.x1,
-						drawSurf->scissorRect.y2 + 1 - drawSurf->scissorRect.y1 );
-			backEnd.currentScissor = drawSurf->scissorRect;
-		}
+		RB_SetScissor( drawSurf->scissorRect );
 		
 		if( drawSurf->space != backEnd.currentSpace )
 		{
 			// change the matrix
 			RB_SetMVP( drawSurf->space->mvp );
-			
+
 			// set the local light position to allow the vertex program to project the shadow volume end cap to infinity
-			idVec4 localLight( 0.0f );
-			R_GlobalPointToLocal( drawSurf->space->modelMatrix, vLight->globalLightOrigin, localLight.ToVec3() );
+			ALIGNTYPE16 idVec4 localLight( 0.0f );
+			drawSurf->space->modelMatrix.InverseTransformPoint( vLight->globalLightOrigin, localLight.ToVec3() );
 			SetVertexParm( RENDERPARM_LOCALLIGHTORIGIN, localLight.ToFloatPtr() );
 			
 			backEnd.currentSpace = drawSurf->space;
@@ -2560,14 +2501,7 @@ static void RB_StencilSelectLight( const viewLight_t* vLight )
 	renderLog.OpenBlock( "Stencil Select" );
 	
 	// enable the light scissor
-	if( !backEnd.currentScissor.Equals( vLight->scissorRect ) && r_useScissor.GetBool() )
-	{
-		GL_Scissor( backEnd.viewDef->viewport.x1 + vLight->scissorRect.x1,
-					backEnd.viewDef->viewport.y1 + vLight->scissorRect.y1,
-					vLight->scissorRect.x2 + 1 - vLight->scissorRect.x1,
-					vLight->scissorRect.y2 + 1 - vLight->scissorRect.y1 );
-		backEnd.currentScissor = vLight->scissorRect;
-	}
+	RB_SetScissor( vLight->scissorRect );
 	
 	// clear stencil buffer to 0 (not drawable)
 	uint64 glStateMinusStencil = GL_GetCurrentStateMinusStencil();
@@ -2585,7 +2519,7 @@ static void RB_StencilSelectLight( const viewLight_t* vLight )
 	
 	// set the matrix for deforming the 'zeroOneCubeModel' into the frustum to exactly cover the light volume
 	idRenderMatrix invProjectMVPMatrix;
-	idRenderMatrix::Multiply( backEnd.viewDef->worldSpace.mvp, vLight->inverseBaseLightProject, invProjectMVPMatrix );
+	idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), vLight->inverseBaseLightProject, invProjectMVPMatrix );
 	RB_SetMVP( invProjectMVPMatrix );
 	
 	// two-sided stencil test
@@ -2612,97 +2546,65 @@ static void RB_StencilSelectLight( const viewLight_t* vLight )
 
 SHADOW MAPS RENDERING
 
+	idRenderMatrix modelToShadowMatrix;
+	idRenderMatrix::Multiply( backEnd.shadowV[0], surf->space->modelMatrix, modelToShadowMatrix );
+
+	idRenderMatrix shadowClipMVP;
+	idRenderMatrix::Multiply( backEnd.shadowP[0], modelToShadowMatrix, shadowClipMVP );
+
+	idRenderMatrix shadowWindowMVP;
+	idRenderMatrix::Multiply( renderMatrix_clipSpaceToWindowSpace, shadowClipMVP, shadowWindowMVP );
+
+	idBounds tmp;
+	idRenderMatrix::ProjectedBounds( tmp, vLight->inverseBaseLightProject, bounds_zeroOneCube, false );
+	idRenderMatrix::ProjectedBounds( lightBounds, lightViewRenderMatrix, tmp, false );
+
+	idBounds tmp;
+	idRenderMatrix::ProjectedBounds( tmp, splitFrustumInverse, bounds_unitCube, false );
+	idRenderMatrix::ProjectedBounds( cropBounds, lightViewRenderMatrix, tmp, false );
+
 ==============================================================================================
 */
 
 /*
-same as D3DXMatrixOrthoOffCenterRH
-
-http://msdn.microsoft.com/en-us/library/bb205348(VS.85).aspx
+=====================
+ idRenderMatrix is left-handed !
+ 
+ D3DXMatrixOrthoOffCenterLH
+ https://msdn.microsoft.com/en-us/library/bb205347(v=vs.85).aspx
+ 
+ Builds a customized, left-handed orthographic projection matrix.
+=====================
 */
-static void MatrixOrthogonalProjectionRH( float m[16], float left, float right, float bottom, float top, float zNear, float zFar )
+static void idRenderMatrix_CreateOrthogonalOffCenterProjection(
+	float left, 	// Minimum x-value of view volume.	
+	float right, 	// Maximum x-value of view volume.	
+	float bottom,	// Minimum y-value of view volume.		
+	float top,		// Maximum y-value of view volume. 		
+	float zNear, float zFar,
+	idRenderMatrix & out )
 {
-	m[0] = 2 / ( right - left );
-	m[4] = 0;
-	m[8] = 0;
-	m[12] = ( left + right ) / ( left - right );
-	m[1] = 0;
-	m[5] = 2 / ( top - bottom );
-	m[9] = 0;
-	m[13] = ( top + bottom ) / ( bottom - top );
-	m[2] = 0;
-	m[6] = 0;
-	m[10] = 1 / ( zNear - zFar );
-	m[14] = zNear / ( zNear - zFar );
-	m[3] = 0;
-	m[7] = 0;
-	m[11] = 0;
-	m[15] = 1;
-}
+	out[ 0 ][ 0 ] = 2.0f / ( right - left );
+	out[ 0 ][ 1 ] = 0.0f;
+	out[ 0 ][ 2 ] = 0.0f;
+	//out[ 0 ][ 3 ] = ( left + right ) / ( left - right );
+	out[ 0 ][ 3 ] = -( left + right ) / ( right - left );
 
-void MatrixCrop( float m[16], const idVec3 mins, const idVec3 maxs )
-{
-	float			scaleX, scaleY, scaleZ;
-	float			offsetX, offsetY, offsetZ;
-	
-	scaleX = 2.0f / ( maxs[0] - mins[0] );
-	scaleY = 2.0f / ( maxs[1] - mins[1] );
-	
-	offsetX = -0.5f * ( maxs[0] + mins[0] ) * scaleX;
-	offsetY = -0.5f * ( maxs[1] + mins[1] ) * scaleY;
-	
-	scaleZ = 1.0f / ( maxs[2] - mins[2] );
-	offsetZ = -mins[2] * scaleZ;
-	
-	m[ 0] = scaleX;
-	m[ 4] = 0;
-	m[ 8] = 0;
-	m[12] = offsetX;
-	m[ 1] = 0;
-	m[ 5] = scaleY;
-	m[ 9] = 0;
-	m[13] = offsetY;
-	m[ 2] = 0;
-	m[ 6] = 0;
-	m[10] = scaleZ;
-	m[14] = offsetZ;
-	m[ 3] = 0;
-	m[ 7] = 0;
-	m[11] = 0;
-	m[15] = 1;
-}
+	out[ 1 ][ 0 ] = 0.0f;
+	out[ 1 ][ 1 ] = 2.0f / ( top - bottom );
+	out[ 1 ][ 2 ] = 0.0f;
+	//out[ 1 ][ 3 ] = ( top + bottom ) / ( bottom - top );
+	out[ 1 ][ 3 ] = -( top + bottom ) / ( top - bottom );
 
-void MatrixLookAtRH( float m[16], const idVec3& eye, const idVec3& dir, const idVec3& up )
-{
-	idVec3 dirN;
-	idVec3 upN;
-	idVec3 sideN;
-	
-	sideN = dir.Cross( up );
-	sideN.Normalize();
-	
-	upN = sideN.Cross( dir );
-	upN.Normalize();
-	
-	dirN = dir;
-	dirN.Normalize();
-	
-	m[ 0] = sideN[0];
-	m[ 4] = sideN[1];
-	m[ 8] = sideN[2];
-	m[12] = -( sideN * eye );
-	m[ 1] = upN[0];
-	m[ 5] = upN[1];
-	m[ 9] = upN[2];
-	m[13] = -( upN * eye );
-	m[ 2] = -dirN[0];
-	m[ 6] = -dirN[1];
-	m[10] = -dirN[2];
-	m[14] = ( dirN * eye );
-	m[ 3] = 0;
-	m[ 7] = 0;
-	m[11] = 0;
-	m[15] = 1;
+	out[ 2 ][ 0 ] = 0.0f;
+	out[ 2 ][ 1 ] = 0.0f;
+	out[ 2 ][ 2 ] = 1.0f / ( zFar - zNear );
+	out[ 2 ][ 3 ] = zNear / ( zNear - zFar );
+
+	out[ 3 ][ 0 ] = 0.0f;
+	out[ 3 ][ 1 ] = 0.0f;
+	out[ 3 ][ 2 ] = 0.0f;
+	out[ 3 ][ 3 ] = 1.0f;
 }
 
 /*
@@ -2756,8 +2658,7 @@ static void RB_ShadowMapPass( const drawSurf_t* drawSurfs, const viewLight_t* vL
 	
 	idRenderMatrix lightProjectionRenderMatrix;
 	idRenderMatrix lightViewRenderMatrix;
-	
-	
+		
 	if( vLight->parallel && side >= 0 )
 	{
 		assert( side >= 0 && side < 6 );
@@ -2767,297 +2668,85 @@ static void RB_ShadowMapPass( const drawSurf_t* drawSurfs, const viewLight_t* vL
 		if( lightDir.Normalize() == 0.0f )
 		{
 			lightDir[2] = -1.0f;
-		}
-		
-		idMat3 rotation = lightDir.ToMat3();
-		//idAngles angles = lightDir.ToAngles();
-		//idMat3 rotation = angles.ToMat3();
-		
-		const idVec3 viewDir = backEnd.viewDef->renderView.viewaxis[0];
-		const idVec3 viewPos = backEnd.viewDef->renderView.vieworg;
-		
-#if 1
-		idRenderMatrix::CreateViewMatrix( backEnd.viewDef->renderView.vieworg, rotation, lightViewRenderMatrix );
-#else
-		float lightViewMatrix[16];
-		MatrixLookAtRH( lightViewMatrix, viewPos, lightDir, viewDir );
-		idRenderMatrix::Transpose( *( idRenderMatrix* )lightViewMatrix, lightViewRenderMatrix );
-#endif
-		
+		}		
+
+		idRenderMatrix::CreateViewMatrix( backEnd.viewDef->GetOrigin(), lightDir.ToMat3(), lightViewRenderMatrix );
+
 		idBounds lightBounds;
-		lightBounds.Clear();
-		
-		ALIGNTYPE16 frustumCorners_t corners;
-		idRenderMatrix::GetFrustumCorners( corners, vLight->inverseBaseLightProject, bounds_zeroOneCube );
-		
-		idVec4 point, transf;
-		for( int j = 0; j < 8; j++ )
 		{
-			point[0] = corners.x[j];
-			point[1] = corners.y[j];
-			point[2] = corners.z[j];
-			point[3] = 1;
-			
-			lightViewRenderMatrix.TransformPoint( point, transf );
-			transf[0] /= transf[3];
-			transf[1] /= transf[3];
-			transf[2] /= transf[3];
-			
-			lightBounds.AddPoint( transf.ToVec3() );
+			idRenderMatrix transform;
+			idRenderMatrix::Multiply( lightViewRenderMatrix, vLight->inverseBaseLightProject, transform );
+			idRenderMatrix::ProjectedBounds( lightBounds, transform, bounds_zeroOneCube, false );
 		}
+		///idRenderMatrix_CreateOrthogonalOffCenterProjection(
+		///	lightBounds[ 0 ][ 0 ], lightBounds[ 1 ][ 0 ], lightBounds[ 0 ][ 1 ], lightBounds[ 1 ][ 1 ], -lightBounds[ 1 ][ 2 ], -lightBounds[ 0 ][ 2 ],
+		///	lightProjectionRenderMatrix );
 		
-		float lightProjectionMatrix[16];
-		MatrixOrthogonalProjectionRH( lightProjectionMatrix, lightBounds[0][0], lightBounds[1][0], lightBounds[0][1], lightBounds[1][1], -lightBounds[1][2], -lightBounds[0][2] );
-		idRenderMatrix::Transpose( *( idRenderMatrix* )lightProjectionMatrix, lightProjectionRenderMatrix );
-		
-		
-		// 	'frustumMVP' goes from global space -> camera local space -> camera projective space
+		// 'frustumMVP' goes from global space -> camera local space -> camera projective space
 		// invert the MVP projection so we can deform zero-to-one cubes into the frustum pyramid shape and calculate global bounds
 		
-		idRenderMatrix splitFrustumInverse;
-		if( !idRenderMatrix::Inverse( backEnd.viewDef->frustumMVPs[FRUSTUM_CASCADE1 + side], splitFrustumInverse ) )
-		{
-			idLib::Warning( "splitFrustumMVP invert failed" );
-		}
-		
-		// splitFrustumCorners in global space
-		ALIGNTYPE16 frustumCorners_t splitFrustumCorners;
-		idRenderMatrix::GetFrustumCorners( splitFrustumCorners, splitFrustumInverse, bounds_unitCube );
-		
-#if 0
-		idBounds splitFrustumBounds;
-		splitFrustumBounds.Clear();
-		for( int j = 0; j < 8; j++ )
-		{
-			point[0] = splitFrustumCorners.x[j];
-			point[1] = splitFrustumCorners.y[j];
-			point[2] = splitFrustumCorners.z[j];
-			
-			splitFrustumBounds.AddPoint( point.ToVec3() );
-		}
-		
-		idVec3 center = splitFrustumBounds.GetCenter();
-		float radius = splitFrustumBounds.GetRadius( center );
-		
-		//ALIGNTYPE16 frustumCorners_t splitFrustumCorners;
-		splitFrustumBounds[0] = idVec3( -radius, -radius, -radius );
-		splitFrustumBounds[1] = idVec3( radius, radius, radius );
-		splitFrustumBounds.TranslateSelf( viewPos );
-		idVec3 splitFrustumCorners2[8];
-		splitFrustumBounds.ToPoints( splitFrustumCorners2 );
-		
-		for( int j = 0; j < 8; j++ )
-		{
-			splitFrustumCorners.x[j] = splitFrustumCorners2[j].x;
-			splitFrustumCorners.y[j] = splitFrustumCorners2[j].y;
-			splitFrustumCorners.z[j] = splitFrustumCorners2[j].z;
-		}
-#endif
-		
-		
-		idRenderMatrix lightViewProjectionRenderMatrix;
-		idRenderMatrix::Multiply( lightProjectionRenderMatrix, lightViewRenderMatrix, lightViewProjectionRenderMatrix );
-		
-		// find the bounding box of the current split in the light's clip space
+		const idRenderMatrix & splitFrustumInverse = backEnd.viewDef->GetSplitFrustumInvMVPMatrices()[ FRUSTUM_CASCADE1 + side ];
+
 		idBounds cropBounds;
-		cropBounds.Clear();
-		for( int j = 0; j < 8; j++ )
 		{
-			point[0] = splitFrustumCorners.x[j];
-			point[1] = splitFrustumCorners.y[j];
-			point[2] = splitFrustumCorners.z[j];
-			point[3] = 1;
-			
-			lightViewRenderMatrix.TransformPoint( point, transf );
-			transf[0] /= transf[3];
-			transf[1] /= transf[3];
-			transf[2] /= transf[3];
-			
-			cropBounds.AddPoint( transf.ToVec3() );
+			idRenderMatrix transform;
+			idRenderMatrix::Multiply( lightViewRenderMatrix, splitFrustumInverse, transform );
+			idRenderMatrix::ProjectedBounds( cropBounds, transform, bounds_unitCube, false );
 		}
-		
 		// don't let the frustum AABB be bigger than the light AABB
-		if( cropBounds[0][0] < lightBounds[0][0] )
-		{
-			cropBounds[0][0] = lightBounds[0][0];
-		}
-		
-		if( cropBounds[0][1] < lightBounds[0][1] )
-		{
-			cropBounds[0][1] = lightBounds[0][1];
-		}
-		
-		if( cropBounds[1][0] > lightBounds[1][0] )
-		{
-			cropBounds[1][0] = lightBounds[1][0];
-		}
-		
-		if( cropBounds[1][1] > lightBounds[1][1] )
-		{
-			cropBounds[1][1] = lightBounds[1][1];
-		}
+		if( cropBounds[0][0] < lightBounds[0][0] ) cropBounds[0][0] = lightBounds[0][0];
+		if( cropBounds[0][1] < lightBounds[0][1] ) cropBounds[0][1] = lightBounds[0][1];
+		if( cropBounds[1][0] > lightBounds[1][0] ) cropBounds[1][0] = lightBounds[1][0];
+		if( cropBounds[1][1] > lightBounds[1][1] ) cropBounds[1][1] = lightBounds[1][1];
 		
 		cropBounds[0][2] = lightBounds[0][2];
 		cropBounds[1][2] = lightBounds[1][2];
-		
-		//float cropMatrix[16];
-		//MatrixCrop(cropMatrix, cropBounds[0], cropBounds[1]);
-		
-		//idRenderMatrix cropRenderMatrix;
-		//idRenderMatrix::Transpose( *( idRenderMatrix* )cropMatrix, cropRenderMatrix );
-		
-		//idRenderMatrix tmp = lightProjectionRenderMatrix;
-		//idRenderMatrix::Multiply( cropRenderMatrix, tmp, lightProjectionRenderMatrix );
-		
-		MatrixOrthogonalProjectionRH( lightProjectionMatrix, cropBounds[0][0], cropBounds[1][0], cropBounds[0][1], cropBounds[1][1], -cropBounds[1][2], -cropBounds[0][2] );
-		idRenderMatrix::Transpose( *( idRenderMatrix* )lightProjectionMatrix, lightProjectionRenderMatrix );
-		
-		backEnd.shadowV[side] = lightViewRenderMatrix;
-		backEnd.shadowP[side] = lightProjectionRenderMatrix;
+	#if 1
+		idRenderMatrix_CreateOrthogonalOffCenterProjection(
+			cropBounds[ 0 ][ 0 ], cropBounds[ 1 ][ 0 ], cropBounds[ 0 ][ 1 ], cropBounds[ 1 ][ 1 ], cropBounds[ 1 ][ 2 ], cropBounds[ 0 ][ 2 ],
+			lightProjectionRenderMatrix );
+	#else
+		idRenderMatrix::CreateOrthogonalOffCenterProjection(
+			cropBounds[ 0 ][ 0 ], cropBounds[ 1 ][ 0 ], cropBounds[ 0 ][ 1 ], cropBounds[ 1 ][ 1 ], cropBounds[ 1 ][ 2 ], cropBounds[ 0 ][ 2 ],
+			lightProjectionRenderMatrix );
+	#endif
+		idRenderMatrix::Multiply( lightProjectionRenderMatrix, lightViewRenderMatrix, backEnd.shadowVP[ side ] );
 	}
 	else if( vLight->pointLight && side >= 0 )
 	{
 		assert( side >= 0 && side < 6 );
-		
-		// FIXME OPTIMIZE no memset
-		
-		float	viewMatrix[16];
-		
-		idVec3	vec;
-		idVec3	origin = vLight->globalLightOrigin;
-		
-		// side of a point light
-		memset( viewMatrix, 0, sizeof( viewMatrix ) );
-		switch( side )
-		{
-			case 0:
-				viewMatrix[0] = 1;
-				viewMatrix[9] = 1;
-				viewMatrix[6] = -1;
-				break;
-			case 1:
-				viewMatrix[0] = -1;
-				viewMatrix[9] = -1;
-				viewMatrix[6] = -1;
-				break;
-			case 2:
-				viewMatrix[4] = 1;
-				viewMatrix[1] = -1;
-				viewMatrix[10] = 1;
-				break;
-			case 3:
-				viewMatrix[4] = -1;
-				viewMatrix[1] = -1;
-				viewMatrix[10] = -1;
-				break;
-			case 4:
-				viewMatrix[8] = 1;
-				viewMatrix[1] = -1;
-				viewMatrix[6] = -1;
-				break;
-			case 5:
-				viewMatrix[8] = -1;
-				viewMatrix[1] = 1;
-				viewMatrix[6] = -1;
-				break;
-		}
-		
-		viewMatrix[12] = -origin[0] * viewMatrix[0] + -origin[1] * viewMatrix[4] + -origin[2] * viewMatrix[8];
-		viewMatrix[13] = -origin[0] * viewMatrix[1] + -origin[1] * viewMatrix[5] + -origin[2] * viewMatrix[9];
-		viewMatrix[14] = -origin[0] * viewMatrix[2] + -origin[1] * viewMatrix[6] + -origin[2] * viewMatrix[10];
-		
-		viewMatrix[3] = 0;
-		viewMatrix[7] = 0;
-		viewMatrix[11] = 0;
-		viewMatrix[15] = 1;
-		
-		// from world space to light origin, looking down the X axis
-		float	unflippedLightViewMatrix[16];
-		
-		// from world space to OpenGL view space, looking down the negative Z axis
-		float	lightViewMatrix[16];
-		
-		static float	s_flipMatrix[16] =
-		{
-			// convert from our coordinate system (looking down X)
-			// to OpenGL's coordinate system (looking down -Z)
-			0, 0, -1, 0,
-			-1, 0, 0, 0,
-			0, 1, 0, 0,
-			0, 0, 0, 1
+
+		static const idMat3 SM_VAxis[ 6 ] = {
+			idMat3( 1, 0, 0, 0, 0, 1, 0,-1, 0 ),
+			idMat3(-1, 0, 0, 0, 0,-1, 0,-1, 0 ),
+			idMat3( 0, 1, 0,-1, 0, 0, 0, 0, 1 ),
+			idMat3( 0,-1, 0,-1, 0, 0, 0, 0,-1 ),
+			idMat3( 0, 0, 1,-1, 0, 0, 0,-1, 0 ),
+			idMat3( 0, 0,-1, 1, 0, 0, 0,-1, 0 )
 		};
-		
-		memcpy( unflippedLightViewMatrix, viewMatrix, sizeof( unflippedLightViewMatrix ) );
-		R_MatrixMultiply( viewMatrix, s_flipMatrix, lightViewMatrix );
-		
-		idRenderMatrix::Transpose( *( idRenderMatrix* )lightViewMatrix, lightViewRenderMatrix );
-		
-		
-		
-		
+		idRenderMatrix::CreateViewMatrix( vLight->globalLightOrigin, SM_VAxis[ side ], lightViewRenderMatrix );
+
 		// set up 90 degree projection matrix
-		const float zNear = 4;
+		const float zNear = 4.0f;
 		const float	fov = r_shadowMapFrustumFOV.GetFloat();
-		
-		float ymax = zNear * tan( fov * idMath::PI / 360.0f );
-		float ymin = -ymax;
-		
-		float xmax = zNear * tan( fov * idMath::PI / 360.0f );
-		float xmin = -xmax;
-		
-		const float width = xmax - xmin;
-		const float height = ymax - ymin;
-		
-		// from OpenGL view space to OpenGL NDC ( -1 : 1 in XYZ )
-		float lightProjectionMatrix[16];
-		
-		lightProjectionMatrix[0 * 4 + 0] = 2.0f * zNear / width;
-		lightProjectionMatrix[1 * 4 + 0] = 0.0f;
-		lightProjectionMatrix[2 * 4 + 0] = ( xmax + xmin ) / width;	// normally 0
-		lightProjectionMatrix[3 * 4 + 0] = 0.0f;
-		
-		lightProjectionMatrix[0 * 4 + 1] = 0.0f;
-		lightProjectionMatrix[1 * 4 + 1] = 2.0f * zNear / height;
-		lightProjectionMatrix[2 * 4 + 1] = ( ymax + ymin ) / height;	// normally 0
-		lightProjectionMatrix[3 * 4 + 1] = 0.0f;
-		
-		// this is the far-plane-at-infinity formulation, and
-		// crunches the Z range slightly so w=0 vertexes do not
-		// rasterize right at the wraparound point
-		lightProjectionMatrix[0 * 4 + 2] = 0.0f;
-		lightProjectionMatrix[1 * 4 + 2] = 0.0f;
-		lightProjectionMatrix[2 * 4 + 2] = -0.999f; // adjust value to prevent imprecision issues
-		lightProjectionMatrix[3 * 4 + 2] = -2.0f * zNear;
-		
-		lightProjectionMatrix[0 * 4 + 3] = 0.0f;
-		lightProjectionMatrix[1 * 4 + 3] = 0.0f;
-		lightProjectionMatrix[2 * 4 + 3] = -1.0f;
-		lightProjectionMatrix[3 * 4 + 3] = 0.0f;
-		
-		idRenderMatrix::Transpose( *( idRenderMatrix* )lightProjectionMatrix, lightProjectionRenderMatrix );
-		
-		backEnd.shadowV[side] = lightViewRenderMatrix;
-		backEnd.shadowP[side] = lightProjectionRenderMatrix;
+
+		idRenderMatrix::CreateProjectionMatrixFov( fov, fov, zNear, 0.0f, 0.0f, 0.0f, lightProjectionRenderMatrix );	
+		idRenderMatrix::Multiply( lightProjectionRenderMatrix, lightViewRenderMatrix, backEnd.shadowVP[ side ] );
 	}
 	else
 	{
 		lightViewRenderMatrix.Identity();
-		lightProjectionRenderMatrix = vLight->baseLightProject;
-		
-		backEnd.shadowV[0] = lightViewRenderMatrix;
-		backEnd.shadowP[0] = lightProjectionRenderMatrix;
+		idRenderMatrix::Multiply( renderMatrix_windowSpaceToClipSpace, vLight->baseLightProject, lightProjectionRenderMatrix );
+		idRenderMatrix::Multiply( lightProjectionRenderMatrix, lightViewRenderMatrix, backEnd.shadowVP[ 0 ] );
 	}
 	
-	
+	// ------------------------------------------------------
 	
 	globalFramebuffers.shadowFBO[vLight->shadowLOD]->Bind();
 	
-	if( side < 0 )
-	{
+	if( side < 0 ) {
 		globalFramebuffers.shadowFBO[vLight->shadowLOD]->AttachImageDepthLayer( globalImages->shadowImage[vLight->shadowLOD], 0 );
-	}
-	else
-	{
+	} else {
 		globalFramebuffers.shadowFBO[vLight->shadowLOD]->AttachImageDepthLayer( globalImages->shadowImage[vLight->shadowLOD], side );
 	}
 	
@@ -3065,7 +2754,7 @@ static void RB_ShadowMapPass( const drawSurf_t* drawSurfs, const viewLight_t* vL
 	
 	GL_ViewportAndScissor( 0, 0, shadowMapResolutions[vLight->shadowLOD], shadowMapResolutions[vLight->shadowLOD] );
 	
-	glClear( GL_DEPTH_BUFFER_BIT );
+	GL_Clear( false, true, false, 0, 0, 0, 0, 0, false );
 	
 	// process the chain of shadows with the current rendering state
 	backEnd.currentSpace = NULL;
@@ -3097,34 +2786,49 @@ static void RB_ShadowMapPass( const drawSurf_t* drawSurfs, const viewLight_t* vL
 		
 		if( drawSurf->space != backEnd.currentSpace )
 		{
-			idRenderMatrix modelRenderMatrix;
-			idRenderMatrix::Transpose( *( idRenderMatrix* )drawSurf->space->modelMatrix, modelRenderMatrix );
-			
-			idRenderMatrix modelToLightRenderMatrix;
-			idRenderMatrix::Multiply( lightViewRenderMatrix, modelRenderMatrix, modelToLightRenderMatrix );
-			
-			idRenderMatrix clipMVP;
-			idRenderMatrix::Multiply( lightProjectionRenderMatrix, modelToLightRenderMatrix, clipMVP );
-			
+		#if 0
+			///idRenderMatrix smLightVP;
+			///idRenderMatrix::Multiply( lightProjectionRenderMatrix, lightViewRenderMatrix, smLightVP );
+			///
+			///idRenderMatrix clipMVP;
+			///idRenderMatrix::Multiply( smLightVP, drawSurf->space->modelMatrix, clipMVP );
+		
 			if( vLight->parallel )
 			{
-				idRenderMatrix MVP;
-				idRenderMatrix::Multiply( renderMatrix_clipSpaceToWindowSpace, clipMVP, MVP );
-				
+				///idRenderMatrix MVP;
+				///idRenderMatrix::Multiply( renderMatrix_clipSpaceToWindowSpace, clipMVP, MVP );
+
+				idRenderMatrix clipMVP;
+				idRenderMatrix::Multiply( backEnd.shadowVP[ side ], drawSurf->space->modelMatrix, clipMVP );
+
 				RB_SetMVP( clipMVP );
 			}
-			else if( side < 0 )
+			else if( side < 0 ) // spot
 			{
-				// from OpenGL view space to OpenGL NDC ( -1 : 1 in XYZ )
-				idRenderMatrix MVP;
-				idRenderMatrix::Multiply( renderMatrix_windowSpaceToClipSpace, clipMVP, MVP );
-				
-				RB_SetMVP( MVP );
+				idRenderMatrix clipMVP;
+				idRenderMatrix::Multiply( backEnd.shadowVP[ 0 ], drawSurf->space->modelMatrix, clipMVP );
+
+				/// from OpenGL view space to OpenGL NDC ( -1 : 1 in XYZ )
+				///idRenderMatrix MVP;
+				///idRenderMatrix::Multiply( renderMatrix_windowSpaceToClipSpace, clipMVP, MVP );		
+				///RB_SetMVP( MVP );
+
+				RB_SetMVP( clipMVP );
 			}
 			else
 			{
+				idRenderMatrix clipMVP;
+				idRenderMatrix::Multiply( backEnd.shadowVP[ side ], drawSurf->space->modelMatrix, clipMVP );
+
 				RB_SetMVP( clipMVP );
 			}
+		#endif
+			idRenderMatrix clipMVP;
+
+			const idRenderMatrix & smVPMatrix = backEnd.shadowVP[ ( side < 0 )? 0 : side ];
+			idRenderMatrix::Multiply( smVPMatrix, drawSurf->space->modelMatrix, clipMVP );
+
+			RB_SetMVP( clipMVP );
 			
 			// set the local light position to allow the vertex program to project the shadow volume end cap to infinity
 			/*
@@ -3159,7 +2863,7 @@ static void RB_ShadowMapPass( const drawSurf_t* drawSurfs, const viewLight_t* vL
 			// perforated surfaces may have multiple alpha tested stages
 			for( int stage = 0; stage < shader->GetNumStages(); stage++ )
 			{
-				const shaderStage_t* pStage = shader->GetStage( stage );
+				auto pStage = shader->GetStage( stage );
 				
 				if( !pStage->hasAlphaTest )
 				{
@@ -3196,13 +2900,13 @@ static void RB_ShadowMapPass( const drawSurf_t* drawSurfs, const viewLight_t* vL
 				
 				GL_Color( color );
 				
-#ifdef USE_CORE_PROFILE
+			#ifdef USE_CORE_PROFILE
 				GL_State( stageGLState );
 				idVec4 alphaTestValue( regs[ pStage->alphaTestRegister ] );
 				SetFragmentParm( RENDERPARM_ALPHA_TEST, alphaTestValue.ToFloatPtr() );
-#else
+			#else
 				GL_State( stageGLState | GLS_ALPHATEST_FUNC_GREATER | GLS_ALPHATEST_MAKE_REF( idMath::Ftob( 255.0f * regs[ pStage->alphaTestRegister ] ) ) );
-#endif
+			#endif
 				
 				if( drawSurf->jointCache )
 				{
@@ -3216,8 +2920,7 @@ static void RB_ShadowMapPass( const drawSurf_t* drawSurfs, const viewLight_t* vL
 				RB_SetVertexColorParms( SVC_IGNORE );
 				
 				// bind the texture
-				GL_SelectTexture( 0 );
-				pStage->texture.image->Bind();
+				GL_BindTexture( 0, pStage->texture.image );
 				
 				// set texture matrix and texGens
 				RB_PrepareStageTexturing( pStage, drawSurf );
@@ -3286,7 +2989,7 @@ DRAW INTERACTIONS
 RB_DrawInteractions
 ==================
 */
-static void RB_DrawInteractions( const viewDef_t* viewDef )
+static void RB_DrawInteractions( const idRenderView* viewDef )
 {
 	if( r_skipInteractions.GetBool() )
 	{
@@ -3405,15 +3108,9 @@ static void RB_DrawInteractions( const viewDef_t* viewDef )
 					rect.y1 = ( vLight->scissorRect.y1 +  0 ) & ~15;
 					rect.x2 = ( vLight->scissorRect.x2 + 15 ) & ~15;
 					rect.y2 = ( vLight->scissorRect.y2 + 15 ) & ~15;
-					
-					if( !backEnd.currentScissor.Equals( rect ) && r_useScissor.GetBool() )
-					{
-						GL_Scissor( backEnd.viewDef->viewport.x1 + rect.x1,
-									backEnd.viewDef->viewport.y1 + rect.y1,
-									rect.x2 + 1 - rect.x1,
-									rect.y2 + 1 - rect.y1 );
-						backEnd.currentScissor = rect;
-					}
+
+					RB_SetScissor( rect );
+
 					GL_State( GLS_DEFAULT );	// make sure stencil mask passes for the clear
 					GL_Clear( false, false, true, STENCIL_SHADOW_TEST_VALUE, 0.0f, 0.0f, 0.0f, 0.0f, false );
 				}
@@ -3608,32 +3305,21 @@ static int RB_DrawShaderPasses( const drawSurf_t* const* const drawSurfs, const 
 			{
 				RB_SetMVP( space->mvp );
 			}
-			
-			// set eye position in local space
-			idVec4 localViewOrigin( 1.0f );
-			R_GlobalPointToLocal( space->modelMatrix, backEnd.viewDef->renderView.vieworg, localViewOrigin.ToVec3() );
-			SetVertexParm( RENDERPARM_LOCALVIEWORIGIN, localViewOrigin.ToFloatPtr() );
-			
+						
 			// set model Matrix
-			float modelMatrixTranspose[16];
-			R_MatrixTranspose( space->modelMatrix, modelMatrixTranspose );
-			SetVertexParms( RENDERPARM_MODELMATRIX_X, modelMatrixTranspose, 4 );
+			SetVertexParms( RENDERPARM_MODELMATRIX_X, space->modelMatrix.Ptr(), 4 );
 			
 			// Set ModelView Matrix
-			float modelViewMatrixTranspose[16];
-			R_MatrixTranspose( space->modelViewMatrix, modelViewMatrixTranspose );
-			SetVertexParms( RENDERPARM_MODELVIEWMATRIX_X, modelViewMatrixTranspose, 4 );
+			SetVertexParms( RENDERPARM_MODELVIEWMATRIX_X, space->modelViewMatrix.Ptr(), 4 );
+
+			// set eye position in local space
+			idVec4 localViewOrigin( 1.0f );
+			space->modelMatrix.InverseTransformPoint( backEnd.viewDef->GetOrigin(), localViewOrigin.ToVec3() );
+			SetVertexParm( RENDERPARM_LOCALVIEWORIGIN, localViewOrigin.ToFloatPtr() );
 		}
 		
 		// change the scissor if needed
-		if( !backEnd.currentScissor.Equals( surf->scissorRect ) && r_useScissor.GetBool() )
-		{
-			GL_Scissor( backEnd.viewDef->viewport.x1 + surf->scissorRect.x1,
-						backEnd.viewDef->viewport.y1 + surf->scissorRect.y1,
-						surf->scissorRect.x2 + 1 - surf->scissorRect.x1,
-						surf->scissorRect.y2 + 1 - surf->scissorRect.y1 );
-			backEnd.currentScissor = surf->scissorRect;
-		}
+		RB_SetScissor( surf->scissorRect );
 		
 		// get the expressions for conditionals / color / texcoords
 		const float*	regs = surf->shaderRegisters;
@@ -3659,7 +3345,7 @@ static int RB_DrawShaderPasses( const drawSurf_t* const* const drawSurfs, const 
 		
 		for( int stage = 0; stage < shader->GetNumStages(); stage++ )
 		{
-			const shaderStage_t* pStage = shader->GetStage( stage );
+			auto pStage = shader->GetStage( stage );
 			
 			// check the enable condition
 			if( regs[ pStage->conditionRegister ] == 0 )
@@ -3687,7 +3373,7 @@ static int RB_DrawShaderPasses( const drawSurf_t* const* const drawSurfs, const 
 			
 			
 			// see if we are a new-style stage
-			newShaderStage_t* newStage = pStage->newStage;
+			auto newStage = pStage->newStage;
 			if( newStage != NULL )
 			{
 				//--------------------------
@@ -3731,8 +3417,7 @@ static int RB_DrawShaderPasses( const drawSurf_t* const* const drawSurfs, const 
 					idImage* image = newStage->fragmentProgramImages[j];
 					if( image != NULL )
 					{
-						GL_SelectTexture( j );
-						image->Bind();
+						GL_BindTexture( j, image );
 					}
 				}
 				
@@ -3923,6 +3608,14 @@ BLEND LIGHT PROJECTION
 =============================================================================================
 */
 
+static void _GlobalPlaneToLocal( const idRenderMatrix & modelMatrix, const idPlane& in, idPlane& out )
+{
+	out[ 0 ] = in[ 0 ] * modelMatrix[ 0 ][ 0 ] + in[ 1 ] * modelMatrix[ 1 ][ 0 ] + in[ 2 ] * modelMatrix[ 2 ][ 0 ];
+	out[ 1 ] = in[ 0 ] * modelMatrix[ 0 ][ 1 ] + in[ 1 ] * modelMatrix[ 1 ][ 1 ] + in[ 2 ] * modelMatrix[ 2 ][ 1 ];
+	out[ 2 ] = in[ 0 ] * modelMatrix[ 0 ][ 2 ] + in[ 1 ] * modelMatrix[ 1 ][ 2 ] + in[ 2 ] * modelMatrix[ 2 ][ 2 ];
+	out[ 3 ] = in[ 0 ] * modelMatrix[ 0 ][ 3 ] + in[ 1 ] * modelMatrix[ 1 ][ 3 ] + in[ 2 ] * modelMatrix[ 2 ][ 3 ] + in[ 3 ];
+}
+
 /*
 =====================
 RB_T_BlendLight
@@ -3940,15 +3633,7 @@ static void RB_T_BlendLight( const drawSurf_t* drawSurfs, const viewLight_t* vLi
 			// temporarily jump over the scissor and draw so the gl error callback doesn't get hit
 		}
 		
-		if( !backEnd.currentScissor.Equals( drawSurf->scissorRect ) && r_useScissor.GetBool() )
-		{
-			// change the scissor
-			GL_Scissor( backEnd.viewDef->viewport.x1 + drawSurf->scissorRect.x1,
-						backEnd.viewDef->viewport.y1 + drawSurf->scissorRect.y1,
-						drawSurf->scissorRect.x2 + 1 - drawSurf->scissorRect.x1,
-						drawSurf->scissorRect.y2 + 1 - drawSurf->scissorRect.y1 );
-			backEnd.currentScissor = drawSurf->scissorRect;
-		}
+		RB_SetScissor( drawSurf->scissorRect );
 		
 		if( drawSurf->space != backEnd.currentSpace )
 		{
@@ -3956,11 +3641,15 @@ static void RB_T_BlendLight( const drawSurf_t* drawSurfs, const viewLight_t* vLi
 			RB_SetMVP( drawSurf->space->mvp );
 			
 			// change the light projection matrix
-			idPlane	lightProjectInCurrentSpace[4];
+			ALIGNTYPE16 idPlane	lightProjectInCurrentSpace[4];
 			for( int i = 0; i < 4; i++ )
 			{
-				R_GlobalPlaneToLocal( drawSurf->space->modelMatrix, vLight->lightProject[i], lightProjectInCurrentSpace[i] );
+				_GlobalPlaneToLocal( drawSurf->space->modelMatrix, vLight->lightProject[i], lightProjectInCurrentSpace[i] );
 			}
+			//for( int i = 0; i < 4; i++ )
+			//{
+			//	drawSurf->space->modelMatrix.InverseTransformPlane( vLight->lightProject[ i ], lightProjectInCurrentSpace[ i ] );
+			//}
 			
 			SetVertexParm( RENDERPARM_TEXGEN_0_S, lightProjectInCurrentSpace[0].ToFloatPtr() );
 			SetVertexParm( RENDERPARM_TEXGEN_0_T, lightProjectInCurrentSpace[1].ToFloatPtr() );
@@ -3995,11 +3684,10 @@ static void RB_BlendLight( const drawSurf_t* drawSurfs, const drawSurf_t* drawSu
 	renderLog.OpenBlock( vLight->lightShader->GetName() );
 	
 	const idMaterial* lightShader = vLight->lightShader;
-	const float*	 regs = vLight->shaderRegisters;
+	const float* regs = vLight->shaderRegisters;
 	
 	// texture 1 will get the falloff texture
-	GL_SelectTexture( 1 );
-	vLight->falloffImage->Bind();
+	GL_BindTexture( 1, vLight->falloffImage );
 	
 	// texture 0 will get the projected texture
 	GL_SelectTexture( 0 );
@@ -4008,7 +3696,7 @@ static void RB_BlendLight( const drawSurf_t* drawSurfs, const drawSurf_t* drawSu
 	
 	for( int i = 0; i < lightShader->GetNumStages(); i++ )
 	{
-		const shaderStage_t*	stage = lightShader->GetStage( i );
+		auto stage = lightShader->GetStage( i );
 		
 		if( !regs[ stage->conditionRegister ] )
 		{
@@ -4017,8 +3705,7 @@ static void RB_BlendLight( const drawSurf_t* drawSurfs, const drawSurf_t* drawSu
 		
 		GL_State( GLS_DEPTHMASK | stage->drawStateBits | GLS_DEPTHFUNC_EQUAL );
 		
-		GL_SelectTexture( 0 );
-		stage->texture.image->Bind();
+		GL_BindTexture( 0, stage->texture.image );
 		
 		if( stage->texture.hasMatrix )
 		{
@@ -4071,15 +3758,7 @@ static void RB_T_BasicFog( const drawSurf_t* drawSurfs, const idPlane fogPlanes[
 			// temporarily jump over the scissor and draw so the gl error callback doesn't get hit
 		}
 		
-		if( !backEnd.currentScissor.Equals( drawSurf->scissorRect ) && r_useScissor.GetBool() )
-		{
-			// change the scissor
-			GL_Scissor( backEnd.viewDef->viewport.x1 + drawSurf->scissorRect.x1,
-						backEnd.viewDef->viewport.y1 + drawSurf->scissorRect.y1,
-						drawSurf->scissorRect.x2 + 1 - drawSurf->scissorRect.x1,
-						drawSurf->scissorRect.y2 + 1 - drawSurf->scissorRect.y1 );
-			backEnd.currentScissor = drawSurf->scissorRect;
-		}
+		RB_SetScissor( drawSurf->scissorRect );
 		
 		if( drawSurf->space != backEnd.currentSpace )
 		{
@@ -4087,15 +3766,17 @@ static void RB_T_BasicFog( const drawSurf_t* drawSurfs, const idPlane fogPlanes[
 			if( inverseBaseLightProject == NULL )
 			{
 				RB_SetMVP( drawSurf->space->mvp );
+
 				for( int i = 0; i < 4; i++ )
 				{
-					R_GlobalPlaneToLocal( drawSurf->space->modelMatrix, fogPlanes[i], localFogPlanes[i] );
+					_GlobalPlaneToLocal( drawSurf->space->modelMatrix, fogPlanes[i], localFogPlanes[i] );
+					//modelMatrix.InverseTransformPlane( fogPlanes[ i ], localFogPlanes[ i ] );
 				}
 			}
 			else
 			{
 				idRenderMatrix invProjectMVPMatrix;
-				idRenderMatrix::Multiply( backEnd.viewDef->worldSpace.mvp, *inverseBaseLightProject, invProjectMVPMatrix );
+				idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), *inverseBaseLightProject, invProjectMVPMatrix );
 				RB_SetMVP( invProjectMVPMatrix );
 				for( int i = 0; i < 4; i++ )
 				{
@@ -4108,7 +3789,7 @@ static void RB_T_BasicFog( const drawSurf_t* drawSurfs, const idPlane fogPlanes[
 			SetVertexParm( RENDERPARM_TEXGEN_1_T, localFogPlanes[2].ToFloatPtr() );
 			SetVertexParm( RENDERPARM_TEXGEN_1_S, localFogPlanes[3].ToFloatPtr() );
 			
-			backEnd.currentSpace = ( inverseBaseLightProject == NULL ) ? drawSurf->space : NULL;
+			backEnd.currentSpace = ( inverseBaseLightProject == NULL )? drawSurf->space : NULL;
 		}
 		
 		if( drawSurf->jointCache )
@@ -4134,16 +3815,15 @@ static void RB_FogPass( const drawSurf_t* drawSurfs,  const drawSurf_t* drawSurf
 	renderLog.OpenBlock( vLight->lightShader->GetName() );
 	
 	// find the current color and density of the fog
-	const idMaterial* lightShader = vLight->lightShader;
-	const float* regs = vLight->shaderRegisters;
+
 	// assume fog shaders have only a single stage
-	const shaderStage_t* stage = lightShader->GetStage( 0 );
+	auto stage = vLight->lightShader->GetStage( 0 );
 	
 	idVec4 lightColor;
-	lightColor[0] = regs[ stage->color.registers[0] ];
-	lightColor[1] = regs[ stage->color.registers[1] ];
-	lightColor[2] = regs[ stage->color.registers[2] ];
-	lightColor[3] = regs[ stage->color.registers[3] ];
+	lightColor[0] = vLight->shaderRegisters[ stage->color.registers[0] ];
+	lightColor[1] = vLight->shaderRegisters[ stage->color.registers[1] ];
+	lightColor[2] = vLight->shaderRegisters[ stage->color.registers[2] ];
+	lightColor[3] = vLight->shaderRegisters[ stage->color.registers[3] ];
 	
 	GL_Color( lightColor );
 	
@@ -4162,25 +3842,23 @@ static void RB_FogPass( const drawSurf_t* drawSurfs,  const drawSurf_t* drawSurf
 	}
 	
 	// texture 0 is the falloff image
-	GL_SelectTexture( 0 );
-	globalImages->fogImage->Bind();
+	GL_BindTexture( 0, globalImages->fogImage );
 	
 	// texture 1 is the entering plane fade correction
-	GL_SelectTexture( 1 );
-	globalImages->fogEnterImage->Bind();
+	GL_BindTexture( 1, globalImages->fogEnterImage );
 	
 	// S is based on the view origin
-	const float s = vLight->fogPlane.Distance( backEnd.viewDef->renderView.vieworg );
+	const float s = vLight->fogPlane.Distance( backEnd.viewDef->GetOrigin() );
 	
 	const float FOG_SCALE = 0.001f;
 	
 	idPlane fogPlanes[4];
 	
 	// S-0
-	fogPlanes[0][0] = a * backEnd.viewDef->worldSpace.modelViewMatrix[0 * 4 + 2];
-	fogPlanes[0][1] = a * backEnd.viewDef->worldSpace.modelViewMatrix[1 * 4 + 2];
-	fogPlanes[0][2] = a * backEnd.viewDef->worldSpace.modelViewMatrix[2 * 4 + 2];
-	fogPlanes[0][3] = a * backEnd.viewDef->worldSpace.modelViewMatrix[3 * 4 + 2] + 0.5f;
+	fogPlanes[0][0] = a * backEnd.viewDef->GetViewMatrix()[2][0];
+	fogPlanes[0][1] = a * backEnd.viewDef->GetViewMatrix()[2][1];
+	fogPlanes[0][2] = a * backEnd.viewDef->GetViewMatrix()[2][2];
+	fogPlanes[0][3] = a * backEnd.viewDef->GetViewMatrix()[2][3] + 0.5f;
 	
 	// T-0
 	fogPlanes[1][0] = 0.0f;//a * backEnd.viewDef->worldSpace.modelViewMatrix[0*4+0];
@@ -4210,8 +3888,8 @@ static void RB_FogPass( const drawSurf_t* drawSurfs,  const drawSurf_t* drawSurf
 	GL_State( GLS_DEPTHMASK | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA | GLS_DEPTHFUNC_LESS );
 	GL_Cull( CT_BACK_SIDED );
 	
-	backEnd.zeroOneCubeSurface.space = &backEnd.viewDef->worldSpace;
-	backEnd.zeroOneCubeSurface.scissorRect = backEnd.viewDef->scissor;
+	backEnd.zeroOneCubeSurface.space = &backEnd.viewDef->GetWorldSpace();
+	backEnd.zeroOneCubeSurface.scissorRect = backEnd.viewDef->GetScissor();
 	RB_T_BasicFog( &backEnd.zeroOneCubeSurface, fogPlanes, &vLight->inverseBaseLightProject );
 	
 	GL_Cull( CT_FRONT_SIDED );
@@ -4234,7 +3912,7 @@ RB_FogAllLights
 static void RB_FogAllLights()
 {
 	if( r_skipFogLights.GetBool() || r_showOverDraw.GetInteger() != 0
-			|| backEnd.viewDef->isXraySubview /* don't fog in xray mode*/ )
+		|| backEnd.viewDef->isXraySubview /* don't fog in xray mode*/ )
 	{
 		return;
 	}
@@ -4259,6 +3937,7 @@ static void RB_FogAllLights()
 	renderLog.CloseBlock();
 	renderLog.CloseMainBlock();
 }
+
 
 // RB begin
 static void RB_CalculateAdaptation()
@@ -4383,7 +4062,7 @@ static void RB_CalculateAdaptation()
 }
 
 
-static void RB_Tonemap( const viewDef_t* viewDef )
+static void RB_Tonemap( const idRenderView* viewDef )
 {
 	RENDERLOG_PRINTF( "---------- RB_Tonemap( avg = %f, max = %f, key = %f, is2Dgui = %i ) ----------\n", backEnd.hdrAverageLuminance, backEnd.hdrMaxLuminance, backEnd.hdrKey, ( int )viewDef->is2Dgui );
 	
@@ -4400,8 +4079,7 @@ static void RB_Tonemap( const viewDef_t* viewDef )
 	int screenHeight = renderSystem->GetHeight();
 	
 	// set the window clipping
-	GL_Viewport( 0, 0, screenWidth, screenHeight );
-	GL_Scissor( 0, 0, screenWidth, screenHeight );
+	GL_ViewportAndScissor( 0, 0, screenWidth, screenHeight );
 	
 	GL_SelectTexture( 0 );
 	
@@ -4416,8 +4094,7 @@ static void RB_Tonemap( const viewDef_t* viewDef )
 		globalImages->currentRenderHDRImage->Bind();
 	}
 	
-	GL_SelectTexture( 1 );
-	globalImages->heatmap7Image->Bind();
+	GL_BindTexture( 1, globalImages->heatmap7Image );
 	
 	if( r_hdrDebug.GetBool() )
 	{
@@ -4483,7 +4160,7 @@ static void RB_Tonemap( const viewDef_t* viewDef )
 }
 
 
-static void RB_Bloom( const viewDef_t* viewDef )
+static void RB_Bloom( const idRenderView* viewDef )
 {
 	if( viewDef->is2Dgui || !r_useHDR.GetBool() )
 	{
@@ -4509,8 +4186,7 @@ static void RB_Bloom( const viewDef_t* viewDef )
 	int screenHeight = renderSystem->GetHeight();
 	
 	// set the window clipping
-	GL_Viewport( 0, 0, screenWidth / 4, screenHeight / 4 );
-	GL_Scissor( 0, 0, screenWidth / 4, screenHeight / 4 );
+	GL_ViewportAndScissor( 0, 0, screenWidth / 4, screenHeight / 4 );
 	
 	globalFramebuffers.bloomRenderFBO[ 0 ]->Bind();
 	
@@ -4609,7 +4285,7 @@ static void RB_Bloom( const viewDef_t* viewDef )
 }
 
 
-static void RB_SSAO( const viewDef_t* viewDef )
+static void RB_SSAO( const idRenderView* viewDef )
 {
 	if( !viewDef->viewEntitys || viewDef->is2Dgui )
 	{
@@ -4691,22 +4367,22 @@ static void RB_SSAO( const viewDef_t* viewDef )
 	globalImages->currentRenderImage->CopyFramebuffer( viewport.x1, viewport.y1, viewport.GetWidth(), viewport.GetHeight() );
 	
 	// in stereo rendering, each eye needs to get a separate previous frame mvp
-	int mvpIndex = ( backEnd.viewDef->renderView.viewEyeBuffer == 1 ) ? 1 : 0;
+	int mvpIndex = ( backEnd.viewDef->parms.viewEyeBuffer == 1 ) ? 1 : 0;
 	
 	// derive the matrix to go from current pixels to previous frame pixels
 	idRenderMatrix	inverseMVP;
-	idRenderMatrix::Inverse( backEnd.viewDef->worldSpace.mvp, inverseMVP );
+	idRenderMatrix::Inverse( backEnd.viewDef->GetMVPMatrix(), inverseMVP );
 	
 	idRenderMatrix	motionMatrix;
 	idRenderMatrix::Multiply( backEnd.prevMVP[mvpIndex], inverseMVP, motionMatrix );
 	
-	backEnd.prevMVP[mvpIndex] = backEnd.viewDef->worldSpace.mvp;
+	backEnd.prevMVP[mvpIndex] = backEnd.viewDef->GetMVPMatrix();
 	
 	RB_SetMVP( motionMatrix );
 #endif
 	
-	backEnd.currentSpace = &backEnd.viewDef->worldSpace;
-	RB_SetMVP( backEnd.viewDef->worldSpace.mvp );
+	backEnd.currentSpace = &backEnd.viewDef->GetWorldSpace();
+	RB_SetMVP( backEnd.viewDef->GetMVPMatrix() );
 	
 	const bool hdrIsActive = ( r_useHDR.GetBool() && globalFramebuffers.hdrFBO != NULL && globalFramebuffers.hdrFBO->IsBound() );
 	
@@ -4717,9 +4393,7 @@ static void RB_SSAO( const viewDef_t* viewDef )
 	if( r_useHierarchicalDepthBuffer.GetBool() )
 	{
 		renderProgManager.BindShader_AmbientOcclusionMinify();
-		
-		glClearColor( 0, 0, 0, 1 );
-		
+
 		GL_SelectTexture( 0 );
 		//globalImages->currentDepthImage->Bind();
 		
@@ -4728,12 +4402,11 @@ static void RB_SSAO( const viewDef_t* viewDef )
 			int width = globalFramebuffers.csDepthFBO[i]->GetWidth();
 			int height = globalFramebuffers.csDepthFBO[i]->GetHeight();
 			
-			GL_Viewport( 0, 0, width, height );
-			GL_Scissor( 0, 0, width, height );
+			GL_ViewportAndScissor( 0, 0, width, height );
 			
 			globalFramebuffers.csDepthFBO[i]->Bind();
 			
-			glClear( GL_COLOR_BUFFER_BIT );
+			GL_Clear( true, false, false, 0, 0.0, 0.0, 0.0, 1.0, false );
 			
 			if( i == 0 )
 			{
@@ -4745,8 +4418,7 @@ static void RB_SSAO( const viewDef_t* viewDef )
 			{
 				renderProgManager.BindShader_AmbientOcclusionMinify();
 				
-				GL_SelectTexture( 0 );
-				globalImages->hierarchicalZbufferImage->Bind();
+				GL_BindTexture( 0, globalImages->hierarchicalZbufferImage );
 			}
 			
 			float jitterTexScale[4];
@@ -4769,8 +4441,7 @@ static void RB_SSAO( const viewDef_t* viewDef )
 	}
 	
 	// set the window clipping
-	GL_Viewport( 0, 0, screenWidth, screenHeight );
-	GL_Scissor( 0, 0, screenWidth, screenHeight );
+	GL_ViewportAndScissor( 0, 0, screenWidth, screenHeight );
 	
 	GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS );
 	GL_Cull( CT_TWO_SIDED );
@@ -4779,8 +4450,7 @@ static void RB_SSAO( const viewDef_t* viewDef )
 	{
 		globalFramebuffers.ambientOcclusionFBO[0]->Bind();
 		
-		glClearColor( 0, 0, 0, 0 );
-		glClear( GL_COLOR_BUFFER_BIT );
+		GL_Clear( true, false, false, 0, 0.0, 0.0, 0.0, 0.0, false );
 		
 		renderProgManager.BindShader_AmbientOcclusion();
 	}
@@ -4812,10 +4482,8 @@ static void RB_SSAO( const viewDef_t* viewDef )
 	
 #if 0
 	// RB: set unprojection matrices so we can convert zbuffer values back to camera and world spaces
-	idRenderMatrix modelViewMatrix;
-	idRenderMatrix::Transpose( *( idRenderMatrix* )backEnd.viewDef->worldSpace.modelViewMatrix, modelViewMatrix );
 	idRenderMatrix cameraToWorldMatrix;
-	if( !idRenderMatrix::Inverse( modelViewMatrix, cameraToWorldMatrix ) )
+	if( !idRenderMatrix::Inverse( backEnd.viewDef->GetViewMatrix(), cameraToWorldMatrix ) )
 	{
 		idLib::Warning( "cameraToWorldMatrix invert failed" );
 	}
@@ -4823,7 +4491,7 @@ static void RB_SSAO( const viewDef_t* viewDef )
 	SetVertexParms( RENDERPARM_MODELMATRIX_X, cameraToWorldMatrix[0], 4 );
 	//SetVertexParms( RENDERPARM_MODELMATRIX_X, viewDef->unprojectionToWorldRenderMatrix[0], 4 );
 #endif
-	SetVertexParms( RENDERPARM_MODELMATRIX_X, viewDef->unprojectionToCameraRenderMatrix[0], 4 );
+	SetVertexParms( RENDERPARM_MODELMATRIX_X, viewDef->GetInverseProjMatrix().Ptr(), 4 );
 	
 	
 	float jitterTexOffset[4];
@@ -4837,22 +4505,12 @@ static void RB_SSAO( const viewDef_t* viewDef )
 		jitterTexOffset[0] = 0;
 		jitterTexOffset[1] = 0;
 	}
-	jitterTexOffset[2] = viewDef->renderView.time[0] * 0.001f;
+	jitterTexOffset[2] = viewDef->GetGameTimeSec();
 	jitterTexOffset[3] = 0.0f;
 	SetFragmentParm( RENDERPARM_JITTERTEXOFFSET, jitterTexOffset ); // rpJitterTexOffset
 	
-	GL_SelectTexture( 0 );
-	globalImages->currentNormalsImage->Bind();
-	
-	GL_SelectTexture( 1 );
-	if( r_useHierarchicalDepthBuffer.GetBool() )
-	{
-		globalImages->hierarchicalZbufferImage->Bind();
-	}
-	else
-	{
-		globalImages->currentDepthImage->Bind();
-	}
+	GL_BindTexture( 0, globalImages->currentNormalsImage );
+	GL_BindTexture( 1, ( r_useHierarchicalDepthBuffer.GetBool() )? globalImages->hierarchicalZbufferImage : globalImages->currentDepthImage );
 	
 	RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 	
@@ -4873,8 +4531,7 @@ static void RB_SSAO( const viewDef_t* viewDef )
 		jitterTexScale[3] = 0;
 		SetFragmentParm( RENDERPARM_JITTERTEXSCALE, jitterTexScale ); // rpJitterTexScale
 		
-		GL_SelectTexture( 2 );
-		globalImages->ambientOcclusionImage[0]->Bind();
+		GL_BindTexture( 2, globalImages->ambientOcclusionImage[ 0 ] );
 		
 		RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 #endif
@@ -4903,8 +4560,7 @@ static void RB_SSAO( const viewDef_t* viewDef )
 		jitterTexScale[3] = 0;
 		SetFragmentParm( RENDERPARM_JITTERTEXSCALE, jitterTexScale ); // rpJitterTexScale
 		
-		GL_SelectTexture( 2 );
-		globalImages->ambientOcclusionImage[1]->Bind();
+		GL_BindTexture( 2, globalImages->ambientOcclusionImage[ 1 ] );
 		
 		RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 	}
@@ -4917,7 +4573,7 @@ static void RB_SSAO( const viewDef_t* viewDef )
 	//GL_CheckErrors();
 }
 
-static void RB_SSGI( const viewDef_t* viewDef )
+static void RB_SSGI( const idRenderView* viewDef )
 {
 	if( !viewDef->viewEntitys || viewDef->is2Dgui )
 	{
@@ -4938,8 +4594,8 @@ static void RB_SSGI( const viewDef_t* viewDef )
 	
 	RENDERLOG_PRINTF( "---------- RB_SSGI() ----------\n" );
 	
-	backEnd.currentSpace = &backEnd.viewDef->worldSpace;
-	RB_SetMVP( backEnd.viewDef->worldSpace.mvp );
+	backEnd.currentSpace = &backEnd.viewDef->GetWorldSpace();
+	RB_SetMVP( backEnd.viewDef->GetMVPMatrix() );
 	
 	const bool hdrIsActive = ( r_useHDR.GetBool() && globalFramebuffers.hdrFBO != NULL && globalFramebuffers.hdrFBO->IsBound() );
 	
@@ -4947,8 +4603,7 @@ static void RB_SSGI( const viewDef_t* viewDef )
 	int screenHeight = renderSystem->GetHeight();
 	
 	// set the window clipping
-	GL_Viewport( 0, 0, screenWidth, screenHeight );
-	GL_Scissor( 0, 0, screenWidth, screenHeight );
+	GL_ViewportAndScissor( 0, 0, screenWidth, screenHeight );
 	
 	if( !hdrIsActive )
 	{
@@ -4961,7 +4616,7 @@ static void RB_SSGI( const viewDef_t* viewDef )
 	{
 		renderProgManager.BindShader_AmbientOcclusionMinify();
 		
-		glClearColor( 0, 0, 0, 1 );
+		///glClearColor( 0, 0, 0, 1 );
 		
 		GL_SelectTexture( 0 );
 		//globalImages->currentDepthImage->Bind();
@@ -4971,12 +4626,12 @@ static void RB_SSGI( const viewDef_t* viewDef )
 			int width = globalFramebuffers.csDepthFBO[i]->GetWidth();
 			int height = globalFramebuffers.csDepthFBO[i]->GetHeight();
 			
-			GL_Viewport( 0, 0, width, height );
-			GL_Scissor( 0, 0, width, height );
+			GL_ViewportAndScissor( 0, 0, width, height );
 			
 			globalFramebuffers.csDepthFBO[i]->Bind();
 			
-			glClear( GL_COLOR_BUFFER_BIT );
+			///glClear( GL_COLOR_BUFFER_BIT );
+			GL_Clear( true, false, false, 0, 0.0, 0.0, 0.0, 1.0 , false );
 			
 			if( i == 0 )
 			{
@@ -4988,8 +4643,7 @@ static void RB_SSGI( const viewDef_t* viewDef )
 			{
 				renderProgManager.BindShader_AmbientOcclusionMinify();
 				
-				GL_SelectTexture( 0 );
-				globalImages->hierarchicalZbufferImage->Bind();
+				GL_BindTexture( 0, globalImages->hierarchicalZbufferImage );
 			}
 			
 			float jitterTexScale[4];
@@ -5012,8 +4666,7 @@ static void RB_SSGI( const viewDef_t* viewDef )
 	}
 	
 	// set the window clipping
-	GL_Viewport( 0, 0, screenWidth, screenHeight );
-	GL_Scissor( 0, 0, screenWidth, screenHeight );
+	GL_ViewportAndScissor( 0, 0, screenWidth, screenHeight );
 	
 	GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS );
 	GL_Cull( CT_TWO_SIDED );
@@ -5023,8 +4676,7 @@ static void RB_SSGI( const viewDef_t* viewDef )
 		globalFramebuffers.ambientOcclusionFBO[0]->Bind();
 		
 		// FIXME remove and mix with color from previous frame
-		glClearColor( 0, 0, 0, 0 );
-		glClear( GL_COLOR_BUFFER_BIT );
+		GL_Clear( true, false, false, 0, 0.0, 0.0, 0.0, 0.0, false );
 		
 		renderProgManager.BindShader_DeepGBufferRadiosity();
 	}
@@ -5062,10 +4714,8 @@ static void RB_SSGI( const viewDef_t* viewDef )
 	
 #if 0
 	// RB: set unprojection matrices so we can convert zbuffer values back to camera and world spaces
-	idRenderMatrix modelViewMatrix;
-	idRenderMatrix::Transpose( *( idRenderMatrix* )backEnd.viewDef->worldSpace.modelViewMatrix, modelViewMatrix );
 	idRenderMatrix cameraToWorldMatrix;
-	if( !idRenderMatrix::Inverse( modelViewMatrix, cameraToWorldMatrix ) )
+	if( !idRenderMatrix::Inverse( backEnd.viewDef->GetViewMatrix(), cameraToWorldMatrix ) )
 	{
 		idLib::Warning( "cameraToWorldMatrix invert failed" );
 	}
@@ -5073,7 +4723,7 @@ static void RB_SSGI( const viewDef_t* viewDef )
 	SetVertexParms( RENDERPARM_MODELMATRIX_X, cameraToWorldMatrix[0], 4 );
 	//SetVertexParms( RENDERPARM_MODELMATRIX_X, viewDef->unprojectionToWorldRenderMatrix[0], 4 );
 #endif
-	SetVertexParms( RENDERPARM_MODELMATRIX_X, viewDef->unprojectionToCameraRenderMatrix[0], 4 );
+	SetVertexParms( RENDERPARM_MODELMATRIX_X, viewDef->GetInverseProjMatrix().Ptr(), 4 );
 	
 	
 	float jitterTexOffset[4];
@@ -5087,32 +4737,13 @@ static void RB_SSGI( const viewDef_t* viewDef )
 		jitterTexOffset[0] = 0;
 		jitterTexOffset[1] = 0;
 	}
-	jitterTexOffset[2] = viewDef->renderView.time[0] * 0.001f;
+	jitterTexOffset[2] = viewDef->GetGameTimeSec();
 	jitterTexOffset[3] = 0.0f;
 	SetFragmentParm( RENDERPARM_JITTERTEXOFFSET, jitterTexOffset ); // rpJitterTexOffset
 	
-	GL_SelectTexture( 0 );
-	globalImages->currentNormalsImage->Bind();
-	
-	GL_SelectTexture( 1 );
-	if( r_useHierarchicalDepthBuffer.GetBool() )
-	{
-		globalImages->hierarchicalZbufferImage->Bind();
-	}
-	else
-	{
-		globalImages->currentDepthImage->Bind();
-	}
-	
-	GL_SelectTexture( 2 );
-	if( hdrIsActive )
-	{
-		globalImages->currentRenderHDRImage->Bind();
-	}
-	else
-	{
-		globalImages->currentRenderImage->Bind();
-	}
+	GL_BindTexture( 0, globalImages->currentNormalsImage );
+	GL_BindTexture( 1, ( r_useHierarchicalDepthBuffer.GetBool() )? globalImages->hierarchicalZbufferImage : globalImages->currentDepthImage );
+	GL_BindTexture( 2, ( hdrIsActive )? globalImages->currentRenderHDRImage : globalImages->currentRenderImage );
 	
 	RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 	
@@ -5133,8 +4764,7 @@ static void RB_SSGI( const viewDef_t* viewDef )
 		jitterTexScale[3] = 0;
 		SetFragmentParm( RENDERPARM_JITTERTEXSCALE, jitterTexScale ); // rpJitterTexScale
 		
-		GL_SelectTexture( 2 );
-		globalImages->ambientOcclusionImage[0]->Bind();
+		GL_BindTexture( 2, globalImages->ambientOcclusionImage[ 0 ] );
 		
 		RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 #endif
@@ -5169,8 +4799,7 @@ static void RB_SSGI( const viewDef_t* viewDef )
 		jitterTexScale[3] = 0;
 		SetFragmentParm( RENDERPARM_JITTERTEXSCALE, jitterTexScale ); // rpJitterTexScale
 		
-		GL_SelectTexture( 2 );
-		globalImages->ambientOcclusionImage[1]->Bind();
+		GL_BindTexture( 2, globalImages->ambientOcclusionImage[ 1 ] );
 		
 		RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 	}
@@ -5197,7 +4826,7 @@ BACKEND COMMANDS
 RB_DrawViewInternal
 ==================
 */
-void RB_DrawViewInternal( const viewDef_t* viewDef, const int stereoEye )
+void RB_DrawViewInternal( const idRenderView* viewDef, const int stereoEye )
 {
 	renderLog.OpenBlock( "RB_DrawViewInternal" );
 	
@@ -5269,9 +4898,9 @@ void RB_DrawViewInternal( const viewDef_t* viewDef, const int stereoEye )
 		// set eye position in global space
 		//
 		float parm[4];
-		parm[0] = backEnd.viewDef->renderView.vieworg[0];
-		parm[1] = backEnd.viewDef->renderView.vieworg[1];
-		parm[2] = backEnd.viewDef->renderView.vieworg[2];
+		parm[0] = backEnd.viewDef->GetOrigin()[0];
+		parm[1] = backEnd.viewDef->GetOrigin()[1];
+		parm[2] = backEnd.viewDef->GetOrigin()[2];
 		parm[3] = 1.0f;
 		
 		SetVertexParm( RENDERPARM_GLOBALEYEPOS, parm ); // rpGlobalEyePos
@@ -5289,9 +4918,7 @@ void RB_DrawViewInternal( const viewDef_t* viewDef, const int stereoEye )
 		SetFragmentParm( RENDERPARM_OVERBRIGHT, parm );
 		
 		// Set Projection Matrix
-		float projMatrixTranspose[16];
-		R_MatrixTranspose( backEnd.viewDef->projectionMatrix, projMatrixTranspose );
-		SetVertexParms( RENDERPARM_PROJMATRIX_X, projMatrixTranspose, 4 );
+		SetVertexParms( RENDERPARM_PROJMATRIX_X, backEnd.viewDef->GetProjectionMatrix().Ptr(), 4 );
 	}
 	
 	//-------------------------------------------------
@@ -5321,7 +4948,7 @@ void RB_DrawViewInternal( const viewDef_t* viewDef, const int stereoEye )
 	//-------------------------------------------------
 	if( ( r_motionBlur.GetInteger() > 0 ||  r_useSSAO.GetBool() || r_useSSGI.GetBool() ) && !r_useHDR.GetBool() )
 	{
-		const idScreenRect& viewport = backEnd.viewDef->viewport;
+		const auto & viewport = backEnd.viewDef->GetViewport();
 		globalImages->currentDepthImage->CopyDepthbuffer( viewport.x1, viewport.y1, viewport.GetWidth(), viewport.GetHeight() );
 	}
 	
@@ -5346,7 +4973,7 @@ void RB_DrawViewInternal( const viewDef_t* viewDef, const int stereoEye )
 		}
 		else
 		{
-			guiScreenOffset = stereoEye * viewDef->renderView.stereoScreenSeparation;
+			guiScreenOffset = stereoEye * viewDef->GetStereoScreenSeparation();
 		}
 		processed = RB_DrawShaderPasses( drawSurfs, numDrawSurfs, guiScreenOffset, stereoEye );
 		renderLog.CloseMainBlock();
@@ -5368,10 +4995,10 @@ void RB_DrawViewInternal( const viewDef_t* viewDef, const int stereoEye )
 	//-------------------------------------------------
 	if( processed < numDrawSurfs && !r_skipPostProcess.GetBool() )
 	{
-		int x = backEnd.viewDef->viewport.x1;
-		int y = backEnd.viewDef->viewport.y1;
-		int	w = backEnd.viewDef->viewport.x2 - backEnd.viewDef->viewport.x1 + 1;
-		int	h = backEnd.viewDef->viewport.y2 - backEnd.viewDef->viewport.y1 + 1;
+		int x = backEnd.viewDef->GetViewport().x1;
+		int y = backEnd.viewDef->GetViewport().y1;
+		int	w = backEnd.viewDef->GetViewport().GetWidth();
+		int	h = backEnd.viewDef->GetViewport().GetHeight();
 		
 		RENDERLOG_PRINTF( "Resolve to %i x %i buffer\n", w, h );
 		
@@ -5502,12 +5129,11 @@ void RB_MotionBlur()
 	
 	// clear the alpha buffer and draw only the hands + weapon into it so
 	// we can avoid blurring them
-	glClearColor( 0, 0, 0, 1 );
 	GL_State( GLS_COLORMASK | GLS_DEPTHMASK );
-	glClear( GL_COLOR_BUFFER_BIT );
+	GL_Clear( true, false, false, 0, 0.0, 0.0, 0.0, 1.0, false );
 	GL_Color( 0, 0, 0, 0 );
-	GL_SelectTexture( 0 );
-	globalImages->blackImage->Bind();
+	GL_BindTexture( 0, globalImages->blackImage );
+	
 	backEnd.currentSpace = NULL;
 	
 	drawSurf_t** drawSurfs = ( drawSurf_t** )&backEnd.viewDef->drawSurfs[0];
@@ -5552,20 +5178,17 @@ void RB_MotionBlur()
 	
 	// copy off the color buffer and the depth buffer for the motion blur prog
 	// we use the viewport dimensions for copying the buffers in case resolution scaling is enabled.
-	const idScreenRect& viewport = backEnd.viewDef->viewport;
+	const idScreenRect& viewport = backEnd.viewDef->GetViewport();
 	globalImages->currentRenderImage->CopyFramebuffer( viewport.x1, viewport.y1, viewport.GetWidth(), viewport.GetHeight() );
 	
 	// in stereo rendering, each eye needs to get a separate previous frame mvp
-	int mvpIndex = ( backEnd.viewDef->renderView.viewEyeBuffer == 1 ) ? 1 : 0;
+	int mvpIndex = ( backEnd.viewDef->GetStereoEye() == 1 ) ? 1 : 0;
 	
-	// derive the matrix to go from current pixels to previous frame pixels
-	idRenderMatrix	inverseMVP;
-	idRenderMatrix::Inverse( backEnd.viewDef->worldSpace.mvp, inverseMVP );
+	// derive the matrix to go from current pixels to previous frame pixels	
+	idRenderMatrix motionMatrix;
+	idRenderMatrix::Multiply( backEnd.prevMVP[mvpIndex], backEnd.viewDef->GetInverseVPMatrix(), motionMatrix );
 	
-	idRenderMatrix	motionMatrix;
-	idRenderMatrix::Multiply( backEnd.prevMVP[mvpIndex], inverseMVP, motionMatrix );
-	
-	backEnd.prevMVP[mvpIndex] = backEnd.viewDef->worldSpace.mvp;
+	backEnd.prevMVP[mvpIndex] = backEnd.viewDef->GetMVPMatrix();
 	
 	RB_SetMVP( motionMatrix );
 	
@@ -5578,10 +5201,8 @@ void RB_MotionBlur()
 	idVec4 samples( ( float )( 1 << r_motionBlur.GetInteger() ) );
 	SetFragmentParm( RENDERPARM_OVERBRIGHT, samples.ToFloatPtr() );
 	
-	GL_SelectTexture( 0 );
-	globalImages->currentRenderImage->Bind();
-	GL_SelectTexture( 1 );
-	globalImages->currentDepthImage->Bind();
+	GL_BindTexture( 0, globalImages->currentRenderImage );
+	GL_BindTexture( 1, globalImages->currentDepthImage );
 	
 	RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
 	GL_CheckErrors();
@@ -5651,7 +5272,7 @@ void RB_DrawView( const void* data, const int stereoEye )
 	// optionally draw a box colored based on the eye number
 	if( r_drawEyeColor.GetBool() )
 	{
-		const idScreenRect& r = backEnd.viewDef->viewport;
+		const idScreenRect& r = backEnd.viewDef->GetViewport();
 		GL_Scissor( ( r.x1 + r.x2 ) / 2, ( r.y1 + r.y2 ) / 2, 32, 32 );
 		switch( stereoEye )
 		{
@@ -5723,7 +5344,7 @@ void RB_PostProcess( const void* data )
 	
 	// resolve the scaled rendering to a temporary texture
 	postProcessCommand_t* cmd = ( postProcessCommand_t* )data;
-	const idScreenRect& viewport = cmd->viewDef->viewport;
+	const idScreenRect& viewport = cmd->viewDef->GetViewport();
 	
 	GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS );
 	GL_Cull( CT_TWO_SIDED );
@@ -5732,8 +5353,7 @@ void RB_PostProcess( const void* data )
 	int screenHeight = renderSystem->GetHeight();
 	
 	// set the window clipping
-	GL_Viewport( 0, 0, screenWidth, screenHeight );
-	GL_Scissor( 0, 0, screenWidth, screenHeight );
+	GL_ViewportAndScissor( 0, 0, screenWidth, screenHeight );
 	
 	// SMAA
 	int aaMode = r_antiAliasing.GetInteger();
@@ -5772,8 +5392,7 @@ void RB_PostProcess( const void* data )
 		glClearColor( 0, 0, 0, 0 );
 		glClear( GL_COLOR_BUFFER_BIT );
 		
-		GL_SelectTexture( 0 );
-		globalImages->smaaInputImage->Bind();
+		GL_BindTexture( 0, globalImages->smaaInputImage );
 		
 		renderProgManager.BindShader_SMAA_EdgeDetection();
 		RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
@@ -5786,14 +5405,9 @@ void RB_PostProcess( const void* data )
 		
 		glClear( GL_COLOR_BUFFER_BIT );
 		
-		GL_SelectTexture( 0 );
-		globalImages->smaaEdgesImage->Bind();
-		
-		GL_SelectTexture( 1 );
-		globalImages->smaaAreaImage->Bind();
-		
-		GL_SelectTexture( 2 );
-		globalImages->smaaSearchImage->Bind();
+		GL_BindTexture( 0, globalImages->smaaEdgesImage );
+		GL_BindTexture( 1, globalImages->smaaAreaImage );
+		GL_BindTexture( 2, globalImages->smaaSearchImage );
 		
 		renderProgManager.BindShader_SMAA_BlendingWeightCalculation();
 		RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
@@ -5807,11 +5421,8 @@ void RB_PostProcess( const void* data )
 		//GL_SelectTexture( 0 );
 		//globalImages->smaaBlendImage->CopyFramebuffer( viewport.x1, viewport.y1, viewport.GetWidth(), viewport.GetHeight() );
 		
-		GL_SelectTexture( 0 );
-		globalImages->smaaInputImage->Bind();
-		
-		GL_SelectTexture( 1 );
-		globalImages->smaaBlendImage->Bind();
+		GL_BindTexture( 0, globalImages->smaaInputImage );
+		GL_BindTexture( 1, globalImages->smaaBlendImage );
 		
 		renderProgManager.BindShader_SMAA_NeighborhoodBlending();
 		RB_DrawElementsWithCounters( &backEnd.unitSquareSurface );
@@ -5823,11 +5434,8 @@ void RB_PostProcess( const void* data )
 	{
 		globalImages->currentRenderImage->CopyFramebuffer( viewport.x1, viewport.y1, viewport.GetWidth(), viewport.GetHeight() );
 		
-		GL_SelectTexture( 0 );
-		globalImages->currentRenderImage->Bind();
-		
-		GL_SelectTexture( 1 );
-		globalImages->grainImage1->Bind();
+		GL_BindTexture( 0, globalImages->currentRenderImage );
+		GL_BindTexture( 1, globalImages->grainImage1 );
 		
 		renderProgManager.BindShader_PostProcess();
 		

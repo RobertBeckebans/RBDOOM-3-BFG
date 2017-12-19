@@ -26,6 +26,30 @@ In addition, the Doom 3 BFG Edition Source Code is also subject to certain addit
 If you have questions concerning this license or the applicable additional terms, you may contact in writing id Software LLC, c/o ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 
 ===========================================================================
+
+	ALIGN16( float scale[16] ) = { 0 };
+	scale[0] = w; // scale
+	scale[5] = h; // scale
+	scale[12] = ( halfScreenWidth * w * 2.1f * i ); // translate
+	scale[13] = halfScreenHeight + ( halfScreenHeight * h ); // translate
+	scale[10] = 1.0f;
+	scale[15] = 1.0f;
+
+	ALIGN16( float ortho[16] ) = { 0 };
+	ortho[0] = 2.0f / screenWidth;
+	ortho[5] = -2.0f / screenHeight;
+	ortho[10] = -2.0f;
+	ortho[12] = -1.0f;
+	ortho[13] = 1.0f;
+	ortho[14] = -1.0f;
+	ortho[15] = 1.0f;
+
+	ALIGN16( float finalOrtho[16] );
+	R_MatrixMultiply( scale, ortho, finalOrtho );
+
+	idRenderMatrix projMatrixTranspose;
+	idRenderMatrix::Transpose( *( idRenderMatrix* )finalOrtho, projMatrixTranspose );
+	renderProgManager.SetRenderParms( RENDERPARM_MVPMATRIX_X, projMatrixTranspose.Ptr(), 4 );
 */
 
 #pragma hdrstop
@@ -165,11 +189,11 @@ RB_SimpleWorldSetup
 */
 static void RB_SimpleWorldSetup()
 {
-	backEnd.currentSpace = &backEnd.viewDef->worldSpace;
+	backEnd.currentSpace = &backEnd.viewDef->GetWorldSpace();
 	
 	// RB begin
 	//qglLoadMatrixf( backEnd.viewDef->worldSpace.modelViewMatrix );
-	RB_SetMVP( backEnd.viewDef->worldSpace.mvp );
+	RB_SetMVP( backEnd.viewDef->GetMVPMatrix() );
 	// RB end
 	
 	GL_Scissor( backEnd.viewDef->viewport.x1 + backEnd.viewDef->scissor.x1,
@@ -401,16 +425,16 @@ void RB_ShowOverdraw()
 	switch( r_showOverDraw.GetInteger() )
 	{
 		case 1: // geometry overdraw
-			const_cast<viewDef_t*>( backEnd.viewDef )->drawSurfs = newDrawSurfs;
-			const_cast<viewDef_t*>( backEnd.viewDef )->numDrawSurfs = numDrawSurfs;
+			const_cast<idRenderView*>( backEnd.viewDef )->drawSurfs = newDrawSurfs;
+			const_cast<idRenderView*>( backEnd.viewDef )->numDrawSurfs = numDrawSurfs;
 			break;
 		case 2: // light interaction overdraw
-			const_cast<viewDef_t*>( backEnd.viewDef )->drawSurfs = &newDrawSurfs[numDrawSurfs];
-			const_cast<viewDef_t*>( backEnd.viewDef )->numDrawSurfs = interactions;
+			const_cast<idRenderView*>( backEnd.viewDef )->drawSurfs = &newDrawSurfs[numDrawSurfs];
+			const_cast<idRenderView*>( backEnd.viewDef )->numDrawSurfs = interactions;
 			break;
 		case 3: // geometry + light interaction overdraw
-			const_cast<viewDef_t*>( backEnd.viewDef )->drawSurfs = newDrawSurfs;
-			const_cast<viewDef_t*>( backEnd.viewDef )->numDrawSurfs += interactions;
+			const_cast<idRenderView*>( backEnd.viewDef )->drawSurfs = newDrawSurfs;
+			const_cast<idRenderView*>( backEnd.viewDef )->numDrawSurfs += interactions;
 			break;
 	}
 }
@@ -955,8 +979,8 @@ void idRenderSystemLocal::OnFrame()
 	}
 	
 	// start far enough away that we don't hit the player model
-	start = tr.primaryView->renderView.vieworg + tr.primaryView->renderView.viewaxis[0] * 32;
-	end = start + tr.primaryView->renderView.viewaxis[0] * 1000.0f;
+	start = tr.primaryView->GetOrigin() + tr.primaryView->GetAxis()[0] * 32.0f;
+	end = start + tr.primaryView->GetAxis()[0] * 1000.0f;
 	if( !tr.primaryWorld->Trace( mt, start, end, 0.0f, false ) )
 	{
 		return;
@@ -1004,10 +1028,8 @@ static void RB_ShowSurfaceInfo( drawSurf_t** drawSurfs, int numDrawSurfs )
 	// transform the object verts into global space
 	// R_AxisToModelMatrix( mt.entity->axis, mt.entity->origin, matrix );
 	
-	tr.primaryWorld->DrawText( surfModelName, surfPoint + tr.primaryView->renderView.viewaxis[2] * 12,
-							   0.35f, colorRed, tr.primaryView->renderView.viewaxis );
-	tr.primaryWorld->DrawText( surfMatName, surfPoint,
-							   0.35f, colorBlue, tr.primaryView->renderView.viewaxis );
+	tr.primaryWorld->DrawText( surfModelName, surfPoint + tr.primaryView->GetAxis()[2] * 12, 0.35f, colorRed, tr.primaryView->GetAxis() );
+	tr.primaryWorld->DrawText( surfMatName, surfPoint,  0.35f, colorBlue, tr.primaryView->GetAxis() );
 }
 
 /*
@@ -1051,7 +1073,7 @@ static void RB_ShowViewEntitys( viewEntity_t* vModels )
 	
 	for( const viewEntity_t* vModel = vModels; vModel; vModel = vModel->next )
 	{
-		idBounds	b;
+		idBounds b;
 		
 		//glLoadMatrixf( vModel->modelViewMatrix );
 		
@@ -1079,13 +1101,13 @@ static void RB_ShowViewEntitys( viewEntity_t* vModels )
 		if( r_showViewEntitys.GetInteger() >= 2 )
 		{
 			idVec3 corner;
-			R_LocalPointToGlobal( vModel->modelMatrix, edef->localReferenceBounds[1], corner );
-			
+			vModel->modelMatrix.TransformPoint( edef->localReferenceBounds[ 1 ], corner );
+
 			tr.primaryWorld->DrawText(
 				va( "%i:%s", edef->index, edef->parms.hModel->Name() ),
 				corner,
 				0.25f, color,
-				tr.primaryView->renderView.viewaxis );
+				tr.primaryView->GetAxis() );
 		}
 		
 		// draw the actual bounds in yellow if different
@@ -1467,20 +1489,20 @@ static void RB_ShowNormals( drawSurf_t** drawSurfs, int numDrawSurfs )
 			{
 				continue;
 			}
-			
+
 			for( j = 0; j < tri->numVerts; j++ )
 			{
 				const idVec3 normal = tri->verts[j].GetNormal();
 				const idVec3 tangent = tri->verts[j].GetTangent();
-				R_LocalPointToGlobal( drawSurf->space->modelMatrix, tri->verts[j].xyz + tangent + normal * 0.2f, pos );
-				RB_DrawText( va( "%d", j ), pos, 0.01f, colorWhite, backEnd.viewDef->renderView.viewaxis, 1 );
+				drawSurf->space->modelMatrix.TransformPoint( tri->verts[ j ].xyz + tangent + normal * 0.2f, pos );
+				RB_DrawText( va( "%d", j ), pos, 0.01f, colorWhite, backEnd.viewDef->GetAxis(), 1 );
 			}
 			
 			for( j = 0; j < tri->numIndexes; j += 3 )
 			{
 				const idVec3 normal = tri->verts[ tri->indexes[ j + 0 ] ].GetNormal();
-				R_LocalPointToGlobal( drawSurf->space->modelMatrix, ( tri->verts[ tri->indexes[ j + 0 ] ].xyz + tri->verts[ tri->indexes[ j + 1 ] ].xyz + tri->verts[ tri->indexes[ j + 2 ] ].xyz ) * ( 1.0f / 3.0f ) + normal * 0.2f, pos );
-				RB_DrawText( va( "%d", j / 3 ), pos, 0.01f, colorCyan, backEnd.viewDef->renderView.viewaxis, 1 );
+				drawSurf->space->modelMatrix.TransformPoint( ( tri->verts[ tri->indexes[ j + 0 ] ].xyz + tri->verts[ tri->indexes[ j + 1 ] ].xyz + tri->verts[ tri->indexes[ j + 2 ] ].xyz ) * ( 1.0f / 3.0f ) + normal * 0.2f, pos );
+				RB_DrawText( va( "%d", j / 3 ), pos, 0.01f, colorCyan, backEnd.viewDef->GetAxis(), 1 );
 			}
 		}
 	}
@@ -1890,7 +1912,7 @@ static void RB_ShowLights()
 			// RB end
 			
 			idRenderMatrix invProjectMVPMatrix;
-			idRenderMatrix::Multiply( backEnd.viewDef->worldSpace.mvp, vLight->inverseBaseLightProject, invProjectMVPMatrix );
+			idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), vLight->inverseBaseLightProject, invProjectMVPMatrix );
 			RB_SetMVP( invProjectMVPMatrix );
 			RB_DrawElementsWithCounters( &backEnd.zeroOneCubeSurface );
 		}
@@ -1901,7 +1923,7 @@ static void RB_ShowLights()
 			GL_State( GLS_DEPTHFUNC_ALWAYS | GLS_POLYMODE_LINE | GLS_DEPTHMASK );
 			GL_Color( 1.0f, 1.0f, 1.0f );
 			idRenderMatrix invProjectMVPMatrix;
-			idRenderMatrix::Multiply( backEnd.viewDef->worldSpace.mvp, vLight->inverseBaseLightProject, invProjectMVPMatrix );
+			idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), vLight->inverseBaseLightProject, invProjectMVPMatrix );
 			RB_SetMVP( invProjectMVPMatrix );
 			RB_DrawElementsWithCounters( &backEnd.zeroOneCubeSurface );
 		}
@@ -1979,7 +2001,7 @@ static void RB_ShowShadowMapLODs()
 			GL_Color( c );
 			
 			idRenderMatrix invProjectMVPMatrix;
-			idRenderMatrix::Multiply( backEnd.viewDef->worldSpace.mvp, vLight->inverseBaseLightProject, invProjectMVPMatrix );
+			idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), vLight->inverseBaseLightProject, invProjectMVPMatrix );
 			RB_SetMVP( invProjectMVPMatrix );
 			RB_DrawElementsWithCounters( &backEnd.zeroOneCubeSurface );
 		}
@@ -1990,7 +2012,7 @@ static void RB_ShowShadowMapLODs()
 			GL_State( GLS_DEPTHFUNC_ALWAYS | GLS_POLYMODE_LINE | GLS_DEPTHMASK );
 			GL_Color( 1.0f, 1.0f, 1.0f );
 			idRenderMatrix invProjectMVPMatrix;
-			idRenderMatrix::Multiply( backEnd.viewDef->worldSpace.mvp, vLight->inverseBaseLightProject, invProjectMVPMatrix );
+			idRenderMatrix::Multiply( backEnd.viewDef->GetMVPMatrix(), vLight->inverseBaseLightProject, invProjectMVPMatrix );
 			RB_SetMVP( invProjectMVPMatrix );
 			RB_DrawElementsWithCounters( &backEnd.zeroOneCubeSurface );
 		}
@@ -2107,7 +2129,7 @@ float RB_DrawTextLength( const char* text, float scale, int len )
 	{
 		if( !len )
 		{
-			len = strlen( text );
+			len = idStr::Length( text );
 		}
 		for( i = 0; i < len; i++ )
 		{
@@ -2174,7 +2196,7 @@ static void RB_DrawText( const char* text, const idVec3& origin, float scale, co
 			line = 0;
 		}
 		
-		len = strlen( text );
+		len = idStr::Length( text );
 		for( i = 0; i < len; i++ )
 		{
 		
@@ -2623,11 +2645,11 @@ void RB_ShowLines()
 	}
 	
 	glEnable( GL_SCISSOR_TEST );
-	if( backEnd.viewDef->renderView.viewEyeBuffer == 0 )
+	if( backEnd.viewDef->GetStereoEye() == 0 )
 	{
 		glClearColor( 1, 0, 0, 1 );
 	}
-	else if( backEnd.viewDef->renderView.viewEyeBuffer == 1 )
+	else if( backEnd.viewDef->GetStereoEye() == 1 )
 	{
 		glClearColor( 0, 1, 0, 1 );
 	}
@@ -2837,7 +2859,7 @@ Display a single image over most of the screen
 */
 void RB_TestImage()
 {
-	idImage*	image = NULL;
+	idImage* image = NULL;
 	idImage* imageCr = NULL;
 	idImage* imageCb = NULL;
 	int		max;
@@ -2851,9 +2873,7 @@ void RB_TestImage()
 	
 	if( tr.testVideo )
 	{
-		cinData_t	cin;
-		
-		cin = tr.testVideo->ImageForTime( backEnd.viewDef->renderView.time[1] - tr.testVideoStartTime );
+		cinData_t cin = tr.testVideo->ImageForTime( backEnd.viewDef->GetGameTimeMS( 1 ) - tr.testVideoStartTime );
 		if( cin.imageY != NULL )
 		{
 			image = cin.imageY;
@@ -2882,12 +2902,12 @@ void RB_TestImage()
 	GL_State( GLS_DEPTHFUNC_ALWAYS | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO );
 	
 	// Set Parms
-	float texS[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
-	float texT[4] = { 0.0f, 1.0f, 0.0f, 0.0f };
+	ALIGN16( float texS[4] ) = { 1.0f, 0.0f, 0.0f, 0.0f };
+	ALIGN16( float texT[4] ) = { 0.0f, 1.0f, 0.0f, 0.0f };
 	renderProgManager.SetRenderParm( RENDERPARM_TEXTUREMATRIX_S, texS );
 	renderProgManager.SetRenderParm( RENDERPARM_TEXTUREMATRIX_T, texT );
 	
-	float texGenEnabled[4] = { 0, 0, 0, 0 };
+	ALIGN16( float texGenEnabled[4] ) = { 0, 0, 0, 0 };
 	renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_ENABLED, texGenEnabled );
 	
 	// not really necessary but just for clarity
@@ -2895,30 +2915,23 @@ void RB_TestImage()
 	const float screenHeight = 1.0f;
 	const float halfScreenWidth = screenWidth * 0.5f;
 	const float halfScreenHeight = screenHeight * 0.5f;
-	
-	float scale[16] = { 0 };
-	scale[0] = w; // scale
-	scale[5] = h; // scale
-	scale[12] = halfScreenWidth - ( halfScreenWidth * w ); // translate
-	scale[13] = halfScreenHeight - ( halfScreenHeight * h ); // translate
-	scale[10] = 1.0f;
-	scale[15] = 1.0f;
-	
-	float ortho[16] = { 0 };
-	ortho[0] = 2.0f / screenWidth;
-	ortho[5] = -2.0f / screenHeight;
-	ortho[10] = -2.0f;
-	ortho[12] = -1.0f;
-	ortho[13] = 1.0f;
-	ortho[14] = -1.0f;
-	ortho[15] = 1.0f;
-	
-	float finalOrtho[16];
-	R_MatrixMultiply( scale, ortho, finalOrtho );
-	
-	float projMatrixTranspose[16];
-	R_MatrixTranspose( finalOrtho, projMatrixTranspose );
-	renderProgManager.SetRenderParms( RENDERPARM_MVPMATRIX_X, projMatrixTranspose, 4 );
+
+	idRenderMatrix scale;
+	scale.Zero();
+	scale[ 0 ][ 0 ] = w; // scale
+	scale[ 1 ][ 1 ] = h; // scale
+	scale[ 0 ][ 3 ] = halfScreenWidth - ( halfScreenWidth * w ); // translate
+	scale[ 1 ][ 3 ] = halfScreenHeight - ( halfScreenHeight * h ); // translate
+	scale[ 2 ][ 2 ] = 1.0f;
+	scale[ 3 ][ 3 ] = 1.0f;
+
+	idRenderMatrix ortho;
+	idRenderMatrix::CreateOrthogonalProjection( screenWidth, screenHeight, 0.0, 1.0, ortho, true );
+
+	idRenderMatrix projMatrixTranspose;
+	idRenderMatrix::Multiply( ortho, scale, projMatrixTranspose );
+
+	renderProgManager.SetRenderParms( RENDERPARM_MVPMATRIX_X, projMatrixTranspose.Ptr(), 4 );
 	
 //	glMatrixMode( GL_PROJECTION );
 //	glLoadMatrixf( finalOrtho );
@@ -2971,8 +2984,8 @@ void RB_ShowShadowMaps()
 	GL_State( GLS_DEPTHFUNC_ALWAYS | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO );
 	
 	// Set Parms
-	float texS[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
-	float texT[4] = { 0.0f, 1.0f, 0.0f, 0.0f };
+	ALIGN16( float texS[4] ) = { 1.0f, 0.0f, 0.0f, 0.0f };
+	ALIGN16( float texT[4] ) = { 0.0f, 1.0f, 0.0f, 0.0f };
 	renderProgManager.SetRenderParm( RENDERPARM_TEXTUREMATRIX_S, texS );
 	renderProgManager.SetRenderParm( RENDERPARM_TEXTUREMATRIX_T, texT );
 	
@@ -2993,32 +3006,25 @@ void RB_ShowShadowMaps()
 		const float screenHeight = 1.0f;
 		const float halfScreenWidth = screenWidth * 0.5f;
 		const float halfScreenHeight = screenHeight * 0.5f;
+
+		idRenderMatrix scale;
+		scale.Zero();
+		scale[ 0 ][ 0 ] = w; // scale
+		scale[ 1 ][ 1 ] = h; // scale
+		scale[ 0 ][ 3 ] = ( halfScreenWidth * w * 2.1f * i ); // translate
+		scale[ 1 ][ 3 ] = halfScreenHeight + ( halfScreenHeight * h ); // translate
+		scale[ 2 ][ 2 ] = 1.0f;
+		scale[ 3 ][ 3 ] = 1.0f;
+
+		idRenderMatrix ortho;
+		idRenderMatrix::CreateOrthogonalProjection( screenWidth, screenHeight, 0.0, 1.0, ortho, true );
 		
-		float scale[16] = { 0 };
-		scale[0] = w; // scale
-		scale[5] = h; // scale
-		scale[12] = ( halfScreenWidth * w * 2.1f * i ); // translate
-		scale[13] = halfScreenHeight + ( halfScreenHeight * h ); // translate
-		scale[10] = 1.0f;
-		scale[15] = 1.0f;
-		
-		float ortho[16] = { 0 };
-		ortho[0] = 2.0f / screenWidth;
-		ortho[5] = -2.0f / screenHeight;
-		ortho[10] = -2.0f;
-		ortho[12] = -1.0f;
-		ortho[13] = 1.0f;
-		ortho[14] = -1.0f;
-		ortho[15] = 1.0f;
-		
-		float finalOrtho[16];
-		R_MatrixMultiply( scale, ortho, finalOrtho );
-		
-		float projMatrixTranspose[16];
-		R_MatrixTranspose( finalOrtho, projMatrixTranspose );
-		renderProgManager.SetRenderParms( RENDERPARM_MVPMATRIX_X, projMatrixTranspose, 4 );
-		
-		float screenCorrectionParm[4];
+		idRenderMatrix finalOrtho;
+		idRenderMatrix::Multiply( ortho, scale, finalOrtho );
+
+		renderProgManager.SetRenderParms( RENDERPARM_MVPMATRIX_X, finalOrtho.Ptr(), 4 );
+
+		ALIGN16( float screenCorrectionParm[4] );
 		screenCorrectionParm[0] = i;
 		screenCorrectionParm[1] = 0.0f;
 		screenCorrectionParm[2] = 0.0f;
@@ -3130,28 +3136,20 @@ void RB_ShowTrace( drawSurf_t** drawSurfs, int numDrawSurfs )
 	int						i;
 	const srfTriangles_t*	tri;
 	const drawSurf_t*		surf;
-	idVec3					start, end;
 	idVec3					localStart, localEnd;
 	localTrace_t			hit;
-	float					radius;
-	
+
 	if( r_showTrace.GetInteger() == 0 )
 	{
 		return;
 	}
 	
-	if( r_showTrace.GetInteger() == 2 )
-	{
-		radius = 5.0f;
-	}
-	else
-	{
-		radius = 0.0f;
-	}
+	float radius = ( r_showTrace.GetInteger() == 2 )? 5.0f : 0.0f;
+
 	
 	// determine the points of the trace
-	start = backEnd.viewDef->renderView.vieworg;
-	end = start + 4000 * backEnd.viewDef->renderView.viewaxis[0];
+	idVec3 start = backEnd.viewDef->GetOrigin();
+	idVec3 end = start + 4000 * backEnd.viewDef->GetAxis()[0];
 	
 	// check and draw the surfaces
 	globalImages->whiteImage->Bind();
@@ -3166,10 +3164,10 @@ void RB_ShowTrace( drawSurf_t** drawSurfs, int numDrawSurfs )
 		{
 			continue;
 		}
-		
+
 		// transform the points into local space
-		R_GlobalPointToLocal( surf->space->modelMatrix, start, localStart );
-		R_GlobalPointToLocal( surf->space->modelMatrix, end, localEnd );
+		surf->space->modelMatrix.InverseTransformPoint( start, localStart );
+		surf->space->modelMatrix.InverseTransformPoint( end, localEnd );
 		
 		// check the bounding box
 		if( !tri->bounds.Expand( radius ).LineIntersection( localStart, localEnd ) )
@@ -3177,7 +3175,7 @@ void RB_ShowTrace( drawSurf_t** drawSurfs, int numDrawSurfs )
 			continue;
 		}
 		
-		glLoadMatrixf( surf->space->modelViewMatrix );
+		glLoadTransposeMatrixf( surf->space->modelViewMatrix.Ptr() );
 		
 		// highlight the surface
 		GL_State( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );

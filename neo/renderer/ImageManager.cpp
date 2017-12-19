@@ -86,10 +86,8 @@ R_QsortImageSizes
 */
 static int R_QsortImageSizes( const void* a, const void* b )
 {
-	const sortedImage_t*	ea, *eb;
-	
-	ea = ( sortedImage_t* )a;
-	eb = ( sortedImage_t* )b;
+	const sortedImage_t* ea = ( sortedImage_t* )a;
+	const sortedImage_t* eb = ( sortedImage_t* )b;
 	
 	if( ea->size > eb->size )
 	{
@@ -110,10 +108,8 @@ R_QsortImageName
 */
 static int R_QsortImageName( const void* a, const void* b )
 {
-	const sortedImage_t*	ea, *eb;
-	
-	ea = ( sortedImage_t* )a;
-	eb = ( sortedImage_t* )b;
+	const sortedImage_t* ea = ( sortedImage_t* )a;
+	const sortedImage_t* eb = ( sortedImage_t* )b;
 	
 	return idStr::Icmp( ea->image->GetName(), eb->image->GetName() );
 }
@@ -189,7 +185,7 @@ void R_ListImages_f( const idCmdArgs& args )
 	
 	totalSize = 0;
 	
-	sortedImage_t*	sortedArray = ( sortedImage_t* )alloca( sizeof( sortedImage_t ) * globalImages->images.Num() );
+	auto sortedArray = ( sortedImage_t* )alloca( sizeof( sortedImage_t ) * globalImages->images.Num() );
 	
 	for( i = 0 ; i < globalImages->images.Num() ; i++ )
 	{
@@ -278,7 +274,7 @@ copies the name, and adds it to the hash chain.
 */
 idImage* idImageManager::AllocImage( const char* name )
 {
-	if( strlen( name ) >= MAX_IMAGE_NAME )
+	if( idStr::Length( name ) >= MAX_IMAGE_NAME )
 	{
 		common->Error( "idImageManager::AllocImage: \"%s\" is too long\n", name );
 	}
@@ -302,14 +298,11 @@ Allocates an idImage,does not add it to the list or hash chain
 */
 idImage* idImageManager::AllocStandaloneImage( const char* name )
 {
-	if( strlen( name ) >= MAX_IMAGE_NAME )
+	if( idStr::Length( name ) >= MAX_IMAGE_NAME )
 	{
 		common->Error( "idImageManager::AllocImage: \"%s\" is too long\n", name );
 	}
-	
-	idImage* image = new( TAG_IMAGE ) idImage( name );
-	
-	return image;
+	return new( TAG_IMAGE ) idImage( name );
 }
 
 /*
@@ -345,7 +338,7 @@ idImage* idImageManager::ImageFromFunction( const char* _name, void ( *generator
 	}
 	
 	// create the image and issue the callback
-	idImage*	 image = AllocImage( name );
+	idImage* image = AllocImage( name );
 	
 	image->generatorFunction = generatorFunction;
 	
@@ -367,7 +360,7 @@ idImage*	idImageManager::GetImageWithParameters( const char* _name, textureFilte
 	if( !_name || !_name[0] || idStr::Icmp( _name, "default" ) == 0 || idStr::Icmp( _name, "_default" ) == 0 )
 	{
 		declManager->MediaPrint( "DEFAULTED\n" );
-		return globalImages->defaultImage;
+		return defaultImage;
 	}
 	if( idStr::Icmpn( _name, "fonts", 5 ) == 0 || idStr::Icmpn( _name, "newfonts", 8 ) == 0 )
 	{
@@ -427,7 +420,7 @@ idImage*	idImageManager::ImageFromFile( const char* _name, textureFilter_t filte
 	if( !_name || !_name[0] || idStr::Icmp( _name, "default" ) == 0 || idStr::Icmp( _name, "_default" ) == 0 )
 	{
 		declManager->MediaPrint( "DEFAULTED\n" );
-		return globalImages->defaultImage;
+		return defaultImage;
 	}
 	if( idStr::Icmpn( _name, "fonts", 5 ) == 0 || idStr::Icmpn( _name, "newfonts", 8 ) == 0 )
 	{
@@ -491,7 +484,7 @@ idImage*	idImageManager::ImageFromFile( const char* _name, textureFilter_t filte
 	//
 	// create a new image
 	//
-	idImage*	 image = AllocImage( name );
+	idImage* image = AllocImage( name );
 	image->cubeFiles = cubeMap;
 	image->usage = usage;
 	image->filter = filter;
@@ -597,7 +590,7 @@ idImage* idImageManager::GetImage( const char* _name ) const
 	if( !_name || !_name[0] || idStr::Icmp( _name, "default" ) == 0 || idStr::Icmp( _name, "_default" ) == 0 )
 	{
 		declManager->MediaPrint( "DEFAULTED\n" );
-		return globalImages->defaultImage;
+		return defaultImage;
 	}
 	
 	// strip any .tga file extensions from anywhere in the _name, including image program parameters
@@ -628,13 +621,10 @@ PurgeAllImages
 */
 void idImageManager::PurgeAllImages()
 {
-	int		i;
-	idImage*	image;
-	
-	for( i = 0; i < images.Num() ; i++ )
+	for( int i = 0; i < images.Num(); i++ )
 	{
-		image = images[i];
-		image->PurgeImage();
+		assert( images[ i ] );
+		images[ i ]->PurgeImage();
 	}
 }
 
@@ -645,9 +635,10 @@ ReloadImages
 */
 void idImageManager::ReloadImages( bool all )
 {
-	for( int i = 0 ; i < globalImages->images.Num() ; i++ )
+	for( int i = 0; i < images.Num(); i++ )
 	{
-		globalImages->images[ i ]->Reload( all );
+		assert( images[ i ] );
+		images[ i ]->Reload( all );
 	}
 }
 

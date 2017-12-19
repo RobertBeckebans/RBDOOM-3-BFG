@@ -48,7 +48,7 @@ If you have questions concerning this license or the applicable additional terms
 #endif
 
 // DeviceContext bypasses RenderSystem to work directly with this
-idGuiModel* tr_guiModel;
+idRenderModelGui* tr_guiModel;
 
 // functions that are not called every frame
 glconfig_t	glConfig;
@@ -95,15 +95,11 @@ idCVar r_lodBias( "r_lodBias", "0.5", CVAR_RENDERER | CVAR_ARCHIVE, "UNUSED: ima
 
 idCVar r_useStateCaching( "r_useStateCaching", "1", CVAR_RENDERER | CVAR_BOOL, "avoid redundant state changes in GL_*() calls" );
 
-idCVar r_znear( "r_znear", "3", CVAR_RENDERER | CVAR_FLOAT, "near Z clip plane distance", 0.001f, 200.0f );
-
 idCVar r_ignoreGLErrors( "r_ignoreGLErrors", "0", CVAR_RENDERER | CVAR_BOOL, "ignore GL errors" );
 idCVar r_swapInterval( "r_swapInterval", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "0 = tear, 1 = swap-tear where available, 2 = always v-sync" );
 
 idCVar r_gamma( "r_gamma", "1.0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_FLOAT, "changes gamma tables", 0.5f, 3.0f );
 idCVar r_brightness( "r_brightness", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_FLOAT, "changes gamma tables", 0.5f, 2.0f );
-
-idCVar r_jitter( "r_jitter", "0", CVAR_RENDERER | CVAR_BOOL, "randomly subpixel jitter the projection matrix" );
 
 idCVar r_skipStaticInteractions( "r_skipStaticInteractions", "0", CVAR_RENDERER | CVAR_BOOL, "skip interactions created at level load" );
 idCVar r_skipDynamicInteractions( "r_skipDynamicInteractions", "0", CVAR_RENDERER | CVAR_BOOL, "skip interactions created after level load" );
@@ -1023,12 +1019,11 @@ Reload the material displayed by r_showSurfaceInfo
 */
 static void R_ReloadSurface_f( const idCmdArgs& args )
 {
-	modelTrace_t mt;
-	idVec3 start, end;
-	
 	// start far enough away that we don't hit the player model
-	start = tr.primaryView->renderView.vieworg + tr.primaryView->renderView.viewaxis[0] * 16;
-	end = start + tr.primaryView->renderView.viewaxis[0] * 1000.0f;
+	idVec3 start = tr.primaryView->GetOrigin() + tr.primaryView->GetAxis()[0] * 16;
+	idVec3 end = start + tr.primaryView->GetAxis()[0] * 1000.0f;
+
+	modelTrace_t mt;
 	if( !tr.primaryWorld->Trace( mt, start, end, 0.0f, false ) )
 	{
 		return;
@@ -1354,8 +1349,7 @@ void R_ReadTiledPixels( int width, int height, byte* buffer, renderView_t* ref =
 			
 			for( int y = 0 ; y < h ; y++ )
 			{
-				memcpy( buffer + ( ( yo + y )* width + xo ) * 3,
-						temp + y * row, w * 3 );
+				memcpy( buffer + ( ( yo + y )* width + xo ) * 3, temp + y * row, w * 3 );
 			}
 		}
 	}
@@ -1687,7 +1681,7 @@ void R_EnvShot_f( const idCmdArgs& args )
 	int			i;
 	idMat3		axis[6], oldAxis;
 	renderView_t	ref;
-	viewDef_t	primary;
+	idRenderView	primary;
 	int			blends;
 	const char*  extension;
 	int			size;
@@ -1769,14 +1763,13 @@ void R_EnvShot_f( const idCmdArgs& args )
 	} // FIXME that's a hack!!
 	
 	// so we return to that axis and fov after the fact.
-	oldAxis = primary.renderView.viewaxis;
-	old_fov_x = primary.renderView.fov_x;
-	old_fov_y = primary.renderView.fov_y;
+	oldAxis = primary.GetAxis();
+	old_fov_x = primary.GetFOVx();
+	old_fov_y = primary.GetFOVy();
 	
 	for( i = 0 ; i < 6 ; i++ )
-	{
-	
-		ref = primary.renderView;
+	{	
+		ref = primary.GetParms();
 		
 		extension = envDirection[ i ];
 		
@@ -2007,7 +2000,7 @@ void R_MakeAmbientMap_f( const idCmdArgs& args )
 	const char*	baseName;
 	int			i;
 	renderView_t	ref;
-	viewDef_t	primary;
+	idRenderView	primary;
 	int			downSample;
 	int			outSize;
 	byte*		buffers[6];
@@ -2881,7 +2874,7 @@ srfTriangles_t* R_MakeTestImageTriangles()
 	tempVerts[3].xyz[1] = 1.0f;
 	tempVerts[3].xyz[2] = 0;
 	tempVerts[3].SetTexCoord( 0.0f, 1.0f );
-	
+
 	for( int i = 0; i < 4; i++ )
 	{
 		tempVerts[i].SetColor( 0xFFFFFFFF );
@@ -2896,7 +2889,6 @@ idRenderSystemLocal::Init
 */
 void idRenderSystemLocal::Init()
 {
-
 	common->Printf( "------- Initializing renderSystem --------\n" );
 	
 	// clear all our internal state
@@ -2915,7 +2907,7 @@ void idRenderSystemLocal::Init()
 	
 	R_InitCommands();
 	
-	guiModel = new( TAG_RENDER ) idGuiModel;
+	guiModel = new( TAG_RENDER ) idRenderModelGui;
 	guiModel->Clear();
 	tr_guiModel = guiModel;	// for DeviceContext fast path
 
@@ -2937,9 +2929,7 @@ void idRenderSystemLocal::Init()
 	renderModelManager->Init();
 	
 	// set the identity space
-	identitySpace.modelMatrix[0 * 4 + 0] = 1.0f;
-	identitySpace.modelMatrix[1 * 4 + 1] = 1.0f;
-	identitySpace.modelMatrix[2 * 4 + 2] = 1.0f;
+	identitySpace.modelMatrix.Identity();
 	
 	// make sure the tr.unitSquareTriangles data is current in the vertex / index cache
 	if( unitSquareTriangles == NULL )
@@ -3019,7 +3009,7 @@ idRenderSystemLocal::ResetGuiModels
 void idRenderSystemLocal::ResetGuiModels()
 {
 	delete guiModel;
-	guiModel = new( TAG_RENDER ) idGuiModel;
+	guiModel = new( TAG_RENDER ) idRenderModelGui;
 	guiModel->Clear();
 	guiModel->BeginFrame();
 	tr_guiModel = guiModel;	// for DeviceContext fast path

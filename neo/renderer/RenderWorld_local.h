@@ -76,9 +76,9 @@ static const int	CHILDREN_HAVE_MULTIPLE_AREAS = -2;
 static const int	AREANUM_SOLID = -1;
 typedef struct
 {
-	idPlane			plane;
-	int				children[2];		// negative numbers are (-1 - areaNumber), 0 = solid
-	int				commonChildrenArea;	// if all children are either solid or a single area,
+	ALIGNTYPE16 idPlane		plane;
+	int						children[2];		// negative numbers are (-1 - areaNumber), 0 = solid
+	int						commonChildrenArea;	// if all children are either solid or a single area,
 	// this is the area number, else CHILDREN_HAVE_MULTIPLE_AREAS
 } areaNode_t;
 
@@ -150,7 +150,7 @@ public:
 	virtual void			DebugBounds( const idVec4& color, const idBounds& bounds, const idVec3& org = vec3_origin, const int lifetime = 0 );
 	virtual void			DebugBox( const idVec4& color, const idBox& box, const int lifetime = 0 );
 	virtual void			DebugCone( const idVec4& color, const idVec3& apex, const idVec3& dir, float radius1, float radius2, const int lifetime = 0 );
-	virtual void			DebugScreenRect( const idVec4& color, const idScreenRect& rect, const viewDef_t* viewDef, const int lifetime = 0 );
+	virtual void			DebugScreenRect( const idVec4& color, const idScreenRect& rect, const idRenderView* viewDef, const int lifetime = 0 );
 	virtual void			DebugAxis( const idVec3& origin, const idMat3& axis );
 	
 	virtual void			DebugClearPolygons( int time );
@@ -230,7 +230,6 @@ public:
 	bool					CullLightByPortals( const idRenderLightLocal* light, const portalStack_t* ps );
 	void					AddAreaViewLights( int areaNum, const portalStack_t* ps );
 	void					AddAreaToView( int areaNum, const portalStack_t* ps );
-	idScreenRect			ScreenRectFromWinding( const idWinding* w, const viewEntity_t* space );
 	bool					PortalIsFoggedOut( const portal_t* p );
 	void					FloodViewThroughArea_r( const idVec3& origin, int areaNum, const portalStack_t* ps );
 	void					FlowViewThroughPortals( const idVec3& origin, int numPlanes, const idPlane* planes );
@@ -262,7 +261,7 @@ public:
 	
 	void					WriteLoadMap();
 	void					WriteRenderView( const renderView_t* renderView );
-	void					WriteVisibleDefs( const viewDef_t* viewDef );
+	void					WriteVisibleDefs( const idRenderView* viewDef );
 	void					WriteFreeDecal( idDemoFile* f, qhandle_t handle );
 	void					WriteFreeOverlay( idDemoFile* f, qhandle_t handle );
 	void					WriteFreeLight( qhandle_t handle );

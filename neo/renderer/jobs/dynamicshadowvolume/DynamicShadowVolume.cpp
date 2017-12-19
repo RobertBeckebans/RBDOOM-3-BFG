@@ -257,10 +257,10 @@ static int CalculateTriangleFacingCulledStatic( byte* __restrict facing, byte* _
 	const __m128 lightOriginY = _mm_splat_ps( _mm_load_ss( &lightOrigin.y ), 0 );
 	const __m128 lightOriginZ = _mm_splat_ps( _mm_load_ss( &lightOrigin.z ), 0 );
 	
-	const __m128 lightProjectX = _mm_loadu_ps( lightProject[0] );
-	const __m128 lightProjectY = _mm_loadu_ps( lightProject[1] );
-	const __m128 lightProjectZ = _mm_loadu_ps( lightProject[2] );
-	const __m128 lightProjectW = _mm_loadu_ps( lightProject[3] );
+	const __m128 lightProjectX = _mm_load_ps( lightProject[0] );
+	const __m128 lightProjectY = _mm_load_ps( lightProject[1] );
+	const __m128 lightProjectZ = _mm_load_ps( lightProject[2] );
+	const __m128 lightProjectW = _mm_load_ps( lightProject[3] );
 	
 	const __m128i cullShadowTrianglesToLightMask = cullShadowTrianglesToLight ? vector_int_neg_one : vector_int_zero;
 	
@@ -471,10 +471,10 @@ static int CalculateTriangleFacingCulledSkinned( byte* __restrict facing, byte* 
 	const __m128 lightOriginY = _mm_splat_ps( _mm_load_ss( &lightOrigin.y ), 0 );
 	const __m128 lightOriginZ = _mm_splat_ps( _mm_load_ss( &lightOrigin.z ), 0 );
 	
-	const __m128 lightProjectX = _mm_loadu_ps( lightProject[0] );
-	const __m128 lightProjectY = _mm_loadu_ps( lightProject[1] );
-	const __m128 lightProjectZ = _mm_loadu_ps( lightProject[2] );
-	const __m128 lightProjectW = _mm_loadu_ps( lightProject[3] );
+	const __m128 lightProjectX = _mm_load_ps( lightProject[0] );
+	const __m128 lightProjectY = _mm_load_ps( lightProject[1] );
+	const __m128 lightProjectZ = _mm_load_ps( lightProject[2] );
+	const __m128 lightProjectW = _mm_load_ps( lightProject[3] );
 	
 	const __m128i cullShadowTrianglesToLightMask = cullShadowTrianglesToLight ? vector_int_neg_one : vector_int_zero;
 	

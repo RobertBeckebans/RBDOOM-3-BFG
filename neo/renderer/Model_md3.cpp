@@ -162,7 +162,7 @@ void idRenderModelMD3::InitFromFile( const char* fileName )
 		surf->ident = 0;	//SF_MD3;
 		
 		// lowercase the surface name so skin compares are faster
-		int slen = ( int )strlen( surf->name );
+		int slen = idStr::Length( surf->name );
 		for( j = 0; j < slen; j++ )
 		{
 			surf->name[j] = tolower( surf->name[j] );
@@ -170,7 +170,7 @@ void idRenderModelMD3::InitFromFile( const char* fileName )
 		
 		// strip off a trailing _1 or _2
 		// this is a crutch for q3data being a mess
-		j = strlen( surf->name );
+		j = idStr::Length( surf->name );
 		if( j > 2 && surf->name[j - 2] == '_' )
 		{
 			surf->name[j - 2] = 0;
@@ -296,7 +296,7 @@ void idRenderModelMD3::LerpMeshVertexes( srfTriangles_t* tri, const struct md3Su
 idRenderModelMD3::InstantiateDynamicModel
 =============
 */
-idRenderModel* idRenderModelMD3::InstantiateDynamicModel( const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel )
+idRenderModel* idRenderModelMD3::InstantiateDynamicModel( const struct renderEntity_s* ent, const idRenderView* view, idRenderModel* cachedModel )
 {
 	int				i, j;
 	float			backlerp;

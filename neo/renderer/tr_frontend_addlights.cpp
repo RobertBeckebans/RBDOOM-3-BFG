@@ -64,13 +64,44 @@ void R_ShadowBounds( const idBounds& modelBounds, const idBounds& lightBounds, c
 }
 
 /*
+==================
+R_EXP_CalcLightAxialSize
+
+all light side projections must currently match, so non-centered
+and non-cubic lights must take the largest length
+==================
+*/
+float R_EXP_CalcLightAxialSize( viewLight_t *vLight )
+{
+	float max = 0;
+
+	if( !vLight->lightDef->parms.pointLight )
+	{
+		idVec3 dir = vLight->lightDef->parms.target - vLight->lightDef->parms.origin;
+		max = dir.Length();
+		return max;
+	}
+
+	for( int i = 0; i < 3; i++ )
+	{
+		float	dist = fabs( vLight->lightDef->parms.lightCenter[ i ] );
+		dist += vLight->lightDef->parms.lightRadius[ i ];
+		if( dist > max )
+		{
+			max = dist;
+		}
+	}
+	return max;
+}
+
+/*
 ============================
 idRenderEntityLocal::IsDirectlyVisible()
 ============================
 */
 bool idRenderEntityLocal::IsDirectlyVisible() const
 {
-	if( viewCount != tr.viewCount )
+	if( viewCount != tr.GetViewCount() )
 	{
 		return false;
 	}
@@ -107,7 +138,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 	vLight->preLightShadowVolumes = NULL;
 	
 	// globals we really should pass in...
-	const viewDef_t* viewDef = tr.viewDef;
+	const idRenderView* viewDef = tr.viewDef;
 	
 	const idRenderLightLocal* light = vLight->lightDef;
 	const idMaterial* lightShader = light->lightShader;
@@ -122,11 +153,11 @@ static void R_AddSingleLight( viewLight_t* vLight )
 	// see if we are suppressing the light in this view
 	if( !r_skipSuppress.GetBool() )
 	{
-		if( light->parms.suppressLightInViewID && light->parms.suppressLightInViewID == viewDef->renderView.viewID )
+		if( light->parms.suppressLightInViewID && light->parms.suppressLightInViewID == viewDef->GetID() )
 		{
 			return;
 		}
-		if( light->parms.allowLightInViewID && light->parms.allowLightInViewID != viewDef->renderView.viewID )
+		if( light->parms.allowLightInViewID && light->parms.allowLightInViewID != viewDef->GetID() )
 		{
 			return;
 		}
@@ -134,8 +165,8 @@ static void R_AddSingleLight( viewLight_t* vLight )
 	
 	// evaluate the light shader registers
 	float* lightRegs = ( float* )R_FrameAlloc( lightShader->GetNumRegisters() * sizeof( float ), FRAME_ALLOC_SHADER_REGISTER );
-	lightShader->EvaluateRegisters( lightRegs, light->parms.shaderParms, viewDef->renderView.shaderParms,
-									tr.viewDef->renderView.time[0] * 0.001f, light->parms.referenceSound );
+	lightShader->EvaluateRegisters( lightRegs, light->parms.shaderParms, viewDef->GetMaterialParms(),
+		tr.viewDef->GetGameTimeSec(), light->parms.referenceSound );
 									
 	// if this is a purely additive light and no stage in the light shader evaluates
 	// to a positive light value, we can completely skip the light
@@ -144,7 +175,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 		int lightStageNum;
 		for( lightStageNum = 0; lightStageNum < lightShader->GetNumStages(); lightStageNum++ )
 		{
-			const shaderStage_t*	lightStage = lightShader->GetStage( lightStageNum );
+			auto lightStage = lightShader->GetStage( lightStageNum );
 			
 			// ignore stages that fail the condition
 			if( !lightRegs[ lightStage->conditionRegister ] )
@@ -155,27 +186,17 @@ static void R_AddSingleLight( viewLight_t* vLight )
 			const int* registers = lightStage->color.registers;
 			
 			// snap tiny values to zero
-			if( lightRegs[ registers[0] ] < 0.001f )
-			{
-				lightRegs[ registers[0] ] = 0.0f;
-			}
-			if( lightRegs[ registers[1] ] < 0.001f )
-			{
-				lightRegs[ registers[1] ] = 0.0f;
-			}
-			if( lightRegs[ registers[2] ] < 0.001f )
-			{
-				lightRegs[ registers[2] ] = 0.0f;
-			}
+			if( lightRegs[ registers[0] ] < 0.001f ) lightRegs[ registers[0] ] = 0.0f;
+			if( lightRegs[ registers[1] ] < 0.001f ) lightRegs[ registers[1] ] = 0.0f;
+			if( lightRegs[ registers[2] ] < 0.001f ) lightRegs[ registers[2] ] = 0.0f;
 			
 			if( lightRegs[ registers[0] ] > 0.0f ||
-					lightRegs[ registers[1] ] > 0.0f ||
-					lightRegs[ registers[2] ] > 0.0f )
+				lightRegs[ registers[1] ] > 0.0f ||
+				lightRegs[ registers[2] ] > 0.0f )
 			{
 				break;
 			}
-		}
-		
+		}	
 		if( lightStageNum == lightShader->GetNumStages() )
 		{
 			// we went through all the stages and didn't find one that adds anything
@@ -208,7 +229,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 	vLight->fogPlane[3] = fogPlane[3] * planeScale;
 	
 	// copy the matrix for deforming the 'zeroOneCubeModel' to exactly cover the light volume in world space
-	vLight->inverseBaseLightProject = light->inverseBaseLightProject;
+	vLight->inverseBaseLightProject.Copy( light->inverseBaseLightProject );
 	
 	// RB begin
 	vLight->baseLightProject = light->baseLightProject;
@@ -228,7 +249,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 		// Calculate the matrix that projects the zero-to-one cube to exactly cover the
 		// light frustum in clip space.
 		idRenderMatrix invProjectMVPMatrix;
-		idRenderMatrix::Multiply( viewDef->worldSpace.mvp, light->inverseBaseLightProject, invProjectMVPMatrix );
+		idRenderMatrix::Multiply( viewDef->GetMVPMatrix(), light->inverseBaseLightProject, invProjectMVPMatrix );
 		
 		// Calculate the projected bounds, either not clipped at all, near clipped, or fully clipped.
 		idBounds projected;
@@ -270,12 +291,9 @@ static void R_AddSingleLight( viewLight_t* vLight )
 		
 		if( r_useShadowMapping.GetBool() && lightCastsShadows )
 		{
-			float           flod, lodscale;
-			float           projectedRadius;
-			int             lod;
-			int             numLods;
-			
-			numLods = MAX_SHADOWMAP_RESOLUTIONS;
+			float flod, lodscale;
+			float projectedRadius;
+			int lod, numLods = MAX_SHADOWMAP_RESOLUTIONS;
 			
 			// compute projected bounding sphere
 			// and use that as a criteria for selecting LOD
@@ -349,7 +367,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 	// that may cast shadows, even if they aren't directly visible.  Any real work
 	// will be deferred until we walk through the viewEntities
 	//--------------------------------------------
-	const int renderViewID = viewDef->renderView.viewID;
+	const int renderViewID = viewDef->GetID();
 	
 	// this bool array will be set true whenever the entity will visibly interact with the light
 	vLight->entityInteractionState = ( byte* )R_ClearedFrameAlloc( light->world->entityDefs.Num() * sizeof( vLight->entityInteractionState[0] ), FRAME_ALLOC_INTERACTION_STATE );
@@ -481,7 +499,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 			
 			// this doesn't say that the shadow can't effect anything, only that it can't
 			// effect anything in the view, so we shouldn't set up a view entity
-			if( idRenderMatrix::CullBoundsToMVP( viewDef->worldSpace.mvp, shadowBounds ) )
+			if( idRenderMatrix::CullBoundsToMVP( viewDef->GetMVPMatrix(), shadowBounds ) )
 			{
 				continue;
 			}
@@ -508,11 +526,11 @@ static void R_AddSingleLight( viewLight_t* vLight )
 	//--------------------------------------------
 	if( light->parms.prelightModel != NULL && !r_useShadowMapping.GetBool() )
 	{
-		srfTriangles_t* tri = light->parms.prelightModel->Surface( 0 )->geometry;
+		auto tri = light->parms.prelightModel->Surface( 0 )->geometry;
 		
 		// these shadows will have valid bounds, and can be culled normally,
 		// but they will typically cover most of the light's bounds
-		if( idRenderMatrix::CullBoundsToMVP( viewDef->worldSpace.mvp, tri->bounds ) )
+		if( idRenderMatrix::CullBoundsToMVP( viewDef->GetMVPMatrix(), tri->bounds ) )
 		{
 			return;
 		}
@@ -529,7 +547,7 @@ static void R_AddSingleLight( viewLight_t* vLight )
 		shadowDrawSurf->shadowCache = tri->shadowCache;
 		shadowDrawSurf->jointCache = 0;
 		shadowDrawSurf->numIndexes = 0;
-		shadowDrawSurf->space = &viewDef->worldSpace;
+		shadowDrawSurf->space = &viewDef->GetWorldSpace();
 		shadowDrawSurf->material = NULL;
 		shadowDrawSurf->extraGLState = 0;
 		shadowDrawSurf->shaderRegisters = NULL;
@@ -545,9 +563,9 @@ static void R_AddSingleLight( viewLight_t* vLight )
 			shadowParms->indexes = tri->indexes;
 			shadowParms->numIndexes = tri->numIndexes;
 			shadowParms->triangleBounds = tri->bounds;
-			shadowParms->triangleMVP = viewDef->worldSpace.mvp;
+			shadowParms->triangleMVP = viewDef->GetMVPMatrix();
 			shadowParms->localLightOrigin = vLight->globalLightOrigin;
-			shadowParms->localViewOrigin = viewDef->renderView.vieworg;
+			shadowParms->localViewOrigin = viewDef->GetOrigin();
 			shadowParms->zNear = r_znear.GetFloat();
 			shadowParms->lightZMin = vLight->scissorRect.zmin;
 			shadowParms->lightZMax = vLight->scissorRect.zmax;
@@ -585,7 +603,7 @@ REGISTER_PARALLEL_JOB( R_AddSingleLight, "R_AddSingleLight" );
 R_AddLights
 =================
 */
-void R_AddLights()
+void R_AddLights( idRenderView * view )
 {
 	SCOPED_PROFILE_EVENT( "R_AddLights" );
 	
@@ -595,7 +613,7 @@ void R_AddLights()
 	
 	if( r_useParallelAddLights.GetBool() )
 	{
-		for( viewLight_t* vLight = tr.viewDef->viewLights; vLight != NULL; vLight = vLight->next )
+		for( viewLight_t* vLight = view->viewLights; vLight != NULL; vLight = vLight->next )
 		{
 			tr.frontEndJobList->AddJob( ( jobRun_t )R_AddSingleLight, vLight );
 		}
@@ -604,7 +622,7 @@ void R_AddLights()
 	}
 	else
 	{
-		for( viewLight_t* vLight = tr.viewDef->viewLights; vLight != NULL; vLight = vLight->next )
+		for( viewLight_t* vLight = view->viewLights; vLight != NULL; vLight = vLight->next )
 		{
 			R_AddSingleLight( vLight );
 		}
@@ -615,7 +633,7 @@ void R_AddLights()
 	//-------------------------------------------------
 	
 	tr.pc.c_viewLights = 0;
-	viewLight_t** ptr = &tr.viewDef->viewLights;
+	viewLight_t** ptr = &view->viewLights;
 	while( *ptr != NULL )
 	{
 		viewLight_t* vLight = *ptr;
@@ -650,7 +668,7 @@ void R_AddLights()
 	
 	if( r_useParallelAddShadows.GetInteger() == 1 )
 	{
-		for( viewLight_t* vLight = tr.viewDef->viewLights; vLight != NULL; vLight = vLight->next )
+		for( viewLight_t* vLight = view->viewLights; vLight != NULL; vLight = vLight->next )
 		{
 			for( preLightShadowVolumeParms_t* shadowParms = vLight->preLightShadowVolumes; shadowParms != NULL; shadowParms = shadowParms->next )
 			{
@@ -663,7 +681,7 @@ void R_AddLights()
 	{
 		int start = Sys_Microseconds();
 		
-		for( viewLight_t* vLight = tr.viewDef->viewLights; vLight != NULL; vLight = vLight->next )
+		for( viewLight_t* vLight = view->viewLights; vLight != NULL; vLight = vLight->next )
 		{
 			for( preLightShadowVolumeParms_t* shadowParms = vLight->preLightShadowVolumes; shadowParms != NULL; shadowParms = shadowParms->next )
 			{
@@ -682,11 +700,11 @@ void R_AddLights()
 R_OptimizeViewLightsList
 =====================
 */
-void R_OptimizeViewLightsList()
+void R_OptimizeViewLightsList( idRenderView * renderView )
 {
 	// go through each visible light
 	int numViewLights = 0;
-	for( viewLight_t* vLight = tr.viewDef->viewLights; vLight != NULL; vLight = vLight->next )
+	for( viewLight_t* vLight = renderView->viewLights; vLight != NULL; vLight = vLight->next )
 	{
 		numViewLights++;
 		// If the light didn't have any lit surfaces visible, there is no need to
@@ -703,7 +721,7 @@ void R_OptimizeViewLightsList()
 		// shrink the light scissor rect to only intersect the surfaces that will actually be drawn.
 		// This doesn't seem to actually help, perhaps because the surface scissor
 		// rects aren't actually the surface, but only the portal clippings.
-		for( viewLight_t* vLight = tr.viewDef->viewLights; vLight; vLight = vLight->next )
+		for( viewLight_t* vLight = renderView->viewLights; vLight; vLight = vLight->next )
 		{
 			drawSurf_t* surf;
 			idScreenRect surfRect;
@@ -755,7 +773,7 @@ void R_OptimizeViewLightsList()
 	};
 	sortLight_t* sortLights = ( sortLight_t* )_alloca( sizeof( sortLight_t ) * numViewLights );
 	int	numSortLightsFilled = 0;
-	for( viewLight_t* vLight = tr.viewDef->viewLights; vLight != NULL; vLight = vLight->next )
+	for( viewLight_t* vLight = renderView->viewLights; vLight != NULL; vLight = vLight->next )
 	{
 		sortLights[ numSortLightsFilled ].vLight = vLight;
 		sortLights[ numSortLightsFilled ].screenArea = vLight->scissorRect.GetArea();
@@ -765,10 +783,10 @@ void R_OptimizeViewLightsList()
 	qsort( sortLights, numSortLightsFilled, sizeof( sortLights[0] ), sortLight_t::sort );
 	
 	// rebuild the linked list in order
-	tr.viewDef->viewLights = NULL;
+	renderView->viewLights = NULL;
 	for( int i = 0; i < numSortLightsFilled; i++ )
 	{
-		sortLights[i].vLight->next = tr.viewDef->viewLights;
-		tr.viewDef->viewLights = sortLights[i].vLight;
+		sortLights[i].vLight->next = renderView->viewLights;
+		renderView->viewLights = sortLights[i].vLight;
 	}
 }

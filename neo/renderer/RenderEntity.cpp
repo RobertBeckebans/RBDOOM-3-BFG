@@ -36,8 +36,6 @@ If you have questions concerning this license or the applicable additional terms
 idRenderEntityLocal::idRenderEntityLocal()
 {
 	memset( &parms, 0, sizeof( parms ) );
-	memset( modelMatrix, 0, sizeof( modelMatrix ) );
-	
 	world					= NULL;
 	index					= 0;
 	lastModifiedFrameNum	= 0;

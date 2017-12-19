@@ -138,19 +138,19 @@ Box definition
 */
 
 /*
-            4----{E}---5
+			4----{E}---5
  +         /|         /|
  Z      {H} {I}    {F} |
  -     /    |     /   {J}
-      7--{G}-----6     |
-      |     |    |     |
-     {L}    0----|-{A}-1
-      |    /    {K}   /       -
-      | {D}      | {B}       Y
-      |/         |/         +
-      3---{C}----2
+	  7--{G}-----6     |
+	  |     |    |     |
+	 {L}    0----|-{A}-1
+	  |    /    {K}   /       -
+	  | {D}      | {B}       Y
+	  |/         |/         +
+	  3---{C}----2
 
-	    - X +
+		- X +
 */
 
 static const short boxPolygonVertices[6][4] =
@@ -704,7 +704,7 @@ void idRenderMatrix::CreateProjectionMatrix( float xMin, float xMax, float yMin,
 		// this is the far-plane-at-infinity formulation
 		out[2][0] = 0.0f;
 		out[2][1] = 0.0f;
-		out[2][2] = -1.0f;
+		out[2][2] = -0.999f; // adjust value to prevent imprecision issues
 #if defined( CLIP_SPACE_D3D )
 		// the D3D clip space Z is in range [0,1] instead of [-1,1]
 		out[2][3] = -zNear;
@@ -716,14 +716,14 @@ void idRenderMatrix::CreateProjectionMatrix( float xMin, float xMax, float yMin,
 	{
 		out[2][0] = 0.0f;
 		out[2][1] = 0.0f;
-#if defined( CLIP_SPACE_D3D )
+	#if defined( CLIP_SPACE_D3D )
 		// the D3D clip space Z is in range [0,1] instead of [-1,1]
 		out[2][2] = -( zFar ) / ( zFar - zNear );
 		out[2][3] = -( zFar * zNear ) / ( zFar - zNear );
-#else
+	#else
 		out[2][2] = -( zFar + zNear ) / ( zFar - zNear );
 		out[2][3] = -( 2.0f * zFar * zNear ) / ( zFar - zNear );
-#endif
+	#endif
 	}
 	
 	out[3][0] = 0.0f;
@@ -743,9 +743,9 @@ xOffset can also be used for eye separation when rendering stereo.
 void idRenderMatrix::CreateProjectionMatrixFov( float xFovDegrees, float yFovDegrees, float zNear, float zFar, float xOffset, float yOffset, idRenderMatrix& out )
 {
 	float xMax = zNear * idMath::Tan( DEG2RAD( xFovDegrees ) * 0.5f );
-	float xMin = -xMax;
-	
 	float yMax = zNear * idMath::Tan( DEG2RAD( yFovDegrees ) * 0.5f );
+	
+	float xMin = -xMax;
 	float yMin = -yMax;
 	
 	xMin += xOffset;
@@ -755,6 +755,104 @@ void idRenderMatrix::CreateProjectionMatrixFov( float xFovDegrees, float yFovDeg
 	yMax += yOffset;
 	
 	CreateProjectionMatrix( xMin, xMax, yMin, yMax, zNear, zFar, out );
+}
+
+/*
+=====================
+ D3DXMatrixOrthoLH
+ https://msdn.microsoft.com/en-us/library/bb205346(v=vs.85).aspx
+ 
+ Builds a left-handed orthographic projection matrix.
+=====================
+*/
+void idRenderMatrix::CreateOrthogonalProjection(
+	float w, 	// Width of the view volume.
+	float h, 	// Height of the view volume. 		
+	float zNear, float zFar,
+	idRenderMatrix & out, 
+	const bool wtf )
+{
+	if( wtf )
+	{
+		out[ 0 ][ 0 ] = 2.0f / w;
+		out[ 0 ][ 1 ] = 0.0f;
+		out[ 0 ][ 2 ] = 0.0f;
+		out[ 0 ][ 3 ] = -1.0f;	// translated
+
+		out[ 1 ][ 0 ] = 0.0f;
+		out[ 1 ][ 1 ] = -2.0f / h;
+		out[ 1 ][ 2 ] = 0.0f;
+		out[ 1 ][ 3 ] = 1.0f;	// translated
+	}
+	else {
+		out[ 0 ][ 0 ] = 2.0f / w;	//gl? 1 / r
+		out[ 0 ][ 1 ] = 0.0f;
+		out[ 0 ][ 2 ] = 0.0f;
+		out[ 0 ][ 3 ] = 0.0f;
+
+		out[ 1 ][ 0 ] = 0.0f;
+		out[ 1 ][ 1 ] = 2.0f / h;	//gl? 1 / t
+		out[ 1 ][ 2 ] = 0.0f;
+		out[ 1 ][ 3 ] = 0.0f;
+	}
+	out[ 2 ][ 0 ] = 0.0f;
+	out[ 2 ][ 1 ] = 0.0f;
+#if defined( CLIP_SPACE_D3D )
+	out[ 2 ][ 2 ] = 1.0f / ( zFar - zNear );
+	out[ 2 ][ 3 ] = -zNear / ( zFar - zNear );
+#else
+	out[ 2 ][ 2 ] = -2.0f / ( zFar - zNear );
+	out[ 2 ][ 3 ] = -( zFar + zNear ) / ( zFar - zNear );
+#endif
+	out[ 3 ][ 0 ] = 0.0f;
+	out[ 3 ][ 1 ] = 0.0f;
+	out[ 3 ][ 2 ] = 0.0f;
+	out[ 3 ][ 3 ] = 1.0f;
+}
+
+/*
+=====================
+ D3DXMatrixOrthoOffCenterLH
+ https://msdn.microsoft.com/en-us/library/bb205347(v=vs.85).aspx
+ 
+ Builds a customized, left-handed orthographic projection matrix.
+
+ The D3DXMatrixOrthoLH function is a special case of the D3DXMatrixOrthoOffCenterLH function. 
+ To create the same projection using D3DXMatrixOrthoOffCenterLH, 
+ use the following values: l = -w/2, r = w/2, b = -h/2, and t = h/2.
+=====================
+*/
+void idRenderMatrix::CreateOrthogonalOffCenterProjection(
+	float left, 	// Minimum x-value of view volume.	
+	float right, 	// Maximum x-value of view volume.	
+	float bottom,	// Minimum y-value of view volume.		
+	float top,		// Maximum y-value of view volume. 		
+	float zNear, float zFar,
+	idRenderMatrix & out )
+{
+	out[ 0 ][ 0 ] = 2.0f / ( right - left );
+	out[ 0 ][ 1 ] = 0.0f;
+	out[ 0 ][ 2 ] = 0.0f;
+	out[ 0 ][ 3 ] = ( left + right ) / ( left - right );	//OGL -( left + right ) / ( right - left );
+
+	out[ 1 ][ 0 ] = 0.0f;
+	out[ 1 ][ 1 ] = 2.0f / ( top - bottom );
+	out[ 1 ][ 2 ] = 0.0f;
+	out[ 1 ][ 3 ] = ( top + bottom ) / ( bottom - top );	//OGL -( top + bottom ) / ( top - bottom );
+
+	out[ 2 ][ 0 ] = 0.0f;
+	out[ 2 ][ 1 ] = 0.0f;
+#if defined( CLIP_SPACE_D3D )
+	out[ 2 ][ 2 ] = 1.0f / ( zFar - zNear );
+	out[ 2 ][ 3 ] = zNear / ( zNear - zFar );
+#else
+	out[ 2 ][ 2 ] = -2.0f / ( zFar - zNear );
+	out[ 2 ][ 3 ] = -( zFar + zNear ) / ( zFar - zNear );
+#endif
+	out[ 3 ][ 0 ] = 0.0f;
+	out[ 3 ][ 1 ] = 0.0f;
+	out[ 3 ][ 2 ] = 0.0f;
+	out[ 3 ][ 3 ] = 1.0f;
 }
 
 /*
@@ -778,10 +876,10 @@ void idRenderMatrix::OffsetScaleForBounds( const idRenderMatrix& src, const idBo
 	
 	scale = _mm_or_ps( scale, vector_float_last_one );
 	
-	__m128 a0 = _mm_loadu_ps( src.m + 0 * 4 );
-	__m128 a1 = _mm_loadu_ps( src.m + 1 * 4 );
-	__m128 a2 = _mm_loadu_ps( src.m + 2 * 4 );
-	__m128 a3 = _mm_loadu_ps( src.m + 3 * 4 );
+	__m128 a0 = _mm_load_ps( src.m + 0 * 4 );
+	__m128 a1 = _mm_load_ps( src.m + 1 * 4 );
+	__m128 a2 = _mm_load_ps( src.m + 2 * 4 );
+	__m128 a3 = _mm_load_ps( src.m + 3 * 4 );
 	
 	__m128 d0 = _mm_mul_ps( a0, offset );
 	__m128 d1 = _mm_mul_ps( a1, offset );
@@ -810,10 +908,10 @@ void idRenderMatrix::OffsetScaleForBounds( const idRenderMatrix& src, const idBo
 	a2 = _mm_madd_ps( a2, scale, n2 );
 	a3 = _mm_madd_ps( a3, scale, n3 );
 	
-	_mm_storeu_ps( out.m + 0 * 4, a0 );
-	_mm_storeu_ps( out.m + 1 * 4, a1 );
-	_mm_storeu_ps( out.m + 2 * 4, a2 );
-	_mm_storeu_ps( out.m + 3 * 4, a3 );
+	_mm_store_ps( out.m + 0 * 4, a0 );
+	_mm_store_ps( out.m + 1 * 4, a1 );
+	_mm_store_ps( out.m + 2 * 4, a2 );
+	_mm_store_ps( out.m + 3 * 4, a3 );
 	
 #else
 	
@@ -872,19 +970,19 @@ void idRenderMatrix::InverseOffsetScaleForBounds( const idRenderMatrix& src, con
 	__m128 d1 = _mm_and_ps( _mm_splat_ps( offset, 1 ), vector_float_keep_last );
 	__m128 d2 = _mm_and_ps( _mm_splat_ps( offset, 2 ), vector_float_keep_last );
 	
-	__m128 a0 = _mm_loadu_ps( src.m + 0 * 4 );
-	__m128 a1 = _mm_loadu_ps( src.m + 1 * 4 );
-	__m128 a2 = _mm_loadu_ps( src.m + 2 * 4 );
-	__m128 a3 = _mm_loadu_ps( src.m + 3 * 4 );
+	__m128 a0 = _mm_load_ps( src.m + 0 * 4 );
+	__m128 a1 = _mm_load_ps( src.m + 1 * 4 );
+	__m128 a2 = _mm_load_ps( src.m + 2 * 4 );
+	__m128 a3 = _mm_load_ps( src.m + 3 * 4 );
 	
 	a0 = _mm_madd_ps( a0, _mm_splat_ps( rscale, 0 ), d0 );
 	a1 = _mm_madd_ps( a1, _mm_splat_ps( rscale, 1 ), d1 );
 	a2 = _mm_madd_ps( a2, _mm_splat_ps( rscale, 2 ), d2 );
 	
-	_mm_storeu_ps( out.m + 0 * 4, a0 );
-	_mm_storeu_ps( out.m + 1 * 4, a1 );
-	_mm_storeu_ps( out.m + 2 * 4, a2 );
-	_mm_storeu_ps( out.m + 3 * 4, a3 );
+	_mm_store_ps( out.m + 0 * 4, a0 );
+	_mm_store_ps( out.m + 1 * 4, a1 );
+	_mm_store_ps( out.m + 2 * 4, a2 );
+	_mm_store_ps( out.m + 3 * 4, a3 );
 	
 #else
 	
@@ -924,10 +1022,10 @@ void idRenderMatrix::Transpose( const idRenderMatrix& src, idRenderMatrix& out )
 	assert( &src != &out );
 	
 #if defined(USE_INTRINSICS)
-	const __m128 a0 = _mm_loadu_ps( src.m + 0 * 4 );
-	const __m128 a1 = _mm_loadu_ps( src.m + 1 * 4 );
-	const __m128 a2 = _mm_loadu_ps( src.m + 2 * 4 );
-	const __m128 a3 = _mm_loadu_ps( src.m + 3 * 4 );
+	const __m128 a0 = _mm_load_ps( src.m + 0 * 4 );
+	const __m128 a1 = _mm_load_ps( src.m + 1 * 4 );
+	const __m128 a2 = _mm_load_ps( src.m + 2 * 4 );
+	const __m128 a3 = _mm_load_ps( src.m + 3 * 4 );
 	
 	const __m128 r0 = _mm_unpacklo_ps( a0, a2 );
 	const __m128 r1 = _mm_unpackhi_ps( a0, a2 );
@@ -939,10 +1037,10 @@ void idRenderMatrix::Transpose( const idRenderMatrix& src, idRenderMatrix& out )
 	const __m128 t2 = _mm_unpacklo_ps( r1, r3 );
 	const __m128 t3 = _mm_unpackhi_ps( r1, r3 );
 	
-	_mm_storeu_ps( out.m + 0 * 4, t0 );
-	_mm_storeu_ps( out.m + 1 * 4, t1 );
-	_mm_storeu_ps( out.m + 2 * 4, t2 );
-	_mm_storeu_ps( out.m + 3 * 4, t3 );
+	_mm_store_ps( out.m + 0 * 4, t0 );
+	_mm_store_ps( out.m + 1 * 4, t1 );
+	_mm_store_ps( out.m + 2 * 4, t2 );
+	_mm_store_ps( out.m + 3 * 4, t3 );
 	
 #else
 	out.m[ 0] = src.m[ 0];
@@ -972,15 +1070,15 @@ idRenderMatrix::Multiply
 void idRenderMatrix::Multiply( const idRenderMatrix& a, const idRenderMatrix& b, idRenderMatrix& out )
 {
 #if defined(USE_INTRINSICS)
-	__m128 a0 = _mm_loadu_ps( a.m + 0 * 4 );
-	__m128 a1 = _mm_loadu_ps( a.m + 1 * 4 );
-	__m128 a2 = _mm_loadu_ps( a.m + 2 * 4 );
-	__m128 a3 = _mm_loadu_ps( a.m + 3 * 4 );
+	__m128 a0 = _mm_load_ps( a.m + 0 * 4 );
+	__m128 a1 = _mm_load_ps( a.m + 1 * 4 );
+	__m128 a2 = _mm_load_ps( a.m + 2 * 4 );
+	__m128 a3 = _mm_load_ps( a.m + 3 * 4 );
 	
-	__m128 b0 = _mm_loadu_ps( b.m + 0 * 4 );
-	__m128 b1 = _mm_loadu_ps( b.m + 1 * 4 );
-	__m128 b2 = _mm_loadu_ps( b.m + 2 * 4 );
-	__m128 b3 = _mm_loadu_ps( b.m + 3 * 4 );
+	__m128 b0 = _mm_load_ps( b.m + 0 * 4 );
+	__m128 b1 = _mm_load_ps( b.m + 1 * 4 );
+	__m128 b2 = _mm_load_ps( b.m + 2 * 4 );
+	__m128 b3 = _mm_load_ps( b.m + 3 * 4 );
 	
 	__m128 t0 = _mm_mul_ps( _mm_splat_ps( a0, 0 ), b0 );
 	__m128 t1 = _mm_mul_ps( _mm_splat_ps( a1, 0 ), b0 );
@@ -1002,10 +1100,10 @@ void idRenderMatrix::Multiply( const idRenderMatrix& a, const idRenderMatrix& b,
 	t2 = _mm_madd_ps( _mm_splat_ps( a2, 3 ), b3, t2 );
 	t3 = _mm_madd_ps( _mm_splat_ps( a3, 3 ), b3, t3 );
 	
-	_mm_storeu_ps( out.m + 0 * 4, t0 );
-	_mm_storeu_ps( out.m + 1 * 4, t1 );
-	_mm_storeu_ps( out.m + 2 * 4, t2 );
-	_mm_storeu_ps( out.m + 3 * 4, t3 );
+	_mm_store_ps( out.m + 0 * 4, t0 );
+	_mm_store_ps( out.m + 1 * 4, t1 );
+	_mm_store_ps( out.m + 2 * 4, t2 );
+	_mm_store_ps( out.m + 3 * 4, t3 );
 	
 #else
 	
@@ -1063,10 +1161,10 @@ bool idRenderMatrix::Inverse( const idRenderMatrix& src, idRenderMatrix& out )
 {
 #if defined(USE_INTRINSICS)
 
-	const __m128 r0 = _mm_loadu_ps( src.m + 0 * 4 );
-	const __m128 r1 = _mm_loadu_ps( src.m + 1 * 4 );
-	const __m128 r2 = _mm_loadu_ps( src.m + 2 * 4 );
-	const __m128 r3 = _mm_loadu_ps( src.m + 3 * 4 );
+	const __m128 r0 = _mm_load_ps( src.m + 0 * 4 );
+	const __m128 r1 = _mm_load_ps( src.m + 1 * 4 );
+	const __m128 r2 = _mm_load_ps( src.m + 2 * 4 );
+	const __m128 r3 = _mm_load_ps( src.m + 3 * 4 );
 	
 	// rXuY = row X rotated up by Y floats.
 	const __m128 r0u1 = _mm_perm_ps( r0, _MM_SHUFFLE( 2, 1, 0, 3 ) );
@@ -1162,10 +1260,10 @@ bool idRenderMatrix::Inverse( const idRenderMatrix& src, idRenderMatrix& out )
 	const __m128 adjoint_r2    = _mm_unpacklo_ps( lo_part_r0_r2, lo_part_r1_r3 );
 	const __m128 adjoint_r3    = _mm_unpackhi_ps( lo_part_r0_r2, lo_part_r1_r3 );
 	
-	_mm_storeu_ps( out.m + 0 * 4, _mm_mul_ps( adjoint_r0, rcpDet ) );
-	_mm_storeu_ps( out.m + 1 * 4, _mm_mul_ps( adjoint_r1, rcpDet ) );
-	_mm_storeu_ps( out.m + 2 * 4, _mm_mul_ps( adjoint_r2, rcpDet ) );
-	_mm_storeu_ps( out.m + 3 * 4, _mm_mul_ps( adjoint_r3, rcpDet ) );
+	_mm_store_ps( out.m + 0 * 4, _mm_mul_ps( adjoint_r0, rcpDet ) );
+	_mm_store_ps( out.m + 1 * 4, _mm_mul_ps( adjoint_r1, rcpDet ) );
+	_mm_store_ps( out.m + 2 * 4, _mm_mul_ps( adjoint_r2, rcpDet ) );
+	_mm_store_ps( out.m + 3 * 4, _mm_mul_ps( adjoint_r3, rcpDet ) );
 	
 #else
 	
@@ -1458,10 +1556,10 @@ void idRenderMatrix::CopyMatrix( const idRenderMatrix& matrix, idVec4& row0, idV
 	assert_16_byte_aligned( row3.ToFloatPtr() );
 	
 #if defined(USE_INTRINSICS)
-	const __m128 r0 = _mm_loadu_ps( matrix.m + 0 * 4 );
-	const __m128 r1 = _mm_loadu_ps( matrix.m + 1 * 4 );
-	const __m128 r2 = _mm_loadu_ps( matrix.m + 2 * 4 );
-	const __m128 r3 = _mm_loadu_ps( matrix.m + 3 * 4 );
+	const __m128 r0 = _mm_load_ps( matrix.m + 0 * 4 );
+	const __m128 r1 = _mm_load_ps( matrix.m + 1 * 4 );
+	const __m128 r2 = _mm_load_ps( matrix.m + 2 * 4 );
+	const __m128 r3 = _mm_load_ps( matrix.m + 3 * 4 );
 	
 	_mm_store_ps( row0.ToFloatPtr(), r0 );
 	_mm_store_ps( row1.ToFloatPtr(), r1 );
@@ -1500,10 +1598,10 @@ void idRenderMatrix::SetMVP( const idRenderMatrix& mvp, idVec4& row0, idVec4& ro
 	assert_16_byte_aligned( row3.ToFloatPtr() );
 	
 #if defined(USE_INTRINSICS)
-	const __m128 r0 = _mm_loadu_ps( mvp.m + 0 * 4 );
-	const __m128 r1 = _mm_loadu_ps( mvp.m + 1 * 4 );
-	const __m128 r2 = _mm_loadu_ps( mvp.m + 2 * 4 );
-	const __m128 r3 = _mm_loadu_ps( mvp.m + 3 * 4 );
+	const __m128 r0 = _mm_load_ps( mvp.m + 0 * 4 );
+	const __m128 r1 = _mm_load_ps( mvp.m + 1 * 4 );
+	const __m128 r2 = _mm_load_ps( mvp.m + 2 * 4 );
+	const __m128 r3 = _mm_load_ps( mvp.m + 3 * 4 );
 	
 	_mm_store_ps( row0.ToFloatPtr(), r0 );
 	_mm_store_ps( row1.ToFloatPtr(), r1 );
@@ -1556,10 +1654,10 @@ void idRenderMatrix::SetMVPForBounds( const idRenderMatrix& mvp, const idBounds&
 	
 	scale = _mm_or_ps( scale, vector_float_last_one );
 	
-	__m128 r0 = _mm_loadu_ps( mvp.m + 0 * 4 );
-	__m128 r1 = _mm_loadu_ps( mvp.m + 1 * 4 );
-	__m128 r2 = _mm_loadu_ps( mvp.m + 2 * 4 );
-	__m128 r3 = _mm_loadu_ps( mvp.m + 3 * 4 );
+	__m128 r0 = _mm_load_ps( mvp.m + 0 * 4 );
+	__m128 r1 = _mm_load_ps( mvp.m + 1 * 4 );
+	__m128 r2 = _mm_load_ps( mvp.m + 2 * 4 );
+	__m128 r3 = _mm_load_ps( mvp.m + 3 * 4 );
 	
 	__m128 d0 = _mm_mul_ps( r0, offset );
 	__m128 d1 = _mm_mul_ps( r1, offset );
@@ -1639,15 +1737,15 @@ void idRenderMatrix::SetMVPForInverseProject( const idRenderMatrix& mvp, const i
 	
 #if defined(USE_INTRINSICS)
 	
-	__m128 r0 = _mm_loadu_ps( mvp.m + 0 * 4 );
-	__m128 r1 = _mm_loadu_ps( mvp.m + 1 * 4 );
-	__m128 r2 = _mm_loadu_ps( mvp.m + 2 * 4 );
-	__m128 r3 = _mm_loadu_ps( mvp.m + 3 * 4 );
+	__m128 r0 = _mm_load_ps( mvp.m + 0 * 4 );
+	__m128 r1 = _mm_load_ps( mvp.m + 1 * 4 );
+	__m128 r2 = _mm_load_ps( mvp.m + 2 * 4 );
+	__m128 r3 = _mm_load_ps( mvp.m + 3 * 4 );
 	
-	__m128 p0 = _mm_loadu_ps( inverseProject.m + 0 * 4 );
-	__m128 p1 = _mm_loadu_ps( inverseProject.m + 1 * 4 );
-	__m128 p2 = _mm_loadu_ps( inverseProject.m + 2 * 4 );
-	__m128 p3 = _mm_loadu_ps( inverseProject.m + 3 * 4 );
+	__m128 p0 = _mm_load_ps( inverseProject.m + 0 * 4 );
+	__m128 p1 = _mm_load_ps( inverseProject.m + 1 * 4 );
+	__m128 p2 = _mm_load_ps( inverseProject.m + 2 * 4 );
+	__m128 p3 = _mm_load_ps( inverseProject.m + 3 * 4 );
 	
 	__m128 t0 = _mm_mul_ps( _mm_splat_ps( r0, 0 ), p0 );
 	__m128 t1 = _mm_mul_ps( _mm_splat_ps( r1, 0 ), p0 );
@@ -1782,10 +1880,10 @@ frustum plane, but only while also being behind another one.
 bool idRenderMatrix::CullBoundsToMVPbits( const idRenderMatrix& mvp, const idBounds& bounds, byte* outBits, bool zeroToOne )
 {
 #if defined(USE_INTRINSICS)
-	__m128 mvp0 = _mm_loadu_ps( mvp[0] );
-	__m128 mvp1 = _mm_loadu_ps( mvp[1] );
-	__m128 mvp2 = _mm_loadu_ps( mvp[2] );
-	__m128 mvp3 = _mm_loadu_ps( mvp[3] );
+	__m128 mvp0 = _mm_load_ps( mvp[0] );
+	__m128 mvp1 = _mm_load_ps( mvp[1] );
+	__m128 mvp2 = _mm_load_ps( mvp[2] );
+	__m128 mvp3 = _mm_load_ps( mvp[3] );
 	
 	__m128 minMul = zeroToOne ? vector_float_zero : vector_float_neg_one;
 	
@@ -1969,10 +2067,10 @@ bool idRenderMatrix::CullExtrudedBoundsToMVPbits( const idRenderMatrix& mvp, con
 	
 #if defined(USE_INTRINSICS)
 	
-	__m128 mvp0 = _mm_loadu_ps( mvp[0] );
-	__m128 mvp1 = _mm_loadu_ps( mvp[1] );
-	__m128 mvp2 = _mm_loadu_ps( mvp[2] );
-	__m128 mvp3 = _mm_loadu_ps( mvp[3] );
+	__m128 mvp0 = _mm_load_ps( mvp[0] );
+	__m128 mvp1 = _mm_load_ps( mvp[1] );
+	__m128 mvp2 = _mm_load_ps( mvp[2] );
+	__m128 mvp3 = _mm_load_ps( mvp[3] );
 	
 	__m128 minMul = zeroToOne ? vector_float_zero : vector_float_neg_one;
 	
@@ -2287,10 +2385,10 @@ void idRenderMatrix::ProjectedBounds( idBounds& projected, const idRenderMatrix&
 {
 #if defined(USE_INTRINSICS)
 
-	__m128 mvp0 = _mm_loadu_ps( mvp[0] );
-	__m128 mvp1 = _mm_loadu_ps( mvp[1] );
-	__m128 mvp2 = _mm_loadu_ps( mvp[2] );
-	__m128 mvp3 = _mm_loadu_ps( mvp[3] );
+	__m128 mvp0 = _mm_load_ps( mvp[0] );
+	__m128 mvp1 = _mm_load_ps( mvp[1] );
+	__m128 mvp2 = _mm_load_ps( mvp[2] );
+	__m128 mvp3 = _mm_load_ps( mvp[3] );
 	
 	__m128 b0 = _mm_loadu_bounds_0( bounds );
 	__m128 b1 = _mm_loadu_bounds_1( bounds );
@@ -2518,27 +2616,27 @@ completely branchless SIMD.
 void idRenderMatrix::ProjectedNearClippedBounds( idBounds& projected, const idRenderMatrix& mvp, const idBounds& bounds, bool windowSpace )
 {
 	/*
-	            4----{E}---5
+				4----{E}---5
 	 +         /|         /|
 	 Z      {H} {I}    {F} |
 	 -     /    |     /   {J}
-	      7--{G}-----6     |
-	      |     |    |     |
-	     {L}    0----|-{A}-1
-	      |    /    {K}   /       -
-	      | {D}      | {B}       Y
-	      |/         |/         +
-	      3---{C}----2
+		  7--{G}-----6     |
+		  |     |    |     |
+		 {L}    0----|-{A}-1
+		  |    /    {K}   /       -
+		  | {D}      | {B}       Y
+		  |/         |/         +
+		  3---{C}----2
 	
-		    - X +
+			- X +
 	*/
 	
 #if defined(USE_INTRINSICS)
 	
-	const __m128 mvp0 = _mm_loadu_ps( mvp[0] );
-	const __m128 mvp1 = _mm_loadu_ps( mvp[1] );
-	const __m128 mvp2 = _mm_loadu_ps( mvp[2] );
-	const __m128 mvp3 = _mm_loadu_ps( mvp[3] );
+	const __m128 mvp0 = _mm_load_ps( mvp[0] );
+	const __m128 mvp1 = _mm_load_ps( mvp[1] );
+	const __m128 mvp2 = _mm_load_ps( mvp[2] );
+	const __m128 mvp3 = _mm_load_ps( mvp[3] );
 	
 	const __m128 b0 = _mm_loadu_bounds_0( bounds );
 	const __m128 b1 = _mm_loadu_bounds_1( bounds );
@@ -3431,10 +3529,10 @@ void idRenderMatrix::ProjectedFullyClippedBounds( idBounds& projected, const idR
 {
 #if defined(USE_INTRINSICS)
 
-	const __m128 mvp0 = _mm_loadu_ps( mvp[0] );
-	const __m128 mvp1 = _mm_loadu_ps( mvp[1] );
-	const __m128 mvp2 = _mm_loadu_ps( mvp[2] );
-	const __m128 mvp3 = _mm_loadu_ps( mvp[3] );
+	const __m128 mvp0 = _mm_load_ps( mvp[0] );
+	const __m128 mvp1 = _mm_load_ps( mvp[1] );
+	const __m128 mvp2 = _mm_load_ps( mvp[2] );
+	const __m128 mvp3 = _mm_load_ps( mvp[3] );
 	
 	const __m128 t0 = _mm_unpacklo_ps( mvp0, mvp2 );	// mvp[0][0], mvp[2][0], mvp[0][1], mvp[2][1]
 	const __m128 t1 = _mm_unpackhi_ps( mvp0, mvp2 );	// mvp[0][2], mvp[2][2], mvp[0][3], mvp[2][3]
@@ -3696,8 +3794,8 @@ void idRenderMatrix::DepthBoundsForBounds( float& min, float& max, const idRende
 {
 #if defined(USE_INTRINSICS)
 
-	__m128 mvp2 = _mm_loadu_ps( mvp[2] );
-	__m128 mvp3 = _mm_loadu_ps( mvp[3] );
+	__m128 mvp2 = _mm_load_ps( mvp[2] );
+	__m128 mvp3 = _mm_load_ps( mvp[3] );
 	
 	__m128 b0 = _mm_loadu_bounds_0( bounds );
 	__m128 b1 = _mm_loadu_bounds_1( bounds );
@@ -3828,8 +3926,8 @@ void idRenderMatrix::DepthBoundsForExtrudedBounds( float& min, float& max, const
 	
 #if defined(USE_INTRINSICS)
 	
-	__m128 mvp2 = _mm_loadu_ps( mvp[2] );
-	__m128 mvp3 = _mm_loadu_ps( mvp[3] );
+	__m128 mvp2 = _mm_load_ps( mvp[2] );
+	__m128 mvp3 = _mm_load_ps( mvp[3] );
 	
 	__m128 b0 = _mm_loadu_bounds_0( bounds );
 	__m128 b1 = _mm_loadu_bounds_1( bounds );
@@ -4109,10 +4207,10 @@ void idRenderMatrix::DepthBoundsForShadowBounds( float& min, float& max, const i
 {
 #if defined(USE_INTRINSICS)
 
-	const __m128 mvp0 = _mm_loadu_ps( mvp[0] );
-	const __m128 mvp1 = _mm_loadu_ps( mvp[1] );
-	const __m128 mvp2 = _mm_loadu_ps( mvp[2] );
-	const __m128 mvp3 = _mm_loadu_ps( mvp[3] );
+	const __m128 mvp0 = _mm_load_ps( mvp[0] );
+	const __m128 mvp1 = _mm_load_ps( mvp[1] );
+	const __m128 mvp2 = _mm_load_ps( mvp[2] );
+	const __m128 mvp3 = _mm_load_ps( mvp[3] );
 	
 	const __m128 t0 = _mm_unpacklo_ps( mvp0, mvp2 );	// mvp[0][0], mvp[2][0], mvp[0][1], mvp[2][1]
 	const __m128 t1 = _mm_unpackhi_ps( mvp0, mvp2 );	// mvp[0][2], mvp[2][2], mvp[0][3], mvp[2][3]
@@ -4500,10 +4598,10 @@ void idRenderMatrix::GetFrustumCorners( frustumCorners_t& corners, const idRende
 	
 #if defined(USE_INTRINSICS)
 	
-	__m128 mvp0 = _mm_loadu_ps( frustumTransform[0] );
-	__m128 mvp1 = _mm_loadu_ps( frustumTransform[1] );
-	__m128 mvp2 = _mm_loadu_ps( frustumTransform[2] );
-	__m128 mvp3 = _mm_loadu_ps( frustumTransform[3] );
+	__m128 mvp0 = _mm_load_ps( frustumTransform[0] );
+	__m128 mvp1 = _mm_load_ps( frustumTransform[1] );
+	__m128 mvp2 = _mm_load_ps( frustumTransform[2] );
+	__m128 mvp3 = _mm_load_ps( frustumTransform[3] );
 	
 	__m128 b0 = _mm_loadu_bounds_0( frustumBounds );
 	__m128 b1 = _mm_loadu_bounds_1( frustumBounds );
@@ -4611,10 +4709,11 @@ idRenderMatrix::CullFrustumCornersToPlane
 frustumCull_t idRenderMatrix::CullFrustumCornersToPlane( const frustumCorners_t& corners, const idPlane& plane )
 {
 	assert_16_byte_aligned( &corners );
+	assert_16_byte_aligned( plane.ToFloatPtr() );
 	
 #if defined(USE_INTRINSICS)
 	
-	__m128 vp = _mm_loadu_ps( plane.ToFloatPtr() );
+	__m128 vp = _mm_load_ps( plane.ToFloatPtr() );
 	
 	__m128 x0 = _mm_load_ps( corners.x + 0 );
 	__m128 y0 = _mm_load_ps( corners.y + 0 );

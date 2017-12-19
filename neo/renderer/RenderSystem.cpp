@@ -177,7 +177,7 @@ void* R_GetCommandBuffer( int bytes )
 R_ViewStatistics
 =================
 */
-static void R_ViewStatistics( viewDef_t* parms )
+static void R_ViewStatistics( idRenderView* parms )
 {
 	// report statistics about this view
 	if( !r_showSurfaces.GetBool() )
@@ -195,11 +195,9 @@ This is the main 3D rendering command.  A single scene may
 have multiple views if a mirror, portal, or dynamic texture is present.
 =============
 */
-void	R_AddDrawViewCmd( viewDef_t* parms, bool guiOnly )
+void	R_AddDrawViewCmd( idRenderView* parms, bool guiOnly )
 {
-	drawSurfsCommand_t*	cmd;
-	
-	cmd = ( drawSurfsCommand_t* )R_GetCommandBuffer( sizeof( *cmd ) );
+	auto cmd = ( drawSurfsCommand_t* )R_GetCommandBuffer( sizeof( drawSurfsCommand_t ) );
 	cmd->commandId = ( guiOnly ) ? RC_DRAW_VIEW_GUI : RC_DRAW_VIEW_3D;
 	
 	cmd->viewDef = parms;
@@ -217,9 +215,9 @@ This issues the command to do a post process after all the views have
 been rendered.
 =============
 */
-void	R_AddDrawPostProcess( viewDef_t* parms )
+void	R_AddDrawPostProcess( idRenderView* parms )
 {
-	postProcessCommand_t* cmd = ( postProcessCommand_t* )R_GetCommandBuffer( sizeof( *cmd ) );
+	auto cmd = ( postProcessCommand_t* )R_GetCommandBuffer( sizeof( postProcessCommand_t ) );
 	cmd->commandId = RC_POST_PROCESS;
 	cmd->viewDef = parms;
 }

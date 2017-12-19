@@ -177,7 +177,9 @@ void			GL_Color( const idVec4& color );
 // RB end
 void			GL_Color( float r, float g, float b );
 void			GL_Color( float r, float g, float b, float a );
+
 void			GL_SelectTexture( int unit );
+void			GL_BindTexture( int unit, idImage * );
 
 void			GL_Flush();		// flush the GPU command buffer
 void			GL_Finish();	// wait for the GPU to have executed all commands

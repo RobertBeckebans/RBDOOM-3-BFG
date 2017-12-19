@@ -118,7 +118,7 @@ struct drawSurf_t
 	const idMaterial* 		material;			// may be NULL for shadow volumes
 	uint64					extraGLState;		// Extra GL state |'d with material->stage[].drawStateBits
 	float					sort;				// material->sort, modified by gui / entity sort offsets
-	const float* 				shaderRegisters;	// evaluated and adjusted for referenceShaders
+	const float* 			shaderRegisters;	// evaluated and adjusted for referenceShaders
 	drawSurf_t* 			nextOnLight;		// viewLight chains
 	drawSurf_t** 			linkChain;			// defer linking to lights to a serial section to avoid a mutex
 	idScreenRect			scissorRect;		// for scissor clipping, local inside renderView viewport
@@ -134,7 +134,7 @@ struct areaReference_t
 	areaReference_t* 		ownerNext;				// chain on either the entityDef or lightDef
 	idRenderEntityLocal* 	entity;					// only one of entity / light will be non-NULL
 	idRenderLightLocal* 	light;					// only one of entity / light will be non-NULL
-	struct portalArea_s*		area;					// so owners can find all the areas they are in
+	struct portalArea_s*	area;					// so owners can find all the areas they are in
 };
 
 
@@ -176,8 +176,8 @@ public:
 	idRenderLightLocal();
 	
 	virtual void			FreeRenderLight();
-	virtual void			UpdateRenderLight( const renderLight_t* re, bool forceUpdate = false );
-	virtual void			GetRenderLight( renderLight_t* re );
+	virtual void			UpdateRenderLight( const renderLight_t*, bool forceUpdate = false );
+	virtual void			GetRenderLight( renderLight_t* );
 	virtual void			ForceUpdate();
 	virtual int				GetIndex();
 	
@@ -203,7 +203,7 @@ public:
 	
 	
 	// derived information
-	idPlane					lightProject[4];		// old style light projection where Z and W are flipped and projected lights lightProject[3] is divided by ( zNear + zFar )
+	ALIGNTYPE16 idPlane		lightProject[4];		// old style light projection where Z and W are flipped and projected lights lightProject[3] is divided by ( zNear + zFar )
 	idRenderMatrix			baseLightProject;		// global xyz1 to projected light strq
 	idRenderMatrix			inverseBaseLightProject;// transforms the zero-to-one cube to exactly cover the light in world space
 	
@@ -230,21 +230,22 @@ public:
 	idRenderEntityLocal();
 	
 	virtual void			FreeRenderEntity();
-	virtual void			UpdateRenderEntity( const renderEntity_t* re, bool forceUpdate = false );
-	virtual void			GetRenderEntity( renderEntity_t* re );
+	virtual void			UpdateRenderEntity( const renderEntity_t*, bool forceUpdate = false );
+	virtual void			GetRenderEntity( renderEntity_t* );
 	virtual void			ForceUpdate();
 	virtual int				GetIndex();
 	
 	// overlays are extra polygons that deform with animating models for blood and damage marks
-	virtual void			ProjectOverlay( const idPlane localTextureAxis[2], const idMaterial* material );
+	virtual void			ProjectOverlay( const idPlane localTextureAxis[2], const idMaterial* );
 	virtual void			RemoveDecals();
 	
 	bool					IsDirectlyVisible() const;
-	void					ReadFromDemoFile( class idDemoFile* f );
-	void					WriteToDemoFile( class idDemoFile* f ) const;
-	renderEntity_t			parms;
+	void					ReadFromDemoFile( class idDemoFile* );
+	void					WriteToDemoFile( class idDemoFile* ) const;
 	
-	float					modelMatrix[16];		// this is just a rearrangement of parms.axis and parms.origin
+	renderEntity_t			parms;
+			
+	// this is just a rearrangement of parms.axis and parms.origin
 	idRenderMatrix			modelRenderMatrix;
 	idRenderMatrix			inverseBaseModelProject;// transforms the unit cube to exactly cover the model in world space
 	
@@ -288,7 +289,7 @@ public:
 struct shadowOnlyEntity_t
 {
 	shadowOnlyEntity_t* 	next;
-	idRenderEntityLocal*		edef;
+	idRenderEntityLocal*	edef;
 };
 
 // viewLights are allocated on the frame temporary stack memory
@@ -325,8 +326,8 @@ struct viewLight_t
 	byte* 					entityInteractionState;		// [numEntities]
 	
 	idVec3					globalLightOrigin;			// global light origin used by backend
-	idPlane					lightProject[4];			// light project used by backend
-	idPlane					fogPlane;					// fog plane for backend fog volume rendering
+	ALIGNTYPE16 idPlane		lightProject[4];			// light project used by backend
+	ALIGNTYPE16 idPlane		fogPlane;					// fog plane for backend fog volume rendering
 	// RB: added for shadow mapping
 	idRenderMatrix			baseLightProject;			// global xyz1 to projected light strq
 	bool					pointLight;					// otherwise a projection light (should probably invert the sense of this, because points are way more common)
@@ -336,7 +337,7 @@ struct viewLight_t
 	// RB end
 	idRenderMatrix			inverseBaseLightProject;	// the matrix for deforming the 'zeroOneCubeModel' to exactly cover the light volume in world space
 	const idMaterial* 		lightShader;				// light shader used by backend
-	const float*				shaderRegisters;			// shader registers used by backend
+	const float*			shaderRegisters;			// shader registers used by backend
 	idImage* 				falloffImage;				// falloff image used by backend
 	
 	drawSurf_t* 			globalShadows;				// shadow everything
@@ -357,33 +358,32 @@ struct viewLight_t
 // A single entityDef can generate multiple viewEntity_t in a single frame, as when seen in a mirror
 struct viewEntity_t
 {
-	viewEntity_t* 			next;
+	viewEntity_t* 					next;
 	
 	// back end should NOT reference the entityDef, because it can change when running SMP
-	idRenderEntityLocal*		entityDef;
+	idRenderEntityLocal*			entityDef;
 	
 	// for scissor clipping, local inside renderView viewport
 	// scissorRect.Empty() is true if the viewEntity_t was never actually
 	// seen through any portals, but was created for shadow casting.
 	// a viewEntity can have a non-empty scissorRect, meaning that an area
 	// that it is in is visible, and still not be visible.
-	idScreenRect			scissorRect;
+	idScreenRect					scissorRect;
 	
-	bool					isGuiSurface;			// force two sided and vertex colors regardless of material setting
+	bool							isGuiSurface;			// force two sided and vertex colors regardless of material setting
 	
-	bool					skipMotionBlur;
+	bool							skipMotionBlur;
 	
-	bool					weaponDepthHack;
-	float					modelDepthHack;
-	
-	float					modelMatrix[16];		// local coords to global coords
-	float					modelViewMatrix[16];	// local coords to eye coords
-	
-	idRenderMatrix			mvp;
+	bool							weaponDepthHack;
+	float							modelDepthHack;
+
+	idRenderMatrix					modelMatrix;			// local coords to global coords
+	idRenderMatrix					modelViewMatrix;		// local coords to eye coords
+	idRenderMatrix					mvp;
 	
 	// parallelAddModels will build a chain of surfaces here that will need to
 	// be linked to the lights or added to the drawsurf list in a serial code section
-	drawSurf_t* 			drawSurfs;
+	drawSurf_t* 					drawSurfs;
 	
 	// R_AddSingleModel will build a chain of parameters here to setup shadow volumes
 	staticShadowVolumeParms_t* 		staticShadowVolumes;
@@ -417,31 +417,58 @@ enum
 	MAX_FRUSTUMS,
 };
 
-typedef idPlane frustum_t[FRUSTUM_PLANES];
+struct frustum_t {
+	ALIGNTYPE16 idPlane planes[ FRUSTUM_PLANES ];
+
+	const idPlane & operator[]( int index ) const
+	{
+		assert( index >= 0 && index < FRUSTUM_PLANES );
+		return planes[ index ];
+	}
+	idPlane & operator[]( int index )
+	{
+		assert( index >= 0 && index < FRUSTUM_PLANES );
+		return planes[ index ];
+	}
+};
 // RB end
 
-// viewDefs are allocated on the frame temporary stack memory
-struct viewDef_t
+/*
+=================================================================
+
+ idRenderView
+
+	viewDefs are allocated on the frame temporary stack memory
+
+=================================================================
+*/
+struct idRenderView
 {
+private: // derived data is private ( its all should be private! )
+
+	//idRenderMatrix			viewMatrix;
+	idRenderMatrix			projectionMatrix;
+	//idRenderMatrix			viewProjectionMatrix;
+	idRenderMatrix			inverseViewMatrix;
+	idRenderMatrix			inverseProjectionMatrix;
+	idRenderMatrix			inverseViewProjectionMatrix;
+	
+	//TODO: get rid of this wordspace crap!
+	viewEntity_t			worldSpace;
+
+// RB begin
+	frustum_t				frustums[ MAX_FRUSTUMS ];					// positive sides face outward, [4] is the front clip plane
+	float					frustumSplitDistances[ MAX_FRUSTUMS ];
+	idRenderMatrix			frustumInvMVPs[ MAX_FRUSTUMS ];
+// RB end
+
+public:
 	// specified in the call to DrawScene()
-	renderView_t		renderView;
+	renderView_t			parms;
 	
-	float				projectionMatrix[16];
-	idRenderMatrix		projectionRenderMatrix;	// tech5 version of projectionMatrix
+	idRenderWorldLocal *	renderWorld;
 	
-	// RB begin
-	float				unprojectionToCameraMatrix[16];
-	idRenderMatrix		unprojectionToCameraRenderMatrix;
-	
-	float				unprojectionToWorldMatrix[16];
-	idRenderMatrix		unprojectionToWorldRenderMatrix;
-	// RB end
-	
-	viewEntity_t		worldSpace;
-	
-	idRenderWorldLocal* renderWorld;
-	
-	idVec3				initialViewAreaOrigin;
+	idVec3					initialViewAreaOrigin;
 	// Used to find the portalArea that view flooding will take place from.
 	// for a normal view, the initialViewOrigin will be renderView.viewOrg,
 	// but a mirror may put the projection origin outside
@@ -451,51 +478,87 @@ struct viewDef_t
 	// mirror intersects a portal, and the initialViewAreaOrigin is on
 	// a different side than the renderView.viewOrg is.
 	
-	bool				isSubview;				// true if this view is not the main view
-	bool				isMirror;				// the portal is a mirror, invert the face culling
-	bool				isXraySubview;
+	bool					isSubview;				// true if this view is not the main view
+	bool					isMirror;				// the portal is a mirror, invert the face culling
+	bool					isXraySubview;
 	
-	bool				isEditor;
-	bool				is2Dgui;
+	bool					isEditor;
+	bool					is2Dgui;
 	
-	int					numClipPlanes;			// mirrors will often use a single clip plane
-	idPlane				clipPlanes[MAX_CLIP_PLANES];		// in world space, the positive side
+	int						numClipPlanes;			// mirrors will often use a single clip plane
+	ALIGNTYPE16 idPlane		clipPlanes[MAX_CLIP_PLANES];		// in world space, the positive side
 	// of the plane is the visible side
-	idScreenRect		viewport;				// in real pixels and proper Y flip
+	idScreenRect			viewport;				// in real pixels and proper Y flip
 	
-	idScreenRect		scissor;
+	idScreenRect			scissor;
 	// for scissor clipping, local inside renderView viewport
 	// subviews may only be rendering part of the main view
 	// these are real physical pixel values, possibly scaled and offset from the
 	// renderView x/y/width/height
 	
-	viewDef_t* 			superView;				// never go into an infinite subview loop
-	const drawSurf_t* 	subviewSurface;
+	idRenderView* 			baseView;				// never go into an infinite subview loop
+	const drawSurf_t* 		subviewSurface;
 	
 	// drawSurfs are the visible surfaces of the viewEntities, sorted
 	// by the material sort parameter
-	drawSurf_t** 		drawSurfs;				// we don't use an idList for this, because
-	int					numDrawSurfs;			// it is allocated in frame temporary memory
-	int					maxDrawSurfs;			// may be resized
+	drawSurf_t** 			drawSurfs;				// we don't use an idList for this, because
+	int						numDrawSurfs;			// it is allocated in frame temporary memory
+	int						maxDrawSurfs;			// may be resized
 	
-	viewLight_t*			viewLights;			// chain of all viewLights effecting view
-	viewEntity_t* 		viewEntitys;			// chain of all viewEntities effecting view, including off screen ones casting shadows
+	viewLight_t*			viewLights;				// chain of all viewLights effecting view
+	viewEntity_t* 			viewEntitys;			// chain of all viewEntities effecting view, including off screen ones casting shadows
 	// we use viewEntities as a check to see if a given view consists solely
 	// of 2D rendering, which we can optimize in certain ways.  A 2D view will
 	// not have any viewEntities
-	
-	// RB begin
-	frustum_t			frustums[MAX_FRUSTUMS];					// positive sides face outward, [4] is the front clip plane
-	float				frustumSplitDistances[MAX_FRUSTUMS];
-	idRenderMatrix		frustumMVPs[MAX_FRUSTUMS];
-	// RB end
-	
-	int					areaNum;				// -1 = not in a valid area
+		
+	int						areaNum;				// -1 = not in a valid area
 	
 	// An array in frame temporary memory that lists if an area can be reached without
 	// crossing a closed door.  This is used to avoid drawing interactions
 	// when the light is behind a closed door.
-	bool* 				connectedAreas;
+	bool* 					connectedAreas;
+public:
+
+	ID_INLINE void			Clear() { memset( this, 0, sizeof( *this ) ); }
+
+	//void Init3DView();
+	//void Init2DView();
+	//void Init( int stereoEye, bool 2DView );
+
+	const idRenderMatrix &	GetViewMatrix() const { return worldSpace.modelViewMatrix; }
+	const idRenderMatrix &	GetProjectionMatrix() const { return projectionMatrix; }
+	const idRenderMatrix &	GetMVPMatrix() const { return worldSpace.mvp; }	// modelmat is identity 
+	const idRenderMatrix &	GetInverseVPMatrix() const { return inverseViewProjectionMatrix; }	// modelmat is identity 
+	const idRenderMatrix &	GetInverseProjMatrix() const { return inverseProjectionMatrix; }
+
+	//TODO: get rid of this wordspace crap!
+	const viewEntity_t &			GetWorldSpace() const { return worldSpace; }
+
+	float							GetZNear() const;
+	ID_INLINE int					GetStereoEye() const { return parms.viewEyeBuffer; }
+	ID_INLINE float					GetStereoScreenSeparation() const { return parms.stereoScreenSeparation; }
+	ID_INLINE const renderView_t &	GetParms() const { return parms; }
+	ID_INLINE int					GetID() const { return parms.viewID; }
+	ID_INLINE float					GetFOVx() const { return parms.fov_x; }
+	ID_INLINE float					GetFOVy() const { return parms.fov_y; }
+	ID_INLINE const idVec3 &		GetOrigin() const { return parms.vieworg; }
+	ID_INLINE const idMat3 &		GetAxis() const { return parms.viewaxis; }
+	ID_INLINE int					GetGameTimeMS( int timeGroup = 0 ) const { return parms.time[ timeGroup ]; }
+	ID_INLINE float					GetGameTimeSec( int timeGroup = 0 ) const { return MS2SEC( parms.time[ timeGroup ] ); }
+	ID_INLINE const float *			GetMaterialParms() const { return parms.shaderParms; }
+	ID_INLINE const idScreenRect &	GetViewport() const { return viewport; }
+	ID_INLINE const idScreenRect &	GetScissor() const { return scissor; } // renderWorld.scissorRect
+	
+	ID_INLINE const frustum_t &  	GetBaseFrustum() const { return frustums[ FRUSTUM_PRIMARY ]; }
+	ID_INLINE const float *			GetSplitFrustumDistances() const { return frustumSplitDistances; }
+	ID_INLINE const idRenderMatrix* GetSplitFrustumInvMVPMatrices() const { return frustumInvMVPs; }
+
+	void					DeriveData();
+
+	// Transform global point to normalized device coordinates.
+	void					GlobalToNormalizedDeviceCoordinates( const idVec3& in_global, idVec3& out_ndc ) const;
+	// Find the screen pixel bounding box of the given winding( global winding-> model space-> screen space ).
+	void					ScreenRectFromWinding( const idWinding &, const idRenderMatrix & modelMatrix, idScreenRect &/*OUT*/ ) const;
 };
 
 
@@ -558,7 +621,7 @@ struct drawSurfsCommand_t
 {
 	renderCommand_t		commandId;
 	renderCommand_t* 	next;
-	viewDef_t* 			viewDef;
+	idRenderView* 			viewDef;
 };
 
 struct copyRenderCommand_t
@@ -578,7 +641,7 @@ struct postProcessCommand_t
 {
 	renderCommand_t		commandId;
 	renderCommand_t* 	next;
-	viewDef_t* 			viewDef;
+	idRenderView* 			viewDef;
 };
 
 //=======================================================================
@@ -628,8 +691,8 @@ extern	idFrameData*	frameData;
 
 //=======================================================================
 
-void R_AddDrawViewCmd( viewDef_t* parms, bool guiOnly );
-void R_AddDrawPostProcess( viewDef_t* parms );
+void R_AddDrawViewCmd( idRenderView* parms, bool guiOnly );
+void R_AddDrawPostProcess( idRenderView* parms );
 
 void R_ReloadGuis_f( const idCmdArgs& args );
 void R_ListGuis_f( const idCmdArgs& args );
@@ -740,7 +803,7 @@ struct backEndCounters_t
 // from the front end state
 struct backEndState_t
 {
-	const viewDef_t*		viewDef;
+	const idRenderView*		viewDef;
 	backEndCounters_t	pc;
 	
 	const viewEntity_t* currentSpace;			// for detecting when a matrix must change
@@ -752,8 +815,9 @@ struct backEndState_t
 	idRenderMatrix		prevMVP[2];				// world MVP from previous frame for motion blur, per-eye
 	
 	// RB begin
-	idRenderMatrix		shadowV[6];				// shadow depth view matrix
-	idRenderMatrix		shadowP[6];				// shadow depth projection matrix
+	///idRenderMatrix		shadowV[6];				// shadow depth view matrix
+	///idRenderMatrix		shadowP[6];				// shadow depth projection matrix
+	idRenderMatrix		shadowVP[ 6 ];
 	
 	float				hdrAverageLuminance;
 	float				hdrMaxLuminance;
@@ -857,10 +921,8 @@ public:
 	void					Clear();
 	void					GetCroppedViewport( idScreenRect* viewport );
 	void					PerformResolutionScaling( int& newWidth, int& newHeight );
-	int						GetFrameCount() const
-	{
-		return frameCount;
-	};
+	int						GetFrameCount() const { return frameCount; };
+	int						GetViewCount() const { return viewCount; };
 	
 	void					OnFrame();
 	
@@ -872,8 +934,8 @@ public:
 	
 	int						frameCount;		// incremented every frame
 	int						viewCount;		// incremented every view (twice a scene if subviewed)
-	// and every R_MarkFragments call
-	
+											// and every R_MarkFragments call
+
 	float					frameShaderTime;	// shader time for all non-world 2D rendering
 	
 	idVec4					ambientLightVector;	// used for "ambient bump mapping"
@@ -882,7 +944,7 @@ public:
 	
 	idRenderWorldLocal* 	primaryWorld;
 	renderView_t			primaryRenderView;
-	viewDef_t* 				primaryView;
+	idRenderView* 			primaryView;
 	// many console commands need to know which world they should operate on
 	
 	const idMaterial* 		whiteMaterial;
@@ -896,7 +958,7 @@ public:
 	
 	idImage* 				ambientCubeImage;	// hack for testing dependent ambient lighting
 	
-	viewDef_t* 				viewDef;
+	idRenderView* 				viewDef;
 	
 	performanceCounters_t	pc;					// performance counters
 	
@@ -909,7 +971,7 @@ public:
 	int						guiRecursionLevel;		// to prevent infinite overruns
 	uint32					currentColorNativeBytesOrder;
 	uint64					currentGLState;
-	class idGuiModel* 		guiModel;
+	class idRenderModelGui* 		guiModel;
 	
 	idList<idFont*, TAG_FONT>		fonts;
 	
@@ -1284,8 +1346,8 @@ void* R_StaticAlloc( int bytes, const memTag_t tag = TAG_RENDER_STATIC );		// ju
 void* R_ClearedStaticAlloc( int bytes );	// with memset
 void R_StaticFree( void* data );
 
-void R_RenderView( viewDef_t* parms );
-void R_RenderPostProcess( viewDef_t* parms );
+void R_RenderView( idRenderView* );
+void R_RenderPostProcess( idRenderView* );
 
 /*
 ============================================================
@@ -1304,8 +1366,7 @@ ID_INLINE bool R_CullModelBoundsToLight( const idRenderLightLocal* light, const 
 	return idRenderMatrix::CullBoundsToMVP( modelLightProject, localBounds, true );
 }
 
-void R_AddLights();
-void R_OptimizeViewLightsList();
+
 
 /*
 ============================================================
@@ -1321,9 +1382,8 @@ void R_ClearEntityDefDynamicModel( idRenderEntityLocal* def );
 
 void R_SetupDrawSurfShader( drawSurf_t* drawSurf, const idMaterial* shader, const renderEntity_t* renderEntity );
 void R_SetupDrawSurfJoints( drawSurf_t* drawSurf, const srfTriangles_t* tri, const idMaterial* shader );
-void R_LinkDrawSurfToView( drawSurf_t* drawSurf, viewDef_t* viewDef );
+void R_LinkDrawSurfToView( drawSurf_t* drawSurf, idRenderView* viewDef );
 
-void R_AddModels();
 
 /*
 =============================================================
@@ -1343,8 +1403,7 @@ TR_FRONTEND_GUISURF
 =============================================================
 */
 
-void R_SurfaceToTextureAxis( const srfTriangles_t* tri, idVec3& origin, idVec3 axis[3] );
-void R_AddInGameGuis( const drawSurf_t* const drawSurfs[], const int numDrawSurfs );
+void R_SurfaceToTextureAxis( const srfTriangles_t* tri, idVec3& origin, idMat3& axis );
 
 /*
 ============================================================
@@ -1355,7 +1414,6 @@ TR_FRONTEND_SUBVIEW
 */
 
 bool R_PreciseCullSurface( const drawSurf_t* drawSurf, idBounds& ndcBounds );
-bool R_GenerateSubViews( const drawSurf_t* const drawSurfs[], const int numDrawSurfs );
 
 /*
 ============================================================
@@ -1492,7 +1550,7 @@ TR_BACKEND_DRAW
 
 void RB_SetMVP( const idRenderMatrix& mvp );
 void RB_DrawElementsWithCounters( const drawSurf_t* surf );
-void RB_DrawViewInternal( const viewDef_t* viewDef, const int stereoEye );
+void RB_DrawViewInternal( const idRenderView* viewDef, const int stereoEye );
 void RB_DrawView( const void* data, const int stereoEye );
 void RB_CopyRender( const void* data );
 void RB_PostProcess( const void* data );
@@ -1532,7 +1590,7 @@ void RB_SetVertexColorParms( stageVertexColor_t svc );
 #include "jobs/staticshadowvolume/StaticShadowVolume.h"
 #include "jobs/dynamicshadowvolume/DynamicShadowVolume.h"
 #include "GraphicsAPIWrapper.h"
-#include "GLMatrix.h"
+///#include "GLMatrix.h"
 
 
 

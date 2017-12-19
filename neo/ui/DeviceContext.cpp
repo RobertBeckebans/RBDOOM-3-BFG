@@ -35,7 +35,7 @@ If you have questions concerning this license or the applicable additional terms
 extern idCVar in_useJoystick;
 
 // bypass rendersystem to directly work on guiModel
-extern idGuiModel* tr_guiModel;
+extern idRenderModelGui* tr_guiModel;
 
 idVec4 idDeviceContext::colorPurple;
 idVec4 idDeviceContext::colorOrange;

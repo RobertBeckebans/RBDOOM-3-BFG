@@ -248,6 +248,12 @@ FONT-END RENDERING
 ==========================================================================================
 */
 
+extern void R_AddInGameGuis( idRenderView * );
+extern void R_OptimizeViewLightsList( idRenderView* );
+extern bool R_GenerateSubViews( idRenderView* );
+extern void R_AddLights( idRenderView * );
+extern void R_AddModels( idRenderView * );
+
 /*
 =================
 R_SortDrawSurfs
@@ -385,69 +391,6 @@ static void R_SortDrawSurfs( drawSurf_t** drawSurfs, const int numDrawSurfs )
 #endif
 }
 
-// RB begin
-static void R_SetupSplitFrustums( viewDef_t* viewDef )
-{
-	idVec3			planeOrigin;
-	
-	const float zNearStart = ( viewDef->renderView.cramZNear ) ? ( r_znear.GetFloat() * 0.25f ) : r_znear.GetFloat();
-	float zFarEnd = 10000;
-	
-	float zNear = zNearStart;
-	float zFar = zFarEnd;
-	
-	float lambda = r_shadowMapSplitWeight.GetFloat();
-	float ratio = zFarEnd / zNearStart;
-	
-	for( int i = 0; i < 6; i++ )
-	{
-		tr.viewDef->frustumSplitDistances[i] = idMath::INFINITY;
-	}
-	
-	for( int i = 1; i <= ( r_shadowMapSplits.GetInteger() + 1 ) && i < MAX_FRUSTUMS; i++ )
-	{
-		float si = i / ( float )( r_shadowMapSplits.GetInteger() + 1 );
-		
-		if( i > FRUSTUM_CASCADE1 )
-		{
-			zNear = zFar - ( zFar * 0.005f );
-		}
-		
-		zFar = 1.005f * lambda * ( zNearStart * powf( ratio, si ) ) + ( 1 - lambda ) * ( zNearStart + ( zFarEnd - zNearStart ) * si );
-		
-		if( i <= r_shadowMapSplits.GetInteger() )
-		{
-			tr.viewDef->frustumSplitDistances[i - 1] = zFar;
-		}
-		
-		float projectionMatrix[16];
-		R_SetupProjectionMatrix2( tr.viewDef, zNear, zFar, projectionMatrix );
-		
-		// setup render matrices for faster culling
-		idRenderMatrix projectionRenderMatrix;
-		idRenderMatrix::Transpose( *( idRenderMatrix* )projectionMatrix, projectionRenderMatrix );
-		idRenderMatrix viewRenderMatrix;
-		idRenderMatrix::Transpose( *( idRenderMatrix* )tr.viewDef->worldSpace.modelViewMatrix, viewRenderMatrix );
-		idRenderMatrix::Multiply( projectionRenderMatrix, viewRenderMatrix, tr.viewDef->frustumMVPs[i] );
-		
-		// the planes of the view frustum are needed for portal visibility culling
-		idRenderMatrix::GetFrustumPlanes( tr.viewDef->frustums[i], tr.viewDef->frustumMVPs[i], false, true );
-		
-		// the DOOM 3 frustum planes point outside the frustum
-		for( int j = 0; j < 6; j++ )
-		{
-			tr.viewDef->frustums[i][j] = - tr.viewDef->frustums[i][j];
-		}
-		
-		// remove the Z-near to avoid portals from being near clipped
-		if( i == FRUSTUM_CASCADE1 )
-		{
-			tr.viewDef->frustums[i][4][3] -= r_znear.GetFloat();
-		}
-	}
-}
-// RB end
-
 /*
 ================
 R_RenderView
@@ -458,71 +401,39 @@ a mirror / remote location, or a 3D view on a gui surface.
 Parms will typically be allocated with R_FrameAlloc
 ================
 */
-void R_RenderView( viewDef_t* parms )
+void R_RenderView( idRenderView * renderView )
 {
 	// save view in case we are a subview
-	viewDef_t* oldView = tr.viewDef;
+	idRenderView* oldView = tr.viewDef;
+	tr.viewDef = renderView;
 	
-	tr.viewDef = parms;
-	
-	// setup the matrix for world space to eye space
-	R_SetupViewMatrix( tr.viewDef );
-	
-	// we need to set the projection matrix before doing
-	// portal-to-screen scissor calculations
-	R_SetupProjectionMatrix( tr.viewDef );
-	
-	// RB: we need a unprojection matrix to calculate the vertex position based on the depth image value
-	// for some post process shaders
-	R_SetupUnprojection( tr.viewDef );
-	// RB end
-	
-	// setup render matrices for faster culling
-	idRenderMatrix::Transpose( *( idRenderMatrix* )tr.viewDef->projectionMatrix, tr.viewDef->projectionRenderMatrix );
-	idRenderMatrix viewRenderMatrix;
-	idRenderMatrix::Transpose( *( idRenderMatrix* )tr.viewDef->worldSpace.modelViewMatrix, viewRenderMatrix );
-	idRenderMatrix::Multiply( tr.viewDef->projectionRenderMatrix, viewRenderMatrix, tr.viewDef->worldSpace.mvp );
-	
-	// the planes of the view frustum are needed for portal visibility culling
-	idRenderMatrix::GetFrustumPlanes( tr.viewDef->frustums[FRUSTUM_PRIMARY], tr.viewDef->worldSpace.mvp, false, true );
-	
-	// the DOOM 3 frustum planes point outside the frustum
-	for( int i = 0; i < 6; i++ )
-	{
-		tr.viewDef->frustums[FRUSTUM_PRIMARY][i] = - tr.viewDef->frustums[FRUSTUM_PRIMARY][i];
-	}
-	// remove the Z-near to avoid portals from being near clipped
-	tr.viewDef->frustums[FRUSTUM_PRIMARY][4][3] -= r_znear.GetFloat();
-	
-	// RB begin
-	R_SetupSplitFrustums( tr.viewDef );
-	// RB end
+	renderView->DeriveData();
 	
 	// identify all the visible portal areas, and create view lights and view entities
 	// for all the the entityDefs and lightDefs that are in the visible portal areas
-	static_cast<idRenderWorldLocal*>( parms->renderWorld )->FindViewLightsAndEntities();
+	static_cast<idRenderWorldLocal*>( renderView->renderWorld )->FindViewLightsAndEntities();
 	
 	// wait for any shadow volume jobs from the previous frame to finish
 	tr.frontEndJobList->Wait();
 	
 	// make sure that interactions exist for all light / entity combinations that are visible
 	// add any pre-generated light shadows, and calculate the light shader values
-	R_AddLights();
+	R_AddLights( renderView );
 	
 	// adds ambient surfaces and create any necessary interaction surfaces to add to the light lists
-	R_AddModels();
+	R_AddModels( renderView );
 	
 	// build up the GUIs on world surfaces
-	R_AddInGameGuis( tr.viewDef->drawSurfs, tr.viewDef->numDrawSurfs );
+	R_AddInGameGuis( renderView );
 	
 	// any viewLight that didn't have visible surfaces can have it's shadows removed
-	R_OptimizeViewLightsList();
+	R_OptimizeViewLightsList( renderView );
 	
 	// sort all the ambient surfaces for translucency ordering
-	R_SortDrawSurfs( tr.viewDef->drawSurfs, tr.viewDef->numDrawSurfs );
+	R_SortDrawSurfs( renderView->drawSurfs, renderView->numDrawSurfs );
 	
 	// generate any subviews (mirrors, cameras, etc) before adding this view
-	if( R_GenerateSubViews( tr.viewDef->drawSurfs, tr.viewDef->numDrawSurfs ) )
+	if( R_GenerateSubViews( renderView ) )
 	{
 		// if we are debugging subviews, allow the skipping of the main view draw
 		if( r_subviewOnly.GetBool() )
@@ -534,11 +445,11 @@ void R_RenderView( viewDef_t* parms )
 	// write everything needed to the demo file
 	if( common->WriteDemo() )
 	{
-		static_cast<idRenderWorldLocal*>( parms->renderWorld )->WriteVisibleDefs( tr.viewDef );
+		static_cast<idRenderWorldLocal*>( renderView->renderWorld )->WriteVisibleDefs( renderView );
 	}
 	
 	// add the rendering commands for this viewDef
-	R_AddDrawViewCmd( parms, false );
+	R_AddDrawViewCmd( renderView, false );
 	
 	// restore view in case we are a subview
 	tr.viewDef = oldView;
@@ -552,11 +463,11 @@ Because R_RenderView may be called by subviews we have to make sure the post pro
 pass happens after the active view and its subviews is done rendering.
 ================
 */
-void R_RenderPostProcess( viewDef_t* parms )
+void R_RenderPostProcess( idRenderView * renderView )
 {
-	viewDef_t* oldView = tr.viewDef;
+	idRenderView* oldView = tr.viewDef;
 	
-	R_AddDrawPostProcess( parms );
+	R_AddDrawPostProcess( renderView );
 	
 	tr.viewDef = oldView;
 }

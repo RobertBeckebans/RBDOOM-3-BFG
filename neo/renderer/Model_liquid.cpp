@@ -531,7 +531,7 @@ void idRenderModelLiquid::InitFromFile( const char* fileName )
 idRenderModelLiquid::InstantiateDynamicModel
 ====================
 */
-idRenderModel* idRenderModelLiquid::InstantiateDynamicModel( const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel )
+idRenderModel* idRenderModelLiquid::InstantiateDynamicModel( const struct renderEntity_s* ent, const idRenderView* view, idRenderModel* cachedModel )
 {
 	idRenderModelStatic*	staticModel;
 	int		frames;
@@ -555,7 +555,7 @@ idRenderModel* idRenderModelLiquid::InstantiateDynamicModel( const struct render
 	}
 	else
 	{
-		t = view->renderView.time[0];
+		t = view->GetGameTimeMS();
 	}
 	
 	// update the liquid model

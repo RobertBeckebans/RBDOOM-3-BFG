@@ -118,6 +118,12 @@ static float dot3( float4 a, float3 b ) { return dot( a.xyz, b ); }
 static float dot3( float4 a, float4 b ) { return dot( a.xyz, b.xyz ); }
 static float dot4( float4 a, float4 b ) { return dot( a, b ); }
 static float dot4( float2 a, float4 b ) { return dot( float4( a, 0, 1 ), b ); }
+//static float dot4( const in float2 a, const in float4 b ) { return dot( float4( a, 0.0f, 1.0f ), b ); }
+
+static void clip( const in float v, const in float threshold ) { if ( v < threshold ) { discard; } }
+static void clip( const in vec2 v, const in float threshold ) { if ( all( lessThan( v, vec2( threshold ) ) ) ) discard; }
+static void clip( const in vec3 v, const in float threshold ) { if ( all( lessThan( v, vec3( threshold ) ) ) ) discard; }
+static void clip( const in vec4 v, const in float threshold ) { if ( all( lessThan( v, vec4( threshold ) ) ) ) discard; }
 
 // RB begin
 #ifndef PI
@@ -127,42 +133,56 @@ static float dot4( float2 a, float4 b ) { return dot( float4( a, 0, 1 ), b ); }
 #define DEG2RAD( a )				( ( a ) * PI / 180.0f )
 #define RAD2DEG( a )				( ( a ) * 180.0f / PI )
 
+#define mul( a, b ) 	( a * b )
+
 // ----------------------
 // sRGB <-> Linear RGB Color Conversion
 // ----------------------
 
-half3 sRGBToLinearRGB( half3 rgb )
+half3 sRGBToLinearRGB( in half3 vSrgbGammaColor )
 {
 #if defined( USE_LINEAR_RGB ) && !defined( USE_SRGB )
-	return max( pow( rgb, half3( 2.2 ) ), half3( 0.0 ) );
+	//return max( pow( vSrgbGammaColor, half3( 2.2 ) ), half3( 0.0 ) );
+	half3 vLinearSegment = vSrgbGammaColor / 12.92f;
+	half3 vExpSegment = pow( ( ( vSrgbGammaColor + 0.055f ) / 1.055f ), half3( 2.4f ) );
+	return half3( 	( vSrgbGammaColor.r <= 0.04045f ) ? vLinearSegment.r : vExpSegment.r,
+					( vSrgbGammaColor.g <= 0.04045f ) ? vLinearSegment.g : vExpSegment.g,
+					( vSrgbGammaColor.b <= 0.04045f ) ? vLinearSegment.b : vExpSegment.b );
 #else
-	return rgb;
+	return vSrgbGammaColor;
 #endif
 }
 
-half4 sRGBAToLinearRGBA( half4 rgba )
+half4 sRGBAToLinearRGBA( in half4 rgba )
 {
 #if defined( USE_LINEAR_RGB ) && !defined( USE_SRGB )
-	return float4( max( pow( rgba.rgb, half3( 2.2 ) ), half3( 0.0 ) ), rgba.a );
+	//return float4( max( pow( rgba.rgb, half3( 2.2 ) ), half3( 0.0 ) ), rgba.a );
+	return half4( sRGBToLinearRGB( rgba.rgb ), rgba.a );
 #else
 	return rgba;
 #endif
 }
 
-half3 LinearRGBToSRGB( half3 rgb )
+half3 LinearRGBToSRGB( in half3 vLinearColor )
 {
 #if defined( USE_LINEAR_RGB ) && !defined( USE_SRGB )
-	return pow( rgb, half3( 1.0 ) / half3( 2.2 ) );
+	//return pow( vLinearColor, half3( 1.0 ) / half3( 2.2 ) );
+	half3 vLinearSegment = vLinearColor * 12.92f;
+	half3 vExpSegment = pow( vLinearColor, half3( 0.41666f ) ) * 1.055f - 0.055f;
+	return half3( 	( vLinearColor.r <= 0.0031308f ) ? vLinearSegment.r : vExpSegment.r,
+					( vLinearColor.g <= 0.0031308f ) ? vLinearSegment.g : vExpSegment.g,
+					( vLinearColor.b <= 0.0031308f ) ? vLinearSegment.b : vExpSegment.b );
 #else
-	return rgb;
+	return vLinearColor;
 #endif
 }
 
-half4 LinearRGBToSRGB( half4 rgba )
+half4 LinearRGBToSRGB( in half4 rgba )
 {
 #if defined( USE_LINEAR_RGB ) && !defined( USE_SRGB )
-	rgba.rgb = pow( rgba.rgb, half3( 1.0 ) / half3( 2.2 ) );
-	return rgba; //pow( rgba, half4( 1.0 ) / half4( 2.2 ) );
+	//rgba.rgb = pow( rgba.rgb, half3( 1.0 ) / half3( 2.2 ) );
+	//return rgba; //pow( rgba, half4( 1.0 ) / half4( 2.2 ) );
+	return half4( LinearRGBToSRGB( rgba.rgb ), rgba.a );
 #else
 	return rgba;
 #endif
@@ -248,3 +268,5 @@ static float2 vposToScreenPosTexCoord( float2 vpos ) { return vpos.xy * rpWindow
 
 #define BRANCH
 #define IFANY
+#define UNROLL
+#define FLATTEN

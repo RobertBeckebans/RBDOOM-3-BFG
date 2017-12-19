@@ -138,7 +138,7 @@ int idRenderModelStatic::Memory() const
 	
 	for( int j = 0; j < NumSurfaces(); j++ )
 	{
-		const modelSurface_t*	surf = Surface( j );
+		const modelSurface_t* surf = Surface( j );
 		if( !surf->geometry )
 		{
 			continue;
@@ -1026,7 +1026,7 @@ float idRenderModelStatic::DepthHack() const
 idRenderModelStatic::InstantiateDynamicModel
 ================
 */
-idRenderModel* idRenderModelStatic::InstantiateDynamicModel( const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel )
+idRenderModel* idRenderModelStatic::InstantiateDynamicModel( const struct renderEntity_s* ent, const idRenderView* view, idRenderModel* cachedModel )
 {
 	if( cachedModel )
 	{
@@ -3371,7 +3371,7 @@ idRenderModelStatic::WriteToDemoFile
 void idRenderModelStatic::WriteToDemoFile( class idDemoFile* f )
 {
 	// note that it has been updated
-	lastArchivedFrame = tr.frameCount;
+	lastArchivedFrame = tr.GetFrameCount();
 	
 	f->WriteHashString( this->Name() );
 	

@@ -31,7 +31,7 @@ If you have questions concerning this license or the applicable additional terms
 
 static const int NUM_FRUSTUM_CORNERS	= 8;
 
-struct frustumCorners_t
+ALIGNTYPE16 struct frustumCorners_t
 {
 	float	x[NUM_FRUSTUM_CORNERS];
 	float	y[NUM_FRUSTUM_CORNERS];
@@ -48,9 +48,11 @@ enum frustumCull_t
 /*
 ================================================================================================
 
-idRenderMatrix
+	idRenderMatrix
 
-This is a row-major matrix and transforms are applied with left-multiplication.
+	This is a row-major matrix and transforms are applied with left-multiplication.
+
+	OpenGL uses a right-handed coordinate system, while Direct3D traditionally used a left-handed system.
 
 ================================================================================================
 */
@@ -73,13 +75,48 @@ public:
 		assert( index >= 0 && index < 4 );
 		return &m[index * 4];
 	}
-	
-	void					Zero()
+
+	const float *			Ptr() const
 	{
+		return m;
+	}
+	
+	ID_INLINE void			Zero()
+	{
+	#if !defined(USE_INTRINSICS)
 		memset( m, 0, sizeof( m ) );
+	#else
+		_mm_store_ps( operator[]( 0 ), _mm_setzero_ps() );
+		_mm_store_ps( operator[]( 1 ), _mm_setzero_ps() );
+		_mm_store_ps( operator[]( 2 ), _mm_setzero_ps() );
+		_mm_store_ps( operator[]( 3 ), _mm_setzero_ps() );
+	#endif
 	}
 	ID_INLINE void			Identity();
-	
+
+	ID_INLINE void			Copy( const idRenderMatrix & src )
+	{
+	#if defined( USE_INTRINSICS )
+		const __m128 r0 = _mm_load_ps( src.m + 0 * 4 );
+		const __m128 r1 = _mm_load_ps( src.m + 1 * 4 );
+		const __m128 r2 = _mm_load_ps( src.m + 2 * 4 );
+		const __m128 r3 = _mm_load_ps( src.m + 3 * 4 );
+	  #if 1
+		_mm_store_ps( m + 0 * 4, r0 );
+		_mm_store_ps( m + 1 * 4, r1 );
+		_mm_store_ps( m + 2 * 4, r2 );
+		_mm_store_ps( m + 3 * 4, r3 );
+	  #else
+		_mm_stream_ps( m + 0 * 4, r0 );
+		_mm_stream_ps( m + 1 * 4, r1 );
+		_mm_stream_ps( m + 2 * 4, r2 );
+		_mm_stream_ps( m + 3 * 4, r3 );
+	  #endif
+	#else
+		memcpy( m, src[0], sizeof( m ) );
+	#endif
+	}
+
 	// Matrix classification (only meant to be used for asserts).
 	ID_INLINE bool			IsZero( float epsilon ) const;
 	ID_INLINE bool			IsIdentity( float epsilon ) const;
@@ -91,16 +128,18 @@ public:
 	ID_INLINE void			TransformPoint( const idVec3& in, idVec3& out ) const;
 	ID_INLINE void			TransformPoint( const idVec3& in, idVec4& out ) const;
 	ID_INLINE void			TransformPoint( const idVec4& in, idVec4& out ) const;
-	
+
 	// These assume the matrix has no non-uniform scaling or shearing.
 	// NOTE: a direction will only stay normalized if the matrix has no skewing or scaling.
-	ID_INLINE void			TransformDir( const idVec3& in, idVec3& out, bool normalize ) const;
-	ID_INLINE void			TransformPlane( const idPlane& in, idPlane& out, bool normalize ) const;
+	ID_INLINE void			TransformDir( const idVec3& in, idVec3& out, bool normalize = false ) const;
+	ID_INLINE void			TransformPlane( const idPlane& in, idPlane& out, bool normalize = false ) const;
 	
+	ID_INLINE void			InverseTransformPoint( const idVec3& in, idVec3& out ) const;
+
 	// These transforms work with non-uniform scaling and shearing by multiplying
 	// with 'transpose(inverse(M))' where this matrix is assumed to be 'inverse(M)'.
-	ID_INLINE void			InverseTransformDir( const idVec3& in, idVec3& out, bool normalize ) const;
-	ID_INLINE void			InverseTransformPlane( const idPlane& in, idPlane& out, bool normalize ) const;
+	ID_INLINE void			InverseTransformDir( const idVec3& in, idVec3& out, bool normalize = false ) const;
+	ID_INLINE void			InverseTransformPlane( const idPlane& in, idPlane& out, bool normalize = false ) const;
 	
 	// Project a point.
 	static ID_INLINE void	TransformModelToClip( const idVec3& src, const idRenderMatrix& modelMatrix, const idRenderMatrix& projectionMatrix, idVec4& eye, idVec4& clip );
@@ -116,7 +155,11 @@ public:
 	// Create a projection matrix.
 	static void				CreateProjectionMatrix( float xMin, float xMax, float yMin, float yMax, float zNear, float zFar, idRenderMatrix& out );
 	static void				CreateProjectionMatrixFov( float xFovDegrees, float yFovDegrees, float zNear, float zFar, float xOffset, float yOffset, idRenderMatrix& out );
-	
+
+	// Create a orthogonal projection matrix.
+	static void				CreateOrthogonalProjection( float width, float hight, float zNear, float zFar, idRenderMatrix & out, const bool wtf );
+	static void				CreateOrthogonalOffCenterProjection( float xMin_left, float xMax_right, float yMin_bottom, float yMax_top, float zNear, float zFar, idRenderMatrix & out );
+		
 	// Apply depth hacks to a projection matrix.
 	static ID_INLINE void	ApplyDepthHack( idRenderMatrix& src );
 	static ID_INLINE void	ApplyModelDepthHack( idRenderMatrix& src, float value );
@@ -162,7 +205,7 @@ public:
 	static frustumCull_t	CullFrustumCornersToPlane( const frustumCorners_t& corners, const idPlane& plane );
 	
 private:
-	float					m[16];
+	ALIGN16( float			m[16] );
 };
 
 extern const idRenderMatrix renderMatrix_identity;
@@ -177,10 +220,11 @@ extern const idRenderMatrix renderMatrix_clipSpaceToWindowSpace;
 idRenderMatrix::idRenderMatrix
 ========================
 */
-ID_INLINE idRenderMatrix::idRenderMatrix(	float a0, float a1, float a2, float a3,
-		float b0, float b1, float b2, float b3,
-		float c0, float c1, float c2, float c3,
-		float d0, float d1, float d2, float d3 )
+ID_INLINE idRenderMatrix::idRenderMatrix(	
+	float a0, float a1, float a2, float a3,
+	float b0, float b1, float b2, float b3,
+	float c0, float c1, float c2, float c3,
+	float d0, float d1, float d2, float d3 )
 {
 	m[0 * 4 + 0] = a0;
 	m[0 * 4 + 1] = a1;
@@ -207,6 +251,7 @@ idRenderMatrix::Identity
 */
 ID_INLINE void idRenderMatrix::Identity()
 {
+#if 0
 	m[0 * 4 + 0] = 1.0f;
 	m[0 * 4 + 1] = 0.0f;
 	m[0 * 4 + 2] = 0.0f;
@@ -226,6 +271,9 @@ ID_INLINE void idRenderMatrix::Identity()
 	m[3 * 4 + 1] = 0.0f;
 	m[3 * 4 + 2] = 0.0f;
 	m[3 * 4 + 3] = 1.0f;
+#else
+	Copy( renderMatrix_identity ); 
+#endif
 }
 
 /*
@@ -283,9 +331,9 @@ idRenderMatrix::IsAffineTransform
 ID_INLINE bool idRenderMatrix::IsAffineTransform( float epsilon ) const
 {
 	if( idMath::Fabs( m[3 * 4 + 0] ) > epsilon ||
-			idMath::Fabs( m[3 * 4 + 1] ) > epsilon ||
-			idMath::Fabs( m[3 * 4 + 2] ) > epsilon ||
-			idMath::Fabs( m[3 * 4 + 3] - 1.0f ) > epsilon )
+		idMath::Fabs( m[3 * 4 + 1] ) > epsilon ||
+		idMath::Fabs( m[3 * 4 + 2] ) > epsilon ||
+		idMath::Fabs( m[3 * 4 + 3] - 1.0f ) > epsilon )
 	{
 		return false;
 	}
@@ -415,6 +463,27 @@ ID_INLINE void idRenderMatrix::TransformPlane( const idPlane& in, idPlane& out, 
 
 /*
 ========================
+idRenderMatrix::InverseTransformPoint	/ R_GlobalPointToLocal
+	NOTE: assumes no skewing or scaling transforms
+========================
+*/
+ID_INLINE void idRenderMatrix::InverseTransformPoint( const idVec3& in, idVec3& out ) const
+{
+	assert( in.ToFloatPtr() != out.ToFloatPtr() );
+	const idRenderMatrix& matrix = *this;
+	idVec3 temp;
+
+	temp[ 0 ] = in[ 0 ] - matrix[0][3];
+	temp[ 1 ] = in[ 1 ] - matrix[1][3];
+	temp[ 2 ] = in[ 2 ] - matrix[2][3];
+
+	out[ 0 ] = temp[ 0 ] * matrix[0][0] + temp[ 1 ] * matrix[1][0] + temp[ 2 ] * matrix[2][0];
+	out[ 1 ] = temp[ 0 ] * matrix[0][1] + temp[ 1 ] * matrix[1][1] + temp[ 2 ] * matrix[2][1];
+	out[ 2 ] = temp[ 0 ] * matrix[0][2] + temp[ 1 ] * matrix[1][2] + temp[ 2 ] * matrix[2][2];
+}
+
+/*
+========================
 idRenderMatrix::InverseTransformDir
 ========================
 */
@@ -500,7 +569,7 @@ ID_INLINE void idRenderMatrix::TransformClipToDevice( const idVec4& clip, idVec3
 	float r = 1.0f / clip[3];
 	ndc[0] = clip[0] * r;
 	ndc[1] = clip[1] * r;
-	ndc[2] = clip[2] * r;
+	ndc[2] = clip[2] * r;	// NOTE: in D3D this is in the range [0,1]
 }
 
 /*

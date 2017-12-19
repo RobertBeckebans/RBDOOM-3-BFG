@@ -41,8 +41,8 @@ struct portalStack_t
 	const portal_t* 		p;
 	const portalStack_t* 	next;
 	// positive side is outside the visible frustum
+	ALIGNTYPE16 idPlane		portalPlanes[MAX_PORTAL_PLANES + 1];
 	int						numPortalPlanes;
-	idPlane					portalPlanes[MAX_PORTAL_PLANES + 1];
 	idScreenRect			rect;
 };
 
@@ -65,12 +65,12 @@ a viewLight and add it to the list with an empty scissor rect.
 */
 viewLight_t* R_SetLightDefViewLight( idRenderLightLocal* light )
 {
-	if( light->viewCount == tr.viewCount )
+	if( light->viewCount == tr.GetViewCount() )
 	{
 		// already set up for this frame
 		return light->viewLight;
 	}
-	light->viewCount = tr.viewCount;
+	light->viewCount = tr.GetViewCount();
 	
 	// add to the view light chain
 	viewLight_t* vLight = ( viewLight_t* )R_ClearedFrameAlloc( sizeof( *vLight ), FRAME_ALLOC_VIEW_LIGHT );
@@ -99,12 +99,12 @@ a viewEntity and add it to the list with an empty scissor rect.
 */
 viewEntity_t* R_SetEntityDefViewEntity( idRenderEntityLocal* def )
 {
-	if( def->viewCount == tr.viewCount )
+	if( def->viewCount == tr.GetViewCount() )
 	{
 		// already set up for this frame
 		return def->viewEntity;
 	}
-	def->viewCount = tr.viewCount;
+	def->viewCount = tr.GetViewCount();
 	
 	viewEntity_t* vModel = ( viewEntity_t* )R_ClearedFrameAlloc( sizeof( *vModel ), FRAME_ALLOC_VIEW_ENTITY );
 	vModel->entityDef = def;
@@ -159,7 +159,7 @@ bool idRenderWorldLocal::CullEntityByPortals( const idRenderEntityLocal* entity,
 			// the entity frustum planes face inward, so the planes that have the
 			// view origin on the positive side will be the "back" faces of the entity,
 			// which must have some fragment inside the portal stack planes to be visible
-			if( frustumPlanes[i].Distance( tr.viewDef->renderView.vieworg ) <= 0.0f )
+			if( frustumPlanes[i].Distance( tr.viewDef->GetOrigin() ) <= 0.0f )
 			{
 				continue;
 			}
@@ -234,18 +234,16 @@ void idRenderWorldLocal::AddAreaViewEntities( int areaNum, const portalStack_t* 
 		}
 		
 		// remove decals that are completely faded away
-		R_FreeEntityDefFadedDecals( entity, tr.viewDef->renderView.time[0] );
+		R_FreeEntityDefFadedDecals( entity, tr.viewDef->GetGameTimeMS() );
 		
 		// check for completely suppressing the model
 		if( !r_skipSuppress.GetBool() )
 		{
-			if( entity->parms.suppressSurfaceInViewID
-					&& entity->parms.suppressSurfaceInViewID == tr.viewDef->renderView.viewID )
+			if( entity->parms.suppressSurfaceInViewID && entity->parms.suppressSurfaceInViewID == tr.viewDef->GetID() )
 			{
 				continue;
 			}
-			if( entity->parms.allowSurfaceInViewID
-					&& entity->parms.allowSurfaceInViewID != tr.viewDef->renderView.viewID )
+			if( entity->parms.allowSurfaceInViewID && entity->parms.allowSurfaceInViewID != tr.viewDef->GetID() )
 			{
 				continue;
 			}
@@ -301,7 +299,7 @@ bool idRenderWorldLocal::CullLightByPortals( const idRenderLightLocal* light, co
 			// the light frustum planes face inward, so the planes that have the
 			// view origin on the positive side will be the "back" faces of the light,
 			// which must have some fragment inside the the portal stack planes to be visible
-			if( frustumPlanes[i].Distance( tr.viewDef->renderView.vieworg ) <= 0.0f )
+			if( frustumPlanes[i].Distance( tr.viewDef->GetOrigin() ) <= 0.0f )
 			{
 				continue;
 			}
@@ -409,41 +407,11 @@ if more than one portal sees into the area
 void idRenderWorldLocal::AddAreaToView( int areaNum, const portalStack_t* ps )
 {
 	// mark the viewCount, so r_showPortals can display the considered portals
-	portalAreas[ areaNum ].viewCount = tr.viewCount;
+	portalAreas[ areaNum ].viewCount = tr.GetViewCount();
 	
 	// add the models and lights, using more precise culling to the planes
 	AddAreaViewEntities( areaNum, ps );
 	AddAreaViewLights( areaNum, ps );
-}
-
-/*
-===================
-idRenderWorldLocal::ScreenRectForWinding
-===================
-*/
-idScreenRect idRenderWorldLocal::ScreenRectFromWinding( const idWinding* w, const viewEntity_t* space )
-{
-	const float viewWidth = ( float ) tr.viewDef->viewport.x2 - ( float ) tr.viewDef->viewport.x1;
-	const float viewHeight = ( float ) tr.viewDef->viewport.y2 - ( float ) tr.viewDef->viewport.y1;
-	
-	idScreenRect r;
-	r.Clear();
-	for( int i = 0; i < w->GetNumPoints(); i++ )
-	{
-		idVec3 v;
-		idVec3 ndc;
-		R_LocalPointToGlobal( space->modelMatrix, ( *w )[i].ToVec3(), v );
-		R_GlobalToNormalizedDeviceCoordinates( v, ndc );
-		
-		float windowX = ( ndc[0] * 0.5f + 0.5f ) * viewWidth;
-		float windowY = ( ndc[1] * 0.5f + 0.5f ) * viewHeight;
-		
-		r.AddPoint( windowX, windowY );
-	}
-	
-	r.Expand();
-	
-	return r;
 }
 
 /*
@@ -460,16 +428,13 @@ bool idRenderWorldLocal::PortalIsFoggedOut( const portal_t* p )
 	}
 	
 	// find the current density of the fog
-	const idMaterial* lightShader = ldef->lightShader;
-	const int size = lightShader->GetNumRegisters() * sizeof( float );
-	float* regs = ( float* )_alloca( size );
-	
-	lightShader->EvaluateRegisters( regs, ldef->parms.shaderParms,
-									tr.viewDef->renderView.shaderParms, tr.viewDef->renderView.time[0] * 0.001f, ldef->parms.referenceSound );
-									
-	const shaderStage_t*	stage = lightShader->GetStage( 0 );
-	
-	const float alpha = regs[ stage->color.registers[3] ];
+
+	float* regs = ( float* )_alloca( ldef->lightShader->GetNumRegisters() * sizeof( float ) );
+
+	ldef->lightShader->EvaluateRegisters( regs, ldef->parms.shaderParms,
+		tr.viewDef->GetMaterialParms(), tr.viewDef->GetGameTimeSec(), ldef->parms.referenceSound );
+
+	const float alpha = regs[ ldef->lightShader->GetStage( 0 )->color.registers[3] ];
 	
 	// if they left the default value on, set a fog distance of 500
 	float a;
@@ -484,15 +449,14 @@ bool idRenderWorldLocal::PortalIsFoggedOut( const portal_t* p )
 	}
 	
 	idPlane forward;
-	forward[0] = a * tr.viewDef->worldSpace.modelViewMatrix[0 * 4 + 2];
-	forward[1] = a * tr.viewDef->worldSpace.modelViewMatrix[1 * 4 + 2];
-	forward[2] = a * tr.viewDef->worldSpace.modelViewMatrix[2 * 4 + 2];
-	forward[3] = a * tr.viewDef->worldSpace.modelViewMatrix[3 * 4 + 2];
+	forward[0] = a * tr.viewDef->GetViewMatrix()[2][0];
+	forward[1] = a * tr.viewDef->GetViewMatrix()[2][1];
+	forward[2] = a * tr.viewDef->GetViewMatrix()[2][2];
+	forward[3] = a * tr.viewDef->GetViewMatrix()[2][3];
 	
-	const idWinding*	 w = p->w;
-	for( int i = 0; i < w->GetNumPoints(); i++ )
+	for( int i = 0; i < p->w->GetNumPoints(); i++ )
 	{
-		const float d = forward.Distance( ( *w )[i].ToVec3() );
+		const float d = forward.Distance( (*(p->w))[i].ToVec3() );
 		if( d < 0.5f )
 		{
 			return false;		// a point not clipped off
@@ -596,8 +560,8 @@ void idRenderWorldLocal::FloodViewThroughArea_r( const idVec3& origin, int areaN
 		
 		// find the screen pixel bounding box of the remaining portal
 		// so we can scissor things outside it
-		newStack.rect = ScreenRectFromWinding( &w, &tr.identitySpace );
-		
+		tr.viewDef->ScreenRectFromWinding( w, tr.identitySpace.modelMatrix, newStack.rect );
+
 		// slop might have spread it a pixel outside, so trim it back
 		newStack.rect.Intersect( ps->rect );
 		
@@ -799,7 +763,7 @@ void idRenderWorldLocal::FindViewLightsAndEntities()
 			portalStack_t ps;
 			for( int i = 0; i < 5; i++ )
 			{
-				ps.portalPlanes[i] = tr.viewDef->frustums[FRUSTUM_PRIMARY][i];
+				ps.portalPlanes[i] = tr.viewDef->GetBaseFrustum()[i];
 			}
 			ps.numPortalPlanes = 5;
 			ps.rect = tr.viewDef->scissor;
@@ -812,7 +776,7 @@ void idRenderWorldLocal::FindViewLightsAndEntities()
 		// note that the center of projection for flowing through portals may
 		// be a different point than initialViewAreaOrigin for subviews that
 		// may have the viewOrigin in a solid/invalid area
-		FlowViewThroughPortals( tr.viewDef->renderView.vieworg, 5, tr.viewDef->frustums[FRUSTUM_PRIMARY] );
+		FlowViewThroughPortals( tr.viewDef->GetOrigin(), 5, &tr.viewDef->GetBaseFrustum()[0] );
 	}
 }
 
@@ -829,8 +793,7 @@ Light linking into the BSP tree by flooding through portals
 idRenderWorldLocal::FloodLightThroughArea_r
 ===================
 */
-void idRenderWorldLocal::FloodLightThroughArea_r( idRenderLightLocal* light, int areaNum,
-		const portalStack_t* ps )
+void idRenderWorldLocal::FloodLightThroughArea_r( idRenderLightLocal* light, int areaNum, const portalStack_t* ps )
 {
 	assert( ps != NULL ); // compiler warning
 	portal_t*		p = NULL;
@@ -1175,7 +1138,7 @@ void idRenderWorldLocal::ShowPortals()
 	for( i = 0; i < numPortalAreas; i++ )
 	{
 		area = &portalAreas[i];
-		if( area->viewCount != tr.viewCount )
+		if( area->viewCount != tr.GetViewCount() )
 		{
 			continue;
 		}
@@ -1187,7 +1150,7 @@ void idRenderWorldLocal::ShowPortals()
 				continue;
 			}
 			
-			if( portalAreas[ p->intoArea ].viewCount != tr.viewCount )
+			if( portalAreas[ p->intoArea ].viewCount != tr.GetViewCount() )
 			{
 				// red = can't see
 				GL_Color( 1, 0, 0 );

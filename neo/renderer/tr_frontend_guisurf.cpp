@@ -41,6 +41,9 @@ GUI SURFACES
 ==========================================================================================
 */
 
+idCVar r_gui_vr_x( "r_gui_vr_x", "640", CVAR_RENDERER | CVAR_FLOAT, "ingame gui virtual resolution X", 100.0, 10000.0 );
+idCVar r_gui_vr_y( "r_gui_vr_y", "480", CVAR_RENDERER | CVAR_FLOAT, "ingame gui virtual resolution Y", 100.0, 10000.0 );
+
 /*
 ================
 R_SurfaceToTextureAxis
@@ -49,7 +52,7 @@ Calculates two axis for the surface such that a point dotted against
 the axis will give a 0.0 to 1.0 range in S and T when inside the gui surface
 ================
 */
-void R_SurfaceToTextureAxis( const srfTriangles_t* tri, idVec3& origin, idVec3 axis[3] )
+void R_SurfaceToTextureAxis( const srfTriangles_t* tri, idVec3& origin, idMat3& axis )
 {
 	// find the bounds of the texture
 	idVec2 boundsMin( 999999.0f, 999999.0f );
@@ -126,86 +129,20 @@ void R_SurfaceToTextureAxis( const srfTriangles_t* tri, idVec3& origin, idVec3 a
 }
 
 /*
-=================
-R_RenderGuiSurf
-
-Create a texture space on the given surface and
-call the GUI generator to create quads for it.
-=================
-*/
-static void R_RenderGuiSurf( idUserInterface* gui, const drawSurf_t* drawSurf )
-{
-	SCOPED_PROFILE_EVENT( "R_RenderGuiSurf" );
-	
-	// for testing the performance hit
-	if( r_skipGuiShaders.GetInteger() == 1 )
-	{
-		return;
-	}
-	
-	// don't allow an infinite recursion loop
-	if( tr.guiRecursionLevel == 4 )
-	{
-		return;
-	}
-	
-	tr.pc.c_guiSurfs++;
-	
-	// create the new matrix to draw on this surface
-	idVec3 origin, axis[3];
-	R_SurfaceToTextureAxis( drawSurf->frontEndGeo, origin, axis );
-	
-	float guiModelMatrix[16];
-	float modelMatrix[16];
-	
-	guiModelMatrix[0 * 4 + 0] = axis[0][0] * ( 1.0f / 640.0f );
-	guiModelMatrix[1 * 4 + 0] = axis[1][0] * ( 1.0f / 480.0f );
-	guiModelMatrix[2 * 4 + 0] = axis[2][0];
-	guiModelMatrix[3 * 4 + 0] = origin[0];
-	
-	guiModelMatrix[0 * 4 + 1] = axis[0][1] * ( 1.0f / 640.0f );
-	guiModelMatrix[1 * 4 + 1] = axis[1][1] * ( 1.0f / 480.0f );
-	guiModelMatrix[2 * 4 + 1] = axis[2][1];
-	guiModelMatrix[3 * 4 + 1] = origin[1];
-	
-	guiModelMatrix[0 * 4 + 2] = axis[0][2] * ( 1.0f / 640.0f );
-	guiModelMatrix[1 * 4 + 2] = axis[1][2] * ( 1.0f / 480.0f );
-	guiModelMatrix[2 * 4 + 2] = axis[2][2];
-	guiModelMatrix[3 * 4 + 2] = origin[2];
-	
-	guiModelMatrix[0 * 4 + 3] = 0.0f;
-	guiModelMatrix[1 * 4 + 3] = 0.0f;
-	guiModelMatrix[2 * 4 + 3] = 0.0f;
-	guiModelMatrix[3 * 4 + 3] = 1.0f;
-	
-	R_MatrixMultiply( guiModelMatrix, drawSurf->space->modelMatrix, modelMatrix );
-	
-	tr.guiRecursionLevel++;
-	
-	// call the gui, which will call the 2D drawing functions
-	tr.guiModel->Clear();
-	gui->Redraw( tr.viewDef->renderView.time[0] );
-	tr.guiModel->EmitToCurrentView( modelMatrix, drawSurf->space->weaponDepthHack );
-	tr.guiModel->Clear();
-	
-	tr.guiRecursionLevel--;
-}
-
-/*
 ================
 R_AddInGameGuis
 ================
 */
-void R_AddInGameGuis( const drawSurf_t* const drawSurfs[], const int numDrawSurfs )
+void R_AddInGameGuis( idRenderView * renderView )
 {
 	SCOPED_PROFILE_EVENT( "R_AddInGameGuis" );
 	
 	// check for gui surfaces
-	for( int i = 0; i < numDrawSurfs; i++ )
+	for( int i = 0; i < renderView->numDrawSurfs; i++ )
 	{
-		const drawSurf_t* drawSurf = drawSurfs[i];
+		const drawSurf_t* drawSurf = renderView->drawSurfs[i];
 		
-		idUserInterface*	gui = drawSurf->material->GlobalGui();
+		idUserInterface* gui = drawSurf->material->GlobalGui();
 		
 		int guiNum = drawSurf->material->GetEntityGui() - 1;
 		if( guiNum >= 0 && guiNum < MAX_RENDERENTITY_GUI )
@@ -226,7 +163,54 @@ void R_AddInGameGuis( const drawSurf_t* const drawSurfs[], const int numDrawSurf
 		{
 			// did we ever use this to forward an entity color to a gui that didn't set color?
 			//	memcpy( tr.guiShaderParms, shaderParms, sizeof( tr.guiShaderParms ) );
-			R_RenderGuiSurf( gui, drawSurf );
+
+			SCOPED_PROFILE_EVENT( "R_RenderGuiSurf" );
+
+			// for testing the performance hit
+			if( r_skipGuiShaders.GetInteger() == 1 )
+			{
+				return;
+			}
+
+			// don't allow an infinite recursion loop
+			if( tr.guiRecursionLevel == 4 )
+			{
+				return;
+			}
+
+			tr.pc.c_guiSurfs++;
+
+			// Create a texture space on the given surface and call the GUI generator to create quads for it.
+
+			// create the new matrix to draw on this surface
+			idRenderMatrix guiModelMatrix;
+			{
+				idVec3 origin;
+				idMat3 axis;
+				R_SurfaceToTextureAxis( drawSurf->frontEndGeo, origin, axis );
+
+				const float inGameGUIVirtualWidth = r_gui_vr_x.GetFloat();
+				const float inGameGUIVirtualHeight = r_gui_vr_y.GetFloat();
+
+				idRenderMatrix guiTransform;
+				idRenderMatrix::CreateFromOriginAxisScale( origin, axis, 
+					idVec3( ( 1.0f / inGameGUIVirtualWidth ), ( 1.0f / inGameGUIVirtualHeight ), 1.0f ), 
+					guiTransform );
+				
+				idRenderMatrix::Multiply( drawSurf->space->modelMatrix, guiTransform, guiModelMatrix );
+			}
+
+			tr.guiRecursionLevel++;
+
+			// call the gui, which will call the 2D drawing functions
+			tr.guiModel->Clear();
+
+			gui->Redraw( renderView->GetGameTimeMS() );
+
+			tr.guiModel->EmitToView( renderView, guiModelMatrix, drawSurf->space->weaponDepthHack );
+			tr.guiModel->Clear();
+
+			tr.guiRecursionLevel--;
 		}
 	}
 }

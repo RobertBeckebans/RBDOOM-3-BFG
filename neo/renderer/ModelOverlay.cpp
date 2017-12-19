@@ -530,7 +530,7 @@ void idRenderModelOverlay::CreateDeferredOverlays( const idRenderModel* model )
 	for( unsigned int i = firstDeferredOverlay; i < nextDeferredOverlay; i++ )
 	{
 		const overlayProjectionParms_t& parms = deferredOverlays[i & ( MAX_DEFERRED_OVERLAYS - 1 )];
-		if( parms.startTime > tr.viewDef->renderView.time[0] -  DEFFERED_OVERLAY_TIMEOUT )
+		if( parms.startTime > tr.viewDef->GetGameTimeMS() -  DEFFERED_OVERLAY_TIMEOUT )
 		{
 			CreateOverlay( model, parms.localTextureAxis, parms.material );
 		}

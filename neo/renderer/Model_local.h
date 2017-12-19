@@ -88,7 +88,7 @@ public:
 	virtual dynamicModel_t		IsDynamicModel() const;
 	virtual bool				IsDefaultModel() const;
 	virtual bool				IsReloadable() const;
-	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel );
+	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const idRenderView* view, idRenderModel* cachedModel );
 	virtual int					NumJoints() const;
 	virtual const idMD5Joint* 	GetJoints() const;
 	virtual jointHandle_t		GetJointHandle( const char* name ) const;
@@ -220,7 +220,7 @@ public:
 	virtual void				PurgeModel();
 	virtual void				LoadModel();
 	virtual int					Memory() const;
-	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel );
+	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const idRenderView* view, idRenderModel* cachedModel );
 	virtual int					NumJoints() const;
 	virtual const idMD5Joint* 	GetJoints() const;
 	virtual jointHandle_t		GetJointHandle( const char* name ) const;
@@ -239,7 +239,7 @@ private:
 	idList<idJointMat, TAG_MODEL>	invertedDefaultPose;
 	idList<idMD5Mesh, TAG_MODEL>	meshes;
 	
-	void						DrawJoints( const renderEntity_t* ent, const viewDef_t* view ) const;
+	void						DrawJoints( const renderEntity_t* ent, const idRenderView* view ) const;
 	void						ParseJoint( idLexer& parser, idMD5Joint* joint, idJointQuat* defaultPose );
 };
 
@@ -263,7 +263,7 @@ public:
 		return false;
 	}
 	virtual dynamicModel_t		IsDynamicModel() const;
-	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel );
+	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const idRenderView* view, idRenderModel* cachedModel );
 	virtual idBounds			Bounds( const struct renderEntity_s* ent ) const;
 	
 private:
@@ -294,7 +294,7 @@ public:
 		return false;
 	}
 	virtual dynamicModel_t		IsDynamicModel() const;
-	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel );
+	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const idRenderView* view, idRenderModel* cachedModel );
 	virtual idBounds			Bounds( const struct renderEntity_s* ent ) const;
 	
 	virtual void				Reset();
@@ -355,7 +355,7 @@ public:
 	}
 	virtual void				TouchData();
 	virtual dynamicModel_t		IsDynamicModel() const;
-	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel );
+	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const idRenderView* view, idRenderModel* cachedModel );
 	virtual idBounds			Bounds( const struct renderEntity_s* ent ) const;
 	virtual float				DepthHack() const;
 	virtual int					Memory() const;
@@ -396,7 +396,7 @@ public:
 		return false;
 	}
 	virtual bool				IsLoaded() const;
-	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel );
+	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const idRenderView* view, idRenderModel* cachedModel );
 	virtual idBounds			Bounds( const struct renderEntity_s* ent ) const;
 	
 	// with the addModels2 arrangement we could have light accepting and
@@ -448,7 +448,7 @@ public:
 		return false;
 	}
 	virtual bool				IsLoaded() const;
-	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel );
+	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const idRenderView* view, idRenderModel* cachedModel );
 	virtual idBounds			Bounds( const struct renderEntity_s* ent ) const;
 	
 	// with the addModels2 arrangement we could have light accepting and
@@ -488,7 +488,7 @@ public:
 		return false;
 	}
 	virtual bool				IsLoaded() const;
-	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel );
+	virtual idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const idRenderView* view, idRenderModel* cachedModel );
 	virtual idBounds			Bounds( const struct renderEntity_s* ent ) const;
 	
 	// with the addModels2 arrangement we could have light accepting and
@@ -523,7 +523,7 @@ public:
 		return false;
 	}
 	virtual	bool				IsLoaded() const;
-	virtual	idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel );
+	virtual	idRenderModel* 		InstantiateDynamicModel( const struct renderEntity_s* ent, const idRenderView* view, idRenderModel* cachedModel );
 	virtual	idBounds			Bounds( const struct renderEntity_s* ent ) const;
 	
 	// with the addModels2 arrangement we could have light accepting and

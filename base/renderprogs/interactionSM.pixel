@@ -61,8 +61,18 @@ struct PS_OUT
 	half4 color : COLOR;
 };
 
-void main( PS_IN fragment, out PS_OUT result )
+void main( in PS_IN fragment, out PS_OUT result )
 {
+    // Determine if the projected coordinates are in the 0 to 1 range.  
+	// If so then this pixel is in the view of the light.	This removes scissor cornrs
+	float2 ltc = fragment.texcoord3.xy / fragment.texcoord3.w;
+    if( ( saturate( ltc.x ) != ltc.x ) && 
+	    ( saturate( ltc.y ) != ltc.y ) ) {
+		//output.color = float4( 0.5, 0.1, 0.1, 1.0 );
+		//return;
+		discard;
+	}
+	
 	half4 bumpMap =			tex2D( samp0, fragment.texcoord1.xy );
 	half4 lightFalloff =	( idtex2Dproj( samp1, fragment.texcoord2 ) );
 	half4 lightProj	=		( idtex2Dproj( samp2, fragment.texcoord3 ) );
@@ -108,17 +118,14 @@ void main( PS_IN fragment, out PS_OUT result )
 #if defined( LIGHT_POINT )
 	float3 toLightGlobal = normalize( fragment.texcoord8.xyz );
 	
-	float axis[6];
-	axis[0] = -toLightGlobal.x;
-	axis[1] =  toLightGlobal.x;
-	axis[2] = -toLightGlobal.y;
-	axis[3] =  toLightGlobal.y;
-	axis[4] = -toLightGlobal.z;
-	axis[5] =  toLightGlobal.z;
-
-	for( int i = 0; i < 6; i++ )
+	const float axis[6] = float[](
+		-toLightGlobal.x, toLightGlobal.x, 
+		-toLightGlobal.y, toLightGlobal.y, 
+		-toLightGlobal.z, toLightGlobal.z 
+	);
+	UNROLL for( int i = 0; i < 6; i++ )
 	{
-		if( axis[i] > axis[shadowIndex] )
+		FLATTEN if( axis[i] > axis[shadowIndex] )
 		{
 			shadowIndex = i;
 		}
@@ -130,7 +137,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	
 	float viewZ = -fragment.texcoord9.z;
 	
-	shadowIndex = 4;
+	/*shadowIndex = 4;
 	for( int i = 0; i < 4; i++ )
 	{
 		if( viewZ < rpCascadeDistances[i] )
@@ -138,7 +145,12 @@ void main( PS_IN fragment, out PS_OUT result )
 			shadowIndex = i;
 			break;
 		}
-	}
+	}*/
+	shadowIndex = 3 - ( 
+		int( viewZ < rpCascadeDistances.x ) + 
+		int( viewZ < rpCascadeDistances.y ) + 
+		int( viewZ < rpCascadeDistances.z ) 
+	);
 #endif
 	
 #if 0
@@ -189,6 +201,9 @@ void main( PS_IN fragment, out PS_OUT result )
 	
 	shadowTexcoord.xyz /= shadowTexcoord.w;
 	
+	// move the [-1.0, 1.0] light device st to the [0,1] texture range
+	shadowTexcoord.xyz = shadowTexcoord.xyz * 0.5f + 0.5f;
+	
 	shadowTexcoord.z = shadowTexcoord.z * rpScreenCorrectionFactor.w;
 	//shadowTexcoord.z = shadowTexcoord.z * 0.999991;
 	//shadowTexcoord.z = shadowTexcoord.z - bias;
@@ -226,19 +241,20 @@ void main( PS_IN fragment, out PS_OUT result )
 	shadow *= stepSize;
 #else
 	
-	const float2 poissonDisk[12] = float2[](
-	float2(0.6111618, 0.1050905),
-	float2(0.1088336, 0.1127091),
-	float2(0.3030421, -0.6292974),
-	float2(0.4090526, 0.6716492),
-	float2(-0.1608387, -0.3867823),
-	float2(0.7685862, -0.6118501),
-	float2(-0.1935026, -0.856501),
-	float2(-0.4028573, 0.07754025),
-	float2(-0.6411021, -0.4748057),
-	float2(-0.1314865, 0.8404058),
-	float2(-0.7005203, 0.4596822),
-	float2(-0.9713828, -0.06329931) );
+	static const float2 poissonDisk[12] = float2[](
+		float2(0.6111618, 0.1050905),
+		float2(0.1088336, 0.1127091),
+		float2(0.3030421, -0.6292974),
+		float2(0.4090526, 0.6716492),
+		float2(-0.1608387, -0.3867823),
+		float2(0.7685862, -0.6118501),
+		float2(-0.1935026, -0.856501),
+		float2(-0.4028573, 0.07754025),
+		float2(-0.6411021, -0.4748057),
+		float2(-0.1314865, 0.8404058),
+		float2(-0.7005203, 0.4596822),
+		float2(-0.9713828, -0.06329931) 
+	);
 	
 	float shadow = 0.0;
 	
@@ -354,7 +370,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	OLD Blinn Phong
 	*/
 
-	const half specularPower = 10.0f;
+	const half specularPower = 32.0f; //10.0f;
 	
 	// RB: added abs
 	half3 specularContribution = _half3( pow( hdotN, specularPower ) );

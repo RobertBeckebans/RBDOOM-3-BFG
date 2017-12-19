@@ -2108,7 +2108,7 @@ void idMaterial::AddImplicitStages( const textureRepeat_t trpDefault /* = TR_REP
 	if( !hasBump )
 	{
 		idStr::snPrintf( buffer, sizeof( buffer ), "blend bumpmap\nmap _flat\n}\n" );
-		newSrc.LoadMemory( buffer, strlen( buffer ), "bumpmap" );
+		newSrc.LoadMemory( buffer, idStr::Length( buffer ), "bumpmap" );
 		newSrc.SetFlags( LEXFL_NOFATALERRORS | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
 		ParseStage( newSrc, trpDefault );
 		newSrc.FreeSource();
@@ -2117,7 +2117,7 @@ void idMaterial::AddImplicitStages( const textureRepeat_t trpDefault /* = TR_REP
 	if( !hasDiffuse && !hasSpecular && !hasReflection )
 	{
 		idStr::snPrintf( buffer, sizeof( buffer ), "blend diffusemap\nmap _white\n}\n" );
-		newSrc.LoadMemory( buffer, strlen( buffer ), "diffusemap" );
+		newSrc.LoadMemory( buffer, idStr::Length( buffer ), "diffusemap" );
 		newSrc.SetFlags( LEXFL_NOFATALERRORS | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
 		ParseStage( newSrc, trpDefault );
 		newSrc.FreeSource();
@@ -2469,7 +2469,7 @@ void idMaterial::ParseMaterial( idLexer& src )
 		{
 			str = R_ParsePastImageProgram( src );
 			idStr::snPrintf( buffer, sizeof( buffer ), "blend diffusemap\nmap %s\n}\n", str );
-			newSrc.LoadMemory( buffer, strlen( buffer ), "diffusemap" );
+			newSrc.LoadMemory( buffer, idStr::Length( buffer ), "diffusemap" );
 			newSrc.SetFlags( LEXFL_NOFATALERRORS | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
 			ParseStage( newSrc, trpDefault );
 			newSrc.FreeSource();
@@ -2480,7 +2480,7 @@ void idMaterial::ParseMaterial( idLexer& src )
 		{
 			str = R_ParsePastImageProgram( src );
 			idStr::snPrintf( buffer, sizeof( buffer ), "blend specularmap\nmap %s\n}\n", str );
-			newSrc.LoadMemory( buffer, strlen( buffer ), "specularmap" );
+			newSrc.LoadMemory( buffer, idStr::Length( buffer ), "specularmap" );
 			newSrc.SetFlags( LEXFL_NOFATALERRORS | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
 			ParseStage( newSrc, trpDefault );
 			newSrc.FreeSource();
@@ -2491,7 +2491,7 @@ void idMaterial::ParseMaterial( idLexer& src )
 		{
 			str = R_ParsePastImageProgram( src );
 			idStr::snPrintf( buffer, sizeof( buffer ), "blend bumpmap\nmap %s\n}\n", str );
-			newSrc.LoadMemory( buffer, strlen( buffer ), "bumpmap" );
+			newSrc.LoadMemory( buffer, idStr::Length( buffer ), "bumpmap" );
 			newSrc.SetFlags( LEXFL_NOFATALERRORS | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
 			ParseStage( newSrc, trpDefault );
 			newSrc.FreeSource();
@@ -3230,10 +3230,11 @@ void idMaterial::CheckForConstantRegisters()
 	
 	float shaderParms[MAX_ENTITY_SHADER_PARMS];
 	memset( shaderParms, 0, sizeof( shaderParms ) );
-	viewDef_t	viewDef;
-	memset( &viewDef, 0, sizeof( viewDef ) );
 	
-	EvaluateRegisters( constantRegisters, shaderParms, viewDef.renderView.shaderParms, 0.0f, 0 );
+	idRenderView viewDef;
+	viewDef.Clear();
+	
+	EvaluateRegisters( constantRegisters, shaderParms, viewDef.GetMaterialParms(), 0.0f, nullptr );
 }
 
 /*

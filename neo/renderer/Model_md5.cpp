@@ -1172,7 +1172,7 @@ idBounds idRenderModelMD5::Bounds( const renderEntity_t* ent ) const
 idRenderModelMD5::DrawJoints
 ====================
 */
-void idRenderModelMD5::DrawJoints( const renderEntity_t* ent, const viewDef_t* view ) const
+void idRenderModelMD5::DrawJoints( const renderEntity_t* ent, const idRenderView* view ) const
 {
 	int					i;
 	int					num;
@@ -1203,18 +1203,16 @@ void idRenderModelMD5::DrawJoints( const renderEntity_t* ent, const viewDef_t* v
 	bounds.FromTransformedBounds( ent->bounds, vec3_zero, ent->axis );
 	common->RW()->DebugBounds( colorMagenta, bounds, ent->origin );
 	
-	if( ( r_jointNameScale.GetFloat() != 0.0f ) && ( bounds.Expand( 128.0f ).ContainsPoint( view->renderView.vieworg - ent->origin ) ) )
+	if( ( r_jointNameScale.GetFloat() != 0.0f ) && ( bounds.Expand( 128.0f ).ContainsPoint( view->GetOrigin() - ent->origin ) ) )
 	{
-		idVec3	offset( 0, 0, r_jointNameOffset.GetFloat() );
-		float	scale;
-		
-		scale = r_jointNameScale.GetFloat();
+		idVec3 offset( 0, 0, r_jointNameOffset.GetFloat() );
+		float scale = r_jointNameScale.GetFloat();
 		joint = ent->joints;
 		num = ent->numJoints;
 		for( i = 0; i < num; i++, joint++ )
 		{
 			pos = ent->origin + joint->ToVec3() * ent->axis;
-			common->RW()->DrawText( joints[ i ].name, pos + offset, scale, colorWhite, view->renderView.viewaxis, 1 );
+			common->RW()->DrawText( joints[ i ].name, pos + offset, scale, colorWhite, view->GetAxis(), 1 );
 		}
 	}
 }
@@ -1226,7 +1224,6 @@ TransformJoints
 */
 static void TransformJoints( idJointMat* __restrict outJoints, const int numJoints, const idJointMat* __restrict inJoints1, const idJointMat* __restrict inJoints2 )
 {
-
 	float* outFloats = outJoints->ToFloatPtr();
 	const float* inFloats1 = inJoints1->ToFloatPtr();
 	const float* inFloats2 = inJoints2->ToFloatPtr();
@@ -1327,7 +1324,7 @@ static void TransformJoints( idJointMat* __restrict outJoints, const int numJoin
 idRenderModelMD5::InstantiateDynamicModel
 ====================
 */
-idRenderModel* idRenderModelMD5::InstantiateDynamicModel( const struct renderEntity_s* ent, const viewDef_t* view, idRenderModel* cachedModel )
+idRenderModel* idRenderModelMD5::InstantiateDynamicModel( const struct renderEntity_s* ent, const idRenderView* view, idRenderModel* cachedModel )
 {
 	if( cachedModel != NULL && !r_useCachedDynamicModels.GetBool() )
 	{
@@ -1373,7 +1370,7 @@ idRenderModel* idRenderModelMD5::InstantiateDynamicModel( const struct renderEnt
 	
 	if( r_showSkel.GetInteger() )
 	{
-		if( ( view != NULL ) && ( !r_skipSuppress.GetBool() || !ent->suppressSurfaceInViewID || ( ent->suppressSurfaceInViewID != view->renderView.viewID ) ) )
+		if( ( view != NULL ) && ( !r_skipSuppress.GetBool() || !ent->suppressSurfaceInViewID || ( ent->suppressSurfaceInViewID != view->GetID() ) ) )
 		{
 			// only draw the skeleton
 			DrawJoints( ent, view );

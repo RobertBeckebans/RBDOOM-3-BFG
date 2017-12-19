@@ -60,7 +60,8 @@ void R_CalcInteractionFacing( const idRenderEntityLocal* ent, const srfTriangles
 	}
 	
 	idVec3 localLightOrigin;
-	R_GlobalPointToLocal( ent->modelMatrix, light->globalLightOrigin, localLightOrigin );
+	///R_GlobalPointToLocal( ent->modelMatrix, light->globalLightOrigin, localLightOrigin );
+	ent->modelRenderMatrix.InverseTransformPoint( light->globalLightOrigin, localLightOrigin );
 	
 	const int numFaces = tri->numIndexes / 3;
 	cullInfo.facing = ( byte* ) R_StaticAlloc( ( numFaces + 1 ) * sizeof( cullInfo.facing[0] ), TAG_RENDER_INTERACTION );
@@ -99,7 +100,7 @@ void R_CalcInteractionCullBits( const idRenderEntityLocal* ent, const srfTriangl
 		return;
 	}
 	
-	idPlane frustumPlanes[6];
+	ALIGN16( idPlane frustumPlanes[6] );
 	idRenderMatrix::GetFrustumPlanes( frustumPlanes, light->baseLightProject, true, true );
 	
 	int frontBits = 0;
@@ -107,7 +108,8 @@ void R_CalcInteractionCullBits( const idRenderEntityLocal* ent, const srfTriangl
 	// cull the triangle surface bounding box
 	for( int i = 0; i < 6; i++ )
 	{
-		R_GlobalPlaneToLocal( ent->modelMatrix, frustumPlanes[i], cullInfo.localClipPlanes[i] );
+		///R_GlobalPlaneToLocal( ent->modelMatrix, frustumPlanes[i], cullInfo.localClipPlanes[i] );
+		ent->modelRenderMatrix.InverseTransformPlane( frustumPlanes[ i ], cullInfo.localClipPlanes[ i ] );
 		
 		// get front bits for the whole surface
 		if( tri->bounds.PlaneDistance( cullInfo.localClipPlanes[i] ) >= LIGHT_CLIP_EPSILON )

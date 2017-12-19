@@ -57,6 +57,17 @@ void GL_SelectTexture( int unit )
 
 /*
 ====================
+GL_BindTexture
+====================
+*/
+void GL_BindTexture( int unit, idImage *img )
+{
+	GL_SelectTexture( unit );
+	img->Bind();
+}
+
+/*
+====================
 GL_Cull
 
 This handles the flipping needed when the view being

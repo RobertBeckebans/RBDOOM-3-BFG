@@ -67,7 +67,7 @@ bool idRenderModelBeam::IsLoaded() const
 idRenderModelBeam::InstantiateDynamicModel
 ===============
 */
-idRenderModel* idRenderModelBeam::InstantiateDynamicModel( const struct renderEntity_s* renderEntity, const viewDef_t* viewDef, idRenderModel* cachedModel )
+idRenderModel* idRenderModelBeam::InstantiateDynamicModel( const struct renderEntity_s* renderEntity, const idRenderView* viewDef, idRenderModel* cachedModel )
 {
 	idRenderModelStatic* staticModel;
 	srfTriangles_t* tri;
@@ -134,16 +134,22 @@ idRenderModel* idRenderModelBeam::InstantiateDynamicModel( const struct renderEn
 		staticModel->AddSurface( surf );
 	}
 	
-	idVec3	target = *reinterpret_cast<const idVec3*>( &renderEntity->shaderParms[SHADERPARM_BEAM_END_X] );
+	idVec3 target = *reinterpret_cast<const idVec3*>( &renderEntity->shaderParms[SHADERPARM_BEAM_END_X] );
 	
 	// we need the view direction to project the minor axis of the tube
 	// as the view changes
-	idVec3	localView, localTarget;
-	float	modelMatrix[16];
-	R_AxisToModelMatrix( renderEntity->axis, renderEntity->origin, modelMatrix );
-	R_GlobalPointToLocal( modelMatrix, viewDef->renderView.vieworg, localView );
-	R_GlobalPointToLocal( modelMatrix, target, localTarget );
-	
+	idVec3 localView, localTarget;
+	{
+		///float	modelMatrix[ 16 ];
+		///R_AxisToModelMatrix( renderEntity->axis, renderEntity->origin, modelMatrix );
+		///R_GlobalPointToLocal( modelMatrix, viewDef->GetOrigin(), localView );
+		///R_GlobalPointToLocal( modelMatrix, target, localTarget );
+
+		idRenderMatrix modelMatrix;
+		idRenderMatrix::CreateFromOriginAxis( renderEntity->origin, renderEntity->axis, modelMatrix );
+		modelMatrix.InverseTransformPoint( viewDef->GetOrigin(), localView );
+		modelMatrix.InverseTransformPoint( target, localTarget );
+	}
 	idVec3	major = localTarget;
 	idVec3	minor;
 	
@@ -208,11 +214,16 @@ idBounds idRenderModelBeam::Bounds( const struct renderEntity_s* renderEntity ) 
 	}
 	else
 	{
-		idVec3	target = *reinterpret_cast<const idVec3*>( &renderEntity->shaderParms[SHADERPARM_BEAM_END_X] );
-		idVec3	localTarget;
-		float	modelMatrix[16];
-		R_AxisToModelMatrix( renderEntity->axis, renderEntity->origin, modelMatrix );
-		R_GlobalPointToLocal( modelMatrix, target, localTarget );
+		idVec3 target = *reinterpret_cast<const idVec3*>( &renderEntity->shaderParms[SHADERPARM_BEAM_END_X] );
+		idVec3 localTarget;
+
+		///float	modelMatrix[16];
+		///R_AxisToModelMatrix( renderEntity->axis, renderEntity->origin, modelMatrix );
+		///R_GlobalPointToLocal( modelMatrix, target, localTarget );
+
+		idRenderMatrix modelMatrix;
+		idRenderMatrix::CreateFromOriginAxis( renderEntity->origin, renderEntity->axis, modelMatrix );
+		modelMatrix.InverseTransformPoint( target, localTarget );
 		
 		b.AddPoint( localTarget );
 		if( renderEntity->shaderParms[SHADERPARM_BEAM_WIDTH] != 0.0f )

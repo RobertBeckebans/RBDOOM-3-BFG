@@ -89,10 +89,9 @@ static drawSurf_t* R_AutospriteDeform( drawSurf_t* surf )
 	const idJointMat* joints = ( srcTri->staticModelWithJoints != NULL && r_useGPUSkinning.GetBool() && glConfig.gpuSkinningAvailable ) ? srcTri->staticModelWithJoints->jointsInverted : NULL;
 	// RB end
 	
-	idVec3 leftDir;
-	idVec3 upDir;
-	R_GlobalVectorToLocal( surf->space->modelMatrix, tr.viewDef->renderView.viewaxis[1], leftDir );
-	R_GlobalVectorToLocal( surf->space->modelMatrix, tr.viewDef->renderView.viewaxis[2], upDir );
+	idVec3 leftDir, upDir;
+	surf->space->modelMatrix.InverseTransformDir( tr.viewDef->GetAxis()[ 1 ], leftDir );
+	surf->space->modelMatrix.InverseTransformDir( tr.viewDef->GetAxis()[ 2 ], upDir );
 	
 	if( tr.viewDef->isMirror )
 	{
@@ -100,7 +99,7 @@ static drawSurf_t* R_AutospriteDeform( drawSurf_t* surf )
 	}
 	
 	// the srfTriangles_t are in frame memory and will be automatically disposed of
-	srfTriangles_t* newTri = ( srfTriangles_t* )R_ClearedFrameAlloc( sizeof( *newTri ), FRAME_ALLOC_SURFACE_TRIANGLES );
+	auto newTri = ( srfTriangles_t* )R_ClearedFrameAlloc( sizeof( srfTriangles_t ), FRAME_ALLOC_SURFACE_TRIANGLES );
 	newTri->numVerts = srcTri->numVerts;
 	newTri->numIndexes = srcTri->numIndexes;
 	
@@ -189,7 +188,7 @@ static drawSurf_t* R_TubeDeform( drawSurf_t* surf )
 	// we need the view direction to project the minor axis of the tube
 	// as the view changes
 	idVec3	localView;
-	R_GlobalPointToLocal( surf->space->modelMatrix, tr.viewDef->renderView.vieworg, localView );
+	surf->space->modelMatrix.InverseTransformPoint( tr.viewDef->GetOrigin(), localView );
 	
 	// the srfTriangles_t are in frame memory and will be automatically disposed of
 	srfTriangles_t* newTri = ( srfTriangles_t* )R_ClearedFrameAlloc( sizeof( *newTri ), FRAME_ALLOC_SURFACE_TRIANGLES );
@@ -406,10 +405,10 @@ static drawSurf_t* R_FlareDeform( drawSurf_t* surf )
 	// find the plane
 	idPlane	plane;
 	plane.FromPoints( srcTri->verts[srcTri->indexes[0]].xyz, srcTri->verts[srcTri->indexes[1]].xyz, srcTri->verts[srcTri->indexes[2]].xyz );
-	
+
 	// if viewer is behind the plane, draw nothing
 	idVec3 localViewer;
-	R_GlobalPointToLocal( surf->space->modelMatrix, tr.viewDef->renderView.vieworg, localViewer );
+	surf->space->modelMatrix.InverseTransformPoint( tr.viewDef->GetOrigin(), localViewer );
 	float distFromPlane = localViewer * plane.Normal() + plane[3];
 	if( distFromPlane <= 0 )
 	{
@@ -861,7 +860,7 @@ Emit particles from the surface.
 static drawSurf_t* R_ParticleDeform( drawSurf_t* surf, bool useArea )
 {
 	const renderEntity_t* renderEntity = &surf->space->entityDef->parms;
-	const viewDef_t* viewDef = tr.viewDef;
+	const idRenderView* viewDef = tr.viewDef;
 	const idDeclParticle* particleSystem = ( const idDeclParticle* )surf->material->GetDeformDecl();
 	const srfTriangles_t* srcTri = surf->frontEndGeo;
 	
@@ -901,7 +900,7 @@ static drawSurf_t* R_ParticleDeform( drawSurf_t* surf, bool useArea )
 	particleGen_t g;
 	
 	g.renderEnt = renderEntity;
-	g.renderView = &viewDef->renderView;
+	g.renderView = &viewDef->GetParms();
 	g.origin.Zero();
 	g.axis = mat3_identity;
 	
