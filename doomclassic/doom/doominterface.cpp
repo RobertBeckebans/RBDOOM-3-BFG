@@ -182,7 +182,7 @@ bool DoomInterface::Frame( int iTime, idUserCmdMgr * userCmdMgr )
 
 		lastTicRun = iTime;
 	} else {
-		printf( "Skipping this frame becase it's not time to run a tic yet.\n" );
+		printf( "Skipping this frame because it's not time to run a tic yet.\n" );
 	}
 
 	return bAllFinished;
