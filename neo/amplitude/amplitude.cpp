@@ -30,6 +30,7 @@ If you have questions concerning this license or the applicable additional terms
 #include <string.h>
 #include <math.h>
 #include <stdlib.h>
+#include <algorithm>
 
 static const int SAMPLE_RATE = 60;
 
@@ -61,37 +62,13 @@ struct format_t
 	unsigned short bitsPerSample;
 };
 
-#define SwapBytes( x, y ) { unsigned char t = (x); (x) = (y); (y) = t; }
-
-template<class type> static void Swap( type& c )
+template<typename type>
+static void Swap( type& c )
 {
-	if( sizeof( type ) == 1 )
-	{
-	}
-	else if( sizeof( type ) == 2 )
-	{
-		unsigned char* b = ( unsigned char* )&c;
-		SwapBytes( b[0], b[1] );
-	}
-	else if( sizeof( type ) == 4 )
-	{
-		unsigned char* b = ( unsigned char* )&c;
-		SwapBytes( b[0], b[3] );
-		SwapBytes( b[1], b[2] );
-	}
-	else if( sizeof( type ) == 8 )
-	{
-		unsigned char* b = ( unsigned char* )&c;
-		SwapBytes( b[0], b[7] );
-		SwapBytes( b[1], b[6] );
-		SwapBytes( b[2], b[5] );
-		SwapBytes( b[3], b[4] );
-	}
-	else
-	{
-		int* null = 0;
-		c = *null;
-	}
+	auto begin = reinterpret_cast<unsigned char *>(&c);
+    const auto end = begin + sizeof(type);
+
+    std::reverse(begin, end);
 }
 
 int WAVE_ReadHeader( FILE* f )

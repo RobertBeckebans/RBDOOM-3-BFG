@@ -186,13 +186,7 @@ void idMenuWidget_ScrollBar::CalculatePosition( float x, float y )
 			
 			float segment = ( maxScroll + 0.5f ) / 100.0f;
 			int newOffset = ( int )( ( ( percent * segment ) * 100.0f ) );
-			
-			if( newOffset >= maxScroll )
-			{
-				int i = 1;
-				i = i;
-			}
-			
+
 			if( newOffset != offset )
 			{
 			

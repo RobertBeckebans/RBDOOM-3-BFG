@@ -1759,6 +1759,12 @@ idCommonLocal::ProcessEvent
 */
 bool idCommonLocal::ProcessEvent( const sysEvent_t* event )
 {
+	if( Dialog().IsDialogActive() )
+	{
+		Dialog().HandleDialogEvent( event );
+		return true;
+	}
+
 	// hitting escape anywhere brings up the menu
 	if( game && game->IsInGame() )
 	{
@@ -1807,12 +1813,6 @@ bool idCommonLocal::ProcessEvent( const sysEvent_t* event )
 	}
 	if( session->ProcessInputEvent( event ) )
 	{
-		return true;
-	}
-	
-	if( Dialog().IsDialogActive() )
-	{
-		Dialog().HandleDialogEvent( event );
 		return true;
 	}
 	

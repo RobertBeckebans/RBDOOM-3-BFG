@@ -269,10 +269,8 @@ public:
 	}
 	
 	idWidgetAction( const idWidgetAction& src )
+		: action(src.action), parms(src.parms), scriptFunction(src.scriptFunction)
 	{
-		action = src.action;
-		parms = src.parms;
-		scriptFunction = src.scriptFunction;
 		if( scriptFunction != NULL )
 		{
 			scriptFunction->AddRef();
@@ -1423,11 +1421,11 @@ public:
 	virtual void	Update();
 	virtual bool	HandleAction( idWidgetAction& action, const idWidgetEvent& event, idMenuWidget* widget, bool forceHandled = false );
 	virtual void	ObserveEvent( const idMenuWidget& widget, const idWidgetEvent& event );
-	void			SetHeading( idStr val )
+	void			SetHeading( const idStr& val )
 	{
 		heading = val;
 	}
-	void			SetBody( idStr val )
+	void			SetBody( const idStr& val )
 	{
 		info = val;
 	}

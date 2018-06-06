@@ -1276,7 +1276,14 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 			R_SetupDrawSurfJoints( shadowDrawSurf, tri, NULL );
 			
 			// determine which linked list to add the shadow surface to
-			shadowDrawSurf->linkChain = shader->TestMaterialFlag( MF_NOSELFSHADOW ) ? &vLight->localShadows : &vLight->globalShadows;
+			if (r_selfShadow.GetBool())
+			{
+				shadowDrawSurf->linkChain = &vLight->globalShadows;
+			}
+			else
+			{
+				shadowDrawSurf->linkChain = shader->TestMaterialFlag( MF_NOSELFSHADOW ) ? &vLight->localShadows : &vLight->globalShadows;
+			}
 			shadowDrawSurf->nextOnLight = vEntity->drawSurfs;
 			vEntity->drawSurfs = shadowDrawSurf;
 		}

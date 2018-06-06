@@ -670,9 +670,12 @@ ID_INLINE char& idStr::operator[]( int index )
 	assert( ( index >= 0 ) && ( index <= len ) );
 	return data[ index ];
 }
+// y2keeth edited
+ID_INLINE void idStr::operator=( const idStr &text ) {
+	if (&text == this) {
+		return;
+	}
 
-ID_INLINE void idStr::operator=( const idStr& text )
-{
 	int l;
 	
 	l = text.Length();

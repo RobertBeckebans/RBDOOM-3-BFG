@@ -77,7 +77,7 @@ public:
 	idVec2& 		operator/=( const float a );
 	idVec2& 		operator*=( const float a );
 	
-	friend idVec2	operator*( const float a, const idVec2 b );
+	friend idVec2	operator*( const float a, const idVec2& b );
 	
 	idVec2			Scale( const idVec2& a ) const;
 	
@@ -91,7 +91,7 @@ public:
 	float			LengthSqr() const;
 	float			Normalize();			// returns length
 	float			NormalizeFast();		// returns length
-	idVec2			Truncate( float length ) const;	// cap length
+	idVec2			Truncate( const float length ) const;	// cap length
 	void			Clamp( const idVec2& min, const idVec2& max );
 	void			Snap();				// snap to closest integer value
 	void			SnapInt();			// snap towards integer (floor)
@@ -100,7 +100,7 @@ public:
 	
 	const float* 	ToFloatPtr() const;
 	float* 			ToFloatPtr();
-	const char* 	ToString( int precision = 2 ) const;
+	const char* 	ToString( const int precision = 2 ) const;
 	
 	void			Lerp( const idVec2& v1, const idVec2& v2, const float l );
 };
@@ -113,9 +113,8 @@ ID_INLINE idVec2::idVec2()
 }
 
 ID_INLINE idVec2::idVec2( const float x, const float y )
+    : x(x), y(y)
 {
-	this->x = x;
-	this->y = y;
 }
 
 ID_INLINE void idVec2::Set( const float x, const float y )
@@ -209,7 +208,7 @@ ID_INLINE float idVec2::NormalizeFast()
 	return invLength * lengthSqr;
 }
 
-ID_INLINE idVec2 idVec2::Truncate( float length ) const
+ID_INLINE idVec2 idVec2::Truncate( const float length ) const
 {
 	if( length < idMath::FLT_SMALLEST_NON_DENORMAL )
 	{
@@ -285,7 +284,7 @@ ID_INLINE idVec2 idVec2::operator/( const float a ) const
 	return idVec2( x * inva, y * inva );
 }
 
-ID_INLINE idVec2 operator*( const float a, const idVec2 b )
+ID_INLINE idVec2 operator*( const float a, const idVec2& b )
 {
 	return idVec2( b.x * a, b.y * a );
 }
@@ -372,8 +371,8 @@ public:
 	
 	idVec3();
 	explicit idVec3( const float xyz )
+        : x(xyz), y(xyz), z(xyz)
 	{
-		Set( xyz, xyz, xyz );
 	}
 	explicit idVec3( const float x, const float y, const float z );
 	
@@ -395,7 +394,7 @@ public:
 	idVec3& 		operator/=( const float a );
 	idVec3& 		operator*=( const float a );
 	
-	friend idVec3	operator*( const float a, const idVec3 b );
+	friend idVec3	operator*( const float a, const idVec3& b );
 	
 	bool			Compare( const idVec3& a ) const;							// exact compare, no epsilon
 	bool			Compare( const idVec3& a, const float epsilon ) const;		// compare with epsilon
@@ -412,7 +411,7 @@ public:
 	float			LengthFast() const;
 	float			Normalize();				// returns length
 	float			NormalizeFast();			// returns length
-	idVec3			Truncate( float length ) const;		// cap length
+	idVec3			Truncate( const float length ) const;		// cap length
 	void			Clamp( const idVec3& min, const idVec3& max );
 	void			Snap();					// snap to closest integer value
 	void			SnapInt();				// snap towards integer (floor)
@@ -428,7 +427,7 @@ public:
 	idVec2& 		ToVec2();
 	const float* 	ToFloatPtr() const;
 	float* 			ToFloatPtr();
-	const char* 	ToString( int precision = 2 ) const;
+	const char* 	ToString( const int precision = 2 ) const;
 	
 	void			NormalVectors( idVec3& left, idVec3& down ) const;	// vector should be normalized
 	void			OrthogonalBasis( idVec3& left, idVec3& up ) const;
@@ -449,10 +448,8 @@ ID_INLINE idVec3::idVec3()
 }
 
 ID_INLINE idVec3::idVec3( const float x, const float y, const float z )
+    : x(x), y(y), z(z)
 {
-	this->x = x;
-	this->y = y;
-	this->z = z;
 }
 
 ID_INLINE float idVec3::operator[]( const int index ) const
@@ -511,12 +508,12 @@ ID_INLINE idVec3 idVec3::operator/( const float a ) const
 	return idVec3( x * inva, y * inva, z * inva );
 }
 
-ID_INLINE idVec3 operator*( const float a, const idVec3 b )
+ID_INLINE idVec3 operator*( const float a, const idVec3& b )
 {
 	return idVec3( b.x * a, b.y * a, b.z * a );
 }
 
-ID_INLINE idVec3 operator/( const float a, const idVec3 b )
+ID_INLINE idVec3 operator/( const float a, const idVec3& b )
 {
 	return idVec3( a / b.x, a / b.y, a / b.z );
 }
@@ -782,7 +779,7 @@ ID_INLINE float idVec3::Normalize()
 	return invLength * sqrLength;
 }
 
-ID_INLINE idVec3 idVec3::Truncate( float length ) const
+ID_INLINE idVec3 idVec3::Truncate( const float length ) const
 {
 	if( length < idMath::FLT_SMALLEST_NON_DENORMAL )
 	{
@@ -984,12 +981,12 @@ public:
 	
 	idVec4() { }
 	explicit idVec4( const float x )
+        : x(x), y(x), z(x), w(x)
 	{
-		Set( x, x, x, x );
 	}
 	explicit idVec4( const float x, const float y, const float z, const float w )
+        : x(x), y(y), z(z), w(w)
 	{
-		Set( x, y, z, w );
 	}
 	
 	void 			Set( const float x, const float y, const float z, const float w );
@@ -1009,7 +1006,7 @@ public:
 	idVec4& 		operator/=( const float a );
 	idVec4& 		operator*=( const float a );
 	
-	friend idVec4	operator*( const float a, const idVec4 b );
+	friend idVec4	operator*( const float a, const idVec4& b );
 	
 	idVec4			Multiply( const idVec4& a ) const;
 	
@@ -1031,7 +1028,7 @@ public:
 	idVec3& 		ToVec3();
 	const float* 	ToFloatPtr() const;
 	float* 			ToFloatPtr();
-	const char* 	ToString( int precision = 2 ) const;
+	const char* 	ToString( const int precision = 2 ) const;
 	
 	void			Lerp( const idVec4& v1, const idVec4& v2, const float l );
 };
@@ -1052,12 +1049,12 @@ ID_INLINE void idVec4::Zero()
 	x = y = z = w = 0.0f;
 }
 
-ID_INLINE float idVec4::operator[]( int index ) const
+ID_INLINE float idVec4::operator[]( const int index ) const
 {
 	return ( &x )[ index ];
 }
 
-ID_INLINE float& idVec4::operator[]( int index )
+ID_INLINE float& idVec4::operator[]( const int index )
 {
 	return ( &x )[ index ];
 }
@@ -1088,7 +1085,7 @@ ID_INLINE idVec4 idVec4::operator/( const float a ) const
 	return idVec4( x * inva, y * inva, z * inva, w * inva );
 }
 
-ID_INLINE idVec4 operator*( const float a, const idVec4 b )
+ID_INLINE idVec4 operator*( const float a, const idVec4& b )
 {
 	return idVec4( b.x * a, b.y * a, b.z * a, b.w * a );
 }
@@ -1285,8 +1282,8 @@ public:
 	explicit idVec5( const idVec3& xyz, const idVec2& st );
 	explicit idVec5( const float x, const float y, const float z, const float s, const float t );
 	
-	float			operator[]( int index ) const;
-	float& 			operator[]( int index );
+	float			operator[]( const int index ) const;
+	float& 			operator[]( const int index );
 	idVec5& 		operator=( const idVec3& a );
 	
 	int				GetDimension() const;
@@ -1295,7 +1292,7 @@ public:
 	idVec3& 		ToVec3();
 	const float* 	ToFloatPtr() const;
 	float* 			ToFloatPtr();
-	const char* 	ToString( int precision = 2 ) const;
+	const char* 	ToString( const int precision = 2 ) const;
 	
 	void			Lerp( const idVec5& v1, const idVec5& v2, const float l );
 };
@@ -1308,29 +1305,21 @@ ID_INLINE idVec5::idVec5()
 }
 
 ID_INLINE idVec5::idVec5( const idVec3& xyz, const idVec2& st )
+    : x(xyz.x), y(xyz.y), z(xyz.z), s(st.x), t(st.y)
 {
-	x = xyz.x;
-	y = xyz.y;
-	z = xyz.z;
-	s = st[0];
-	t = st[1];
 }
 
 ID_INLINE idVec5::idVec5( const float x, const float y, const float z, const float s, const float t )
+    : x(x), y(y), z(z), s(s), t(t)
 {
-	this->x = x;
-	this->y = y;
-	this->z = z;
-	this->s = s;
-	this->t = t;
 }
 
-ID_INLINE float idVec5::operator[]( int index ) const
+ID_INLINE float idVec5::operator[]( const int index ) const
 {
 	return ( &x )[ index ];
 }
 
-ID_INLINE float& idVec5::operator[]( int index )
+ID_INLINE float& idVec5::operator[]( const int index )
 {
 	return ( &x )[ index ];
 }
@@ -1399,7 +1388,7 @@ public:
 	idVec6& 		operator+=( const idVec6& a );
 	idVec6& 		operator-=( const idVec6& a );
 	
-	friend idVec6	operator*( const float a, const idVec6 b );
+	friend idVec6	operator*( const float a, const idVec6& b );
 	
 	bool			Compare( const idVec6& a ) const;							// exact compare, no epsilon
 	bool			Compare( const idVec6& a, const float epsilon ) const;		// compare with epsilon
@@ -1417,7 +1406,7 @@ public:
 	idVec3& 		SubVec3( int index );
 	const float* 	ToFloatPtr() const;
 	float* 			ToFloatPtr();
-	const char* 	ToString( int precision = 2 ) const;
+	const char* 	ToString( const int precision = 2 ) const;
 	
 private:
 	float			p[6];
@@ -1538,7 +1527,7 @@ ID_INLINE idVec6& idVec6::operator-=( const idVec6& a )
 	return *this;
 }
 
-ID_INLINE idVec6 operator*( const float a, const idVec6 b )
+ID_INLINE idVec6 operator*( const float a, const idVec6& b )
 {
 	return b * a;
 }
@@ -1654,12 +1643,12 @@ ID_INLINE int idVec6::GetDimension() const
 	return 6;
 }
 
-ID_INLINE const idVec3& idVec6::SubVec3( int index ) const
+ID_INLINE const idVec3& idVec6::SubVec3( const int index ) const
 {
 	return *reinterpret_cast<const idVec3*>( p + index * 3 );
 }
 
-ID_INLINE idVec3& idVec6::SubVec3( int index )
+ID_INLINE idVec3& idVec6::SubVec3( const int index )
 {
 	return *reinterpret_cast<idVec3*>( p + index * 3 );
 }
