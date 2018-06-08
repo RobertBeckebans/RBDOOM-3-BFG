@@ -62,14 +62,9 @@ idAnim::idAnim
 =====================
 */
 idAnim::idAnim( const idDeclModelDef* modelDef, const idAnim* anim )
+	: modelDef(modelDef), numAnims(anim->numAnims), name(anim->name), realname(anim->realname), flags(anim->flags)
 {
 	int i;
-	
-	this->modelDef = modelDef;
-	numAnims = anim->numAnims;
-	name = anim->name;
-	realname = anim->realname;
-	flags = anim->flags;
 	
 	memset( anims, 0, sizeof( anims ) );
 	for( i = 0; i < numAnims; i++ )

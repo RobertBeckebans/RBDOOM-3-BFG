@@ -173,15 +173,8 @@ public:
 	}
 	
 	mpScoreboardInfo( const mpScoreboardInfo& src )
+		: voiceState(src.voiceState), score(src.score), wins(src.wins), ping(src.ping), spectateData(src.spectateData), name(src.name), team(src.team), playerNum(src.playerNum)
 	{
-		voiceState = src.voiceState;
-		score = src.score;
-		wins = src.wins;
-		ping = src.ping;
-		spectateData = src.spectateData;
-		name = src.name;
-		team = src.team;
-		playerNum = src.playerNum;
 	}
 	
 	void operator=( const mpScoreboardInfo& src )

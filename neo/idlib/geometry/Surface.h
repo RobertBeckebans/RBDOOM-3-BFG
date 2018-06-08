@@ -152,11 +152,8 @@ idSurface::idSurface
 ====================
 */
 ID_INLINE idSurface::idSurface( const idSurface& surf )
+	: verts(surf.verts), indexes(surf.indexes), edges(surf.edges), edgeIndexes(surf.edgeIndexes)
 {
-	this->verts = surf.verts;
-	this->indexes = surf.indexes;
-	this->edges = surf.edges;
-	this->edgeIndexes = surf.edgeIndexes;
 }
 
 /*

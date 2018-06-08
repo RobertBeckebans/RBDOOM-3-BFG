@@ -120,32 +120,27 @@ ID_INLINE idBox::idBox()
 }
 
 ID_INLINE idBox::idBox( const idVec3& center, const idVec3& extents, const idMat3& axis )
+	: center(center), extents(extents), axis(axis)
 {
-	this->center = center;
-	this->extents = extents;
-	this->axis = axis;
 }
 
 ID_INLINE idBox::idBox( const idVec3& point )
+	: center(point)
 {
-	this->center = point;
 	this->extents.Zero();
 	this->axis.Identity();
 }
 
 ID_INLINE idBox::idBox( const idBounds& bounds )
+	: center( (bounds[0] + bounds[1] ) * 0.5f ), extents(bounds[1] - center)
 {
-	this->center = ( bounds[0] + bounds[1] ) * 0.5f;
-	this->extents = bounds[1] - this->center;
 	this->axis.Identity();
 }
 
 ID_INLINE idBox::idBox( const idBounds& bounds, const idVec3& origin, const idMat3& axis )
+	: center( ( bounds[0] + bounds[1] ) * 0.5f ), extents(bounds[1] - center), axis(axis)
 {
-	this->center = ( bounds[0] + bounds[1] ) * 0.5f;
-	this->extents = bounds[1] - this->center;
 	this->center = origin + this->center * axis;
-	this->axis = axis;
 }
 
 ID_INLINE idBox idBox::operator+( const idVec3& t ) const

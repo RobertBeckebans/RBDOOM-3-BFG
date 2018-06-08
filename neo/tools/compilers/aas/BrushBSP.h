@@ -213,7 +213,7 @@ public:
 	idBrushBSP();
 	~idBrushBSP();
 	// build a bsp tree from a set of brushes
-	void					Build( idBrushList brushList, int skipContents,
+	void					Build( const idBrushList& brushList, const int skipContents,
 								   bool ( *ChopAllowed )( idBrush* b1, idBrush* b2 ),
 								   bool ( *MergeAllowed )( idBrush* b1, idBrush* b2 ) );
 	// remove splits in subspaces with the given contents

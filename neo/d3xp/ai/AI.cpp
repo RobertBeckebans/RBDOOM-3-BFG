@@ -300,106 +300,23 @@ idAI::idAI
 =====================
 */
 idAI::idAI()
+    : aas(NULL), travelFlags(TFL_WALK | TFL_AIR), kickForce(2048.0f), ignore_obstacles(false), blockedRadius(0.0f), blockedMoveTime(750), blockedAttackTime(750), turnRate(360.0f), turnVel(0.0f), anim_turn_yaw(0.0f), anim_turn_amount(0.0f), anim_turn_angles(0.0f), fly_offset(0), fly_seek_scale(1.0f), fly_roll_scale(0.0f), fly_roll_max(0.0f), fly_roll(0.0f), fly_pitch_scale(0.0f), fly_pitch_max(0.0f), fly_pitch(0.0f), allowMove(false), allowHiddenMovement(false), fly_speed(0.0f), fly_bob_strength(0.0f), fly_bob_vert(0.0f), fly_bob_horz(0.0f), lastHitCheckResult(false), lastHitCheckTime(0), melee_range(0.0f), projectile_height_to_distance_ratio(1.0f), projectileDef(NULL), projectileClipModel(NULL), projectileRadius(0.0f), projectileVelocity(vec3_origin), projectileGravity(vec3_origin), projectileSpeed(0.0f), chat_snd(NULL), chat_min(0), chat_max(0), chat_time(0), talk_state(TALK_NEVER), restartParticles(true), useBoneAxis(false), wakeOnFlashlight(false), worldMuzzleFlashHandle(-1), current_yaw(0.0f), ideal_yaw(0.0f), spawnClearMoveables(false), num_cinematics(0), current_cinematic(0), allowJointMod(true), focusTime(0), alignHeadTime(0), forceAlignHeadTime(0), muzzleFlashEnd(0), flashTime(0), flashJointWorld(INVALID_JOINT), focusJoint(INVALID_JOINT), orientationJoint(INVALID_JOINT), flyTiltJoint(INVALID_JOINT), eyeVerticalOffset(0.0f), eyeHorizontalOffset(0.0f), eyeFocusRate(0.0f), headFocusRate(0.0f), focusAlignTime(0), lastVisibleEnemyPos(0.0f), lastVisibleEnemyEyeOffset(0.0f), lastVisibleReachableEnemyPos(0.0f), lastReachableEnemyPos(0.0f), currentFocusPos(0.0f), eyeAng(0.0f,0.0f,0.0f), lookAng(0.0f,0.0f,0.0f), destLookAng(0.0f,0.0f,0.0f), lookMin(0.0f,0.0f,0.0f), lookMax(0.0f,0.0f,0.0f), eyeMin(0.0f,0.0f,0.0f), eyeMax(0.0f,0.0f,0.0f)
 {
-	aas					= NULL;
-	travelFlags			= TFL_WALK | TFL_AIR;
-	
-	kickForce			= 2048.0f;
-	ignore_obstacles	= false;
-	blockedRadius		= 0.0f;
-	blockedMoveTime		= 750;
-	blockedAttackTime	= 750;
-	turnRate			= 360.0f;
-	turnVel				= 0.0f;
-	anim_turn_yaw		= 0.0f;
-	anim_turn_amount	= 0.0f;
-	anim_turn_angles	= 0.0f;
-	fly_offset			= 0;
-	fly_seek_scale		= 1.0f;
-	fly_roll_scale		= 0.0f;
-	fly_roll_max		= 0.0f;
-	fly_roll			= 0.0f;
-	fly_pitch_scale		= 0.0f;
-	fly_pitch_max		= 0.0f;
-	fly_pitch			= 0.0f;
-	allowMove			= false;
-	allowHiddenMovement	= false;
-	fly_speed			= 0.0f;
-	fly_bob_strength	= 0.0f;
-	fly_bob_vert		= 0.0f;
-	fly_bob_horz		= 0.0f;
-	lastHitCheckResult	= false;
-	lastHitCheckTime	= 0;
-	lastAttackTime		= 0;
-	melee_range			= 0.0f;
-	projectile_height_to_distance_ratio = 1.0f;
-	projectileDef		= NULL;
-	projectile			= NULL;
-	projectileClipModel	= NULL;
-	projectileRadius	= 0.0f;
-	projectileVelocity	= vec3_origin;
-	projectileGravity	= vec3_origin;
-	projectileSpeed		= 0.0f;
-	chat_snd			= NULL;
-	chat_min			= 0;
-	chat_max			= 0;
-	chat_time			= 0;
-	talk_state			= TALK_NEVER;
+    projectile          = NULL;
 	talkTarget			= NULL;
-	
+
 	particles.Clear();
-	restartParticles	= true;
-	useBoneAxis			= false;
-	
-	wakeOnFlashlight	= false;
+
 	memset( &worldMuzzleFlash, 0, sizeof( worldMuzzleFlash ) );
-	worldMuzzleFlashHandle = -1;
-	
+
 	enemy				= NULL;
-	lastVisibleEnemyPos.Zero();
-	lastVisibleEnemyEyeOffset.Zero();
-	lastVisibleReachableEnemyPos.Zero();
-	lastReachableEnemyPos.Zero();
 	fl.neverDormant		= false;		// AI's can go dormant
-	current_yaw			= 0.0f;
-	ideal_yaw			= 0.0f;
-	
-	spawnClearMoveables	= false;
-	harvestEnt			= NULL;
-	
-	num_cinematics		= 0;
-	current_cinematic	= 0;
-	
-	allowEyeFocus		= true;
-	allowPain			= true;
-	allowJointMod		= true;
+	harvestEnt	    	= NULL;
+
+    allowEyeFocus       = true;
+    allowPain           = true;
+
 	focusEntity			= NULL;
-	focusTime			= 0;
-	alignHeadTime		= 0;
-	forceAlignHeadTime	= 0;
-	
-	currentFocusPos.Zero();
-	eyeAng.Zero();
-	lookAng.Zero();
-	destLookAng.Zero();
-	lookMin.Zero();
-	lookMax.Zero();
-	
-	eyeMin.Zero();
-	eyeMax.Zero();
-	muzzleFlashEnd		= 0;
-	flashTime			= 0;
-	flashJointWorld		= INVALID_JOINT;
-	
-	focusJoint			= INVALID_JOINT;
-	orientationJoint	= INVALID_JOINT;
-	flyTiltJoint		= INVALID_JOINT;
-	
-	eyeVerticalOffset	= 0.0f;
-	eyeHorizontalOffset = 0.0f;
-	eyeFocusRate		= 0.0f;
-	headFocusRate		= 0.0f;
-	focusAlignTime		= 0;
 }
 
 /*

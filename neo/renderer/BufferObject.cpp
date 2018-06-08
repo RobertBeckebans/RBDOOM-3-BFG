@@ -913,7 +913,6 @@ float* idJointBuffer::MapBuffer( bufferMapType_t mapType ) const
 	glBindBuffer( GL_UNIFORM_BUFFER, reinterpret_cast< GLintptr >( apiObject ) );
 	// RB end
 	
-	numBytes = numBytes;
 	assert( GetOffset() == 0 );
 	//buffer = glMapBufferARB( GL_UNIFORM_BUFFER, GL_WRITE_ONLY_ARB );
 	
