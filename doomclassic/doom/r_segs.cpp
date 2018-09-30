@@ -368,7 +368,11 @@ R_StoreWallRange
     
     // calculate ::g->rw_distance for scale calculation
     ::g->rw_normalangle = ::g->curline->angle + ANG90;
-	offsetangle = abs((long)(::g->rw_normalangle-::g->rw_angle1));
+	if(!idStr::Icmp(CPUSTRING,"x86_64")){ //GK: One single cast to the wrong OS and CPU type can make all the graphical glitches 
+		offsetangle = abs((int)(::g->rw_normalangle-::g->rw_angle1)); 
+	}else{ 
+		offsetangle = abs((long)(::g->rw_normalangle-::g->rw_angle1)); 
+	} 
     
     if (offsetangle > ANG90)
 	offsetangle = ANG90;
