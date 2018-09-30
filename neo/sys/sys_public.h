@@ -40,7 +40,7 @@ If you have questions concerning this license or the applicable additional terms
 ===============================================================================
 */
 
-enum cpuid_t
+enum cpuidSimd_t
 {
 	CPUID_NONE							= 0x00000,
 	CPUID_UNSUPPORTED					= 0x00001,	// unsupported (386/486)
