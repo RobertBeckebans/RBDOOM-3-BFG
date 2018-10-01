@@ -216,7 +216,7 @@ on abstract classes only.
 		( idEventFunc<idClass> * )nameofclass::eventCallbacks, nameofclass::CreateInstance, ( void ( idClass::* )() )&nameofclass::Spawn,	\
 		( void ( idClass::* )( idSaveGame * ) const )&nameofclass::Save, ( void ( idClass::* )( idRestoreGame * ) )&nameofclass::Restore );	\
 	idClass *nameofclass::CreateInstance() {													\
-		gameLocal.Error( "Cannot instanciate abstract class %s.", #nameofclass );					\
+		gameLocal.Error( "Cannot instantiate abstract class %s.", #nameofclass );					\
 		return NULL;																				\
 	}																								\
 	idTypeInfo *nameofclass::GetType() const {												\

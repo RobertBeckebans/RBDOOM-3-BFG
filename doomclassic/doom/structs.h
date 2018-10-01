@@ -358,7 +358,7 @@ typedef struct
 typedef struct
 {
     // Block origin (allways UL),
-    // which has allready accounted
+    // which has already accounted
     // for the internal origin of the patch.
     int		originx;	
     int		originy;

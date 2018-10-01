@@ -35,7 +35,7 @@ idCVar net_queueSnapAcks( "net_queueSnapAcks", "1", CVAR_BOOL, "" );
 
 idCVar net_peer_throttle_mode( "net_peer_throttle_mode", "0", CVAR_INTEGER, "= 0 off, 1 = enable fixed, 2 = absolute, 3 = both" );
 
-idCVar net_peer_throttle_minSnapSeq( "net_peer_throttle_minSnapSeq", "150", CVAR_INTEGER, "Minumum number of snapshot exchanges before throttling can be triggered" );
+idCVar net_peer_throttle_minSnapSeq( "net_peer_throttle_minSnapSeq", "150", CVAR_INTEGER, "Minimum number of snapshot exchanges before throttling can be triggered" );
 
 idCVar net_peer_throttle_bps_peer_threshold_pct( "net_peer_throttle_bps_peer_threshold_pct", "0.60", CVAR_FLOAT, "Min reported incoming bps % of sent from host that a peer must maintain before throttling kicks in" );
 idCVar net_peer_throttle_bps_host_threshold( "net_peer_throttle_bps_host_threshold", "1024", CVAR_FLOAT, "Min outgoing bps of host for bps based throttling to be considered" );

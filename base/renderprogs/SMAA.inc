@@ -228,14 +228,14 @@
  *      - DX10.1:   D3D10_STANDARD_MULTISAMPLE_PATTERN or
  *      - DX11:     D3D11_STANDARD_MULTISAMPLE_PATTERN
  *
- *    This allows to ensure that the subsample order matches the table in
+ *    This allows one to ensure that the subsample order matches the table in
  *    @SUBSAMPLE_INDICES.
  *
  *    (*) In the case of DX10, we refer the reader to:
  *      - SMAA::detectMSAAOrder and
  *      - SMAA::msaaReorder
  *
- *    These functions allow to match the standard multisample patterns by
+ *    These functions allow one to match the standard multisample patterns by
  *    detecting the subsample order for a specific GPU, and reordering
  *    them appropriately.
  *
@@ -326,8 +326,8 @@
  * performance. 
  *
  * Range: [0, 0.5]
- *   0.1 is a reasonable value, and allows to catch most visible edges.
- *   0.05 is a rather overkill value, that allows to catch 'em all.
+ *   0.1 is a reasonable value, and allows one to catch most visible edges.
+ *   0.05 is a rather overkill value, that allows one to catch 'em all.
  *
  *   If temporal supersampling is used, 0.2 could be a reasonable value, as low
  *   contrast edges are properly filtered by just 2x.
@@ -390,7 +390,7 @@
  * If there is an neighbor edge that has SMAA_LOCAL_CONTRAST_FACTOR times
  * bigger contrast than current edge, current edge will be discarded.
  *
- * This allows to eliminate spurious crossing edges, and is based on the fact
+ * This allows one to eliminate spurious crossing edges, and is based on the fact
  * that, if there is too much contrast in a direction, that will hide
  * perceptually contrast in the other neighbors.
  */
@@ -399,7 +399,7 @@
 #endif
 
 /**
- * Predicated thresholding allows to better preserve texture details and to
+ * Predicated thresholding allows one to better preserve texture details and to
  * improve performance, by decreasing the number of detected edges using an
  * additional buffer like the light accumulation buffer, object ids or even the
  * depth buffer (the depth buffer usage may be limited to indoor or short range
@@ -446,7 +446,7 @@
 #endif
 
 /**
- * Temporal reprojection allows to remove ghosting artifacts when using
+ * Temporal reprojection allows one to remove ghosting artifacts when using
  * temporal supersampling. We use the CryEngine 3 method which also introduces
  * velocity weighting. This feature is of extreme importance for totally
  * removing ghosting. More information here:
@@ -461,7 +461,7 @@
 #endif
 
 /**
- * SMAA_REPROJECTION_WEIGHT_SCALE controls the velocity weighting. It allows to
+ * SMAA_REPROJECTION_WEIGHT_SCALE controls the velocity weighting. It allows one to
  * remove ghosting trails behind the moving object, which are not removed by
  * just using reprojection. Using low values will exhibit ghosting, while using
  * high values will disable temporal supersampling under motion.
@@ -869,7 +869,7 @@ float4 SMAADecodeDiagBilinearAccess(float4 e) {
 }
 
 /**
- * These functions allows to perform diagonal pattern searches.
+ * These functions allows one to perform diagonal pattern searches.
  */
 float2 SMAASearchDiag1(SMAATexture2D(edgesTex), float2 texcoord, float2 dir, out float2 e) {
 	dir.y = API_V_DIR(dir.y);
@@ -1005,8 +1005,8 @@ float2 SMAACalculateDiagWeights(SMAATexture2D(edgesTex), SMAATexture2D(areaTex),
 // Horizontal/Vertical Search Functions
 
 /**
- * This allows to determine how much length should we add in the last step
- * of the searches. It takes the bilinearly interpolated edge (see 
+ * This allows one to determine how much length should we add in the last step
+ * of the searches. It takes the bilinearly interpolated edge (see
  * @PSEUDO_GATHER4), and adds 0, 1 or 2, depending on which edges and
  * crossing edges are active.
  */
@@ -1204,7 +1204,7 @@ float4 SMAABlendingWeightCalculationPS(float2 texcoord,
         coords.z = SMAASearchXRight(SMAATexturePass2D(edgesTex), SMAATexturePass2D(searchTex), offset[0].zw, offset[2].y);
         d.y = coords.z;
 
-        // We want the distances to be in pixel units (doing this here allow to
+        // We want the distances to be in pixel units (doing this here allows one to
         // better interleave arithmetic and memory accesses):
         d = abs(round(mad(SMAA_RT_METRICS.zz, d, -pixcoord.xx)));
 

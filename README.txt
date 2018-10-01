@@ -349,7 +349,7 @@ r_useShadowMapping [0 or 1] - Use soft shadow mapping instead of hard stencil sh
 r_useHDR [0 or 1] - Use High Dynamic Range lighting
 
 r_hdrAutoExposure [0 or 1] - Adaptive tonemapping with HDR
-	This allows to have very bright or very dark scenes but the camera will adopt to it so the scene won't loose details
+	This allows one to have very bright or very dark scenes but the camera will adopt to it so the scene won't loose details
 	
 r_exposure [0 .. 1] - Default 0.5, Controls brightness and affects HDR exposure key
 	This is what you change in the video brightness options

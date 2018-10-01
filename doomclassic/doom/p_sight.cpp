@@ -165,7 +165,7 @@ qboolean P_CrossSubsector (int num)
     {
 	line = seg->linedef;
 
-	// allready checked other side?
+	// already checked other side?
 	if (line->validcount == ::g->validcount)
 	    continue;
 	

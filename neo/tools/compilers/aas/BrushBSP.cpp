@@ -87,7 +87,7 @@ void idBrushBSPPortal::AddToNodes( idBrushBSPNode* front, idBrushBSPNode* back )
 {
 	if( nodes[0] || nodes[1] )
 	{
-		common->Error( "AddToNode: allready included" );
+		common->Error( "AddToNode: already included" );
 	}
 	
 	assert( front && back );
