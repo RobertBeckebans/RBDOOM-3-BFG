@@ -1,0 +1,19 @@
+language: cpp
+os:
+  - linux
+  - osx
+matrix:
+  allow_failures:
+    - os: osx  
+compiler:
+  - gcc
+  - clang
+#  - CXX=g++-mingw-w64-x86-64; g++ # disabled, does not work with RBDOOM-3-BFG build system
+install:
+ - if [ "$CXX" = "g++" ]; then sudo sed -i 's/precise/trusty/g' /etc/apt/sources.list; fi
+ - if [ "$CXX" = "g++-mingw-w64-x86-64" ]; then sudo sed -i 's/precise/trusty/g' /etc/apt/sources.list; fi
+ - sudo apt-get update -qq
+ - sudo apt-get install libsdl1.2-dev libopenal-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev
+ - if [ "$CXX" = "g++" ]; then sudo apt-get install -qqy gcc g++; fi
+ - if [ "$CXX" = "g++-mingw-w64-x86-64" ]; then sudo apt-get install -qqy g++-mingw-w64-x86-64; fi
+script: mkdir build && cd build &&  if [ "$CXX" = "g++-mingw-w64-x86-64" ]; then cmake -G "Eclipse CDT4 - Unix Makefiles" -DCMAKE_TOOLCHAIN_FILE=../neo/mingw32.toolchain.cmake -DCMAKE_BUILD_TYPE=Debug -DSDL2=OFF ../neo ;else cmake -G "Eclipse CDT4 - Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DSDL2=OFF ../neo;fi && make 
