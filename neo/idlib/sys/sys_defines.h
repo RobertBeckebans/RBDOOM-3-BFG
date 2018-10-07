@@ -254,12 +254,16 @@ bulk of the codebase, so it is the best place for analyze pragmas.
 // I don't want to disable "warning C6031: Return value ignored" from /analyze
 // but there are several cases with sprintf where we pre-initialized the variables
 // being scanned into, so we truly don't care if they weren't all scanned.
-// Rather than littering #pragma statements around these cases, we can assign the
-// return value to this, which means we have considered the issue and decided that
-// it doesn't require action.
-// The volatile qualifier is to prevent:PVS-Studio warnings like:
-// False	2	4214	V519	The 'ignoredReturnValue' object is assigned values twice successively. Perhaps this is a mistake. Check lines: 545, 547.	Rage	collisionmodelmanager_debug.cpp	547	False
-extern volatile int ignoredReturnValue;
+// Rather than littering #pragma statements around these cases, we can hand the
+// return values to 'ignoreReturnValue()', which means we have considered the
+// issue and decided that it doesn't require action.
+#ifdef __cplusplus
+	namespace {
+		template <class T> inline void ignoreReturnValue( const T& ) { }
+	}
+#else
+	static inline void ignoreReturnValue( int __ignored ) { (void) __ignored; }
+#endif
 
 #define MAX_TYPE( x )			( ( ( ( 1 << ( ( sizeof( x ) - 1 ) * 8 - 1 ) ) - 1 ) << 8 ) | 255 )
 #define MIN_TYPE( x )			( - MAX_TYPE( x ) - 1 )
