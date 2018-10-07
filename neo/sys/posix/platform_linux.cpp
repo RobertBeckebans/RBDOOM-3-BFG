@@ -56,21 +56,33 @@ Sys_EXEPath
 */
 const char* Sys_EXEPath()
 {
-	static char	buf[ 1024 ];
-	idStr		linkpath;
-	int			len;
-	
-	buf[ 0 ] = '\0';
-	sprintf( linkpath, "/proc/%d/exe", getpid() );
-	len = readlink( linkpath.c_str(), buf, sizeof( buf ) );
-	if( len == -1 )
+	static char *exePath = NULL;
+	if( exePath )
+		return exePath;
+
+	/*
+	 * Unfortunately procfs entries usually report to have size 0, so we cannot
+	 * lstat(2) to determine the right size and need to rely on probing with
+	 * readlink(2) until it places strictly less than bufsize bytes in the
+	 * buffer.
+	 */
+	ssize_t len = 0;
+	for( size_t bufsize = 1 << 8; len >= 0 && bufsize <= 1 << 20; bufsize <<= 1 )
 	{
-		Sys_Printf( "couldn't stat exe path link %s\n", linkpath.c_str() );
-		// RB: fixed array subscript is below array bounds
-		buf[ 0 ] = '\0';
-		// RB end
+		char *buf = new char[ bufsize ];
+		len = readlink( "/proc/self/exe", buf, bufsize - 1 );
+		if( len >= 0 && static_cast<size_t>( len ) < bufsize )
+		{
+			buf[ len ] = '\0';
+			exePath = buf;
+			return buf;
+		}
+		delete[] buf;
 	}
-	return buf;
+
+	Sys_Printf( "couldn't read exe path link: %s\n",
+		( len >= 0 ) ? strerror( errno ) : "Maximum buffer length exceeded" );
+	return NULL;
 }
 
 /*
@@ -169,8 +181,7 @@ numCPUPackages		- the total number of packages (physical processors)
 void Sys_CPUCount( int& numLogicalCPUCores, int& numPhysicalCPUCores, int& numCPUPackages )
 {
 	static bool		init = false;
-	static double	ret;
-	
+
 	static int		s_numLogicalCPUCores;
 	static int		s_numPhysicalCPUCores;
 	static int		s_numCPUPackages;
@@ -269,12 +280,8 @@ if the command contains spaces, system() is used. Otherwise the more straightfor
 */
 void Sys_DoStartProcess( const char* exeName, bool dofork )
 {
-	bool use_system = false;
-	if( strchr( exeName, ' ' ) )
-	{
-		use_system = true;
-	}
-	else
+	bool use_system = strchr( exeName, ' ' ) != NULL;
+	if( !use_system )
 	{
 		// set exec rights when it's about a single file to execute
 		struct stat buf;
@@ -282,54 +289,49 @@ void Sys_DoStartProcess( const char* exeName, bool dofork )
 		{
 			printf( "stat %s failed: %s\n", exeName, strerror( errno ) );
 		}
-		else
+		else if ( S_ISREG( buf.st_mode ) && !( buf.st_mode & S_IXUSR ) )
 		{
 			if( chmod( exeName, buf.st_mode | S_IXUSR ) == -1 )
 			{
-				printf( "cmod +x %s failed: %s\n", exeName, strerror( errno ) );
+				printf( "chmod +x %s failed: %s\n", exeName, strerror( errno ) );
 			}
 		}
 	}
 	if( dofork )
 	{
+		fflush( stdout );
 		switch( fork() )
 		{
-			case -1:
-				// main thread
-				break;
 			case 0:
+				// child thread
+				break;
+			case -1:
+				printf( "fork failed: %s\n", strerror( errno ) );
+				return;
+			default:
+				// main thread
+				return;
+		}
+	}
+
+	printf( "execl `%s\"\n", exeName );
 				if( use_system )
 				{
-					printf( "system %s\n", exeName );
-					system( exeName );
-					_exit( 0 );
+		execl( "/bin/sh", "/bin/sh", "-c", exeName, NULL );
 				}
 				else
 				{
-					printf( "execl %s\n", exeName );
 					execl( exeName, exeName, NULL );
+	}
 					printf( "execl failed: %s\n", strerror( errno ) );
+	if( dofork )
+	{
+		fclose( stdout );
 					_exit( -1 );
 				}
-				break;
-		}
-	}
 	else
 	{
-		if( use_system )
-		{
-			printf( "system %s\n", exeName );
-			system( exeName );
-			sleep( 1 );	// on some systems I've seen that starting the new process and exiting this one should not be too close
-		}
-		else
-		{
-			printf( "execl %s\n", exeName );
-			execl( exeName, exeName, NULL );
-			printf( "execl failed: %s\n", strerror( errno ) );
-		}
-		// terminate
-		_exit( 0 );
+		exit( -1 );
 	}
 }
 

@@ -58,7 +58,6 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "posix_public.h"
 
-#define					MAX_OSPATH 256
 #define					COMMAND_HISTORY 64
 
 static idStr			basepath;
@@ -106,7 +105,7 @@ const char* Sys_DefaultSavePath()
 #else
 	sprintf( savepath, "%s/.rbdoom3bfg", getenv( "HOME" ) );
 #endif
-	
+
 	return savepath.c_str();
 }
 
@@ -127,12 +126,12 @@ void Posix_Exit( int ret )
 	}
 	// at this point, too late to catch signals
 	Posix_ClearSigs();
-	
+
 	//if( asyncThread.threadHandle )
 	//{
 	//	Sys_DestroyThread( asyncThread );
 	//}
-	
+
 	// process spawning. it's best when it happens after everything has shut down
 	if( exit_spawn[0] )
 	{
@@ -186,7 +185,7 @@ void idSysLocal::StartProcess( const char* exeName, bool quit )
 		cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "quit\n" );
 		return;
 	}
-	
+
 	common->DPrintf( "Sys_StartProcess %s\n", exeName );
 	Sys_DoStartProcess( exeName );
 }
@@ -233,6 +232,54 @@ void Sys_FPE_handler( int signum, siginfo_t* info, void* context )
 	Sys_Printf( "FPE\n" );
 }
 
+
+#if _POSIX_TIMERS && defined( _POSIX_MONOTONIC_CLOCK )
+	typedef struct timespec tickcount_t;
+
+	const static clockid_t supported_uniform_clock =
+		#ifdef CLOCK_MONOTONIC_RAW
+			(clock_getres( CLOCK_MONOTONIC_RAW, nullptr ) == 0) ? CLOCK_MONOTONIC_RAW :
+		#endif
+			CLOCK_MONOTONIC;
+#else
+	typedef uint64_t tickcount_t;
+#endif
+
+void Sys_GetClockTicksI( tickcount_t *tc )
+{
+	#if _POSIX_TIMERS && defined( _POSIX_MONOTONIC_CLOCK )
+		int rv = clock_gettime( supported_uniform_clock, tc );
+		assert( rv == 0 );
+	#elif defined( __i386__ )
+		uint32_t lo, hi;
+
+		__asm__ __volatile__(
+			"push %%ebx\n"			\
+			"mfence\n"					\
+			"rdtsc\n"					\
+			"mov %%eax,%0\n"			\
+			"mov %%edx,%1\n"			\
+			"pop %%ebx\n"
+			: "=r"( lo ), "=r"( hi ) );
+
+		*tc = lo | (static_cast<tickcount_t>(hi) << (sizeof(lo) * CHAR_BIT));
+	#else
+		#error No supported uniform timer
+	#endif
+}
+
+
+inline
+double tickcount2double( const tickcount_t *tc )
+{
+	#if _POSIX_TIMERS && defined( _POSIX_MONOTONIC_CLOCK )
+		return tc->tv_sec * 1e9 + tc->tv_nsec;
+	#else
+		return *tc;
+	#endif
+}
+
+
 /*
 ===============
 Sys_GetClockticks
@@ -240,30 +287,71 @@ Sys_GetClockticks
 */
 double Sys_GetClockTicks()
 {
-#if defined( __i386__ )
-	unsigned long lo, hi;
-	
-	__asm__ __volatile__(
-		"push %%ebx\n"			\
-		"xor %%eax,%%eax\n"		\
-		"cpuid\n"					\
-		"rdtsc\n"					\
-		"mov %%eax,%0\n"			\
-		"mov %%edx,%1\n"			\
-		"pop %%ebx\n"
-		: "=r"( lo ), "=r"( hi ) );
-	return ( double ) lo + ( double ) 0xFFFFFFFF * hi;
-#else
-//#error unsupported CPU
-// RB begin
-	struct timespec now;
-	
-	clock_gettime( CLOCK_MONOTONIC, &now );
-	
-	return now.tv_sec * 1000000000LL + now.tv_nsec;
-// RB end
-#endif
+	tickcount_t tc;
+	Sys_GetClockTicksI( &tc );
+	return tickcount2double( &tc );
 }
+
+
+/*
+ * Subtract the "truct timespec" values X and Y, storing the result in RESULT.
+ *
+ * (adapted from "timeval_subtract" found at
+ * https://www.gnu.org/software/libc/manual/html_node/Elapsed-Time.html)
+ */
+struct timespec *timespec_subtract ( struct timespec *result,
+	const struct timespec *_x, const struct timespec *_y )
+{
+	const static long NANOS = 1000L * 1000L * 1000L;
+	struct timespec x = *_x, y = *_y;
+
+  /* Perform the carry for the later subtraction by updating y. */
+  if (x.tv_nsec < y.tv_nsec)
+  {
+    long nsec = (y.tv_nsec - x.tv_nsec) / NANOS + 1;
+    y.tv_nsec -= NANOS * nsec;
+    y.tv_sec += nsec;
+  }
+  if (x.tv_nsec - y.tv_nsec > NANOS)
+  {
+    long nsec = (x.tv_nsec - y.tv_nsec) / NANOS;
+    y.tv_nsec += NANOS * nsec;
+    y.tv_sec -= nsec;
+  }
+
+  // Compute the time difference.
+  // tv_nsec is certainly positive.
+  result->tv_sec = x.tv_sec - y.tv_sec;
+  result->tv_nsec = x.tv_nsec - y.tv_nsec;
+
+  return result;
+}
+
+
+inline
+tickcount_t *tickcount_subtract( tickcount_t *result,
+	const tickcount_t *x, const tickcount_t *y )
+{
+	#if _POSIX_TIMERS && defined( _POSIX_MONOTONIC_CLOCK )
+		return timespec_subtract( result, x, y );
+	#else
+		*result = *x - *y;
+		return result;
+	#endif
+}
+
+
+tickcount_t *MeasureClockTicksI( tickcount_t *tc )
+{
+	tickcount_t t0, t1;
+
+	Sys_GetClockTicksI( &t0 );
+	Sys_Sleep( 1000 );
+	Sys_GetClockTicksI( &t1 );
+
+	return tickcount_subtract( tc, &t1, &t0 );
+}
+
 
 /*
 ===============
@@ -272,12 +360,9 @@ MeasureClockTicks
 */
 double MeasureClockTicks()
 {
-	double t0, t1;
-	
-	t0 = Sys_GetClockTicks( );
-	Sys_Sleep( 1000 );
-	t1 = Sys_GetClockTicks( );
-	return t1 - t0;
+	tickcount_t tc;
+	MeasureClockTicksI( &tc );
+	return tickcount2double( &tc );
 }
 
 /*
@@ -285,59 +370,52 @@ double MeasureClockTicks()
 Sys_Milliseconds
 ================
 */
-/* base time in seconds, that's our origin
+
+int Sys_Milliseconds()
+{
+	/* base time in seconds, that's our origin
    timeval:tv_sec is an int:
    assuming this wraps every 0x7fffffff - ~68 years since the Epoch (1970) - we're safe till 2038
    using unsigned long data type to work right with Sys_XTimeToSysTime */
 
-#ifdef CLOCK_MONOTONIC_RAW
-// use RAW monotonic clock if available (=> not subject to NTP etc)
-#define D3_CLOCK_TO_USE CLOCK_MONOTONIC_RAW
-#else
-#define D3_CLOCK_TO_USE CLOCK_MONOTONIC
-#endif
+	static time_t sys_timeBase = 0;
+	/* current time in ms, using sys_timeBase as origin
+	   NOTE: sys_timeBase*1000 + curtime -> ms since the Epoch
+	     0x7fffffff ms - ~24 days
+			 or is it 48 days? the specs say int, but maybe it's casted from unsigned int?
+	*/
 
-// RB: changed long to int
-unsigned int sys_timeBase = 0;
-// RB end
-/* current time in ms, using sys_timeBase as origin
-   NOTE: sys_timeBase*1000 + curtime -> ms since the Epoch
-     0x7fffffff ms - ~24 days
-		 or is it 48 days? the specs say int, but maybe it's casted from unsigned int?
-*/
-int Sys_Milliseconds()
-{
 	// DG: use clock_gettime on all platforms
 #if 1
 	int curtime;
 	struct timespec ts;
-	
-	clock_gettime( D3_CLOCK_TO_USE, &ts );
-	
+
+	clock_gettime( supported_uniform_clock, &ts );
+
 	if( !sys_timeBase )
 	{
 		sys_timeBase = ts.tv_sec;
 		return ts.tv_nsec / 1000000;
 	}
-	
-	curtime = ( ts.tv_sec - sys_timeBase ) * 1000 + ts.tv_nsec / 1000000;
-	
+
+	curtime = ( ts.tv_sec - sys_timeBase ) * 1000L + ts.tv_nsec / 1000000;
+
 	return curtime;
 #else
 	// gettimeofday() implementation
 	int curtime;
 	struct timeval tp;
-	
+
 	gettimeofday( &tp, NULL );
-	
+
 	if( !sys_timeBase )
 	{
 		sys_timeBase = tp.tv_sec;
 		return tp.tv_usec / 1000;
 	}
-	
+
 	curtime = ( tp.tv_sec - sys_timeBase ) * 1000 + tp.tv_usec / 1000;
-	
+
 	return curtime;
 	* /
 #endif
@@ -351,43 +429,43 @@ int Sys_Milliseconds()
 Sys_Microseconds
 ================
 */
-static uint64 sys_microTimeBase = 0;
-
 uint64 Sys_Microseconds()
 {
+	static time_t sys_microTimeBase = 0;
+
 #if 0
 	static uint64 ticksPerMicrosecondTimes1024 = 0;
-	
+
 	if( ticksPerMicrosecondTimes1024 == 0 )
 	{
 		ticksPerMicrosecondTimes1024 = ( ( uint64 )Sys_ClockTicksPerSecond() << 10 ) / 1000000;
 		assert( ticksPerMicrosecondTimes1024 > 0 );
 	}
-	
+
 	return ( ( uint64 )( ( int64 )Sys_GetClockTicks() << 10 ) ) / ticksPerMicrosecondTimes1024;
 #elif 0
 	uint64 curtime;
 	struct timespec ts;
-	
+
 	clock_gettime( CLOCK_MONOTONIC, &ts );
-	
+
 	curtime = ts.tv_sec * 1000000 + ts.tv_nsec / 1000;
-	
+
 	return curtime;
 #else
 	uint64 curtime;
 	struct timespec ts;
-	
-	clock_gettime( D3_CLOCK_TO_USE, &ts );
-	
+
+	clock_gettime( supported_uniform_clock, &ts );
+
 	if( !sys_microTimeBase )
 	{
 		sys_microTimeBase = ts.tv_sec;
 		return ts.tv_nsec / 1000;
 	}
-	
-	curtime = ( ts.tv_sec - sys_microTimeBase ) * 1000000 + ts.tv_nsec / 1000;
-	
+
+	curtime = static_cast<uint64>( ts.tv_sec - sys_microTimeBase ) * 1000000 + ts.tv_nsec / 1000;
+
 	return curtime;
 #endif
 }
@@ -474,7 +552,7 @@ bool Sys_IsFileWritable( const char* path )
 	{
 		return true;
 	}
-	
+
 	return ( st.st_mode & S_IWRITE ) != 0;
 }
 
@@ -486,12 +564,12 @@ Sys_IsFolder
 sysFolder_t	 Sys_IsFolder( const char* path )
 {
 	struct stat buffer;
-	
+
 	if( stat( path, &buffer ) < 0 )
 	{
 		return FOLDER_ERROR;
 	}
-	
+
 	return ( buffer.st_mode & S_IFDIR ) != 0 ? FOLDER_YES : FOLDER_NO;
 }
 
@@ -510,15 +588,15 @@ int Sys_ListFiles( const char* directory, const char* extension, idStrList& list
 	char search[MAX_OSPATH];
 	struct stat st;
 	bool debug;
-	
+
 	list.Clear();
-	
+
 	debug = cvarSystem->GetCVarBool( "fs_debug" );
 	// DG: we use fnmatch for shell-style pattern matching
 	// so the pattern should at least contain "*" to match everything,
 	// the extension will be added behind that (if !dironly)
 	idStr pattern( "*" );
-	
+
 	// passing a slash as extension will find directories
 	if( extension[0] == '/' && extension[1] == 0 )
 	{
@@ -530,7 +608,7 @@ int Sys_ListFiles( const char* directory, const char* extension, idStrList& list
 		pattern += extension;
 	}
 	// DG end
-	
+
 	// NOTE: case sensitivity of directory path can screw us up here
 	if( ( fdir = opendir( directory ) ) == NULL )
 	{
@@ -540,23 +618,23 @@ int Sys_ListFiles( const char* directory, const char* extension, idStrList& list
 		}
 		return -1;
 	}
-	
+
 	// DG: use readdir_r instead of readdir for thread safety
 	// the following lines are from the readdir_r manpage.. fscking ugly.
 	int nameMax = pathconf( directory, _PC_NAME_MAX );
 	if( nameMax == -1 )
 		nameMax = 255;
 	int direntLen = offsetof( struct dirent, d_name ) + nameMax + 1;
-	
+
 	struct dirent* entry = ( struct dirent* )Mem_Alloc( direntLen, TAG_CRAP );
-	
+
 	if( entry == NULL )
 	{
 		common->Warning( "Sys_ListFiles: Mem_Alloc for entry failed!" );
 		closedir( fdir );
 		return 0;
 	}
-	
+
 	while( readdir_r( fdir, entry, &d ) == 0 && d != NULL )
 	{
 		// DG end
@@ -576,18 +654,18 @@ int Sys_ListFiles( const char* directory, const char* extension, idStrList& list
 		if( ( dironly && !( st.st_mode & S_IFDIR ) ) ||
 				( !dironly && ( st.st_mode & S_IFDIR ) ) )
 			continue;
-			
+
 		list.Append( d->d_name );
 	}
-	
+
 	closedir( fdir );
 	Mem_Free( entry );
-	
+
 	if( debug )
 	{
 		common->Printf( "Sys_ListFiles: %d entries in %s\n", list.Num(), directory );
 	}
-	
+
 	return list.Num();
 }
 
@@ -688,11 +766,7 @@ Posix_Cwd
 const char* Posix_Cwd()
 {
 	static char cwd[MAX_OSPATH];
-	
-	getcwd( cwd, sizeof( cwd ) - 1 );
-	cwd[MAX_OSPATH - 1] = 0;
-	
-	return cwd;
+	return getcwd( cwd, sizeof( cwd ) );
 }
 
 /*
@@ -750,7 +824,7 @@ intptr_t Sys_DLL_Load( const char* path )
 	{
 		Sys_Printf( "dlopen '%s' failed: %s\n", path, dlerror() );
 	}
-	
+
 	return ( intptr_t )handle;
 }
 // RB end
@@ -825,7 +899,7 @@ void Sys_Sleep( int msec )
 	}
 #endif // DG end
 	// use nanosleep? keep sleeping if signal interrupt?
-	
+
 	// RB begin
 #if defined(__ANDROID__)
 	usleep( msec * 1000 );
@@ -902,19 +976,19 @@ returns in megabytes
 int Sys_GetDriveFreeSpace( const char* path )
 {
 	int ret = 26;
-	
+
 	struct statvfs st;
-	
+
 	if( statvfs( path, &st ) == 0 )
 	{
 		unsigned long blocksize = st.f_bsize;
 		unsigned long freeblocks = st.f_bfree;
-		
+
 		unsigned long free = blocksize * freeblocks;
-		
+
 		ret = ( double )( free ) / ( 1024.0 * 1024.0 );
 	}
-	
+
 	return ret;
 }
 
@@ -926,19 +1000,19 @@ Sys_GetDriveFreeSpaceInBytes
 int64 Sys_GetDriveFreeSpaceInBytes( const char* path )
 {
 	int64 ret = 1;
-	
+
 	struct statvfs st;
-	
+
 	if( statvfs( path, &st ) == 0 )
 	{
 		unsigned long blocksize = st.f_bsize;
 		unsigned long freeblocks = st.f_bfree;
-		
+
 		unsigned long free = blocksize * freeblocks;
-		
+
 		ret = free;
 	}
-	
+
 	return ret;
 }
 
@@ -963,13 +1037,13 @@ Posix_EarlyInit
 void Posix_EarlyInit()
 {
 	//memset( &asyncThread, 0, sizeof( asyncThread ) );
-	
+
 	exit_spawn[0] = '\0';
 	Posix_InitSigs();
-	
+
 	// set the base time
 	Sys_Milliseconds();
-	
+
 	//Posix_InitPThreads();
 }
 
@@ -1000,7 +1074,7 @@ Posix_InitConsoleInput
 void Posix_InitConsoleInput()
 {
 	struct termios tc;
-	
+
 	if( in_tty.GetBool() )
 	{
 		if( isatty( STDIN_FILENO ) != 1 )
@@ -1145,13 +1219,13 @@ void tty_Show()
 		if( buf[0] )
 		{
 			write( STDOUT_FILENO, buf, strlen( buf ) );
-			
+
 			// RB begin
 #if defined(__ANDROID__)
 			//__android_log_print(ANDROID_LOG_DEBUG, "RBDoom3_DEBUG", "%s", buf);
 #endif
 			// RB end
-			
+
 			int back = strlen( buf ) - input_field.GetCursor();
 			while( back > 0 )
 			{
@@ -1446,7 +1520,7 @@ char* Posix_ConsoleInput()
 		int				len;
 		fd_set			fdset;
 		struct timeval	timeout;
-		
+
 		FD_ZERO( &fdset );
 		FD_SET( STDIN_FILENO, &fdset );
 		timeout.tv_sec = 0;
@@ -1455,25 +1529,25 @@ char* Posix_ConsoleInput()
 		{
 			return NULL;
 		}
-		
+
 		len = read( 0, input_ret, sizeof( input_ret ) );
 		if( len == 0 )
 		{
 			// EOF
 			return NULL;
 		}
-		
+
 		if( len < 1 )
 		{
 			Sys_Printf( "read failed: %s\n", strerror( errno ) );	// something bad happened, cancel this line and print an error
 			return NULL;
 		}
-		
+
 		if( len == sizeof( input_ret ) )
 		{
 			Sys_Printf( "read overflow\n" );	// things are likely to break, as input will be cut into pieces
 		}
-		
+
 		input_ret[ len - 1 ] = '\0';		// rip off the \n and terminate
 		return input_ret;
 #endif
@@ -1514,16 +1588,16 @@ void Sys_DebugPrintf( const char* fmt, ... )
 #if defined(__ANDROID__)
 	va_list		argptr;
 	char		msg[4096];
-	
+
 	va_start( argptr, fmt );
 	idStr::vsnPrintf( msg, sizeof( msg ), fmt, argptr );
 	va_end( argptr );
 	msg[sizeof( msg ) - 1] = '\0';
-	
+
 	__android_log_print( ANDROID_LOG_DEBUG, "RBDoom3_Debug", msg );
 #else
 	va_list argptr;
-	
+
 	tty_Hide();
 	va_start( argptr, fmt );
 	vprintf( fmt, argptr );
@@ -1548,16 +1622,16 @@ void Sys_Printf( const char* fmt, ... )
 #if defined(__ANDROID__)
 	va_list		argptr;
 	char		msg[4096];
-	
+
 	va_start( argptr, fmt );
 	idStr::vsnPrintf( msg, sizeof( msg ), fmt, argptr );
 	va_end( argptr );
 	msg[sizeof( msg ) - 1] = '\0';
-	
+
 	__android_log_print( ANDROID_LOG_DEBUG, "RBDoom3", msg );
 #else
 	va_list argptr;
-	
+
 	tty_Hide();
 	va_start( argptr, fmt );
 	vprintf( fmt, argptr );
@@ -1585,13 +1659,13 @@ Sys_Error
 void Sys_Error( const char* error, ... )
 {
 	va_list argptr;
-	
+
 	Sys_Printf( "Sys_Error: " );
 	va_start( argptr, error );
 	Sys_DebugVPrintf( error, argptr );
 	va_end( argptr );
 	Sys_Printf( "\n" );
-	
+
 	Posix_Exit( EXIT_FAILURE );
 }
 
@@ -1616,19 +1690,19 @@ void idSysLocal::OpenURL( const char* url, bool quit )
 	const char*	script_path;
 	idFile*		script_file;
 	char		cmdline[ 1024 ];
-	
+
 	static bool	quit_spamguard = false;
-	
+
 	if( quit_spamguard )
 	{
 		common->DPrintf( "Sys_OpenURL: already in a doexit sequence, ignoring %s\n", url );
 		return;
 	}
-	
+
 	common->Printf( "Open URL: %s\n", url );
 	// opening an URL on *nix can mean a lot of things ..
 	// just spawn a script instead of deciding for the user :-)
-	
+
 	// look in the savepath first, then in the basepath
 	script_path = fileSystem->BuildOSPath( cvarSystem->GetCVarString( "fs_savepath" ), "", "openurl.sh" );
 	script_file = fileSystem->OpenExplicitFileRead( script_path );
@@ -1644,15 +1718,15 @@ void idSysLocal::OpenURL( const char* url, bool quit )
 		return;
 	}
 	fileSystem->CloseFile( script_file );
-	
+
 	// if we are going to quit, only accept a single URL before quitting and spawning the script
 	if( quit )
 	{
 		quit_spamguard = true;
 	}
-	
+
 	common->Printf( "URL script: %s\n", script_path );
-	
+
 	// StartProcess is going to execute a system() call with that - hence the &
 	idStr::snPrintf( cmdline, 1024, "%s '%s' &",  script_path, url );
 	sys->StartProcess( cmdline, quit );
