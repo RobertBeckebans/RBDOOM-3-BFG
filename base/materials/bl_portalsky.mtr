@@ -1,0 +1,34 @@
+// this file is GPLv3
+
+textures/common/portal_sky
+{   //CAUTION! this material requires to use a modified engine in order to 
+    //function as a portal sky texture!
+
+    qer_editorimage             textures/editor/portal_sky.tga
+    forceOpaque // purpose is twofold, seal the level and transparency overdraw.
+    noshadows
+    noimpact
+
+    // direct lights will still come out of the portal sky as if it were sky.
+    // I bet this is due forceOpaque as it's also required in sky materials.
+
+    // from here down, I find it quite a hacky implementation, I feel this 
+    // should be all internal, and not exposed to the material, we should find 
+    // a way to implement this more neatly. if not, how else would this be used?
+
+    sort                        portalSky //this material becomes the furthest.
+    // whatever is rendered inside the portalsky has it's own sorting separated
+    // from the scene on the "real world"    
+    {       
+        map                     _currentRender
+        clamp // cuts the texture by the border, the filtering doesn't bleed in.        
+        screen // it displays the texture planar without interacting with light.
+        // global4 and 5 are the resolution of the game.      
+        translate               global4 * 0.5, global5 * 0.5    
+        scale                   global4 * 0.5, global5 * 0.5
+        
+    }
+}
+
+
+

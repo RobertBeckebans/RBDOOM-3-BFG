@@ -279,6 +279,8 @@ void idGameLocal::Clear()
 	selectedGroup = 0;
 	portalSkyEnt			= NULL;
 	portalSkyActive			= false;
+    playerOldEyePos.Zero();
+    globalPortalSky         = false;
 	
 	ResetSlowTimeVars();
 	
@@ -619,6 +621,11 @@ void idGameLocal::SaveGame( idFile* f, idFile* strings )
 	
 	portalSkyEnt.Save( &savegame );
 	savegame.WriteBool( portalSkyActive );
+    savegame.WriteBool( globalPortalSky );
+    savegame.WriteInt( currentPortalSkyType );
+    savegame.WriteVec3( playerOldEyePos );
+    savegame.WriteVec3( portalSkyGlobalOrigin );
+    savegame.WriteVec3( portalSkyOrigin );
 	
 	fast.Save( &savegame );
 	slow.Save( &savegame );
@@ -1029,6 +1036,8 @@ void idGameLocal::LoadMap( const char* mapName, int randseed )
 	
 	portalSkyEnt			= NULL;
 	portalSkyActive			= false;
+    playerOldEyePos.Zero();
+    globalPortalSky         = false;
 	
 	ResetSlowTimeVars();
 	
@@ -1494,6 +1503,11 @@ bool idGameLocal::InitFromSaveGame( const char* mapName, idRenderWorld* renderWo
 	
 	portalSkyEnt.Restore( &savegame );
 	savegame.ReadBool( portalSkyActive );
+    savegame.ReadBool( globalPortalSky );
+    savegame.ReadInt( currentPortalSkyType );
+    savegame.ReadVec3( playerOldEyePos );
+    savegame.ReadVec3( portalSkyGlobalOrigin );
+    savegame.ReadVec3( portalSkyOrigin );
 	
 	fast.Restore( &savegame );
 	slow.Restore( &savegame );
@@ -5406,12 +5420,52 @@ void idGameLocal::SetPortalSkyEnt( idEntity* ent )
 
 /*
 =================
-idPlayer::IsPortalSkyAcive
+idPlayer::IsPortalSkyActive
 =================
 */
-bool idGameLocal::IsPortalSkyAcive()
+bool idGameLocal::IsPortalSkyActive()
 {
 	return portalSkyActive;
+}
+
+/*
+=================
+idGameLocal::CheckGlobalPortalSky
+=================
+*/
+bool idGameLocal::CheckGlobalPortalSky() {
+    return globalPortalSky;
+}
+
+/*
+=================
+idGameLocal::SetGlobalPortalSky 
+=================
+*/
+void idGameLocal::SetGlobalPortalSky( const char *name ) {
+    if ( CheckGlobalPortalSky() ) {
+        Error( "more than one global portalSky:\ndelete them until you have just one.\nportalSky '%s' causes it.", name );
+    } else {
+        globalPortalSky = true;
+    }
+}
+
+/*
+=================
+idGameLocal::SetCurrentPortalSkyType
+=================
+*/
+void idGameLocal::SetCurrentPortalSkyType( int type ) {
+    currentPortalSkyType = type;
+}
+
+/*
+=================
+idGameLocal::GetCurrentPortalSkyType
+=================
+*/
+int idGameLocal::GetCurrentPortalSkyType() {
+    return currentPortalSkyType;
 }
 
 /*

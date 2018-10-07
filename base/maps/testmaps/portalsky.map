@@ -1,0 +1,635 @@
+Version 2
+// entity 0
+{
+"classname" "worldspawn"
+"editor_drLastCameraPos" "533.881 -634.456 151.258"
+"editor_drLastCameraAngle" "-21.9 139.3 0"
+// primitive 0
+{
+brushDef3
+{
+( 0 0 1 320 ) ( ( 0.0625 0 0 ) ( 0 0.0625 2 ) ) "textures/bl/dev/16x16_gray" 0 0 0
+( 0 1 0 -416 ) ( ( 0.0625 0 6 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_gray" 0 0 0
+( 1 0 0 -352 ) ( ( 0.0625 0 6 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_gray" 0 0 0
+( 0 0 -1 -352 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_gray" 0 0 0
+( 0 -1 0 -352 ) ( ( 0.0625 0 6 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_gray" 0 0 0
+( -1 0 0 -256 ) ( ( 0.0625 0 10 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_gray" 0 0 0
+}
+}
+// primitive 1
+{
+brushDef3
+{
+( 0 0 1 -160 ) ( ( 0.015625 0 3 ) ( 0 0.015625 0 ) ) "textures/common/portal_sky" 0 0 0
+( 0 1 0 -448 ) ( ( 0.015625 0 0 ) ( 0 0.015625 0 ) ) "textures/common/portal_sky" 0 0 0
+( 1 0 0 -384 ) ( ( 0.015625 0 0 ) ( 0 0.015625 0 ) ) "textures/common/portal_sky" 0 0 0
+( 0 -1 0 -384 ) ( ( 0.015625 0 0 ) ( 0 0.015625 0.5 ) ) "textures/common/portal_sky" 0 0 0
+( -1 0 0 -288 ) ( ( 0.015625 0 0 ) ( 0 0.015625 0 ) ) "textures/common/portal_sky" 0 0 0
+( 0 0 -1 128 ) ( ( 0.015625 0 3 ) ( 0 0.015625 0 ) ) "textures/common/portal_sky" 0 0 0
+}
+}
+// primitive 2
+{
+brushDef3
+{
+( 0 0 1 -160 ) ( ( 0.015625 0 3 ) ( 0 0.015625 0 ) ) "textures/common/portal_sky" 0 0 0
+( 0 1 0 -448 ) ( ( 0.015625 0 0 ) ( 0 0.015625 0 ) ) "textures/common/portal_sky" 0 0 0
+( 1 0 0 -384 ) ( ( 0.015625 0 0 ) ( 0 0.015625 0 ) ) "textures/common/portal_sky" 0 0 0
+( 0 0 -1 -352 ) ( ( 0.015625 0 0 ) ( 0 0.015625 0 ) ) "textures/common/portal_sky" 0 0 0
+( -1 0 0 -288 ) ( ( 0.015625 0 0 ) ( 0 0.015625 0 ) ) "textures/common/portal_sky" 0 0 0
+( 0 -1 0 416 ) ( ( 0.015625 0 0 ) ( 0 0.015625 0 ) ) "textures/common/portal_sky" 0 0 0
+}
+}
+// primitive 3
+{
+brushDef3
+{
+( 0 0 1 -160 ) ( ( 0.015625 0 3 ) ( 0 0.015625 0 ) ) "textures/common/portal_sky" 0 0 0
+( 0 1 0 -448 ) ( ( 0.015625 0 0 ) ( 0 0.015625 0 ) ) "textures/common/portal_sky" 0 0 0
+( 1 0 0 -384 ) ( ( 0.015625 0 0 ) ( 0 0.015625 0 ) ) "textures/common/portal_sky" 0 0 0
+( 0 0 -1 -352 ) ( ( 0.015625 0 0 ) ( 0 0.015625 0 ) ) "textures/common/portal_sky" 0 0 0
+( 0 -1 0 -384 ) ( ( 0.015625 0 0 ) ( 0 0.015625 0.5 ) ) "textures/common/portal_sky" 0 0 0
+( -1 0 0 352 ) ( ( 0.015625 0 0 ) ( 0 0.015625 0 ) ) "textures/common/portal_sky" 0 0 0
+}
+}
+// primitive 4
+{
+brushDef3
+{
+( 0 0 1 -160 ) ( ( 0.015625 0 3 ) ( 0 0.015625 0 ) ) "textures/smf/portal_sky" 0 0 0
+( 1 0 0 -384 ) ( ( 0.015625 0 0 ) ( 0 0.015625 0 ) ) "textures/smf/portal_sky" 0 0 0
+( 0 0 -1 -352 ) ( ( 0.015625 0 0 ) ( 0 0.015625 0 ) ) "textures/smf/portal_sky" 0 0 0
+( 0 -1 0 -384 ) ( ( 0.015625 0 0 ) ( 0 0.015625 0.5 ) ) "textures/smf/portal_sky" 0 0 0
+( -1 0 0 -288 ) ( ( 0.015625 0 0 ) ( 0 0.015625 0 ) ) "textures/smf/portal_sky" 0 0 0
+( 0 1 0 352 ) ( ( 0.015625 0 0 ) ( 0 0.015625 0.5 ) ) "textures/smf/portal_sky" 0 0 0
+}
+}
+// primitive 5
+{
+brushDef3
+{
+( 0 0 1 -160 ) ( ( 0.015625 0 3 ) ( 0 0.015625 0 ) ) "textures/common/portal_sky" 0 0 0
+( 0 1 0 -448 ) ( ( 0.015625 0 0 ) ( 0 0.015625 0 ) ) "textures/common/portal_sky" 0 0 0
+( 0 0 -1 -352 ) ( ( 0.015625 0 0 ) ( 0 0.015625 0 ) ) "textures/common/portal_sky" 0 0 0
+( 0 -1 0 -384 ) ( ( 0.015625 0 0 ) ( 0 0.015625 0.5 ) ) "textures/common/portal_sky" 0 0 0
+( -1 0 0 -288 ) ( ( 0.015625 0 0 ) ( 0 0.015625 0 ) ) "textures/common/portal_sky" 0 0 0
+( 1 0 0 256 ) ( ( 0.015625 0 0 ) ( 0 0.015625 0 ) ) "textures/common/portal_sky" 0 0 0
+}
+}
+// primitive 6
+{
+brushDef3
+{
+( 0 0 1 -32 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_green" 0 0 0
+( 0 1 0 184 ) ( ( 0.0625 0 15.75 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_green" 0 0 0
+( 1 0 0 -520 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_green" 0 0 0
+( 0 0 -1 20 ) ( ( 0.0625 0 0 ) ( 0 0.0625 15.75 ) ) "textures/bl/dev/16x16_green" 0 0 0
+( 0 -1 0 -188 ) ( ( 0.0625 0 255.75 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_green" 0 0 0
+( -1 0 0 516 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_green" 0 0 0
+}
+}
+// primitive 7
+{
+brushDef3
+{
+( 0 0 1 -36 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 1 0 64 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 1 0 0 -588 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 -1 0 -272 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( -1 0 0 436 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 0 -1 32 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+}
+}
+// primitive 8
+{
+brushDef3
+{
+( 0 0 1 -36 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 1 0 64 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 1 0 0 -588 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 0 -1 -24 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( -1 0 0 436 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 -1 0 -68 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+}
+}
+// primitive 9
+{
+brushDef3
+{
+( 0 0 1 -36 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 1 0 64 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 1 0 0 -588 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 0 -1 -24 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 -1 0 -272 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( -1 0 0 584 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+}
+}
+// primitive 10
+{
+brushDef3
+{
+( 0 1 0 64 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_orange" 0 0 0
+( 1 0 0 -588 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_orange" 0 0 0
+( 0 0 -1 -24 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_orange" 0 0 0
+( 0 -1 0 -272 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_orange" 0 0 0
+( -1 0 0 436 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_orange" 0 0 0
+( 0 0 1 20 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_orange" 0 0 0
+}
+}
+// primitive 11
+{
+brushDef3
+{
+( 0 0 1 -36 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 1 0 0 -588 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 0 -1 -24 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 -1 0 -272 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( -1 0 0 436 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 1 0 268 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+}
+}
+// primitive 12
+{
+brushDef3
+{
+( 0 0 1 -36 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 1 0 64 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 0 -1 -24 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 -1 0 -272 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( -1 0 0 436 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 1 0 0 -440 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+}
+}
+// primitive 13
+{
+brushDef3
+{
+( 0 0 1 16 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 1 0 380 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 1 0 0 -580 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 -1 0 -644 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( -1 0 0 444 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 0 -1 -20 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+}
+}
+// primitive 14
+{
+brushDef3
+{
+( 0 0 1 16 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( 0 1 0 380 ) ( ( 0.0625 0 15.75 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( 1 0 0 -580 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( 0 0 -1 -132 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( -1 0 0 444 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( 0 -1 0 -384 ) ( ( 0.0625 0 15.75 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+}
+}
+// primitive 15
+{
+brushDef3
+{
+( 0 0 1 16 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( 0 1 0 380 ) ( ( 0.0625 0 15.75 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( 1 0 0 -580 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( 0 0 -1 -132 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( 0 -1 0 -644 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( -1 0 0 576 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+}
+}
+// primitive 16
+{
+brushDef3
+{
+( 0 1 0 380 ) ( ( 0.0625 0 15.75 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( 1 0 0 -580 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( 0 0 -1 -132 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( 0 -1 0 -644 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( -1 0 0 444 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( 0 0 1 128 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+}
+}
+// primitive 17
+{
+brushDef3
+{
+( 0 0 1 16 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( 1 0 0 -580 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( 0 0 -1 -132 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( 0 -1 0 -644 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( -1 0 0 444 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( 0 1 0 640 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+}
+}
+// primitive 18
+{
+brushDef3
+{
+( 0 0 1 16 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( 0 1 0 380 ) ( ( 0.0625 0 15.75 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( 0 0 -1 -132 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( 0 -1 0 -644 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( -1 0 0 444 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( 1 0 0 -448 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+}
+}
+// primitive 19
+{
+brushDef3
+{
+( 0 0 1 56 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 1 0 716 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 1 0 0 -648 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 -1 0 -900 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( -1 0 0 496 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 0 -1 -60 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+}
+}
+// primitive 20
+{
+brushDef3
+{
+( 0 0 1 56 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_gray" 0 0 0
+( 0 1 0 716 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_gray" 0 0 0
+( 1 0 0 -648 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_gray" 0 0 0
+( 0 0 -1 -188 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_gray" 0 0 0
+( -1 0 0 496 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_gray" 0 0 0
+( 0 -1 0 -720 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_gray" 0 0 0
+}
+}
+// primitive 21
+{
+brushDef3
+{
+( 0 0 1 56 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 1 0 716 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 1 0 0 -648 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 0 -1 -188 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 -1 0 -900 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( -1 0 0 644 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+}
+}
+// primitive 22
+{
+brushDef3
+{
+( 0 1 0 716 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_red" 0 0 0
+( 1 0 0 -648 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_red" 0 0 0
+( 0 0 -1 -188 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_red" 0 0 0
+( 0 -1 0 -900 ) ( ( 0.0625 0 1.25 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_red" 0 0 0
+( -1 0 0 496 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_red" 0 0 0
+( 0 0 1 184 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_red" 0 0 0
+}
+}
+// primitive 23
+{
+brushDef3
+{
+( 0 0 1 56 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 1 0 0 -648 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 0 -1 -188 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 -1 0 -900 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( -1 0 0 496 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 1 0 896 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+}
+}
+// primitive 24
+{
+brushDef3
+{
+( 0 0 1 56 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 1 0 716 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 0 -1 -188 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 0 -1 0 -900 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( -1 0 0 496 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+( 1 0 0 -500 ) ( ( 0 0 0 ) ( 0 0 0 ) ) "textures/skies/desert" 0 0 0
+}
+}
+// primitive 25
+{
+brushDef3
+{
+( 0 0 1 -8 ) ( ( 1.000000476837158 0 0 ) ( 0 1.000000476837158 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( 0 1 0 118 ) ( ( 1.000000476837158 0 0 ) ( 0 1.000000476837158 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( 1 0 0 -552 ) ( ( 1.000000476837158 0 0 ) ( 0 1.000000476837158 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( 0 0 -1 -20 ) ( ( 1.000000476837158 0 0 ) ( 0 1.000000476837158 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( 0 -1 0 -228 ) ( ( 1.000000476837158 0 0 ) ( 0 1.000000476837158 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+( -1 0 0 472 ) ( ( 1.000000476837158 0 0 ) ( 0 1.000000476837158 0 ) ) "textures/bl/dev/16x16_blue" 0 0 0
+}
+}
+}
+// entity 1
+{
+"classname" "info_player_start"
+"name" "info_player_start_1"
+"angle" "90"
+"origin" "0 -128 -320"
+}
+// entity 2
+{
+"classname" "monster_demon_revenant"
+"name" "monster_demon_revenant_1"
+"origin" "509.368 -422.631 -128"
+"rotation" "0 -1 0 1 0 0 0 0 1"
+}
+// entity 3
+{
+"classname" "info_portalsky"
+"name" "info_portalsky_1"
+"origin" "576 -816 -120"
+}
+// entity 4
+{
+"classname" "monster_demon_archvile"
+"name" "monster_demon_archvile_1"
+"origin" "580.619 -767.386 -184"
+"rotation" "0 -1 0 1 0 0 0 0 1"
+}
+// entity 5
+{
+"classname" "light"
+"name" "light_1"
+"_color" "0.07 0.10 0.10"
+"light_center" "-28 -82 4"
+"light_radius" "94 120 96"
+"nodiffuse" "0"
+"noshadows" "0"
+"nospecular" "0"
+"origin" "566 -804 -112"
+"parallel" "1"
+}
+// entity 6
+{
+"classname" "light"
+"name" "light_2"
+"_color" "0.22 0.55 0.23"
+"light_center" "-48 -48 140"
+"light_radius" "102 164 82"
+"nodiffuse" "0"
+"noshadows" "0"
+"nospecular" "0"
+"origin" "510 -512 -66"
+"parallel" "1"
+}
+// entity 7
+{
+"classname" "light"
+"name" "light_3"
+"_color" "0.73 0.38 0.70"
+"light_center" "80 -52 36"
+"light_radius" "106 158 74"
+"nodiffuse" "0"
+"noshadows" "0"
+"nospecular" "0"
+"origin" "518 -154 10"
+"parallel" "1"
+}
+// entity 8
+{
+"classname" "light"
+"name" "light_4"
+"_color" "0.72 0.61 0.44"
+"light_center" "328 -244 216"
+"light_radius" "410 558 340"
+"nodiffuse" "0"
+"noshadows" "0"
+"nospecular" "0"
+"origin" "22 38 -96"
+"parallel" "1"
+}
+// entity 9
+{
+"classname" "trigger_once"
+"name" "trigger_once_1"
+"model" "trigger_once_1"
+"origin" "0 -128 -308"
+"target" "info_portalsky_global_1"
+"delay" "0.01"
+// primitive 0
+{
+brushDef3
+{
+( 0 0 1 -12 ) ( ( 0.03125 0 0 ) ( 0 0.03125 127.75 ) ) "textures/common/trigonce" 0 0 0
+( 0 1 0 -24 ) ( ( 0.03125 0 0 ) ( 0 0.03125 0 ) ) "textures/common/trigonce" 0 0 0
+( 1 0 0 -24 ) ( ( 0.03125 0 0 ) ( 0 0.03125 0 ) ) "textures/common/trigonce" 0 0 0
+( 0 0 -1 -12 ) ( ( 0.03125 0 0 ) ( 0 0.03125 0 ) ) "textures/common/trigonce" 0 0 0
+( 0 -1 0 -24 ) ( ( 0.03125 0 0 ) ( 0 0.03125 0 ) ) "textures/common/trigonce" 0 0 0
+( -1 0 0 -24 ) ( ( 0.03125 0 0 ) ( 0 0.03125 0 ) ) "textures/common/trigonce" 0 0 0
+}
+}
+}
+// entity 10
+{
+"classname" "trigger_multiple"
+"name" "trigger_multiple_1"
+"model" "trigger_multiple_1"
+"origin" "96 -32 -304"
+"target" "info_portalsky_global_1"
+// primitive 0
+{
+brushDef3
+{
+( 0 0 1 -16 ) ( ( 0.03125 0 0 ) ( 0 0.03125 0 ) ) "textures/common/trigmulti" 0 0 0
+( 0 1 0 -48 ) ( ( 0.03125 0 0 ) ( 0 0.03125 0 ) ) "textures/common/trigmulti" 0 0 0
+( 1 0 0 -48 ) ( ( 0.03125 0 0 ) ( 0 0.03125 0 ) ) "textures/common/trigmulti" 0 0 0
+( 0 0 -1 -16 ) ( ( 0.03125 0 0 ) ( 0 0.03125 0 ) ) "textures/common/trigmulti" 0 0 0
+( 0 -1 0 -48 ) ( ( 0.03125 0 0 ) ( 0 0.03125 0 ) ) "textures/common/trigmulti" 0 0 0
+( -1 0 0 -48 ) ( ( 0.03125 0 0 ) ( 0 0.03125 0 ) ) "textures/common/trigmulti" 0 0 0
+}
+}
+}
+// entity 11
+{
+"classname" "light"
+"name" "light_6"
+"origin" "96 -32 -312"
+"light_center" "0 0 0"
+"light_radius" "64 64 40"
+"texture" "fogs/glare"
+"_color" "1.00 0.00 0.00"
+"nodiffuse" "0"
+"noshadows" "0"
+"nospecular" "0"
+"parallel" "0"
+}
+// entity 12
+{
+"classname" "light"
+"name" "light_7"
+"origin" "48 -344 -312"
+"light_center" "0 0 0"
+"light_radius" "336 72 40"
+"texture" "fogs/glare"
+"_color" "1.00 0.00 0.00"
+"nodiffuse" "0"
+"noshadows" "0"
+"nospecular" "0"
+"parallel" "0"
+}
+// entity 13
+{
+"classname" "trigger_multiple"
+"name" "trigger_multiple_2"
+"model" "trigger_multiple_2"
+"origin" "48 -312 -304"
+"target" "info_portalsky_local_1"
+// primitive 0
+{
+brushDef3
+{
+( 0 0 1 -16 ) ( ( 0.03125 0 0 ) ( 0 0.03125 0 ) ) "textures/common/trigmulti" 0 0 0
+( 0 1 0 -40 ) ( ( 0.03125 0 0 ) ( 0 0.03125 0 ) ) "textures/common/trigmulti" 0 0 0
+( 1 0 0 -304 ) ( ( 0.03125 0 0 ) ( 0 0.03125 0 ) ) "textures/common/trigmulti" 0 0 0
+( 0 0 -1 -16 ) ( ( 0.03125 0 0 ) ( 0 0.03125 0 ) ) "textures/common/trigmulti" 0 0 0
+( 0 -1 0 -40 ) ( ( 0.03125 0 0 ) ( 0 0.03125 0 ) ) "textures/common/trigmulti" 0 0 0
+( -1 0 0 -304 ) ( ( 0.03125 0 0 ) ( 0 0.03125 0 ) ) "textures/common/trigmulti" 0 0 0
+}
+}
+}
+// entity 14
+{
+"classname" "light"
+"name" "light_8"
+"origin" "48 408 -312"
+"light_center" "0 0 0"
+"light_radius" "336 72 40"
+"texture" "fogs/glare"
+"_color" "1.00 0.00 0.00"
+"nodiffuse" "0"
+"noshadows" "0"
+"nospecular" "0"
+"parallel" "0"
+}
+// entity 15
+{
+"classname" "trigger_multiple"
+"name" "trigger_multiple_3"
+"model" "trigger_multiple_3"
+"origin" "48 376 -304"
+"target" "info_portalsky_1"
+// primitive 0
+{
+brushDef3
+{
+( 0 0 1 -16 ) ( ( 0.03125 0 10.5 ) ( 0 0.03125 0 ) ) "textures/common/trigmulti" 0 0 0
+( 0 1 0 -40 ) ( ( 0.03125 0 0 ) ( 0 0.03125 0 ) ) "textures/common/trigmulti" 0 0 0
+( 1 0 0 -304 ) ( ( 0.03125 0 10.5 ) ( 0 0.03125 0 ) ) "textures/common/trigmulti" 0 0 0
+( 0 0 -1 -16 ) ( ( 0.03125 0 10.5 ) ( 0 0.03125 0 ) ) "textures/common/trigmulti" 0 0 0
+( 0 -1 0 -40 ) ( ( 0.03125 0 0 ) ( 0 0.03125 0 ) ) "textures/common/trigmulti" 0 0 0
+( -1 0 0 -304 ) ( ( 0.03125 0 21.5 ) ( 0 0.03125 0 ) ) "textures/common/trigmulti" 0 0 0
+}
+}
+}
+// entity 16
+{
+"classname" "info_portalsky_global"
+"name" "info_portalsky_global_1"
+"model" "info_portalsky_global_1"
+"origin" "512 -191.875 12.25"
+// primitive 0
+{
+brushDef3
+{
+( 0 0 1 -4 ) ( ( 0.0625 0 15.9921875 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_red" 0 0 0
+( 0 1 0 -4 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0.765625 ) ) "textures/bl/dev/16x16_red" 0 0 0
+( 1 0 0 -4 ) ( ( 0.0625 0 15.9921875 ) ( 0 0.0625 0.765625 ) ) "textures/bl/dev/16x16_red" 0 0 0
+( 0 0 -1 -4 ) ( ( 0.0625 0 15.9921875 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_red" 0 0 0
+( 0 -1 0 -4 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0.765625 ) ) "textures/bl/dev/16x16_red" 0 0 0
+( -1 0 0 -4 ) ( ( 0.0625 0 0.0078125 ) ( 0 0.0625 0.765625 ) ) "textures/bl/dev/16x16_red" 0 0 0
+}
+}
+}
+// entity 17
+{
+"classname" "info_portalsky_local"
+"name" "info_portalsky_local_1"
+"model" "info_portalsky_local_1"
+"origin" "508 -496 -124"
+// primitive 0
+{
+brushDef3
+{
+( 0 0 1 -4 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_red" 0 0 0
+( 0 1 0 -4 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_red" 0 0 0
+( 1 0 0 -4 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_red" 0 0 0
+( 0 0 -1 -4 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_red" 0 0 0
+( 0 -1 0 -4 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_red" 0 0 0
+( -1 0 0 -4 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_red" 0 0 0
+}
+}
+}
+// entity 18
+{
+"classname" "func_static"
+"name" "func_static_1"
+"model" "func_static_1"
+"origin" "96 -32 -224"
+// primitive 0
+{
+brushDef3
+{
+( 0 0 1 -96 ) ( ( 0.0625 0 0 ) ( 0 0.0625 12.875 ) ) "textures/bl/dev/16x16_cian" 0 0 0
+( 0 1 0 -32 ) ( ( 0.0625 0 2 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_cian" 0 0 0
+( 1 0 0 -32 ) ( ( 0.0625 0 12 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_cian" 0 0 0
+( 0 0 -1 -96 ) ( ( 0.015625 0 3 ) ( 0 0.015625 0 ) ) "textures/common/caulk" 0 0 0
+( 0 -1 0 -32 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_cian" 0 0 0
+( -1 0 0 -32 ) ( ( 0.0625 0 0 ) ( 0 0.0625 0 ) ) "textures/bl/dev/16x16_cian" 0 0 0
+}
+}
+}
+// entity 19
+{
+"classname" "light"
+"name" "light_5"
+"origin" "8.5625 62.8125 -155.375"
+"light_center" "0 0 0"
+"light_radius" "409.688 501.562 365.375"
+"texture" "lights/ambientlight2"
+"_color" "0.00 0.06 0.01"
+"nodiffuse" "0"
+"noshadows" "0"
+"nospecular" "0"
+"parallel" "0"
+}
+// entity 20
+{
+"classname" "light"
+"name" "light_9"
+"origin" "515.312 -160.688 10.625"
+"light_center" "0 0 0"
+"light_radius" "118.938 146.938 68.375"
+"texture" "lights/ambientlight2"
+"_color" "0.00 0.06 0.01"
+}
+// entity 21
+{
+"classname" "light"
+"name" "light_10"
+"origin" "521.375 -516.062 -73.875"
+"light_center" "0 0 0"
+"light_radius" "134.75 189.188 84.625"
+"texture" "lights/ambientlight2"
+"_color" "0.00 0.06 0.01"
+}
+// entity 22
+{
+"classname" "light"
+"name" "light_11"
+"origin" "574.375 -818.125 -122.375"
+"light_center" "0 0 0"
+"light_radius" "121.75 159.25 105.875"
+"texture" "lights/ambientlight2"
+"_color" "0.00 0.06 0.01"
+}
+// entity 23
+{
+"classname" "light"
+"name" "light_12"
+"origin" "568 -808 -154"
+"light_center" "0 0 0"
+"light_radius" "50 50 50"
+"_color" "1.00 0.00 0.00"
+"nodiffuse" "0"
+"noshadows" "1"
+"nospecular" "0"
+"parallel" "0"
+}

@@ -452,16 +452,52 @@ void idPlayerView::SingleView( const renderView_t* view, idMenuHandler_HUD* hudM
 	// hack the shake in at the very last moment, so it can't cause any consistency problems
 	renderView_t hackedView = *view;
 	hackedView.viewaxis = hackedView.viewaxis * ShakeAxis();
+    
+    idVec3 diff, currentEyePos, PSOrigin, Zero;
+    Zero.Zero();
+
+    if ( ( gameLocal.CheckGlobalPortalSky() ) || ( gameLocal.GetCurrentPortalSkyType() == PORTALSKY_LOCAL ) ) {
+        // in a case of a moving portalSky    
+        currentEyePos = hackedView.vieworg;
+        
+        if ( gameLocal.playerOldEyePos == Zero ) {
+            gameLocal.playerOldEyePos = currentEyePos;
+            //initialize playerOldEyePos, this will only happen in one tick.
+        }
+
+        diff = ( currentEyePos - gameLocal.playerOldEyePos) / gameLocal.portalSkyScale;
+        gameLocal.portalSkyGlobalOrigin += diff; // this is for the global portalSky.
+        // It should keep going even when not active.
+    }
 	
-	if( gameLocal.portalSkyEnt.GetEntity() && gameLocal.IsPortalSkyAcive() && g_enablePortalSky.GetBool() )
+	if( gameLocal.portalSkyEnt.GetEntity() && gameLocal.IsPortalSkyActive() && g_enablePortalSky.GetBool() )
 	{
+        if ( gameLocal.GetCurrentPortalSkyType() == PORTALSKY_STANDARD ) {
+            PSOrigin = gameLocal.portalSkyOrigin;
+        }
+
+        if ( gameLocal.GetCurrentPortalSkyType() == PORTALSKY_GLOBAL ) {
+            PSOrigin = gameLocal.portalSkyGlobalOrigin;
+        }
+
+        if ( gameLocal.GetCurrentPortalSkyType() == PORTALSKY_LOCAL ) {
+            gameLocal.portalSkyOrigin += diff;
+            PSOrigin = gameLocal.portalSkyOrigin;
+        }
+
+        gameLocal.playerOldEyePos = currentEyePos;
+
 		renderView_t portalView = hackedView;
-		portalView.vieworg = gameLocal.portalSkyEnt.GetEntity()->GetPhysics()->GetOrigin();
+        portalView.vieworg = PSOrigin;
 		gameRenderWorld->RenderScene( &portalView );
 		renderSystem->CaptureRenderToImage( "_currentRender" );
 		
 		hackedView.forceUpdate = true;				// FIX: for smoke particles not drawing when portalSky present
-	}
+	} else {
+        gameLocal.playerOldEyePos = currentEyePos;
+        // so if g_enablePortalSky is disabled GlobalPortalSkies don't broke
+        // when g_enablePortalSky gets re-enabled GlPS keep working
+    }
 	
 	// process the frame
 	fxManager->Process( &hackedView );

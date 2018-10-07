@@ -164,6 +164,12 @@ typedef struct
 	int			team;
 } spawnSpot_t;
 
+enum {
+    PORTALSKY_STANDARD = 0,	// classic portalsky
+    PORTALSKY_GLOBAL = 1,	// always following portal sky
+    PORTALSKY_LOCAL = 2,	// following portal sky from a spot
+};
+
 //============================================================================
 
 class idEventQueue
@@ -359,9 +365,21 @@ public:
 	
 	idEntityPtr<idEntity>	portalSkyEnt;
 	bool					portalSkyActive;
+
+	bool                    globalPortalSky;	
+    int                     portalSkyScale;	
+    int                     currentPortalSkyType;	//0 = classic, 1 = global, 2 = local
+    idVec3                  portalSkyOrigin;	
+    idVec3                  portalSkyGlobalOrigin;	
+    idVec3                  playerOldEyePos;	
 	
 	void					SetPortalSkyEnt( idEntity* ent );
-	bool					IsPortalSkyAcive();
+	bool					IsPortalSkyActive();
+
+    bool                    CheckGlobalPortalSky();
+    void                    SetGlobalPortalSky(const char *name);
+    void                    SetCurrentPortalSkyType(int type); // 0 = classic, 1 = global, 2 = local
+    int                     GetCurrentPortalSkyType(); //0 = classic, 1 = global, 2 = local
 	
 	timeState_t				fast;
 	timeState_t				slow;
