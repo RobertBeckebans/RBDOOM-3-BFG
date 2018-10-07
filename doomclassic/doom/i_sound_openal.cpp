@@ -94,7 +94,7 @@ typedef struct {
 typedef struct tagActiveSound_t {
 	ALuint alSourceVoice;
 	int id;
-	int valid;
+	bool valid;
 	int start;
 	int player;
 	bool localSound;
@@ -130,7 +130,9 @@ float			x_MusicVolume = GLOBAL_VOLUME_MULTIPLIER;
 // The actual lengths of all sound effects.
 static int 		lengths[NUMSFX];
 ALuint			alBuffers[NUMSFX];
-activeSound_t		activeSounds[NUM_SOUNDBUFFERS] = {0};
+namespace {
+	idArray<activeSound_t, NUM_SOUNDBUFFERS> activeSounds;
+}
 
 int			S_initialized = 0;
 bool			Music_initialized = false;
@@ -640,15 +642,19 @@ I_InitSoundChannel
 */
 void I_InitSoundChannel( int channel, int numOutputChannels_ )
 {
-	activeSound_t *soundchannel = &activeSounds[ channel ];
+	activeSound_t& soundchannel = activeSounds[ channel ];
+
+	soundchannel.alSourceVoice = 0;
+	soundchannel.id            = -1;
+	soundchannel.valid         = false;
+
+	alGenSources( (ALuint)1, &soundchannel.alSourceVoice );
 	
-	alGenSources( (ALuint)1, &soundchannel->alSourceVoice );
-	
-	alSource3f( soundchannel->alSourceVoice, AL_VELOCITY, 0.f, 0.f, 0.f );
-	alSourcef( soundchannel->alSourceVoice, AL_LOOPING, AL_FALSE );
-	alSourcef( soundchannel->alSourceVoice, AL_MAX_DISTANCE, SFX_MAX_DISTANCE );
-	alSourcef( soundchannel->alSourceVoice, AL_REFERENCE_DISTANCE, SFX_REFERENCE_DISTANCE );
-	alSourcef( soundchannel->alSourceVoice, AL_ROLLOFF_FACTOR, SFX_ROLLOFF_FACTOR );
+	alSource3f( soundchannel.alSourceVoice, AL_VELOCITY, 0.f, 0.f, 0.f );
+	alSourcef( soundchannel.alSourceVoice, AL_LOOPING, AL_FALSE );
+	alSourcef( soundchannel.alSourceVoice, AL_MAX_DISTANCE, SFX_MAX_DISTANCE );
+	alSourcef( soundchannel.alSourceVoice, AL_REFERENCE_DISTANCE, SFX_REFERENCE_DISTANCE );
+	alSourcef( soundchannel.alSourceVoice, AL_ROLLOFF_FACTOR, SFX_ROLLOFF_FACTOR );
 }
 
 /*
