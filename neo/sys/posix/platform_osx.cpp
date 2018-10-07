@@ -96,8 +96,9 @@ Sys_ClockTicksPerSecond
 double Sys_ClockTicksPerSecond()
 {
 	static bool		init = false;
+	int64_t temp = 0;
 	static double	ret;
-	size_t len = sizeof( ret );
+	size_t len = sizeof( temp );
 	int status;
 	
 	if( init )
@@ -105,8 +106,8 @@ double Sys_ClockTicksPerSecond()
 		return ret;
 	}
 	
-	status = sysctlbyname( "hw.cpufrequency", &ret, &len, NULL, 0 );
-	
+	status = sysctlbyname( "hw.cpufrequency", &temp, &len, NULL, 0 );
+	ret = double(temp); 
 	if( status == -1 )
 	{
 		common->Printf( "couldn't read systclbyname\n" );
