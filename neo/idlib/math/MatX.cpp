@@ -218,10 +218,10 @@ void idMatX::CopyLowerToUpperTriangle()
 	const int n1_masked = ( n & -b1 );
 	const int n2_masked = ( n & -b1 ) + ( n & -b2 );
 	
-	const __m128 mask0 = __m128c( _mm_set_epi32( 0,  0,  0, -1 ) );
-	const __m128 mask1 = __m128c( _mm_set_epi32( 0,  0, -1, -1 ) );
-	const __m128 mask2 = __m128c( _mm_set_epi32( 0, -1, -1, -1 ) );
-	const __m128 mask3 = __m128c( _mm_set_epi32( -1, -1, -1, -1 ) );
+	const __m128 mask0 = _mm_castsi128_ps( _mm_set_epi32( 0,  0,  0, -1 ) );
+	const __m128 mask1 = _mm_castsi128_ps( _mm_set_epi32( 0,  0, -1, -1 ) );
+	const __m128 mask2 = _mm_castsi128_ps( _mm_set_epi32( 0, -1, -1, -1 ) );
+	const __m128 mask3 = _mm_castsi128_ps( _mm_set_epi32( -1, -1, -1, -1 ) );
 	
 	const __m128 bottomMask[2] = { __m128c( _mm_set1_epi32( 0 ) ), __m128c( _mm_set1_epi32( -1 ) ) };
 	

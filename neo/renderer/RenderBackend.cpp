@@ -33,6 +33,13 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "RenderCommon.h"
 #include "Framebuffer.h"
+#ifdef __AVX__
+#include <immintrin.h>
+#ifndef _mm256_set_m128
+#define _mm256_set_m128(va, vb) \
+        _mm256_insertf128_ps(_mm256_castps128_ps256(vb), va, 1)
+#endif
+#endif
 
 idCVar r_drawEyeColor( "r_drawEyeColor", "0", CVAR_RENDERER | CVAR_BOOL, "Draw a colored box, red = left eye, blue = right eye, grey = non-stereo" );
 idCVar r_motionBlur( "r_motionBlur", "0", CVAR_RENDERER | CVAR_INTEGER | CVAR_ARCHIVE, "1 - 5, log2 of the number of motion blur samples" );
@@ -77,6 +84,69 @@ static ID_INLINE void SetFragmentParm( renderParm_t rp, const float* value )
 {
 	renderProgManager.SetUniformValue( rp, value );
 }
+
+#ifdef __AVX__
+static ID_INLINE void getCropBounds(const frustumCorners_t &corners, const float *renderMat,
+                                    idBounds &bounds)
+{
+    __m256 cornersX = _mm256_loadu_ps(corners.x);
+    __m256 cornersY = _mm256_loadu_ps(corners.y);
+    __m256 cornersZ = _mm256_loadu_ps(corners.z);
+
+    __m256 matRows01 = _mm256_loadu_ps(renderMat);
+    __m256 matRows23 = _mm256_loadu_ps(renderMat+8);
+
+    
+    __m256 m00 = _mm256_splat_ps(matRows01, 0);
+    __m256 m01 = _mm256_splat_ps(matRows01, 1);
+    __m256 m02 = _mm256_splat_ps(matRows01, 2);
+    __m256 m03 = _mm256_splat_ps(matRows01, 3);
+    __m256 outXs = _mm256_add_ps(_mm256_mul_ps(m00, cornersX), 
+                                 _mm256_mul_ps(m01, cornersY));
+    outXs = _mm256_add_ps(
+        _mm256_add_ps(outXs, _mm256_mul_ps(m02, cornersZ)), m03);
+
+    __m256 m10 = _mm256_splat_ps(matRows01, 4+0);
+    __m256 m11 = _mm256_splat_ps(matRows01, 4+1);
+    __m256 m12 = _mm256_splat_ps(matRows01, 4+2);
+    __m256 m13 = _mm256_splat_ps(matRows01, 4+3);
+    __m256 outYs = _mm256_add_ps(_mm256_mul_ps(m10, cornersX), 
+                                 _mm256_mul_ps(m11, cornersY));
+    outYs = _mm256_add_ps(
+        _mm256_add_ps(outYs, _mm256_mul_ps(m12, cornersZ)), m13);
+
+    __m256 m20 = _mm256_splat_ps(matRows23, 0);
+    __m256 m21 = _mm256_splat_ps(matRows23, 1);
+    __m256 m22 = _mm256_splat_ps(matRows23, 2);
+    __m256 m23 = _mm256_splat_ps(matRows23, 3);
+    __m256 outZs = _mm256_add_ps(_mm256_mul_ps(m20, cornersX), 
+                                 _mm256_mul_ps(m21, cornersY));
+    outZs = _mm256_add_ps(
+        _mm256_add_ps(outZs, _mm256_mul_ps(m22, cornersZ)), m23);
+
+    __m256 m30 = _mm256_splat_ps(matRows23, 4+0);
+    __m256 m31 = _mm256_splat_ps(matRows23, 4+1);
+    __m256 m32 = _mm256_splat_ps(matRows23, 4+2);
+    __m256 m33 = _mm256_splat_ps(matRows23, 4+3);
+    __m256 outWs = _mm256_add_ps(_mm256_mul_ps(m30, cornersX), 
+                                 _mm256_mul_ps(m31, cornersY));
+    outWs = _mm256_add_ps(
+        _mm256_add_ps(outWs, _mm256_mul_ps(m32, cornersZ)), m33);
+
+    outXs = _mm256_div_ps(outXs, outWs);
+    outYs = _mm256_div_ps(outYs, outWs);
+    outZs = _mm256_div_ps(outZs, outWs);
+
+    bounds.AddPoint(idVec3(outXs[0], outYs[0], outZs[0]));
+    bounds.AddPoint(idVec3(outXs[1], outYs[1], outZs[1]));
+    bounds.AddPoint(idVec3(outXs[2], outYs[2], outZs[2]));
+    bounds.AddPoint(idVec3(outXs[3], outYs[3], outZs[3]));
+    bounds.AddPoint(idVec3(outXs[4], outYs[4], outZs[4]));
+    bounds.AddPoint(idVec3(outXs[5], outYs[5], outZs[5]));
+    bounds.AddPoint(idVec3(outXs[6], outYs[6], outZs[6]));
+    bounds.AddPoint(idVec3(outXs[7], outYs[7], outZs[7]));
+}
+#endif
 
 /*
 ====================
@@ -2918,8 +2988,16 @@ void idRenderBackend::ShadowMapPass( const drawSurf_t* drawSurfs, const viewLigh
 		
 		ALIGNTYPE16 frustumCorners_t corners;
 		idRenderMatrix::GetFrustumCorners( corners, vLight->inverseBaseLightProject, bounds_zeroOneCube );
-		
+
 		idVec4 point, transf;
+		
+        #ifdef __AVX__
+        //#if 0
+        /* Let's pull out the formerly private m variable so that we
+         * can do direct loads of the 4x4 */
+        float *renderMat = lightViewRenderMatrix[0];
+        getCropBounds(corners, renderMat, lightBounds); 
+        #else
 		for( int j = 0; j < 8; j++ )
 		{
 			point[0] = corners.x[j];
@@ -2934,6 +3012,7 @@ void idRenderBackend::ShadowMapPass( const drawSurf_t* drawSurfs, const viewLigh
 			
 			lightBounds.AddPoint( transf.ToVec3() );
 		}
+        #endif
 		
 		float lightProjectionMatrix[16];
 		MatrixOrthogonalProjectionRH( lightProjectionMatrix, lightBounds[0][0], lightBounds[1][0], lightBounds[0][1], lightBounds[1][1], -lightBounds[1][2], -lightBounds[0][2] );
@@ -2990,6 +3069,10 @@ void idRenderBackend::ShadowMapPass( const drawSurf_t* drawSurfs, const viewLigh
 		// find the bounding box of the current split in the light's clip space
 		idBounds cropBounds;
 		cropBounds.Clear();
+
+        #ifdef __AVX__
+        getCropBounds(splitFrustumCorners, lightViewRenderMatrix[0], cropBounds);
+        #else
 		for( int j = 0; j < 8; j++ )
 		{
 			point[0] = splitFrustumCorners.x[j];
@@ -3004,27 +3087,13 @@ void idRenderBackend::ShadowMapPass( const drawSurf_t* drawSurfs, const viewLigh
 			
 			cropBounds.AddPoint( transf.ToVec3() );
 		}
+        #endif
 		
 		// don't let the frustum AABB be bigger than the light AABB
-		if( cropBounds[0][0] < lightBounds[0][0] )
-		{
-			cropBounds[0][0] = lightBounds[0][0];
-		}
-		
-		if( cropBounds[0][1] < lightBounds[0][1] )
-		{
-			cropBounds[0][1] = lightBounds[0][1];
-		}
-		
-		if( cropBounds[1][0] > lightBounds[1][0] )
-		{
-			cropBounds[1][0] = lightBounds[1][0];
-		}
-		
-		if( cropBounds[1][1] > lightBounds[1][1] )
-		{
-			cropBounds[1][1] = lightBounds[1][1];
-		}
+        cropBounds[0][0] = std::max(cropBounds[0][0], lightBounds[0][0]);
+        cropBounds[0][1] = std::max(cropBounds[0][1], lightBounds[0][1]);
+        cropBounds[1][0] = std::min(cropBounds[1][0], lightBounds[1][0]);
+        cropBounds[1][1] = std::min(cropBounds[1][1], lightBounds[1][1]);
 		
 		cropBounds[0][2] = lightBounds[0][2];
 		cropBounds[1][2] = lightBounds[1][2];
@@ -3125,10 +3194,10 @@ void idRenderBackend::ShadowMapPass( const drawSurf_t* drawSurfs, const viewLigh
 		const float zNear = 4;
 		const float	fov = r_shadowMapFrustumFOV.GetFloat();
 		
-		float ymax = zNear * tan( fov * idMath::PI / 360.0f );
+		float ymax = zNear * tanf( fov * idMath::PI / 360.0f );
 		float ymin = -ymax;
 		
-		float xmax = zNear * tan( fov * idMath::PI / 360.0f );
+		float xmax = zNear * tanf( fov * idMath::PI / 360.0f );
 		float xmin = -xmax;
 		
 		const float width = xmax - xmin;

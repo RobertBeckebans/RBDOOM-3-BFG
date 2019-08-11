@@ -834,6 +834,7 @@ void idSoundWorldLocal::ResolveOrigin( const int stackDepth, const soundPortalTr
 		
 		float	scale;
 		idVec3	dir = listener.pos - soundOrigin;
+        /* TODO: Consider optimizing this ray to plane intersection */
 		if( !pl.RayIntersection( soundOrigin, dir, scale ) )
 		{
 			source = re.w->GetCenter();
@@ -842,6 +843,7 @@ void idSoundWorldLocal::ResolveOrigin( const int stackDepth, const soundPortalTr
 		{
 			source = soundOrigin + scale * dir;
 			
+            // TODO: Considering vectorizing this
 			// if this point isn't inside the portal edges, slide it in
 			for( int i = 0 ; i < re.w->GetNumPoints() ; i++ )
 			{

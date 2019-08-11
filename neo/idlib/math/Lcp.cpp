@@ -1456,13 +1456,13 @@ static void GetMaxStep_SIMD( const float* f, const float* a, const float* delta_
 			__m128 vForceLimit = _mm_sel_ps( _mm_load_ps( hi + i ), _mm_load_ps( lo + i ), vSign );
 			__m128 vM0 = _mm_cmpgt_ps( _mm_and_ps( vDeltaForce, ( __m128& ) SIMD_SP_absMask ), SIMD_SP_LCP_DELTA_FORCE_EPSILON );
 			__m128 vStep = _mm_div32_ps( _mm_sub_ps( vForceLimit, _mm_load_ps( f + i ) ), _mm_sel_ps( SIMD_SP_one, vDeltaForce, vM0 ) );
-			__m128i vSetSide = _mm_or_si128( __m128c( vSign ), ( __m128i& ) SIMD_DW_one );
+			__m128i vSetSide = _mm_or_si128(_mm_castps_si128(vSign), ( __m128i& ) SIMD_DW_one );
 			__m128 vM1 = _mm_cmpneq_ps( _mm_and_ps( vForceLimit, ( __m128& ) SIMD_SP_absMask ), SIMD_SP_infinity );
 			__m128 vM2 = _mm_cmplt_ps( vStep, vMaxStep );
 			__m128 vM3 = _mm_and_ps( _mm_and_ps( vM0, vM1 ), vM2 );
 			vMaxStep = _mm_sel_ps( vMaxStep, vStep, vM3 );
-			vLimit = _mm_sel_si128( vLimit, index, vM3 );
-			vLimitSide = _mm_sel_si128( vLimitSide, vSetSide, __m128c( vM3 ) );
+			vLimit = _mm_sel_si128(vLimit, index, _mm_castps_si128(vM3));
+			vLimitSide = _mm_sel_si128(vLimitSide, vSetSide, _mm_castps_si128(vM3));
 			mask = ( __m128& ) SIMD_SP_indexedStartMask[0];
 			index = _mm_add_epi32( index, ( __m128i& ) SIMD_DW_four );
 		}
@@ -1476,8 +1476,8 @@ static void GetMaxStep_SIMD( const float* f, const float* a, const float* delta_
 		__m128 vM2 = _mm_cmplt_ps( vStep, vMaxStep );
 		__m128 vM3 = _mm_and_ps( _mm_and_ps( vM0, vM1 ), vM2 );
 		vMaxStep = _mm_sel_ps( vMaxStep, vStep, vM3 );
-		vLimit = _mm_sel_si128( vLimit, index, vM3 );
-		vLimitSide = _mm_sel_si128( vLimitSide, vSetSide, __m128c( vM3 ) );
+		vLimit = _mm_sel_si128(vLimit, index, _mm_castps_si128(vM3));
+		vLimitSide = _mm_sel_si128(vLimitSide, vSetSide, _mm_castps_si128(vM3));
 	}
 	
 	// test the not clamped bounded variables
@@ -1495,9 +1495,9 @@ static void GetMaxStep_SIMD( const float* f, const float* a, const float* delta_
 			__m128 vM1 = _mm_or_ps( _mm_cmplt_ps( _mm_load_ps( lo + i ), SIMD_SP_neg_LCP_BOUND_EPSILON ), _mm_cmpgt_ps( _mm_load_ps( hi + i ), SIMD_SP_LCP_BOUND_EPSILON ) );
 			__m128 vM2 = _mm_cmplt_ps( vStep, vMaxStep );
 			__m128 vM3 = _mm_and_ps( _mm_and_ps( vM0, vM1 ), vM2 );
-			vMaxStep = _mm_sel_ps( vMaxStep, vStep, vM3 );
-			vLimit = _mm_sel_si128( vLimit, index, vM3 );
-			vLimitSide = _mm_sel_si128( vLimitSide, ( __m128i& ) SIMD_DW_zero, __m128c( vM3 ) );
+			vMaxStep = _mm_sel_ps(vMaxStep, vStep, vM3);
+			vLimit = _mm_sel_si128(vLimit, index, _mm_castps_si128(vM3));
+			vLimitSide = _mm_sel_si128(vLimitSide, ( __m128i& ) SIMD_DW_zero, _mm_castps_si128(vM3));
 			mask = ( __m128& ) SIMD_SP_indexedStartMask[0];
 			index = _mm_add_epi32( index, ( __m128i& ) SIMD_DW_four );
 		}
@@ -1510,8 +1510,8 @@ static void GetMaxStep_SIMD( const float* f, const float* a, const float* delta_
 		__m128 vM2 = _mm_cmplt_ps( vStep, vMaxStep );
 		__m128 vM3 = _mm_and_ps( _mm_and_ps( vM0, vM1 ), vM2 );
 		vMaxStep = _mm_sel_ps( vMaxStep, vStep, vM3 );
-		vLimit = _mm_sel_si128( vLimit, index, vM3 );
-		vLimitSide = _mm_sel_si128( vLimitSide, ( __m128i& ) SIMD_DW_zero, __m128c( vM3 ) );
+		vLimit = _mm_sel_si128( vLimit, index, _mm_castps_si128(vM3));
+		vLimitSide = _mm_sel_si128(vLimitSide, ( __m128i& ) SIMD_DW_zero, _mm_castps_si128(vM3));
 	}
 	
 	{

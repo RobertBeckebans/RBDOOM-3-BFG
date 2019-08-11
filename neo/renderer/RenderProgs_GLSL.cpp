@@ -2008,7 +2008,7 @@ void idRenderProgManager::CommitUniforms()
 	
 	if( r_useUniformArrays.GetBool() )
 	{
-		ALIGNTYPE16 idVec4 localVectors[RENDERPARM_USER + MAX_GLSL_USER_PARMS];
+		static ALIGNTYPE16 idVec4 localVectors[RENDERPARM_USER + MAX_GLSL_USER_PARMS];
 		
 		if( prog.vertexShaderIndex >= 0 )
 		{
