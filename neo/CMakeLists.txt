@@ -23,6 +23,9 @@ option(FFMPEG
 
 option(BINKDEC
 		"Use included libbinkdec to render Bink videos" ON)
+		
+option(USE_VULKAN
+		"Use Vulkan instead of OpenGL" OFF)
 
 option(ONATIVE
 		"Optimize for the host CPU" OFF)
@@ -178,15 +181,15 @@ elseif(MSVC)
 		# set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MP ${WINRT_OPTIONS}")
 		# set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /MP /Oi /Oy ${WINRT_OPTIONS}")
 	# else()
-		set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /D _DEBUG /MP /MTd")
-		set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MP /Oi /Oy /MT")
-		set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} /MP /Oi /MTd")
-		set(CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL} /MP /Oi /Oy /MT")
+		set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /D _DEBUG /MP /MDd")
+		set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MP /Oi /Oy /MD")
+		set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} /MP /Oi /MDd")
+		set(CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL} /MP /Oi /Oy /MD")
 		
-		set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MP /MTd")
-		set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MP /Oi /Oy /MT")
-		set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MP /MTd")
-		set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /MP /Oi /Oy /MT")
+		set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MP /MDd")
+		set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MP /Oi /Oy /MD")
+		set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MP /MDd")
+		set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /MP /Oi /Oy /MD")
 		
 		# RB: without /SAFESEH:NO we can't link against ffmpeg libs and VS2013 or we have to build our own
 		# libs for newer compilers
@@ -270,18 +273,68 @@ else (JPEG_FOUND)
     set(JPEG_LIBRARY "" )
 endif (JPEG_FOUND)
 
-if (USE_SYSTEM_LIBGLEW)
-find_package(GLEW)
-endif(USE_SYSTEM_LIBGLEW)
 
-if (GLEW_FOUND)
-    include_directories(${GLEW_INCLUDE_DIRS})
-    set(GLEW_LIBRARY ${GLEW_LIBRARIES})
-else (GLEW_FOUND)
-    include_directories("libs/glew/include")
-    set(GLEW_LIBRARY "" )
-    add_definitions(-DGLEW_STATIC)
-endif (GLEW_FOUND)
+macro(SET_OPTION option value)
+  set(${option} ${value} CACHE "" INTERNAL FORCE)
+endmacro()
+
+if(USE_VULKAN)
+	# Use FindVulkan module added with CMAKE 3.7
+	if(NOT CMAKE_VERSION VERSION_LESS 3.7.0)
+		message( STATUS "Using module to find Vulkan" )
+		find_package(Vulkan)
+	endif()
+	
+	
+	if(NOT Vulkan_FOUND)
+		message(FATAL_ERROR "Could not find Vulkan library!")
+	else()
+		message(STATUS ${Vulkan_LIBRARY})
+	endif()
+	
+	add_definitions(-DUSE_VULKAN)
+	include_directories($ENV{VK_SDK_PATH}/Include)
+	
+	# override Glslang build options
+	SET_OPTION(ENABLE_SPVREMAPPER OFF)
+	SET_OPTION(ENABLE_GLSLANG_BINARIES OFF)
+	SET_OPTION(ENABLE_HLSL OFF)
+	#SET_OPTION(ENABLE_OPT OFF)
+	
+	#option(ENABLE_AMD_EXTENSIONS "Enables support of AMD-specific extensions" ON)
+	#option(ENABLE_NV_EXTENSIONS "Enables support of Nvidia-specific extensions" ON)
+	#option(ENABLE_OPT "Enables spirv-opt capability if present" ON)
+	
+	set(GLSLANG_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libs/glslang)
+	add_subdirectory(${GLSLANG_DIR})
+	
+	include_directories(${GLSLANG_DIR}/glslang)
+
+else()
+
+	if(USE_SYSTEM_LIBGLEW)
+		find_package(GLEW)
+	endif()
+
+	if(GLEW_FOUND)
+		include_directories(${GLEW_INCLUDE_DIRS})
+		set(GLEW_LIBRARY ${GLEW_LIBRARIES})
+	else()
+		include_directories("libs/glew/include")
+		set(GLEW_LIBRARY "" )
+		add_definitions(-DGLEW_STATIC)
+		
+		set(GLEW_INCLUDES libs/glew/include/GL/glew.h)
+		set(GLEW_SOURCES libs/glew/src/glew.c)
+
+		if(WIN32)
+			set(GLEW_INCLUDES ${GLEW_INCLUDES} libs/glew/include/GL/wglew.h)
+		else()
+			set(GLEW_INCLUDES ${GLEW_INCLUDES} libs/glew/include/GL/glxew.h)
+		endif()
+		
+	endif()
+endif()
 
 if(USE_SYSTEM_RAPIDJSON)
 find_package(rapidjson REQUIRED)
@@ -294,6 +347,8 @@ else (RAPIDJSON_FOUND)
 	include_directories("libs/rapidjson/include")
 endif (RAPIDJSON_FOUND)
 
+
+	
 add_subdirectory(idlib)
 
 file(GLOB AAS_INCLUDES aas/*.h)
@@ -322,9 +377,16 @@ file(GLOB RENDERER_JOBS_PRELIGHTSHADOWVOLUME_INCLUDES renderer/jobs/prelightshad
 file(GLOB RENDERER_JOBS_PRELIGHTSHADOWVOLUME_SOURCES renderer/jobs/prelightshadowvolume/*.cpp)
 file(GLOB RENDERER_JOBS_STATICSHADOWVOLUME_INCLUDES renderer/jobs/staticshadowvolume/*.h)
 file(GLOB RENDERER_JOBS_STATICSHADOWVOLUME_SOURCES renderer/jobs/staticshadowvolume/*.cpp)
+
+file(GLOB RENDERER_SMAA_INCLUDES renderer/SMAA/*.h)
+
 file(GLOB RENDERER_OPENGL_INCLUDES renderer/OpenGL/*.h)
 file(GLOB RENDERER_OPENGL_SOURCES renderer/OpenGL/*.cpp)
-file(GLOB RENDERER_SMAA_INCLUDES renderer/SMAA/*.h)
+
+file(GLOB RENDERER_VULKAN_INCLUDES renderer/Vulkan/*.h)
+file(GLOB RENDERER_VULKAN_SOURCES renderer/Vulkan/*.cpp)
+
+file(GLOB SHADERS ../base/renderprogs/*.hlsl ../base/renderprogs/*.inc )
 
 file(GLOB IRRXML_INCLUDES libs/irrxml/src/*.h)
 file(GLOB IRRXML_SOURCES libs/irrxml/src/*.cpp)
@@ -423,19 +485,7 @@ endif()
 file(GLOB MINIZIP_INCLUDES libs/zlib/minizip/*.h)
 file(GLOB MINIZIP_SOURCES libs/zlib/minizip/*.c libs/zlib/minizip/*.cpp)
 	
-if (NOT GLEW_FOUND)
-    set(GLEW_INCLUDES libs/glew/include/GL/glew.h)
-    set(GLEW_SOURCES libs/glew/src/glew.c)
 
-    if(WIN32)
-        set(GLEW_INCLUDES ${GLEW_INCLUDES} libs/glew/include/GL/wglew.h)
-    else(WIN32)
-        set(GLEW_INCLUDES ${GLEW_INCLUDES} libs/glew/include/GL/glxew.h)
-    endif(WIN32)
-else (NOT GLEW_FOUND)
-    set(GLEW_INCLUDES "")
-    set(GLEW_SOURCES "")
-endif (NOT GLEW_FOUND)
 	
 set(FREETYPE_SOURCES
 	libs/freetype/src/autofit/autofit.c
@@ -921,7 +971,12 @@ source_group("renderer\\jobs\\staticshadowvolume" FILES ${RENDERER_JOBS_STATICSH
 source_group("renderer\\OpenGL" FILES ${RENDERER_OPENGL_INCLUDES})
 source_group("renderer\\OpenGL" FILES ${RENDERER_OPENGL_SOURCES})
 
+source_group("renderer\\Vulkan" FILES ${RENDERER_VULKAN_INCLUDES})
+source_group("renderer\\Vulkan" FILES ${RENDERER_VULKAN_SOURCES})
+
 source_group("renderer\\SMAA" FILES ${RENDERER_SMAA_INCLUDES})
+
+source_group("renderer\\Shaders" FILES ${SHADERS})
 
 source_group("libs\\irrxml" FILES ${IRRXML_INCLUDES})
 source_group("libs\\irrxml" FILES ${IRRXML_SOURCES})
@@ -1089,7 +1144,8 @@ set(RBDOOM3_INCLUDES
 			${RENDERER_JOBS_DYNAMICSHADOWVOLUME_INCLUDES}
 			${RENDERER_JOBS_PRELIGHTSHADOWVOLUME_INCLUDES}
 			${RENDERER_JOBS_STATICSHADOWVOLUME_INCLUDES}
-			${RENDERER_OPENGL_INCLUDES}
+			
+			${SHADERS}
 			${RENDERER_SMAA_INCLUDES}
 			${IRRXML_INCLUDES}
 			${JPEG_INCLUDES}
@@ -1127,7 +1183,6 @@ set(RBDOOM3_SOURCES
 			${RENDERER_JOBS_DYNAMICSHADOWVOLUME_SOURCES}
 			${RENDERER_JOBS_PRELIGHTSHADOWVOLUME_SOURCES}
 			${RENDERER_JOBS_STATICSHADOWVOLUME_SOURCES}
-			${RENDERER_OPENGL_SOURCES}
 			${IRRXML_SOURCES}
 			${JPEG_SOURCES}
 			${PNG_SOURCES}
@@ -1221,6 +1276,29 @@ if(MSVC)
 	else()
 		find_package(DirectX REQUIRED)
 		include_directories(${DirectX_INCLUDE_DIR})
+	endif()
+	
+	if(USE_VULKAN)
+		list(APPEND RBDOOM3_INCLUDES ${RENDERER_VULKAN_INCLUDES})
+		list(APPEND RBDOOM3_SOURCES ${RENDERER_VULKAN_SOURCES})
+		
+		set(Vulkan_LIBRARIES
+			${Vulkan_LIBRARY}
+			glslang
+			SPIRV
+			)
+			
+		if(ENABLE_GLSLANG_BINARIES)
+			list(APPEND Vulkan_LIBRARIES glslang-default-resource-limits)
+		endif()
+		
+	else()
+		list(APPEND RBDOOM3_INCLUDES ${RENDERER_OPENGL_INCLUDES})
+		list(APPEND RBDOOM3_SOURCES ${RENDERER_OPENGL_SOURCES})
+		
+		set(OpenGL_LIBRARIES
+			opengl32
+			glu32)
 	endif()
 	
 	if(OPENAL)
@@ -1336,7 +1414,7 @@ if(MSVC)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/jobs/ShadowShared.cpp)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/RenderLog.cpp)
 		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/framework/precompiled.cpp)
-	
+		list(REMOVE_ITEM RBDOOM3_PRECOMPILED_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/renderer/Vulkan/vma.cpp)
 	
 		set_source_files_properties(
 		${RBDOOM3_PRECOMPILED_SOURCES}
@@ -1353,6 +1431,8 @@ if(MSVC)
 		)
 	endif()
 	
+	set_source_files_properties( ${SHADERS} PROPERTIES VS_TOOL_OVERRIDE "None" )
+	
 	list(APPEND RBDOOM3_SOURCES ${WIN32_RESOURCES})
 	
 	add_executable(RBDoom3BFG WIN32 ${RBDOOM3_INCLUDES} ${RBDOOM3_SOURCES})
@@ -1367,15 +1447,13 @@ if(MSVC)
 	target_link_libraries(RBDoom3BFG
 		idlib
 		${DirectX_LIBRARIES}
-		#libcurl 
-		#openal32 
-		opengl32
-		glu32
 		dbghelp
 		#eaxguid
 		iphlpapi
 		winmm
 		wsock32.lib
+		${Vulkan_LIBRARIES}
+		${OpenGL_LIBRARIES}
 		${OpenAL_LIBRARIES}
 		${FFmpeg_LIBRARIES}
         ${ZLIB_LIBRARY}
@@ -1453,6 +1531,25 @@ else()
 				${STUBAUDIO_SOURCES}
 				${DOOMCLASSIC_STUBAUDIO_SOURCES})
 		endif()
+		
+		if(USE_VULKAN)
+            list(APPEND RBDOOM3_INCLUDES ${RENDERER_VULKAN_INCLUDES})
+            list(APPEND RBDOOM3_SOURCES ${RENDERER_VULKAN_SOURCES})
+            
+            set(Vulkan_LIBRARIES
+                ${Vulkan_LIBRARY}
+                glslang
+                SPIRV
+                )
+                
+            if(ENABLE_GLSLANG_BINARIES)
+                list(APPEND Vulkan_LIBRARIES glslang-default-resource-limits)
+            endif()
+            
+        else()
+            list(APPEND RBDOOM3_INCLUDES ${RENDERER_OPENGL_INCLUDES})
+            list(APPEND RBDOOM3_SOURCES ${RENDERER_OPENGL_SOURCES})
+        endif()
 			
 	endif()
 

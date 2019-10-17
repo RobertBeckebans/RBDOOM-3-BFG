@@ -453,13 +453,22 @@ void R_SetupProjectionMatrix( viewDef_t* viewDef )
 	ymin += jittery * height;
 	ymax += jittery * height;
 	
+	// RB: IMPORTANT - the projectionMatrix has a few changes to make it work with Vulkan
+	// for a detailed explanation see https://matthewwellings.com/blog/the-new-vulkan-coordinate-system/
+	
 	viewDef->projectionMatrix[0 * 4 + 0] = 2.0f * zNear / width;
 	viewDef->projectionMatrix[1 * 4 + 0] = 0.0f;
 	viewDef->projectionMatrix[2 * 4 + 0] = ( xmax + xmin ) / width;	// normally 0
 	viewDef->projectionMatrix[3 * 4 + 0] = 0.0f;
 	
 	viewDef->projectionMatrix[0 * 4 + 1] = 0.0f;
+	
+	// RB: Y axis now points down the screen
+#if defined(USE_VULKAN)
+	viewDef->projectionMatrix[1 * 4 + 1] = -2.0f * zNear / height;
+#else
 	viewDef->projectionMatrix[1 * 4 + 1] = 2.0f * zNear / height;
+#endif
 	viewDef->projectionMatrix[2 * 4 + 1] = ( ymax + ymin ) / height;	// normally 0
 	viewDef->projectionMatrix[3 * 4 + 1] = 0.0f;
 	
@@ -468,8 +477,11 @@ void R_SetupProjectionMatrix( viewDef_t* viewDef )
 	// rasterize right at the wraparound point
 	viewDef->projectionMatrix[0 * 4 + 2] = 0.0f;
 	viewDef->projectionMatrix[1 * 4 + 2] = 0.0f;
-	viewDef->projectionMatrix[2 * 4 + 2] = -0.999f; // adjust value to prevent imprecision issues
-	viewDef->projectionMatrix[3 * 4 + 2] = -2.0f * zNear;
+	viewDef->projectionMatrix[2 * 4 + 2] = -0.999f;			// adjust value to prevent imprecision issues
+	
+	// RB: was -2.0f * zNear
+	// the transformation into window space has changed from [-1 .. -1] to [0 .. -1]
+	viewDef->projectionMatrix[3 * 4 + 2] = -1.0f * zNear;
 	
 	viewDef->projectionMatrix[0 * 4 + 3] = 0.0f;
 	viewDef->projectionMatrix[1 * 4 + 3] = 0.0f;
@@ -540,6 +552,10 @@ void R_SetupProjectionMatrix2( const viewDef_t* viewDef, const float zNear, cons
 		projectionMatrix[1 * 4 + 1] = -viewDef->projectionMatrix[1 * 4 + 1];
 		projectionMatrix[1 * 4 + 3] = -viewDef->projectionMatrix[1 * 4 + 3];
 	}
+	
+#if defined(USE_VULKAN)
+	projectionMatrix[1 * 4 + 1] *= -1.0F;
+#endif
 }
 
 /*

@@ -845,6 +845,11 @@ idCommonLocal::RenderSplash
 */
 void idCommonLocal::RenderSplash()
 {
+	//const emptyCommand_t* renderCommands = NULL;
+	
+	// RB: this is the same as Doom 3 renderSystem->BeginFrame()
+	//renderCommands = renderSystem->SwapCommandBuffers_FinishCommandBuffers();
+	
 	const float sysWidth = renderSystem->GetWidth() * renderSystem->GetPixelAspect();
 	const float sysHeight = renderSystem->GetHeight();
 	const float sysAspect = sysWidth / sysHeight;
@@ -869,6 +874,9 @@ void idCommonLocal::RenderSplash()
 	
 	const emptyCommand_t* cmd = renderSystem->SwapCommandBuffers( &time_frontend, &time_backend, &time_shadows, &time_gpu );
 	renderSystem->RenderCommandBuffers( cmd );
+	
+	// RB: this is the same as Doom 3 renderSystem->EndFrame()
+	//renderSystem->SwapCommandBuffers_FinishRendering( &time_frontend, &time_backend, &time_shadows, &time_gpu );
 }
 
 /*
@@ -1299,7 +1307,7 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 			// display the legal splash screen
 			// No clue why we have to render this twice to show up...
 			RenderSplash();
-			RenderSplash();
+			//RenderSplash();
 		}
 		
 		

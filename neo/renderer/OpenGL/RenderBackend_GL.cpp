@@ -116,7 +116,433 @@ bool GL_CheckErrors_( const char* filename, int line )
 	
 	return error;
 }
+
+
+
+
+
+
+/*
+========================
+DebugCallback
+
+For ARB_debug_output
+========================
+*/
+// RB: added const to userParam
+static void CALLBACK DebugCallback( unsigned int source, unsigned int type,
+									unsigned int id, unsigned int severity, int length, const char* message, const void* userParam )
+{
+	// it probably isn't safe to do an idLib::Printf at this point
+	
+	// RB: printf should be thread safe on Linux
+#if defined(_WIN32)
+	OutputDebugString( message );
+	OutputDebugString( "\n" );
+#else
+	printf( "%s\n", message );
+#endif
+	// RB end
+}
+
+
+/*
+==================
+R_CheckPortableExtensions
+==================
+*/
+// RB: replaced QGL with GLEW
+static void R_CheckPortableExtensions()
+{
+	glConfig.glVersion = atof( glConfig.version_string );
+	const char* badVideoCard = idLocalization::GetString( "#str_06780" );
+	if( glConfig.glVersion < 2.0f )
+	{
+		idLib::FatalError( "%s", badVideoCard );
+	}
+	
+	if( idStr::Icmpn( glConfig.renderer_string, "ATI ", 4 ) == 0 || idStr::Icmpn( glConfig.renderer_string, "AMD ", 4 ) == 0 )
+	{
+		glConfig.vendor = VENDOR_AMD;
+	}
+	else if( idStr::Icmpn( glConfig.renderer_string, "NVIDIA", 6 ) == 0 )
+	{
+		glConfig.vendor = VENDOR_NVIDIA;
+	}
+	else if( idStr::Icmpn( glConfig.renderer_string, "Intel", 5 ) == 0 )
+	{
+		glConfig.vendor = VENDOR_INTEL;
+	}
+	
+	// RB: Mesa support
+	if( idStr::Icmpn( glConfig.renderer_string, "Mesa", 4 ) == 0 || idStr::Icmpn( glConfig.renderer_string, "X.org", 5 ) == 0 || idStr::Icmpn( glConfig.renderer_string, "Gallium", 7 ) == 0 ||
+			strcmp( glConfig.vendor_string, "X.Org" ) == 0 ||
+			idStr::Icmpn( glConfig.renderer_string, "llvmpipe", 8 ) == 0 )
+	{
+		if( glConfig.driverType == GLDRV_OPENGL32_CORE_PROFILE )
+		{
+			glConfig.driverType = GLDRV_OPENGL_MESA_CORE_PROFILE;
+		}
+		else
+		{
+			glConfig.driverType = GLDRV_OPENGL_MESA;
+		}
+	}
+	// RB end
+	
+	// GL_ARB_multitexture
+	if( glConfig.driverType != GLDRV_OPENGL3X )
+	{
+		glConfig.multitextureAvailable = true;
+	}
+	else
+	{
+		glConfig.multitextureAvailable = GLEW_ARB_multitexture != 0;
+	}
+	
+	// GL_EXT_direct_state_access
+	glConfig.directStateAccess = GLEW_EXT_direct_state_access != 0;
+	
+	
+	// GL_ARB_texture_compression + GL_S3_s3tc
+	// DRI drivers may have GL_ARB_texture_compression but no GL_EXT_texture_compression_s3tc
+	if( glConfig.driverType == GLDRV_OPENGL_MESA_CORE_PROFILE )
+	{
+		glConfig.textureCompressionAvailable = true;
+	}
+	else
+	{
+		glConfig.textureCompressionAvailable = GLEW_ARB_texture_compression != 0 && GLEW_EXT_texture_compression_s3tc != 0;
+	}
+	// GL_EXT_texture_filter_anisotropic
+	glConfig.anisotropicFilterAvailable = GLEW_EXT_texture_filter_anisotropic != 0;
+	if( glConfig.anisotropicFilterAvailable )
+	{
+		glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &glConfig.maxTextureAnisotropy );
+		common->Printf( "   maxTextureAnisotropy: %f\n", glConfig.maxTextureAnisotropy );
+	}
+	else
+	{
+		glConfig.maxTextureAnisotropy = 1;
+	}
+	
+	// GL_EXT_texture_lod_bias
+	// The actual extension is broken as specificed, storing the state in the texture unit instead
+	// of the texture object.  The behavior in GL 1.4 is the behavior we use.
+	glConfig.textureLODBiasAvailable = ( glConfig.glVersion >= 1.4 || GLEW_EXT_texture_lod_bias != 0 );
+	if( glConfig.textureLODBiasAvailable )
+	{
+		common->Printf( "...using %s\n", "GL_EXT_texture_lod_bias" );
+	}
+	else
+	{
+		common->Printf( "X..%s not found\n", "GL_EXT_texture_lod_bias" );
+	}
+	
+	// GL_ARB_seamless_cube_map
+	glConfig.seamlessCubeMapAvailable = GLEW_ARB_seamless_cube_map != 0;
+	r_useSeamlessCubeMap.SetModified();		// the CheckCvars() next frame will enable / disable it
+	
+	// GL_ARB_framebuffer_sRGB
+	glConfig.sRGBFramebufferAvailable = GLEW_ARB_framebuffer_sRGB != 0;
+	r_useSRGB.SetModified();		// the CheckCvars() next frame will enable / disable it
+	
+	// GL_ARB_vertex_buffer_object
+	if( glConfig.driverType == GLDRV_OPENGL_MESA_CORE_PROFILE )
+	{
+		glConfig.vertexBufferObjectAvailable = true;
+	}
+	else
+	{
+		glConfig.vertexBufferObjectAvailable = GLEW_ARB_vertex_buffer_object != 0;
+	}
+	
+	// GL_ARB_map_buffer_range, map a section of a buffer object's data store
+	//if( glConfig.driverType == GLDRV_OPENGL_MESA_CORE_PROFILE )
+	//{
+	//    glConfig.mapBufferRangeAvailable = true;
+	//}
+	//else
+	{
+		glConfig.mapBufferRangeAvailable = GLEW_ARB_map_buffer_range != 0;
+	}
+	
+	// GL_ARB_vertex_array_object
+	//if( glConfig.driverType == GLDRV_OPENGL_MESA_CORE_PROFILE )
+	//{
+	//    glConfig.vertexArrayObjectAvailable = true;
+	//}
+	//else
+	{
+		glConfig.vertexArrayObjectAvailable = GLEW_ARB_vertex_array_object != 0;
+	}
+	
+	// GL_ARB_draw_elements_base_vertex
+	glConfig.drawElementsBaseVertexAvailable = GLEW_ARB_draw_elements_base_vertex != 0;
+	
+	// GL_ARB_vertex_program / GL_ARB_fragment_program
+	glConfig.fragmentProgramAvailable = GLEW_ARB_fragment_program != 0;
+	//if( glConfig.fragmentProgramAvailable )
+	{
+		glGetIntegerv( GL_MAX_TEXTURE_COORDS, ( GLint* )&glConfig.maxTextureCoords );
+		glGetIntegerv( GL_MAX_TEXTURE_IMAGE_UNITS, ( GLint* )&glConfig.maxTextureImageUnits );
+	}
+	
+	// GLSL, core in OpenGL > 2.0
+	glConfig.glslAvailable = ( glConfig.glVersion >= 2.0f );
+	
+	// GL_ARB_uniform_buffer_object
+	glConfig.uniformBufferAvailable = GLEW_ARB_uniform_buffer_object != 0;
+	if( glConfig.uniformBufferAvailable )
+	{
+		glGetIntegerv( GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, ( GLint* )&glConfig.uniformBufferOffsetAlignment );
+		if( glConfig.uniformBufferOffsetAlignment < 256 )
+		{
+			glConfig.uniformBufferOffsetAlignment = 256;
+		}
+	}
+	// RB: make GPU skinning optional for weak OpenGL drivers
+	glConfig.gpuSkinningAvailable = glConfig.uniformBufferAvailable && ( glConfig.driverType == GLDRV_OPENGL3X || glConfig.driverType == GLDRV_OPENGL32_CORE_PROFILE || glConfig.driverType == GLDRV_OPENGL32_COMPATIBILITY_PROFILE );
+	
+	// ATI_separate_stencil / OpenGL 2.0 separate stencil
+	glConfig.twoSidedStencilAvailable = ( glConfig.glVersion >= 2.0f ) || GLEW_ATI_separate_stencil != 0;
+	
+	// GL_EXT_depth_bounds_test
+	glConfig.depthBoundsTestAvailable = GLEW_EXT_depth_bounds_test != 0;
+	
+	// GL_ARB_sync
+	glConfig.syncAvailable = GLEW_ARB_sync &&
+							 // as of 5/24/2012 (driver version 15.26.12.64.2761) sync objects
+							 // do not appear to work for the Intel HD 4000 graphics
+							 ( glConfig.vendor != VENDOR_INTEL || r_skipIntelWorkarounds.GetBool() );
+							 
+	// GL_ARB_occlusion_query
+	glConfig.occlusionQueryAvailable = GLEW_ARB_occlusion_query != 0;
+	
+	// GL_ARB_timer_query
+	glConfig.timerQueryAvailable = ( GLEW_ARB_timer_query != 0 || GLEW_EXT_timer_query != 0 ) && ( glConfig.vendor != VENDOR_INTEL || r_skipIntelWorkarounds.GetBool() ) && glConfig.driverType != GLDRV_OPENGL_MESA;
+	
+	// GREMEDY_string_marker
+	glConfig.gremedyStringMarkerAvailable = GLEW_GREMEDY_string_marker != 0;
+	if( glConfig.gremedyStringMarkerAvailable )
+	{
+		common->Printf( "...using %s\n", "GL_GREMEDY_string_marker" );
+	}
+	else
+	{
+		common->Printf( "X..%s not found\n", "GL_GREMEDY_string_marker" );
+	}
+	
+	// GL_ARB_framebuffer_object
+	glConfig.framebufferObjectAvailable = GLEW_ARB_framebuffer_object != 0;
+	if( glConfig.framebufferObjectAvailable )
+	{
+		glGetIntegerv( GL_MAX_RENDERBUFFER_SIZE, &glConfig.maxRenderbufferSize );
+		glGetIntegerv( GL_MAX_COLOR_ATTACHMENTS, &glConfig.maxColorAttachments );
+		
+		common->Printf( "...using %s\n", "GL_ARB_framebuffer_object" );
+	}
+	else
+	{
+		common->Printf( "X..%s not found\n", "GL_ARB_framebuffer_object" );
+	}
+	
+	// GL_EXT_framebuffer_blit
+	glConfig.framebufferBlitAvailable = GLEW_EXT_framebuffer_blit != 0;
+	if( glConfig.framebufferBlitAvailable )
+	{
+		common->Printf( "...using %s\n", "GL_EXT_framebuffer_blit" );
+	}
+	else
+	{
+		common->Printf( "X..%s not found\n", "GL_EXT_framebuffer_blit" );
+	}
+	
+	// GL_ARB_debug_output
+	glConfig.debugOutputAvailable = GLEW_ARB_debug_output != 0;
+	if( glConfig.debugOutputAvailable )
+	{
+		if( r_debugContext.GetInteger() >= 1 )
+		{
+			glDebugMessageCallbackARB( ( GLDEBUGPROCARB ) DebugCallback, NULL );
+		}
+		if( r_debugContext.GetInteger() >= 2 )
+		{
+			// force everything to happen in the main thread instead of in a separate driver thread
+			glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB );
+		}
+		if( r_debugContext.GetInteger() >= 3 )
+		{
+			// enable all the low priority messages
+			glDebugMessageControlARB( GL_DONT_CARE,
+									  GL_DONT_CARE,
+									  GL_DEBUG_SEVERITY_LOW_ARB,
+									  0, NULL, true );
+		}
+	}
+	
+	// GL_ARB_multitexture
+	if( !glConfig.multitextureAvailable )
+	{
+		idLib::Error( "GL_ARB_multitexture not available" );
+	}
+	// GL_ARB_texture_compression + GL_EXT_texture_compression_s3tc
+	if( !glConfig.textureCompressionAvailable )
+	{
+		idLib::Error( "GL_ARB_texture_compression or GL_EXT_texture_compression_s3tc not available" );
+	}
+	// GL_ARB_vertex_buffer_object
+	if( !glConfig.vertexBufferObjectAvailable )
+	{
+		idLib::Error( "GL_ARB_vertex_buffer_object not available" );
+	}
+	// GL_ARB_map_buffer_range
+	if( !glConfig.mapBufferRangeAvailable )
+	{
+		idLib::Error( "GL_ARB_map_buffer_range not available" );
+	}
+	// GL_ARB_vertex_array_object
+	if( !glConfig.vertexArrayObjectAvailable )
+	{
+		idLib::Error( "GL_ARB_vertex_array_object not available" );
+	}
+	// GL_ARB_draw_elements_base_vertex
+	if( !glConfig.drawElementsBaseVertexAvailable )
+	{
+		idLib::Error( "GL_ARB_draw_elements_base_vertex not available" );
+	}
+	// GL_ARB_vertex_program / GL_ARB_fragment_program
+	//if( !glConfig.fragmentProgramAvailable )
+	//{
+	//	idLib::Warning( "GL_ARB_fragment_program not available" );
+	//}
+	// GLSL
+	if( !glConfig.glslAvailable )
+	{
+		idLib::Error( "GLSL not available" );
+	}
+	// GL_ARB_uniform_buffer_object
+	if( !glConfig.uniformBufferAvailable )
+	{
+		idLib::Error( "GL_ARB_uniform_buffer_object not available" );
+	}
+	// GL_EXT_stencil_two_side
+	if( !glConfig.twoSidedStencilAvailable )
+	{
+		idLib::Error( "GL_ATI_separate_stencil not available" );
+	}
+	
+	// generate one global Vertex Array Object (VAO)
+	glGenVertexArrays( 1, &glConfig.global_vao );
+	glBindVertexArray( glConfig.global_vao );
+}
 // RB end
+
+idStr extensions_string;
+
+/*
+==================
+R_InitOpenGL
+
+This function is responsible for initializing a valid OpenGL subsystem
+for rendering.  This is done by calling the system specific GLimp_Init,
+which gives us a working OGL subsystem, then setting all necessary openGL
+state, including images, vertex programs, and display lists.
+
+Changes to the vertex cache size or smp state require a vid_restart.
+
+If R_IsInitialized() is false, no rendering can take place, but
+all renderSystem functions will still operate properly, notably the material
+and model information functions.
+==================
+*/
+void idRenderBackend::Init()
+{
+	common->Printf( "----- R_InitOpenGL -----\n" );
+	
+	if( tr.IsInitialized() )
+	{
+		common->FatalError( "R_InitOpenGL called while active" );
+	}
+	
+	// DG: make sure SDL has setup video so getting supported modes in R_SetNewMode() works
+	GLimp_PreInit();
+	// DG end
+	
+	R_SetNewMode( true );
+	
+	// input and sound systems need to be tied to the new window
+	Sys_InitInput();
+	
+	// get our config strings
+	glConfig.vendor_string = ( const char* )glGetString( GL_VENDOR );
+	glConfig.renderer_string = ( const char* )glGetString( GL_RENDERER );
+	glConfig.version_string = ( const char* )glGetString( GL_VERSION );
+	glConfig.shading_language_string = ( const char* )glGetString( GL_SHADING_LANGUAGE_VERSION );
+	glConfig.extensions_string = ( const char* )glGetString( GL_EXTENSIONS );
+	
+	if( glConfig.extensions_string == NULL )
+	{
+		// As of OpenGL 3.2, glGetStringi is required to obtain the available extensions
+		//glGetStringi = ( PFNGLGETSTRINGIPROC )GLimp_ExtensionPointer( "glGetStringi" );
+		
+		// Build the extensions string
+		GLint numExtensions;
+		glGetIntegerv( GL_NUM_EXTENSIONS, &numExtensions );
+		extensions_string.Clear();
+		for( int i = 0; i < numExtensions; i++ )
+		{
+			extensions_string.Append( ( const char* )glGetStringi( GL_EXTENSIONS, i ) );
+			// the now deprecated glGetString method usaed to create a single string with each extension separated by a space
+			if( i < numExtensions - 1 )
+			{
+				extensions_string.Append( ' ' );
+			}
+		}
+		glConfig.extensions_string = extensions_string.c_str();
+	}
+	
+	
+	float glVersion = atof( glConfig.version_string );
+	float glslVersion = atof( glConfig.shading_language_string );
+	idLib::Printf( "OpenGL Version   : %3.1f\n", glVersion );
+	idLib::Printf( "OpenGL Vendor    : %s\n", glConfig.vendor_string );
+	idLib::Printf( "OpenGL Renderer  : %s\n", glConfig.renderer_string );
+	idLib::Printf( "OpenGL GLSL      : %3.1f\n", glslVersion );
+	idLib::Printf( "OpenGL Extensions: %s\n", glConfig.extensions_string );
+	
+	// OpenGL driver constants
+	GLint temp;
+	glGetIntegerv( GL_MAX_TEXTURE_SIZE, &temp );
+	glConfig.maxTextureSize = temp;
+	
+	// stubbed or broken drivers may have reported 0...
+	if( glConfig.maxTextureSize <= 0 )
+	{
+		glConfig.maxTextureSize = 256;
+	}
+	
+	// recheck all the extensions (FIXME: this might be dangerous)
+	R_CheckPortableExtensions();
+	
+	renderProgManager.Init();
+	
+	tr.SetInitialized();
+	
+	// allocate the vertex array range or vertex objects
+	vertexCache.Init( glConfig.uniformBufferOffsetAlignment );
+	
+	// allocate the frame data, which may be more if smp is enabled
+	R_InitFrameData();
+	
+	// Reset our gamma
+	R_SetColorMappings();
+}
+
+void idRenderBackend::Shutdown()
+{
+	GLimp_Shutdown();
+}
 
 /*
 =============
@@ -193,7 +619,7 @@ void idRenderBackend::DrawElementsWithCounters( const drawSurf_t* surf )
 	
 	if( surf->jointCache )
 	{
-		idJointBuffer jointBuffer;
+		idUniformBuffer jointBuffer;
 		if( !vertexCache.GetJointBuffer( surf->jointCache, &jointBuffer ) )
 		{
 			idLib::Warning( "RB_DrawElementsWithCounters, jointBuffer == NULL" );
@@ -202,13 +628,13 @@ void idRenderBackend::DrawElementsWithCounters( const drawSurf_t* surf )
 		assert( ( jointBuffer.GetOffset() & ( glConfig.uniformBufferOffsetAlignment - 1 ) ) == 0 );
 		
 		// RB: 64 bit fixes, changed GLuint to GLintptr
-		const GLintptr ubo = reinterpret_cast< GLintptr >( jointBuffer.GetAPIObject() );
+		const GLintptr ubo = jointBuffer.GetAPIObject();
 		// RB end
 		
-		glBindBufferRange( GL_UNIFORM_BUFFER, 0, ubo, jointBuffer.GetOffset(), jointBuffer.GetNumJoints() * sizeof( idJointMat ) );
+		glBindBufferRange( GL_UNIFORM_BUFFER, 0, ubo, jointBuffer.GetOffset(), jointBuffer.GetSize() );
 	}
 	
-	renderProgManager.CommitUniforms();
+	renderProgManager.CommitUniforms( glStateBits );
 	
 	// RB: 64 bit fixes, changed GLuint to GLintptr
 	if( currentIndexBuffer != ( GLintptr )indexBuffer->GetAPIObject() || !r_useStateCaching.GetBool() )
@@ -229,48 +655,26 @@ void idRenderBackend::DrawElementsWithCounters( const drawSurf_t* surf )
 		glEnableVertexAttribArray( PC_ATTRIB_INDEX_ST );
 		glEnableVertexAttribArray( PC_ATTRIB_INDEX_TANGENT );
 		
-#if defined(USE_GLES2) || defined(USE_GLES3)
-		glVertexAttribPointer( PC_ATTRIB_INDEX_VERTEX, 3, GL_FLOAT, GL_FALSE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_XYZ_OFFSET ) );
-		glVertexAttribPointer( PC_ATTRIB_INDEX_NORMAL, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_NORMAL_OFFSET ) );
-		glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_COLOR_OFFSET ) );
-		glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_COLOR2_OFFSET ) );
-#if defined(USE_ANGLE)
-		glVertexAttribPointer( PC_ATTRIB_INDEX_ST, 2, GL_HALF_FLOAT_OES, GL_TRUE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_ST_OFFSET ) );
-#else
-		glVertexAttribPointer( PC_ATTRIB_INDEX_ST, 2, GL_HALF_FLOAT, GL_TRUE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_ST_OFFSET ) );
-#endif
-		glVertexAttribPointer( PC_ATTRIB_INDEX_TANGENT, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( vertOffset + DRAWVERT_TANGENT_OFFSET ) );
-		
-#else
 		glVertexAttribPointer( PC_ATTRIB_INDEX_VERTEX, 3, GL_FLOAT, GL_FALSE, sizeof( idDrawVert ), ( void* )( DRAWVERT_XYZ_OFFSET ) );
 		glVertexAttribPointer( PC_ATTRIB_INDEX_NORMAL, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( DRAWVERT_NORMAL_OFFSET ) );
 		glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( DRAWVERT_COLOR_OFFSET ) );
 		glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( DRAWVERT_COLOR2_OFFSET ) );
 		glVertexAttribPointer( PC_ATTRIB_INDEX_ST, 2, GL_HALF_FLOAT, GL_TRUE, sizeof( idDrawVert ), ( void* )( DRAWVERT_ST_OFFSET ) );
 		glVertexAttribPointer( PC_ATTRIB_INDEX_TANGENT, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idDrawVert ), ( void* )( DRAWVERT_TANGENT_OFFSET ) );
-#endif // #if defined(USE_GLES2) || defined(USE_GLES3)
 		
 		vertexLayout = LAYOUT_DRAW_VERT;
 	}
 	// RB end
 	
-#if defined(USE_GLES3) //defined(USE_GLES2)
-	glDrawElements(	GL_TRIANGLES,
-					r_singleTriangle.GetBool() ? 3 : surf->numIndexes,
-					GL_INDEX_TYPE,
-					( triIndex_t* )indexOffset );
-#else
 	glDrawElementsBaseVertex( GL_TRIANGLES,
 							  r_singleTriangle.GetBool() ? 3 : surf->numIndexes,
 							  GL_INDEX_TYPE,
 							  ( triIndex_t* )indexOffset,
 							  vertOffset / sizeof( idDrawVert ) );
-#endif
-					
+							  
 	// RB: added stats
 	pc.c_drawElements++;
 	pc.c_drawIndexes += surf->numIndexes;
-	// RB end
 }
 
 
@@ -289,7 +693,10 @@ idRenderBackend::GL_StartFrame
 */
 void idRenderBackend::GL_StartFrame()
 {
-
+	// If we have a stereo pixel format, this will draw to both
+	// the back left and back right buffers, which will have a
+	// performance penalty.
+	glDrawBuffer( GL_BACK );
 }
 
 /*
@@ -325,7 +732,6 @@ void idRenderBackend::GL_SetDefaultState()
 	currentVertexBuffer = 0;
 	currentIndexBuffer = 0;
 	currentFramebuffer = 0;
-	faceCulling = 0;
 	vertexLayout = LAYOUT_UNKNOWN;
 	polyOfsScale = 0.0f;
 	polyOfsBias = 0.0f;
@@ -342,6 +748,7 @@ void idRenderBackend::GL_SetDefaultState()
 	Framebuffer::Unbind();
 	// RB end
 	
+#if 0
 	// These are changed by GL_Cull
 	glCullFace( GL_FRONT_AND_BACK );
 	glEnable( GL_CULL_FACE );
@@ -355,6 +762,7 @@ void idRenderBackend::GL_SetDefaultState()
 	glDisable( GL_POLYGON_OFFSET_FILL );
 	glDisable( GL_POLYGON_OFFSET_LINE );
 	glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+#endif
 	
 	// These should never be changed
 	// DG: deprecated in opengl 3.2 and not needed because we don't do fixed function pipeline
@@ -396,6 +804,46 @@ void idRenderBackend::GL_State( uint64 stateBits, bool forceGlState )
 	else if( diff == 0 )
 	{
 		return;
+	}
+	
+	//
+	// culling
+	//
+	if( diff & ( GLS_CULL_BITS ) )//| GLS_MIRROR_VIEW ) )
+	{
+		switch( stateBits & GLS_CULL_BITS )
+		{
+			case GLS_CULL_TWOSIDED:
+				glDisable( GL_CULL_FACE );
+				break;
+				
+			case GLS_CULL_BACKSIDED:
+				glEnable( GL_CULL_FACE );
+				if( viewDef != NULL && viewDef->isMirror )
+				{
+					stateBits |= GLS_MIRROR_VIEW;
+					glCullFace( GL_FRONT );
+				}
+				else
+				{
+					glCullFace( GL_BACK );
+				}
+				break;
+				
+			case GLS_CULL_FRONTSIDED:
+			default:
+				glEnable( GL_CULL_FACE );
+				if( viewDef != NULL && viewDef->isMirror )
+				{
+					stateBits |= GLS_MIRROR_VIEW;
+					glCullFace( GL_BACK );
+				}
+				else
+				{
+					glCullFace( GL_FRONT );
+				}
+				break;
+		}
 	}
 	
 	//
@@ -562,41 +1010,6 @@ void idRenderBackend::GL_State( uint64 stateBits, bool forceGlState )
 		}
 	}
 	
-#if !defined( USE_CORE_PROFILE )
-	//
-	// alpha test
-	//
-	if( diff & ( GLS_ALPHATEST_FUNC_BITS | GLS_ALPHATEST_FUNC_REF_BITS ) )
-	{
-		if( ( stateBits & GLS_ALPHATEST_FUNC_BITS ) != 0 )
-		{
-			glEnable( GL_ALPHA_TEST );
-			
-			GLenum func = GL_ALWAYS;
-			switch( stateBits & GLS_ALPHATEST_FUNC_BITS )
-			{
-				case GLS_ALPHATEST_FUNC_LESS:
-					func = GL_LESS;
-					break;
-				case GLS_ALPHATEST_FUNC_EQUAL:
-					func = GL_EQUAL;
-					break;
-				case GLS_ALPHATEST_FUNC_GREATER:
-					func = GL_GEQUAL;
-					break;
-				default:
-					assert( false );
-			}
-			GLclampf ref = ( ( stateBits & GLS_ALPHATEST_FUNC_REF_BITS ) >> GLS_ALPHATEST_FUNC_REF_SHIFT ) / ( float )0xFF;
-			glAlphaFunc( func, ref );
-		}
-		else
-		{
-			glDisable( GL_ALPHA_TEST );
-		}
-	}
-#endif
-	
 	//
 	// stencil
 	//
@@ -762,58 +1175,7 @@ void idRenderBackend::GL_SelectTexture( int unit )
 	currenttmu = unit;
 }
 
-/*
-====================
-idRenderBackend::GL_Cull
 
-This handles the flipping needed when the view being
-rendered is a mirored view.
-====================
-*/
-void idRenderBackend::GL_Cull( cullType_t cullType )
-{
-	if( faceCulling == cullType )
-	{
-		return;
-	}
-	
-	if( cullType == CT_TWO_SIDED )
-	{
-		glDisable( GL_CULL_FACE );
-	}
-	else
-	{
-		if( faceCulling == CT_TWO_SIDED )
-		{
-			glEnable( GL_CULL_FACE );
-		}
-		
-		if( cullType == CT_BACK_SIDED )
-		{
-			if( viewDef->isMirror )
-			{
-				glCullFace( GL_FRONT );
-			}
-			else
-			{
-				glCullFace( GL_BACK );
-			}
-		}
-		else
-		{
-			if( viewDef->isMirror )
-			{
-				glCullFace( GL_BACK );
-			}
-			else
-			{
-				glCullFace( GL_FRONT );
-			}
-		}
-	}
-	
-	faceCulling = cullType;
-}
 
 /*
 ====================
@@ -937,7 +1299,7 @@ idRenderBackend::GL_GetCurrentState
 */
 uint64 idRenderBackend::GL_GetCurrentState() const
 {
-	return tr.backend.glStateBits;
+	return glStateBits;
 }
 
 /*
@@ -986,7 +1348,6 @@ void idRenderBackend::CheckCVars()
 		}
 	}
 	
-	extern idCVar r_useSeamlessCubeMap;
 	if( r_useSeamlessCubeMap.IsModified() )
 	{
 		r_useSeamlessCubeMap.ClearModified();
@@ -1003,7 +1364,6 @@ void idRenderBackend::CheckCVars()
 		}
 	}
 	
-	extern idCVar r_useSRGB;
 	if( r_useSRGB.IsModified() )
 	{
 		r_useSRGB.ClearModified();
@@ -1060,6 +1420,190 @@ void idRenderBackend::CheckCVars()
 			break;
 	}
 	// RB end
+}
+
+
+/*
+==============================================================================================
+
+STENCIL SHADOW RENDERING
+
+==============================================================================================
+*/
+extern idCVar r_useStencilShadowPreload;
+
+/*
+==================
+idRenderBackend::DrawStencilShadowPass
+==================
+*/
+void idRenderBackend::DrawStencilShadowPass( const drawSurf_t* drawSurf, const bool renderZPass )
+{
+	// get vertex buffer
+	const vertCacheHandle_t vbHandle = drawSurf->shadowCache;
+	idVertexBuffer* vertexBuffer;
+	if( vertexCache.CacheIsStatic( vbHandle ) )
+	{
+		vertexBuffer = &vertexCache.staticData.vertexBuffer;
+	}
+	else
+	{
+		const uint64 frameNum = ( int )( vbHandle >> VERTCACHE_FRAME_SHIFT ) & VERTCACHE_FRAME_MASK;
+		if( frameNum != ( ( vertexCache.currentFrame - 1 ) & VERTCACHE_FRAME_MASK ) )
+		{
+			idLib::Warning( "DrawStencilShadowPass, vertexBuffer == NULL" );
+			return;
+		}
+		vertexBuffer = &vertexCache.frameData[vertexCache.drawListNum].vertexBuffer;
+	}
+	const int vertOffset = ( int )( vbHandle >> VERTCACHE_OFFSET_SHIFT ) & VERTCACHE_OFFSET_MASK;
+	
+	// get index buffer
+	const vertCacheHandle_t ibHandle = drawSurf->indexCache;
+	idIndexBuffer* indexBuffer;
+	if( vertexCache.CacheIsStatic( ibHandle ) )
+	{
+		indexBuffer = &vertexCache.staticData.indexBuffer;
+	}
+	else
+	{
+		const uint64 frameNum = ( int )( ibHandle >> VERTCACHE_FRAME_SHIFT ) & VERTCACHE_FRAME_MASK;
+		if( frameNum != ( ( vertexCache.currentFrame - 1 ) & VERTCACHE_FRAME_MASK ) )
+		{
+			idLib::Warning( "DrawStencilShadowPass, indexBuffer == NULL" );
+			return;
+		}
+		indexBuffer = &vertexCache.frameData[vertexCache.drawListNum].indexBuffer;
+	}
+	const uint64 indexOffset = ( int )( ibHandle >> VERTCACHE_OFFSET_SHIFT ) & VERTCACHE_OFFSET_MASK;
+	
+	RENDERLOG_PRINTF( "Binding Buffers: %p %p\n", vertexBuffer, indexBuffer );
+	
+	// RB: 64 bit fixes, changed GLuint to GLintptr
+	if( currentIndexBuffer != ( GLintptr )indexBuffer->GetAPIObject() || !r_useStateCaching.GetBool() )
+	{
+		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, ( GLintptr )indexBuffer->GetAPIObject() );
+		currentIndexBuffer = ( GLintptr )indexBuffer->GetAPIObject();
+	}
+	
+	if( drawSurf->jointCache )
+	{
+		assert( renderProgManager.ShaderUsesJoints() );
+		
+		idUniformBuffer jointBuffer;
+		if( !vertexCache.GetJointBuffer( drawSurf->jointCache, &jointBuffer ) )
+		{
+			idLib::Warning( "DrawStencilShadowPass, jointBuffer == NULL" );
+			return;
+		}
+		assert( ( jointBuffer.GetOffset() & ( glConfig.uniformBufferOffsetAlignment - 1 ) ) == 0 );
+		
+		const GLintptr ubo = jointBuffer.GetAPIObject();
+		glBindBufferRange( GL_UNIFORM_BUFFER, 0, ubo, jointBuffer.GetOffset(), jointBuffer.GetSize() );
+		
+		if( ( vertexLayout != LAYOUT_DRAW_SHADOW_VERT_SKINNED ) || ( currentVertexBuffer != ( GLintptr )vertexBuffer->GetAPIObject() ) || !r_useStateCaching.GetBool() )
+		{
+			glBindBuffer( GL_ARRAY_BUFFER, ( GLintptr )vertexBuffer->GetAPIObject() );
+			currentVertexBuffer = ( GLintptr )vertexBuffer->GetAPIObject();
+			
+			glEnableVertexAttribArray( PC_ATTRIB_INDEX_VERTEX );
+			glDisableVertexAttribArray( PC_ATTRIB_INDEX_NORMAL );
+			glEnableVertexAttribArray( PC_ATTRIB_INDEX_COLOR );
+			glEnableVertexAttribArray( PC_ATTRIB_INDEX_COLOR2 );
+			glDisableVertexAttribArray( PC_ATTRIB_INDEX_ST );
+			glDisableVertexAttribArray( PC_ATTRIB_INDEX_TANGENT );
+			
+#if defined(USE_GLES2) || defined(USE_GLES3)
+			glVertexAttribPointer( PC_ATTRIB_INDEX_VERTEX, 4, GL_FLOAT, GL_FALSE, sizeof( idShadowVertSkinned ), ( void* )( vertOffset + SHADOWVERTSKINNED_XYZW_OFFSET ) );
+			glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idShadowVertSkinned ), ( void* )( vertOffset + SHADOWVERTSKINNED_COLOR_OFFSET ) );
+			glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idShadowVertSkinned ), ( void* )( vertOffset + SHADOWVERTSKINNED_COLOR2_OFFSET ) );
+#else
+			glVertexAttribPointer( PC_ATTRIB_INDEX_VERTEX, 4, GL_FLOAT, GL_FALSE, sizeof( idShadowVertSkinned ), ( void* )( SHADOWVERTSKINNED_XYZW_OFFSET ) );
+			glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idShadowVertSkinned ), ( void* )( SHADOWVERTSKINNED_COLOR_OFFSET ) );
+			glVertexAttribPointer( PC_ATTRIB_INDEX_COLOR2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( idShadowVertSkinned ), ( void* )( SHADOWVERTSKINNED_COLOR2_OFFSET ) );
+#endif
+			
+			vertexLayout = LAYOUT_DRAW_SHADOW_VERT_SKINNED;
+		}
+		
+	}
+	else
+	{
+		if( ( vertexLayout != LAYOUT_DRAW_SHADOW_VERT ) || ( currentVertexBuffer != ( GLintptr )vertexBuffer->GetAPIObject() ) || !r_useStateCaching.GetBool() )
+		{
+			glBindBuffer( GL_ARRAY_BUFFER, ( GLintptr )vertexBuffer->GetAPIObject() );
+			currentVertexBuffer = ( GLintptr )vertexBuffer->GetAPIObject();
+			
+			glEnableVertexAttribArray( PC_ATTRIB_INDEX_VERTEX );
+			glDisableVertexAttribArray( PC_ATTRIB_INDEX_NORMAL );
+			glDisableVertexAttribArray( PC_ATTRIB_INDEX_COLOR );
+			glDisableVertexAttribArray( PC_ATTRIB_INDEX_COLOR2 );
+			glDisableVertexAttribArray( PC_ATTRIB_INDEX_ST );
+			glDisableVertexAttribArray( PC_ATTRIB_INDEX_TANGENT );
+			
+#if defined(USE_GLES2) || defined(USE_GLES3)
+			glVertexAttribPointer( PC_ATTRIB_INDEX_VERTEX, 4, GL_FLOAT, GL_FALSE, sizeof( idShadowVert ), ( void* )( vertOffset + SHADOWVERT_XYZW_OFFSET ) );
+#else
+			glVertexAttribPointer( PC_ATTRIB_INDEX_VERTEX, 4, GL_FLOAT, GL_FALSE, sizeof( idShadowVert ), ( void* )( SHADOWVERT_XYZW_OFFSET ) );
+#endif
+			
+			vertexLayout = LAYOUT_DRAW_SHADOW_VERT;
+		}
+	}
+	// RB end
+	
+	renderProgManager.CommitUniforms( glStateBits );
+	
+	if( drawSurf->jointCache )
+	{
+#if defined(USE_GLES3) //defined(USE_GLES2)
+		glDrawElements( GL_TRIANGLES, r_singleTriangle.GetBool() ? 3 : drawSurf->numIndexes, GL_INDEX_TYPE, ( triIndex_t* )indexOffset );
+#else
+		glDrawElementsBaseVertex( GL_TRIANGLES, r_singleTriangle.GetBool() ? 3 : drawSurf->numIndexes, GL_INDEX_TYPE, ( triIndex_t* )indexOffset, vertOffset / sizeof( idShadowVertSkinned ) );
+#endif
+	}
+	else
+	{
+#if defined(USE_GLES3)
+		glDrawElements( GL_TRIANGLES, r_singleTriangle.GetBool() ? 3 : drawSurf->numIndexes, GL_INDEX_TYPE, ( triIndex_t* )indexOffset );
+#else
+		glDrawElementsBaseVertex( GL_TRIANGLES, r_singleTriangle.GetBool() ? 3 : drawSurf->numIndexes, GL_INDEX_TYPE, ( triIndex_t* )indexOffset, vertOffset / sizeof( idShadowVert ) );
+#endif
+	}
+	
+	// RB: added stats
+	pc.c_shadowElements++;
+	pc.c_shadowIndexes += drawSurf->numIndexes;
+	// RB end
+	
+	if( !renderZPass && r_useStencilShadowPreload.GetBool() )
+	{
+		// render again with Z-pass
+		glStencilOpSeparate( GL_FRONT, GL_KEEP, GL_KEEP, GL_INCR );
+		glStencilOpSeparate( GL_BACK, GL_KEEP, GL_KEEP, GL_DECR );
+		
+		if( drawSurf->jointCache )
+		{
+#if defined(USE_GLES3)
+			glDrawElements( GL_TRIANGLES, r_singleTriangle.GetBool() ? 3 : drawSurf->numIndexes, GL_INDEX_TYPE, ( triIndex_t* )indexOffset );
+#else
+			glDrawElementsBaseVertex( GL_TRIANGLES, r_singleTriangle.GetBool() ? 3 : drawSurf->numIndexes, GL_INDEX_TYPE, ( triIndex_t* )indexOffset, vertOffset / sizeof( idShadowVertSkinned ) );
+#endif
+		}
+		else
+		{
+#if defined(USE_GLES3)
+			glDrawElements( GL_TRIANGLES, r_singleTriangle.GetBool() ? 3 : drawSurf->numIndexes, GL_INDEX_TYPE, ( triIndex_t* )indexOffset );
+#else
+			glDrawElementsBaseVertex( GL_TRIANGLES, r_singleTriangle.GetBool() ? 3 : drawSurf->numIndexes, GL_INDEX_TYPE, ( triIndex_t* )indexOffset, vertOffset / sizeof( idShadowVert ) );
+#endif
+		}
+		
+		// RB: added stats
+		pc.c_shadowElements++;
+		pc.c_shadowIndexes += drawSurf->numIndexes;
+		// RB end
+	}
 }
 
 /*
@@ -1140,7 +1684,7 @@ GL_BlockingSwapBuffers
 We want to exit this with the GPU idle, right at vsync
 =============
 */
-void idRenderBackend::BlockingSwapBuffers()
+void idRenderBackend::GL_BlockingSwapBuffers()
 {
 	RENDERLOG_PRINTF( "***************** GL_BlockingSwapBuffers *****************\n\n\n" );
 	
@@ -1228,7 +1772,8 @@ idRenderBackend::idRenderBackend
 */
 idRenderBackend::idRenderBackend()
 {
-	Init();
+	memset( glcontext.tmu, 0, sizeof( glcontext.tmu ) );
+	memset( glcontext.stencilOperations, 0, sizeof( glcontext.stencilOperations ) );
 }
 
 /*
@@ -1239,17 +1784,6 @@ idRenderBackend::~idRenderBackend
 idRenderBackend::~idRenderBackend()
 {
 
-}
-
-/*
-=============
-idRenderBackend::Init
-=============
-*/
-void idRenderBackend::Init()
-{
-	memset( glcontext.tmu, 0, sizeof( glcontext.tmu ) );
-	memset( glcontext.stencilOperations, 0, sizeof( glcontext.stencilOperations ) );
 }
 
 /*
@@ -1392,8 +1926,7 @@ void idRenderBackend::StereoRenderExecuteBackEndCommands( const emptyCommand_t* 
 		glDrawBuffer( GL_BACK );
 	}
 	
-	GL_State( GLS_DEPTHFUNC_ALWAYS );
-	GL_Cull( CT_TWO_SIDED );
+	GL_State( GLS_DEPTHFUNC_ALWAYS | GLS_CULL_TWOSIDED );
 	
 	// We just want to do a quad pass - so make sure we disable any texgen and
 	// set the texture matrix to the identity so we don't get anomalies from
@@ -1579,99 +2112,4 @@ void idRenderBackend::StereoRenderExecuteBackEndCommands( const emptyCommand_t* 
 	pc.totalMicroSec = backEndFinishTime - backEndStartTime;
 }
 
-/*
-====================
-RB_ExecuteBackEndCommands
 
-This function will be called syncronously if running without
-smp extensions, or asyncronously by another thread.
-====================
-*/
-void idRenderBackend::ExecuteBackEndCommands( const emptyCommand_t* cmds )
-{
-	// r_debugRenderToTexture
-	int c_draw3d = 0;
-	int c_draw2d = 0;
-	int c_setBuffers = 0;
-	int c_copyRenders = 0;
-	
-	resolutionScale.SetCurrentGPUFrameTime( commonLocal.GetRendererGPUMicroseconds() );
-	
-	renderLog.StartFrame();
-	
-	if( cmds->commandId == RC_NOP && !cmds->next )
-	{
-		return;
-	}
-	
-	if( renderSystem->GetStereo3DMode() != STEREO3D_OFF )
-	{
-		StereoRenderExecuteBackEndCommands( cmds );
-		renderLog.EndFrame();
-		return;
-	}
-	
-	uint64 backEndStartTime = Sys_Microseconds();
-	
-	// needed for editor rendering
-	GL_SetDefaultState();
-	
-	// If we have a stereo pixel format, this will draw to both
-	// the back left and back right buffers, which will have a
-	// performance penalty.
-	glDrawBuffer( GL_BACK );
-	
-	for( ; cmds != NULL; cmds = ( const emptyCommand_t* )cmds->next )
-	{
-		switch( cmds->commandId )
-		{
-			case RC_NOP:
-				break;
-			case RC_DRAW_VIEW_3D:
-			case RC_DRAW_VIEW_GUI:
-				DrawView( cmds, 0 );
-				if( ( ( const drawSurfsCommand_t* )cmds )->viewDef->viewEntitys )
-				{
-					c_draw3d++;
-				}
-				else
-				{
-					c_draw2d++;
-				}
-				break;
-			case RC_SET_BUFFER:
-				//RB_SetBuffer( cmds );
-				c_setBuffers++;
-				break;
-			case RC_COPY_RENDER:
-				CopyRender( cmds );
-				c_copyRenders++;
-				break;
-			case RC_POST_PROCESS:
-				PostProcess( cmds );
-				break;
-			default:
-				common->Error( "RB_ExecuteBackEndCommands: bad commandId" );
-				break;
-		}
-	}
-	
-	DrawFlickerBox();
-	
-	// Fix for the steam overlay not showing up while in game without Shell/Debug/Console/Menu also rendering
-	glColorMask( 1, 1, 1, 1 );
-	
-	glFlush();
-	
-	// stop rendering on this thread
-	uint64 backEndFinishTime = Sys_Microseconds();
-	pc.totalMicroSec = backEndFinishTime - backEndStartTime;
-	
-	if( r_debugRenderToTexture.GetInteger() == 1 )
-	{
-		common->Printf( "3d: %i, 2d: %i, SetBuf: %i, CpyRenders: %i, CpyFrameBuf: %i\n", c_draw3d, c_draw2d, c_setBuffers, c_copyRenders, pc.c_copyFrameBuffer );
-		pc.c_copyFrameBuffer = 0;
-	}
-	
-	renderLog.EndFrame();
-}

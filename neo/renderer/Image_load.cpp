@@ -105,6 +105,7 @@ ID_INLINE void idImage::DeriveOpts()
 				opts.format = FMT_DXT1;
 				opts.colorFormat = CFM_GREEN_ALPHA;
 				break;
+				
 			case TD_DEPTH:
 				opts.format = FMT_DEPTH;
 				break;
@@ -247,12 +248,11 @@ On exit, the idImage will have a valid OpenGL texture number that can be bound
 */
 void idImage::ActuallyLoadImage( bool fromBackEnd )
 {
-
 	// if we don't have a rendering context yet, just return
-	if( !R_IsInitialized() )
-	{
-		return;
-	}
+	//if( !tr.IsInitialized() )
+	//{
+	//	return;
+	//}
 	
 	// this is the ONLY place generatorFunction will ever be called
 	if( generatorFunction )
@@ -669,28 +669,11 @@ void idImage::Reload( bool force )
 }
 
 /*
-========================
-idImage::SetSamplerState
-========================
-*/
-void idImage::SetSamplerState( textureFilter_t tf, textureRepeat_t tr )
-{
-	if( tf == filter && tr == repeat )
-	{
-		return;
-	}
-	filter = tf;
-	repeat = tr;
-	glBindTexture( ( opts.textureType == TT_CUBIC ) ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D, texnum );
-	SetTexParameters();
-}
-
-/*
 ================
 GenerateImage
 ================
 */
-void idImage::GenerateImage( const byte* pic, int width, int height, textureFilter_t filterParm, textureRepeat_t repeatParm, textureUsage_t usageParm, int msaaSamples )
+void idImage::GenerateImage( const byte* pic, int width, int height, textureFilter_t filterParm, textureRepeat_t repeatParm, textureUsage_t usageParm, textureSamples_t samples )
 {
 	PurgeImage();
 	
@@ -699,21 +682,12 @@ void idImage::GenerateImage( const byte* pic, int width, int height, textureFilt
 	usage = usageParm;
 	cubeFiles = CF_2D;
 	
-	opts.textureType = ( msaaSamples > 0 ) ? TT_2D_MULTISAMPLE : TT_2D;
+	opts.textureType = ( samples > SAMPLE_1 ) ? TT_2D_MULTISAMPLE : TT_2D;
 	opts.width = width;
 	opts.height = height;
 	opts.numLevels = 0;
-	opts.samples = textureSamples_t( msaaSamples );
+	opts.samples = samples;
 	DeriveOpts();
-	
-	// if we don't have a rendering context, just return after we
-	// have filled in the parms.  We must have the values set, or
-	// an image match from a shader before the render starts would miss
-	// the generated texture
-	if( !R_IsInitialized() )
-	{
-		return;
-	}
 	
 	// RB: allow pic == NULL for internal framebuffer images
 	if( pic == NULL || opts.textureType == TT_2D_MULTISAMPLE )
@@ -723,7 +697,6 @@ void idImage::GenerateImage( const byte* pic, int width, int height, textureFilt
 	else
 	{
 		idBinaryImage im( GetName() );
-		
 		
 		// foresthale 2014-05-30: give a nice progress display when binarizing
 		commonLocal.LoadPacifierBinarizeFilename( GetName() , "generated image" );
@@ -778,7 +751,7 @@ void idImage::GenerateCubeImage( const byte* pic[6], int size, textureFilter_t f
 	// have filled in the parms.  We must have the values set, or
 	// an image match from a shader before the render starts would miss
 	// the generated texture
-	if( !R_IsInitialized() )
+	if( !tr.IsInitialized() )
 	{
 		return;
 	}
@@ -830,7 +803,7 @@ void idImage::GenerateShadowArray( int width, int height, textureFilter_t filter
 	// have filled in the parms.  We must have the values set, or
 	// an image match from a shader before the render starts would miss
 	// the generated texture
-	if( !R_IsInitialized() )
+	if( !tr.IsInitialized() )
 	{
 		return;
 	}

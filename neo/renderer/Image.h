@@ -307,12 +307,14 @@ public:
 		levelLoadReferenced = true;
 	}
 	void		ActuallyLoadImage( bool fromBackEnd );
+	
 	//---------------------------------------------
 	// Platform specific implementations
 	//---------------------------------------------
 	
-#if defined( ID_VULKAN )
-	void		CreateFromSwapImage( VkImage image, VkImageView imageView, VkFormat format, const VkExtent2D& extent );
+#if defined( USE_VULKAN )
+	static void	EmptyGarbage();
+	
 	VkImage		GetImage() const
 	{
 		return image;
@@ -345,7 +347,7 @@ public:
 	// they must be a multiple of four for dxt data.
 	void		SubImageUpload( int mipLevel, int destX, int destY, int destZ,
 								int width, int height, const void* data,
-								int pixelPitch = 0 ) const;
+								int pixelPitch = 0 );
 								
 	// SetPixel is assumed to be a fast memory write on consoles, degenerating to a
 	// SubImageUpload on PCs.  Used to update the page mapping images.
@@ -363,12 +365,7 @@ public:
 		return ( opts.format == FMT_DXT1 || opts.format == FMT_DXT5 );
 	}
 	
-	
-	
-	bool		IsLoaded() const
-	{
-		return texnum != TEXTURE_NOT_LOADED;
-	}
+	bool				IsLoaded() const;
 	
 	static void	GetGeneratedName( idStr& _name, const textureUsage_t& _usage, const cubeFiles_t& _cube );
 	
@@ -381,7 +378,7 @@ public:
 							   textureFilter_t filter,
 							   textureRepeat_t repeat,
 							   textureUsage_t usage,
-							   int msaaSamples = 0 );
+							   textureSamples_t samples = SAMPLE_1 );
 							   
 	void		GenerateCubeImage( const byte* pic[6], int size,
 								   textureFilter_t filter, textureUsage_t usage );
@@ -414,9 +411,11 @@ private:
 	
 	int					refCount;				// overall ref count
 	
-	static const GLuint TEXTURE_NOT_LOADED = 0xFFFFFFFF;
+	static const uint32 TEXTURE_NOT_LOADED = 0xFFFFFFFF;
 	
-#if defined( ID_VULKAN )
+#if defined( USE_VULKAN )
+	void				CreateSampler();
+	
 	bool				bIsSwapChainImage;
 	VkFormat			internalFormat;
 	VkImage				image;
@@ -424,7 +423,7 @@ private:
 	VkImageLayout		layout;
 	VkSampler			sampler;
 	
-#if defined( ID_USE_AMD_ALLOCATOR )
+#if defined( USE_AMD_ALLOCATOR )
 	VmaAllocation		allocation;
 	static idList< VmaAllocation >		allocationGarbage[ NUM_FRAME_DATA ];
 #else
@@ -489,6 +488,9 @@ public:
 	
 	// scratch images are for internal renderer use.  ScratchImage names should always begin with an underscore
 	idImage* 			ScratchImage( const char* name, idImageOpts* imgOpts, textureFilter_t filter, textureRepeat_t repeat, textureUsage_t usage );
+	
+	// These images are for internal renderer use.  Names should start with "_".
+	idImage* 			ScratchImage( const char* name, const idImageOpts& opts );
 	
 	// purges all the images before a vid_restart
 	void				PurgeAllImages();
