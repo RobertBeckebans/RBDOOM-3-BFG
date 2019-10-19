@@ -505,15 +505,11 @@ static void LoadJPG( const char* filename, unsigned char** pic, int* width, int*
 	jpeg_create_decompress( &cinfo );
 	
 	/* Step 2: specify data source (eg, a file) */
-	
-#ifdef USE_NEWER_JPEG
 	jpeg_mem_src( &cinfo, fbuffer, len );
-#else
-	jpeg_stdio_src( &cinfo, fbuffer );
-#endif
+
 	/* Step 3: read file parameters with jpeg_read_header() */
-	
-	jpeg_read_header( &cinfo, true );
+	jpeg_read_header( &cinfo, TRUE );
+
 	/* We can ignore the return value from jpeg_read_header since
 	 *   (a) suspension is not possible with the stdio data source, and
 	 *   (b) we passed TRUE to reject a tables-only JPEG file as an error.

@@ -2330,11 +2330,7 @@ struct jpeg_error_mgr jerr;
  * the front of the buffer rather than discarding it.
  */
 
-#ifdef USE_NEWER_JPEG
 METHODDEF( boolean )
-#else
-METHODDEF boolean
-#endif
 fill_input_buffer( j_decompress_ptr cinfo )
 {
 	my_src_ptr src = ( my_src_ptr ) cinfo->src;
@@ -2366,11 +2362,7 @@ fill_input_buffer( j_decompress_ptr cinfo )
  * before any data is actually read.
  */
 
-#ifdef USE_NEWER_JPEG
 METHODDEF( void )
-#else
-METHODDEF void
-#endif
 init_source( j_decompress_ptr cinfo )
 {
 	my_src_ptr src = ( my_src_ptr ) cinfo->src;
@@ -2394,11 +2386,7 @@ init_source( j_decompress_ptr cinfo )
  * buffer is the application writer's problem.
  */
 
-#ifdef USE_NEWER_JPEG
 METHODDEF( void )
-#else
-METHODDEF void
-#endif
 skip_input_data( j_decompress_ptr cinfo, long num_bytes )
 {
 	my_src_ptr src = ( my_src_ptr ) cinfo->src;
@@ -2434,22 +2422,14 @@ skip_input_data( j_decompress_ptr cinfo, long num_bytes )
  * for error exit.
  */
 
-#ifdef USE_NEWER_JPEG
 METHODDEF( void )
-#else
-METHODDEF void
-#endif
 term_source( j_decompress_ptr cinfo )
 {
 	cinfo = cinfo;
 	/* no work necessary here */
 }
 
-#ifdef USE_NEWER_JPEG
 GLOBAL( void )
-#else
-GLOBAL void
-#endif
 jpeg_memory_src( j_decompress_ptr cinfo, byte* infile, int size )
 {
 	my_src_ptr src;
