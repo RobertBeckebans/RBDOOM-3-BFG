@@ -305,8 +305,8 @@ if(USE_VULKAN)
 	#option(ENABLE_NV_EXTENSIONS "Enables support of Nvidia-specific extensions" ON)
 	#option(ENABLE_OPT "Enables spirv-opt capability if present" ON)
 	
-	set(GLSLANG_DIR $ENV{VK_SDK_PATH}/glslang)
-	add_subdirectory(${GLSLANG_DIR} ${CMAKE_CURRENT_BINARY_DIR}/glslang)
+	set(GLSLANG_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libs/glslang)
+	add_subdirectory(${GLSLANG_DIR})
 	
 	include_directories(${GLSLANG_DIR}/glslang)
 
