@@ -353,7 +353,7 @@ static HGLRC CreateOpenGLContextOnDC( const HDC hdc, const bool debugContext )
 	
 	for( int i = 0; i < 2; i++ )
 	{
-		const int glMajorVersion = ( useCoreProfile != 0 ) ? 4 : 5;
+		const int glMajorVersion = 4;
 		const int glMinorVersion = ( useCoreProfile != 0 ) ? 4 : 0;
 		const int glDebugFlag = debugContext ? WGL_CONTEXT_DEBUG_BIT_ARB : 0;
 		const int glProfileMask = ( useCoreProfile != 0 ) ? WGL_CONTEXT_PROFILE_MASK_ARB : 0;
