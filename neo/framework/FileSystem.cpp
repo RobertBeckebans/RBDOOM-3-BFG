@@ -2884,11 +2884,10 @@ idFileSystemLocal::FindResourceFile
 */
 int idFileSystemLocal::FindResourceFile(const char* resourceFileName)
 {
-	const char* mapFileName = va("maps/%s", resourceFileName);
 	for (int i = 0; i < resourceFiles.Num(); i++)
 	{
 
-		if (idStr::Icmp(resourceFileName, resourceFiles[i]->GetFileName()) == 0 || idStr::Icmp(mapFileName, resourceFiles[i]->GetFileName()) == 0)
+		if (idStr::Icmp(resourceFileName, resourceFiles[i]->GetFileName()) == 0)
 		{
 			return i;
 		}
