@@ -680,8 +680,7 @@ void idRenderBackend::DBG_ShowSilhouette()
 	renderProgManager.BindShader_Color();
 	
 	GL_Color( 0, 0, 0 );
-	GL_State( GLS_DEPTHFUNC_ALWAYS | GLS_POLYMODE_LINE );
-	GL_Cull( CT_TWO_SIDED );
+	GL_State( GLS_DEPTHFUNC_ALWAYS | GLS_POLYMODE_LINE | GLS_CULL_TWOSIDED );
 	
 	DBG_RenderDrawSurfListWithFunction( viewDef->drawSurfs, viewDef->numDrawSurfs );
 	
@@ -745,7 +744,6 @@ void idRenderBackend::DBG_ShowSilhouette()
 	
 	GL_State( GLS_DEFAULT );
 	GL_Color( 1, 1, 1 );
-	GL_Cull( CT_FRONT_SIDED );
 }
 
 /*
@@ -787,7 +785,7 @@ void idRenderBackend::DBG_ShowTris( drawSurf_t** drawSurfs, int numDrawSurfs )
 	
 	if( r_showTris.GetInteger() == 3 )
 	{
-		GL_Cull( CT_TWO_SIDED );
+		GL_State( glStateBits & ~( GLS_CULL_MASK ) | GLS_CULL_TWOSIDED );
 	}
 	
 	GL_Color( color );
@@ -796,7 +794,7 @@ void idRenderBackend::DBG_ShowTris( drawSurf_t** drawSurfs, int numDrawSurfs )
 	
 	if( r_showTris.GetInteger() == 3 )
 	{
-		GL_Cull( CT_FRONT_SIDED );
+		GL_State( glStateBits & ~( GLS_CULL_MASK ) | GLS_CULL_FRONTSIDED );
 	}
 }
 
@@ -922,8 +920,7 @@ void idRenderBackend::DBG_ShowViewEntitys( viewEntity_t* vModels )
 	renderProgManager.BindShader_Color();
 	
 	GL_Color( 1, 1, 1 );
-	GL_State( GLS_DEPTHFUNC_ALWAYS | GLS_POLYMODE_LINE );
-	GL_Cull( CT_TWO_SIDED );
+	GL_State( GLS_DEPTHFUNC_ALWAYS | GLS_POLYMODE_LINE | GLS_CULL_TWOSIDED );
 	
 	for( const viewEntity_t* vModel = vModels; vModel; vModel = vModel->next )
 	{
@@ -1223,7 +1220,7 @@ void idRenderBackend::DBG_ShowVertexColor( drawSurf_t** drawSurfs, int numDrawSu
 			continue;
 		}
 		
-		renderProgManager.CommitUniforms();
+		renderProgManager.CommitUniforms( glStateBits );
 		
 		glBegin( GL_TRIANGLES );
 		for( j = 0; j < tri->numIndexes; j++ )
@@ -1646,11 +1643,9 @@ void idRenderBackend::DBG_ShowLights()
 		return;
 	}
 	
-	GL_State( GLS_DEFAULT );
+	GL_State( GLS_DEFAULT | GLS_CULL_TWOSIDED );
 	
 	renderProgManager.BindShader_Color();
-	
-	GL_Cull( CT_TWO_SIDED );
 	
 	common->Printf( "volumes: " );	// FIXME: not in back end!
 	
@@ -1710,11 +1705,9 @@ void idRenderBackend::DBG_ShowShadowMapLODs()
 		return;
 	}
 	
-	GL_State( GLS_DEFAULT );
+	GL_State( GLS_DEFAULT | GLS_CULL_TWOSIDED );
 	
 	renderProgManager.BindShader_Color();
-	
-	GL_Cull( CT_TWO_SIDED );
 	
 	common->Printf( "volumes: " );	// FIXME: not in back end!
 	
@@ -1842,7 +1835,7 @@ void idRenderBackend::DBG_ShowPortals()
 			}
 			
 			// RB begin
-			renderProgManager.CommitUniforms();
+			renderProgManager.CommitUniforms( glStateBits );
 			// RB end
 			
 			glBegin( GL_LINE_LOOP );
@@ -1983,7 +1976,7 @@ static void RB_DrawText( const char* text, const idVec3& origin, float scale, co
 	
 	// RB begin
 	//GL_Color( color[0], color[1], color[2], 1 /*color[3]*/ );
-	renderProgManager.CommitUniforms();
+	renderProgManager.CommitUniforms( tr.backend.GL_GetCurrentState() );
 	// RB end
 	
 	int i, j, len, num, index, charIndex, line;
@@ -2216,7 +2209,7 @@ void idRenderBackend::DBG_ShowDebugLines()
 	
 	// RB begin
 	renderProgManager.BindShader_VertexColor();
-	renderProgManager.CommitUniforms();
+	renderProgManager.CommitUniforms( glStateBits );
 	// RB end
 	
 	width = r_debugLineWidth.GetInteger();
@@ -2355,7 +2348,7 @@ void idRenderBackend::DBG_ShowDebugPolygons()
 	
 	// RB begin
 	renderProgManager.BindShader_VertexColor();
-	renderProgManager.CommitUniforms();
+	renderProgManager.CommitUniforms( glStateBits );
 	// RB end
 	
 	if( r_debugPolygonFilled.GetBool() )

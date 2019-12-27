@@ -95,7 +95,9 @@ enum graphicsDriverType_t
 	GLDRV_OPENGL_ES2,
 	GLDRV_OPENGL_ES3,
 	GLDRV_OPENGL_MESA,						// fear this, it is probably the best to disable GPU skinning and run shaders in GLSL ES 1.0
-	GLDRV_OPENGL_MESA_CORE_PROFILE
+	GLDRV_OPENGL_MESA_CORE_PROFILE,
+	
+	GLDRV_VULKAN
 };
 
 enum antiAliasingMode_t
@@ -112,6 +114,9 @@ enum antiAliasingMode_t
 // These are constant once the OpenGL subsystem is initialized.
 struct glconfig_t
 {
+	graphicsVendor_t	vendor;
+	graphicsDriverType_t driverType;
+	
 	const char* 		renderer_string;
 	const char* 		vendor_string;
 	const char* 		version_string;
@@ -120,10 +125,6 @@ struct glconfig_t
 	const char* 		shading_language_string;
 	
 	float				glVersion;				// atof( version_string )
-	graphicsVendor_t	vendor;
-	// RB begin
-	graphicsDriverType_t driverType;
-	// RB end
 	
 	int					maxTextureSize;			// queried from GL
 	int					maxTextureCoords;
@@ -190,7 +191,7 @@ struct glconfig_t
 	float				pixelAspect;
 	
 	// RB begin
-#if !defined(__ANDROID__)
+#if !defined(__ANDROID__) && !defined(USE_VULKAN)
 	GLuint				global_vao;
 #endif
 	// RB end
@@ -199,8 +200,6 @@ struct glconfig_t
 
 
 struct emptyCommand_t;
-
-bool R_IsInitialized();
 
 const int SMALLCHAR_WIDTH		= 8;
 const int SMALLCHAR_HEIGHT		= 16;
@@ -229,6 +228,8 @@ public:
 	
 	// only called before quitting
 	virtual void			Shutdown() = 0;
+	
+	virtual bool			IsInitialized() const = 0;
 	
 	virtual void			ResetGuiModels() = 0;
 	

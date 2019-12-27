@@ -347,6 +347,36 @@ void idCommonLocal::StartupVariable( const char* match )
 	}
 }
 
+// DG: add doom3 tools
+/*
+=================
+idCommonLocal::InitTool
+=================
+*/
+void idCommonLocal::InitTool( const toolFlag_t tool, const idDict* dict, idEntity* entity )
+{
+#if defined(USE_MFC_TOOLS)
+	if( tool & EDITOR_SOUND )
+	{
+		//SoundEditorInit( dict ); // TODO: implement this somewhere
+	}
+	else if( tool & EDITOR_PARTICLE )
+	{
+		//ParticleEditorInit( dict );
+	}
+	else if( tool & EDITOR_AF )
+	{
+		//AFEditorInit( dict );
+	}
+#else
+	if( tool & EDITOR_LIGHT )
+	{
+		ImGuiTools::LightEditorInit( dict, entity );
+	}
+#endif
+}
+// DG end
+
 /*
 ==================
 idCommonLocal::AddStartupCommands
@@ -517,6 +547,7 @@ CONSOLE_COMMAND( printMemInfo, "prints memory debugging data", NULL )
 			   
 	fileSystem->CloseFile( f );
 }
+
 
 /*
 ==================
@@ -845,6 +876,11 @@ idCommonLocal::RenderSplash
 */
 void idCommonLocal::RenderSplash()
 {
+	//const emptyCommand_t* renderCommands = NULL;
+	
+	// RB: this is the same as Doom 3 renderSystem->BeginFrame()
+	//renderCommands = renderSystem->SwapCommandBuffers_FinishCommandBuffers();
+	
 	const float sysWidth = renderSystem->GetWidth() * renderSystem->GetPixelAspect();
 	const float sysHeight = renderSystem->GetHeight();
 	const float sysAspect = sysWidth / sysHeight;
@@ -869,6 +905,9 @@ void idCommonLocal::RenderSplash()
 	
 	const emptyCommand_t* cmd = renderSystem->SwapCommandBuffers( &time_frontend, &time_backend, &time_shadows, &time_gpu );
 	renderSystem->RenderCommandBuffers( cmd );
+	
+	// RB: this is the same as Doom 3 renderSystem->EndFrame()
+	//renderSystem->SwapCommandBuffers_FinishRendering( &time_frontend, &time_backend, &time_shadows, &time_gpu );
 }
 
 /*
@@ -1299,7 +1338,7 @@ void idCommonLocal::Init( int argc, const char* const* argv, const char* cmdline
 			// display the legal splash screen
 			// No clue why we have to render this twice to show up...
 			RenderSplash();
-			RenderSplash();
+			//RenderSplash();
 		}
 		
 		
@@ -1493,6 +1532,9 @@ void idCommonLocal::Shutdown()
 	printf( "delete loadGUI;\n" );
 	delete loadGUI;
 	loadGUI = NULL;
+	
+	printf( "ImGuiHook::Destroy();\n" );
+	ImGuiHook::Destroy();
 	
 	printf( "delete renderWorld;\n" );
 	delete renderWorld;
@@ -1845,6 +1887,11 @@ bool idCommonLocal::ProcessEvent( const sysEvent_t* event )
 	
 	// menus / etc
 	if( MenuEvent( event ) )
+	{
+		return true;
+	}
+	
+	if( ImGuiHook::InjectSysEvent( event ) )
 	{
 		return true;
 	}

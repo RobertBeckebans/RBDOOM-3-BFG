@@ -73,6 +73,16 @@ idImage::~idImage()
 }
 
 /*
+====================
+idImage::IsLoaded
+====================
+*/
+bool idImage::IsLoaded() const
+{
+	return texnum != TEXTURE_NOT_LOADED;
+}
+
+/*
 ==============
 Bind
 
@@ -280,7 +290,7 @@ void idImage::CopyDepthbuffer( int x, int y, int imageWidth, int imageHeight )
 idImage::SubImageUpload
 ========================
 */
-void idImage::SubImageUpload( int mipLevel, int x, int y, int z, int width, int height, const void* pic, int pixelPitch ) const
+void idImage::SubImageUpload( int mipLevel, int x, int y, int z, int width, int height, const void* pic, int pixelPitch )
 {
 	assert( x >= 0 && y >= 0 && mipLevel >= 0 && width >= 0 && height >= 0 && mipLevel < opts.numLevels );
 	
@@ -390,6 +400,23 @@ void idImage::SubImageUpload( int mipLevel, int x, int y, int z, int width, int 
 
 /*
 ========================
+idImage::SetSamplerState
+========================
+*/
+void idImage::SetSamplerState( textureFilter_t tf, textureRepeat_t tr )
+{
+	if( tf == filter && tr == repeat )
+	{
+		return;
+	}
+	filter = tf;
+	repeat = tr;
+	glBindTexture( ( opts.textureType == TT_CUBIC ) ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D, texnum );
+	SetTexParameters();
+}
+
+/*
+========================
 idImage::SetPixel
 ========================
 */
@@ -431,7 +458,6 @@ void idImage::SetTexParameters()
 	
 	// ALPHA, LUMINANCE, LUMINANCE_ALPHA, and INTENSITY have been removed
 	// in OpenGL 3.2. In order to mimic those modes, we use the swizzle operators
-#if defined( USE_CORE_PROFILE )
 	if( opts.colorFormat == CFM_GREEN_ALPHA )
 	{
 		glTexParameteri( target, GL_TEXTURE_SWIZZLE_R, GL_ONE );
@@ -474,22 +500,6 @@ void idImage::SetTexParameters()
 		glTexParameteri( target, GL_TEXTURE_SWIZZLE_B, GL_BLUE );
 		glTexParameteri( target, GL_TEXTURE_SWIZZLE_A, GL_ALPHA );
 	}
-#else
-	if( opts.colorFormat == CFM_GREEN_ALPHA )
-	{
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_R, GL_ONE );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_G, GL_ONE );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_B, GL_ONE );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
-	}
-	else if( opts.format == FMT_ALPHA )
-	{
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_R, GL_ONE );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_G, GL_ONE );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_B, GL_ONE );
-		glTexParameteri( target, GL_TEXTURE_SWIZZLE_A, GL_RED );
-	}
-#endif
 	
 	switch( filter )
 	{
@@ -627,7 +637,6 @@ void idImage::AllocImage()
 			dataType = GL_UNSIGNED_SHORT_5_6_5;
 			break;
 		case FMT_ALPHA:
-#if defined( USE_CORE_PROFILE )
 #if 1
 			if( ( glConfig.sRGBFramebufferAvailable && ( sRGB == 1 || sRGB == 3 ) ) )
 			{
@@ -640,40 +649,21 @@ void idImage::AllocImage()
 				internalFormat = GL_R8;
 				dataFormat = GL_RED;
 			}
-#else
-			internalFormat = GL_ALPHA8;
-			dataFormat = GL_ALPHA;
-#endif
 			dataType = GL_UNSIGNED_BYTE;
 			break;
 		case FMT_L8A8:
-#if defined( USE_CORE_PROFILE )
 			internalFormat = GL_RG8;
 			dataFormat = GL_RG;
-#else
-			internalFormat = GL_LUMINANCE8_ALPHA8;
-			dataFormat = GL_LUMINANCE_ALPHA;
-#endif
 			dataType = GL_UNSIGNED_BYTE;
 			break;
 		case FMT_LUM8:
-#if defined( USE_CORE_PROFILE )
 			internalFormat = GL_R8;
 			dataFormat = GL_RED;
-#else
-			internalFormat = GL_LUMINANCE8;
-			dataFormat = GL_LUMINANCE;
-#endif
 			dataType = GL_UNSIGNED_BYTE;
 			break;
 		case FMT_INT8:
-#if defined( USE_CORE_PROFILE )
 			internalFormat = GL_R8;
 			dataFormat = GL_RED;
-#else
-			internalFormat = GL_INTENSITY8;
-			dataFormat = GL_LUMINANCE;
-#endif
 			dataType = GL_UNSIGNED_BYTE;
 			break;
 		case FMT_DXT1:
@@ -736,7 +726,7 @@ void idImage::AllocImage()
 	// have filled in the parms.  We must have the values set, or
 	// an image match from a shader before OpenGL starts would miss
 	// the generated texture
-	if( !R_IsInitialized() )
+	if( !tr.IsInitialized() )
 	{
 		return;
 	}

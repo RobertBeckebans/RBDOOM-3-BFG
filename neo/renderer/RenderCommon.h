@@ -39,10 +39,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "Font.h"
 #include "Framebuffer.h"
 
-// everything that is needed by the backend needs
-// to be double buffered to allow it to run in
-// parallel on a dual cpu machine
-const int SMP_FRAMES				= 1;
+
 
 // maximum texture units
 const int MAX_PROG_TEXTURE_PARMS	= 16;
@@ -54,6 +51,7 @@ const float	DEFAULT_FOG_DISTANCE	= 500.0f;
 // picky to get the bilerp correct at terminator
 const int FOG_ENTER_SIZE			= 64;
 const float FOG_ENTER				= ( FOG_ENTER_SIZE + 1.0f ) / ( FOG_ENTER_SIZE * 2 );
+
 
 enum demoCommand_t
 {
@@ -550,7 +548,7 @@ struct setBufferCommand_t
 {
 	renderCommand_t		commandId;
 	renderCommand_t* 	next;
-	GLenum	buffer;
+	int					buffer;
 };
 
 struct drawSurfsCommand_t
@@ -674,40 +672,15 @@ struct performanceCounters_t
 	int		frontEndMicroSec;	// sum of time in all RE_RenderScene's in a frame
 };
 
-
-
 enum vertexLayoutType_t
 {
-	LAYOUT_UNKNOWN = 0,
+	LAYOUT_UNKNOWN = 0,	// RB: TODO -1
 	LAYOUT_DRAW_VERT,
 	LAYOUT_DRAW_SHADOW_VERT,
-	LAYOUT_DRAW_SHADOW_VERT_SKINNED
+	LAYOUT_DRAW_SHADOW_VERT_SKINNED,
+	LAYOUT_DRAW_IMGUI_VERT,
+	NUM_VERTEX_LAYOUTS
 };
-
-/*
-struct glstate_t
-{
-	tmu_t				tmu[MAX_MULTITEXTURE_UNITS];
-
-	int					currenttmu;
-
-	int					faceCulling;
-
-	vertexLayoutType_t	vertexLayout;
-
-	// RB: 64 bit fixes, changed unsigned int to uintptr_t
-	uintptr_t			currentVertexBuffer;
-	uintptr_t			currentIndexBuffer;
-
-	Framebuffer*		currentFramebuffer;
-	// RB end
-
-	float				polyOfsScale;
-	float				polyOfsBias;
-
-	uint64				glStateBits;
-};
-*/
 
 class idParallelJobList;
 
@@ -730,6 +703,10 @@ public:
 	// external functions
 	virtual void			Init();
 	virtual void			Shutdown();
+	virtual bool			IsInitialized() const
+	{
+		return bInitialized;
+	}
 	virtual void			ResetGuiModels();
 	virtual void			InitOpenGL();
 	virtual void			ShutdownOpenGL();
@@ -791,6 +768,10 @@ public:
 	
 	void					PrintPerformanceCounters();
 	
+	void					SetInitialized()
+	{
+		bInitialized = true;
+	}
 	
 public:
 	// internal functions
@@ -876,6 +857,9 @@ public:
 	idRenderBackend			backend;
 	
 	unsigned				timerQueryId;		// for GL_TIME_ELAPSED_EXT queries
+	
+private:
+	bool					bInitialized;
 };
 
 extern idRenderSystemLocal	tr;
@@ -884,6 +868,11 @@ extern glconfig_t			glConfig;		// outside of TR since it shouldn't be cleared du
 //
 // cvars
 //
+extern idCVar r_windowX;
+extern idCVar r_windowY;
+extern idCVar r_windowWidth;
+extern idCVar r_windowHeight;
+
 extern idCVar r_debugContext;				// enable various levels of context debug
 extern idCVar r_glDriver;					// "opengl32", etc
 extern idCVar r_skipIntelWorkarounds;		// skip work arounds for Intel driver bugs
@@ -935,6 +924,7 @@ extern idCVar r_useShadowMapping;			// use shadow mapping instead of stencil sha
 extern idCVar r_useHalfLambertLighting;		// use Half-Lambert lighting instead of classic Lambert
 extern idCVar r_useHDR;
 extern idCVar r_useSRGB;
+extern idCVar r_useSeamlessCubeMap;
 // RB end
 
 extern idCVar r_skipStaticInteractions;		// skip interactions created at level load
@@ -1027,6 +1017,7 @@ extern idCVar r_materialOverride;			// override all materials
 
 extern idCVar r_debugRenderToTexture;
 
+extern idCVar stereoRender_enable;
 extern idCVar stereoRender_deGhost;			// subtract from opposite eye to reduce ghosting
 
 extern idCVar r_useGPUSkinning;
@@ -1085,13 +1076,11 @@ INITIALIZATION
 ====================================================================
 */
 
-void R_Init();
-void R_InitOpenGL();
+void R_SetNewMode( const bool fullInit );
 
 void R_SetColorMappings();
 
 void R_ScreenShot_f( const idCmdArgs& args );
-void R_StencilShot();
 
 /*
 ====================================================================

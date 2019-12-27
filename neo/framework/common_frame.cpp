@@ -32,7 +32,7 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 
 #include "Common_local.h"
-#include "../renderer/Image.h" // now I did it!
+#include "../renderer/Image.h"
 
 // RB begin
 #if defined(USE_DOOMCLASSIC)
@@ -479,6 +479,9 @@ void idCommonLocal::Frame()
 		
 		eventLoop->RunEventLoop();
 		
+		// DG: prepare new ImGui frame - I guess this is a good place, as all new events should be available?
+		ImGuiHook::NewFrame();
+		
 		// Activate the shell if it's been requested
 		if( showShellRequested && game )
 		{
@@ -493,7 +496,7 @@ void idCommonLocal::Frame()
 		// RB begin
 #if defined(USE_DOOMCLASSIC)
 		if( com_pause.GetInteger() || console->Active() || Dialog().IsDialogActive() || session->IsSystemUIShowing()
-				|| ( game && game->InhibitControls() && !IsPlayingDoomClassic() ) )
+				|| ( game && game->InhibitControls() && !IsPlayingDoomClassic() ) || ImGuiTools::ReleaseMouseForTools() )
 #else
 		if( com_pause.GetInteger() || console->Active() || Dialog().IsDialogActive() || session->IsSystemUIShowing()
 				|| ( game && game->InhibitControls() ) )
@@ -501,7 +504,7 @@ void idCommonLocal::Frame()
 			// RB end, DG end
 		{
 			// RB: don't release the mouse when opening a PDA or menu
-			if( console->Active() )
+			if( console->Active() || ImGuiTools::ReleaseMouseForTools() )
 			{
 				Sys_GrabMouseCursor( false );
 			}

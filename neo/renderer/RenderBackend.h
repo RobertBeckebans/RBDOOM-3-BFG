@@ -31,8 +31,7 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __RENDERER_BACKEND_H__
 #define __RENDERER_BACKEND_H__
 
-// RB begin
-#define USE_CORE_PROFILE
+
 
 bool			GL_CheckErrors_( const char* filename, int line );
 #if 1 // !defined(RETAIL)
@@ -124,14 +123,14 @@ struct debugPolygon_t
 
 void RB_SetMVP( const idRenderMatrix& mvp );
 void RB_SetVertexColorParms( stageVertexColor_t svc );
-void RB_GetShaderTextureMatrix( const float* shaderRegisters, const textureStage_t* texture, float matrix[16] );
-void RB_LoadShaderTextureMatrix( const float* shaderRegisters, const textureStage_t* texture );
-void RB_BakeTextureMatrixIntoTexgen( idPlane lightProject[3], const float* textureMatrix );
+//void RB_GetShaderTextureMatrix( const float* shaderRegisters, const textureStage_t* texture, float matrix[16] );
+//void RB_LoadShaderTextureMatrix( const float* shaderRegisters, const textureStage_t* texture );
+//void RB_BakeTextureMatrixIntoTexgen( idPlane lightProject[3], const float* textureMatrix );
 
 //bool ChangeDisplaySettingsIfNeeded( gfxImpParms_t parms );
 //bool CreateGameWindow( gfxImpParms_t parms );
 
-#if defined( ID_VULKAN )
+#if defined( USE_VULKAN )
 
 struct gpuInfo_t
 {
@@ -147,16 +146,21 @@ struct gpuInfo_t
 
 struct vulkanContext_t
 {
-	uint64							counter;
-	uint32							currentFrameData;
+	uint64							frameCounter;
+	uint32							frameParity;
 	
 	vertCacheHandle_t				jointCacheHandle;
 	uint64							stencilOperations[ STENCIL_FACE_NUM ];
 	
 	VkInstance						instance;
+	
+	// selected physical device
 	VkPhysicalDevice				physicalDevice;
 	VkPhysicalDeviceFeatures		physicalDeviceFeatures;
+	
+	// logical device
 	VkDevice						device;
+	
 	VkQueue							graphicsQueue;
 	VkQueue							presentQueue;
 	int								graphicsFamilyIdx;
@@ -167,7 +171,10 @@ struct vulkanContext_t
 	idList< const char* >			deviceExtensions;
 	idList< const char* >			validationLayers;
 	
+	// selected GPU
 	gpuInfo_t* 						gpu;
+	
+	// all GPUs found on the system
 	idList< gpuInfo_t >				gpus;
 	
 	VkCommandPool					commandPool;
@@ -190,13 +197,15 @@ struct vulkanContext_t
 	uint32							currentSwapIndex;
 	VkImage							msaaImage;
 	VkImageView						msaaImageView;
-#if defined( ID_USE_AMD_ALLOCATOR )
+#if defined( USE_AMD_ALLOCATOR )
 	VmaAllocation					msaaVmaAllocation;
 	VmaAllocationInfo				msaaAllocation;
 #else
 	vulkanAllocation_t				msaaAllocation;
 #endif
-	idArray< idImage*, NUM_FRAME_DATA >		swapchainImages;
+	idArray< VkImage, NUM_FRAME_DATA >			swapchainImages;
+	idArray< VkImageView, NUM_FRAME_DATA >		swapchainViews;
+	
 	idArray< VkFramebuffer, NUM_FRAME_DATA >	frameBuffers;
 	idArray< VkSemaphore, NUM_FRAME_DATA >		acquireSemaphores;
 	idArray< VkSemaphore, NUM_FRAME_DATA >		renderCompleteSemaphores;
@@ -233,6 +242,14 @@ all state modified by the back end is separated from the front end state
 
 ===========================================================================
 */
+//namespace ImGui
+//{
+//
+//}
+
+//#include "../libs/imgui/imgui.h"
+struct ImDrawData;
+
 class idRenderBackend
 {
 	friend class Framebuffer;
@@ -246,10 +263,14 @@ public:
 	
 	void				ExecuteBackEndCommands( const emptyCommand_t* cmds );
 	void				StereoRenderExecuteBackEndCommands( const emptyCommand_t* const allCmds );
-	void				BlockingSwapBuffers();
+	void				GL_BlockingSwapBuffers();
 	
 	void				Print();
 	void				CheckCVars();
+	
+	static void			ImGui_Init();
+	static void			ImGui_Shutdown();
+	static void			ImGui_RenderDrawLists( ImDrawData* draw_data );
 	
 private:
 	void				DrawFlickerBox();
@@ -314,13 +335,14 @@ private:
 	void				GL_StartFrame();
 	void				GL_EndFrame();
 	
+public:
 	uint64				GL_GetCurrentState() const;
+private:
 	uint64				GL_GetCurrentStateMinusStencil() const;
 	void				GL_SetDefaultState();
 	
 	void				GL_State( uint64 stateBits, bool forceGlState = false );
 	void				GL_SeparateStencil( stencilFace_t face, uint64 stencilBits );
-	void				GL_Cull( cullType_t cullType ); // TODO remove
 	
 	void				GL_SelectTexture( int unit );
 //	void				GL_BindTexture( idImage* image );
@@ -462,7 +484,6 @@ private:
 	unsigned int		currentIndexBuffer;
 	Framebuffer*		currentFramebuffer;		// RB: for offscreen rendering
 	
-	int					faceCulling;
 	vertexLayoutType_t	vertexLayout;
 	
 	float				polyOfsScale;
@@ -473,35 +494,6 @@ public:
 	{
 		return currenttmu;
 	}
-	
-#if 0
-	unsigned short		gammaTable[ 256 ];		// brightness / gamma modify this
-	
-	idStr				rendererString;
-	idStr				vendorString;
-	idStr				versionString;
-	idStr				extensionsString;
-	idStr				wglExtensionsString;
-	idStr				shadingLanguageString;
-	
-	float				glVersion;			// atof( version_string )
-	graphicsVendor_t	vendor;
-	
-	int					maxTextureSize;		// queried from GL
-	int					maxTextureCoords;
-	int					maxTextureImageUnits;
-	int					uniformBufferOffsetAlignment;
-	
-	int					colorBits;
-	int					depthBits;
-	int					stencilBits;
-	
-	bool				depthBoundsTestAvailable;
-	bool				timerQueryAvailable;
-	bool				swapControlTearAvailable;
-	
-	int					displayFrequency;
-#endif
 	
 #endif // !defined( USE_VULKAN )
 };
