@@ -246,11 +246,15 @@ typedef union DECLSPEC_INTRINTYPE _CRT_ALIGN( 16 ) __m128c
 
 #define _mm_madd_ps( a, b, c )				_mm_add_ps( _mm_mul_ps( (a), (b) ), (c) )
 #define _mm_nmsub_ps( a, b, c )				_mm_sub_ps( (c), _mm_mul_ps( (a), (b) ) )
-#define _mm_splat_ps( x, i )				__m128c( _mm_shuffle_epi32( __m128c( x ), _MM_SHUFFLE( i, i, i, i ) ) )
-#define _mm_perm_ps( x, perm )				__m128c( _mm_shuffle_epi32( __m128c( x ), perm ) )
-#define _mm_sel_ps( a, b, c )  				_mm_or_ps( _mm_andnot_ps( __m128c( c ), a ), _mm_and_ps( __m128c( c ), b ) )
-#define _mm_sel_si128( a, b, c )			_mm_or_si128( _mm_andnot_si128( __m128c( c ), a ), _mm_and_si128( __m128c( c ), b ) )
-#define _mm_sld_ps( x, y, imm )				__m128c( _mm_or_si128( _mm_srli_si128( __m128c( x ), imm ), _mm_slli_si128( __m128c( y ), 16 - imm ) ) )
+#define _mm_splat_ps( x, i )				_mm_castsi128_ps( _mm_shuffle_epi32( _mm_castps_si128( x ), _MM_SHUFFLE( i, i, i, i ) ) )
+#define _mm256_splat_ps(x, i) ({\
+     __m256 vt = _mm256_permute2f128_ps(x, x, (i >> 2) | ((i >> 2) << 4)); \
+     vt = _mm256_permute_ps(vt, _MM_SHUFFLE(i & 3, i & 3, i & 3, i & 3)); \
+})
+#define _mm_perm_ps( x, perm )				_mm_castsi128_ps( _mm_shuffle_epi32( _mm_castps_si128( x ), perm ) )
+#define _mm_sel_ps( a, b, c )  				_mm_or_ps( _mm_andnot_ps(c, a), _mm_and_ps(c, b) )
+#define _mm_sel_si128( a, b, c )			_mm_or_si128( _mm_andnot_si128(c, a), _mm_and_si128(c, b))
+#define _mm_sld_ps( x, y, imm )				_mm_castsi128_ps( _mm_or_si128( _mm_srli_si128( _mm_castps_si128( x ), imm ), _mm_slli_si128( _mm_castps_si128( y ), 16 - imm ) ) )
 #define _mm_sld_si128( x, y, imm )			_mm_or_si128( _mm_srli_si128( x, imm ), _mm_slli_si128( y, 16 - imm ) )
 
 ID_FORCE_INLINE_EXTERN __m128 _mm_msum3_ps( __m128 a, __m128 b )

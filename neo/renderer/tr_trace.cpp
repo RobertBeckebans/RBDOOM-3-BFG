@@ -122,15 +122,15 @@ static void R_TracePointCullStatic( byte* cullBits, byte& totalOr, const float r
 			const __m128 t6 = _mm_sub_ps( d2, vector_float_radius );
 			const __m128 t7 = _mm_sub_ps( d3, vector_float_radius );
 			
-			__m128i c0 = __m128c( _mm_cmpgt_ps( t0, vector_float_zero ) );
-			__m128i c1 = __m128c( _mm_cmpgt_ps( t1, vector_float_zero ) );
-			__m128i c2 = __m128c( _mm_cmpgt_ps( t2, vector_float_zero ) );
-			__m128i c3 = __m128c( _mm_cmpgt_ps( t3, vector_float_zero ) );
+			__m128i c0 = _mm_castps_si128( _mm_cmpgt_ps( t0, vector_float_zero ) );
+			__m128i c1 = _mm_castps_si128( _mm_cmpgt_ps( t1, vector_float_zero ) );
+			__m128i c2 = _mm_castps_si128( _mm_cmpgt_ps( t2, vector_float_zero ) );
+			__m128i c3 = _mm_castps_si128( _mm_cmpgt_ps( t3, vector_float_zero ) );
 			
-			__m128i c4 = __m128c( _mm_cmplt_ps( t4, vector_float_zero ) );
-			__m128i c5 = __m128c( _mm_cmplt_ps( t5, vector_float_zero ) );
-			__m128i c6 = __m128c( _mm_cmplt_ps( t6, vector_float_zero ) );
-			__m128i c7 = __m128c( _mm_cmplt_ps( t7, vector_float_zero ) );
+			__m128i c4 = _mm_castps_si128( _mm_cmplt_ps( t4, vector_float_zero ) );
+			__m128i c5 = _mm_castps_si128( _mm_cmplt_ps( t5, vector_float_zero ) );
+			__m128i c6 = _mm_castps_si128( _mm_cmplt_ps( t6, vector_float_zero ) );
+			__m128i c7 = _mm_castps_si128( _mm_cmplt_ps( t7, vector_float_zero ) );
 			
 			c0 = _mm_and_si128( c0, vector_int_mask0 );
 			c1 = _mm_and_si128( c1, vector_int_mask1 );

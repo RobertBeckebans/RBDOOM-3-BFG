@@ -971,7 +971,16 @@ idRenderMatrix::Multiply
 */
 void idRenderMatrix::Multiply( const idRenderMatrix& a, const idRenderMatrix& b, idRenderMatrix& out )
 {
-#if defined(USE_INTRINSICS)
+#ifdef __AVX__
+    __m256 A01 = _mm256_loadu_ps(a.m);
+    __m256 A23 = _mm256_loadu_ps(a.m + 8);
+    
+    __m256 out01x = twolincomb_AVX_8(A01, b);
+    __m256 out23x = twolincomb_AVX_8(A23, b);
+
+    _mm256_storeu_ps(out.m, out01x);
+    _mm256_storeu_ps(out.m + 8, out23x);
+#elif defined(USE_INTRINSICS)
 	__m128 a0 = _mm_loadu_ps( a.m + 0 * 4 );
 	__m128 a1 = _mm_loadu_ps( a.m + 1 * 4 );
 	__m128 a2 = _mm_loadu_ps( a.m + 2 * 4 );
@@ -1457,7 +1466,15 @@ void idRenderMatrix::CopyMatrix( const idRenderMatrix& matrix, idVec4& row0, idV
 	assert_16_byte_aligned( row2.ToFloatPtr() );
 	assert_16_byte_aligned( row3.ToFloatPtr() );
 	
-#if defined(USE_INTRINSICS)
+#ifdef __AVX__
+	const __m256 r01 = _mm256_loadu_ps(matrix.m);
+	const __m256 r23 = _mm256_loadu_ps( matrix.m + 8);
+	
+	_mm_store_ps(row0.ToFloatPtr(), _mm256_extractf128_ps(r01, 0));
+	_mm_store_ps(row1.ToFloatPtr(), _mm256_extractf128_ps(r01, 1));
+	_mm_store_ps(row2.ToFloatPtr(), _mm256_extractf128_ps(r23, 0));
+	_mm_store_ps(row3.ToFloatPtr(), _mm256_extractf128_ps(r23, 1));
+#elif defined(USE_INTRINSICS)
 	const __m128 r0 = _mm_loadu_ps( matrix.m + 0 * 4 );
 	const __m128 r1 = _mm_loadu_ps( matrix.m + 1 * 4 );
 	const __m128 r2 = _mm_loadu_ps( matrix.m + 2 * 4 );
@@ -3003,7 +3020,8 @@ void idRenderMatrix::ProjectedNearClippedBounds( idBounds& projected, const idRe
 	}
 	
 #else
-	
+	idVec4 projectedPoints[8];
+
 	const idVec3 points[8] =
 	{
 		idVec3( bounds[0][0], bounds[0][1], bounds[0][2] ),
@@ -3015,8 +3033,7 @@ void idRenderMatrix::ProjectedNearClippedBounds( idBounds& projected, const idRe
 		idVec3( bounds[1][0], bounds[1][1], bounds[1][2] ),
 		idVec3( bounds[0][0], bounds[1][1], bounds[1][2] )
 	};
-	
-	idVec4 projectedPoints[8];
+
 	for( int i = 0; i < 8; i++ )
 	{
 		const idVec3& v = points[i];
@@ -3164,6 +3181,16 @@ static idVec3 LocalNearClipCenterFromMVP( const idRenderMatrix& mvp )
 	return idVec3( x * invW, y * invW, z * invW );
 }
 
+static void ClipHomogeneousPolygonToSide_AVX( idVec4* __restrict newPoints, idVec4* __restrict points, int& numPoints,
+		const int axis, const __m256& sign, const __m256& offset )
+{
+	assert( newPoints != points );
+    static const __m128i vec_int_4567 = _mm_setr_epi32(4, 5, 6, 7);
+	const __m256 side = _mm256_mul_ps( sign, offset );
+
+	__m128i maskA = _mm_sub_epi32( vector_int_0123, _mm_shuffle_epi32( _mm_cvtsi32_si128( numPoints ), 0 ) );
+	__m128i maskB = _mm_sub_epi32( vector_int_0123, _mm_shuffle_epi32( _mm_cvtsi32_si128( numPoints ), 0 ) );
+}
 
 /*
 ========================
@@ -3220,8 +3247,8 @@ static void ClipHomogeneousPolygonToSide_SSE2( idVec4* __restrict newPoints, idV
 		{
 			const __m128 bside0 = _mm_cmpgt_ps( _mm_mul_ps( offset, pw0 ), _mm_mul_ps( sign, pa0 ) );
 			const __m128 bside1 = _mm_cmpgt_ps( _mm_mul_ps( offset, pw1 ), _mm_mul_ps( sign, pa1 ) );
-			const __m128i side0 = _mm_and_si128( __m128c( bside0 ), vector_int_1 );
-			const __m128i side1 = _mm_and_si128( __m128c( bside1 ), vector_int_1 );
+			const __m128i side0 = _mm_and_si128(_mm_castps_si128( bside0 ), vector_int_1 );
+			const __m128i side1 = _mm_and_si128( _mm_castps_si128(bside1 ), vector_int_1 );
 			const __m128i xorSide = _mm_xor_si128( side0, side1 );
 			const __m128i interleavedSide0 = _mm_unpacklo_epi32( side0, xorSide );
 			const __m128i interleavedSide1 = _mm_unpackhi_epi32( side0, xorSide );

@@ -29,6 +29,11 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __RENDERMATRIX_H__
 #define __RENDERMATRIX_H__
 
+#ifdef __AVX__
+#include <immintrin.h>
+#endif
+
+
 static const int NUM_FRUSTUM_CORNERS	= 8;
 
 struct frustumCorners_t
@@ -163,6 +168,7 @@ public:
 	
 private:
 	float					m[16];
+    static ID_INLINE __m256 twolincomb_AVX_8(__m256 &A01, const idRenderMatrix& b);
 };
 
 extern const idRenderMatrix renderMatrix_identity;
@@ -171,6 +177,17 @@ extern const idRenderMatrix renderMatrix_windowSpaceToClipSpace;
 // RB begin
 extern const idRenderMatrix renderMatrix_clipSpaceToWindowSpace;
 // RB end
+
+ID_INLINE __m256 idRenderMatrix::twolincomb_AVX_8(__m256 &A01, const idRenderMatrix& b)
+{
+    __m256 result;
+    result = _mm256_mul_ps(_mm256_shuffle_ps(A01, A01, 0x00), _mm256_broadcast_ps((__m128*)b.m));
+    result = _mm256_add_ps(result, _mm256_mul_ps(_mm256_shuffle_ps(A01, A01, 0x55), _mm256_broadcast_ps((__m128*)(b.m + 4))));
+    result = _mm256_add_ps(result, _mm256_mul_ps(_mm256_shuffle_ps(A01, A01, 0xaa), _mm256_broadcast_ps((__m128*)(b.m + 8))));
+    result = _mm256_add_ps(result, _mm256_mul_ps(_mm256_shuffle_ps(A01, A01, 0xff), _mm256_broadcast_ps((__m128*)(b.m + 12))));
+    return result;
+}
+
 
 /*
 ========================

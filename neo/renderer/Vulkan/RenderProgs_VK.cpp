@@ -341,7 +341,7 @@ CompileGLSLtoSPIRV
 
 #if defined(USE_GLSLANG)
 
-#include <glslang/public/ShaderLang.h>
+#include <glslang/Public/ShaderLang.h>
 #include <glslang/Include/ResourceLimits.h>
 #include <SPIRV/GlslangToSpv.h>
 #include <StandAlone/DirStackFileIncluder.h>
