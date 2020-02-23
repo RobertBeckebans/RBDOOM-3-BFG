@@ -41,6 +41,9 @@ If you have questions concerning this license or the applicable additional terms
 // DG: needed for Sys_ReLaunch()
 #include <dirent.h>
 
+#include <stdio.h>
+#include <cstring>
+
 static const char** cmdargv = NULL;
 static int cmdargc = 0;
 // DG end
@@ -215,13 +218,16 @@ void Sys_CPUCount( int& numLogicalCPUCores, int& numPhysicalCPUCores, int& numCP
 						s_numPhysicalCPUCores = processor;
 					}
 				}
-				else
+			}
+			else
 				{
 					common->Printf( "failed parsing /proc/cpuinfo\n" );
+					common->Printf( "Alternate method used\n" );
+					s_numPhysicalCPUCores = sysconf(_SC_NPROCESSORS_CONF);
 					break;
 				}
-			}
-			else if( !idStr::Cmpn( buf + pos, "siblings", 8 ) )
+
+			if( !idStr::Cmpn( buf + pos, "siblings", 8 ) )
 			{
 				pos = strchr( buf + pos, ':' ) - buf + 2;
 				end = strchr( buf + pos, '\n' ) - buf;
@@ -238,20 +244,20 @@ void Sys_CPUCount( int& numLogicalCPUCores, int& numPhysicalCPUCores, int& numCP
 						s_numLogicalCPUCores = coreId;
 					}
 				}
-				else
+			}
+			else
 				{
 					common->Printf( "failed parsing /proc/cpuinfo\n" );
 					break;
 				}
-			}
-			
+
 			pos = strchr( buf + pos, '\n' ) - buf + 1;
 		}
 	}
 	
 	common->Printf( "/proc/cpuinfo CPU processors: %d\n", s_numPhysicalCPUCores );
 	common->Printf( "/proc/cpuinfo CPU logical cores: %d\n", s_numLogicalCPUCores );
-	
+
 	numPhysicalCPUCores = s_numPhysicalCPUCores;
 	numLogicalCPUCores = s_numLogicalCPUCores;
 	numCPUPackages = s_numCPUPackages;
