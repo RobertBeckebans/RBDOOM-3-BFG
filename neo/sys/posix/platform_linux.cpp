@@ -41,6 +41,9 @@ If you have questions concerning this license or the applicable additional terms
 // DG: needed for Sys_ReLaunch()
 #include <dirent.h>
 
+#include <stdio.h>
+#include <cstring>
+
 static const char** cmdargv = NULL;
 static int cmdargc = 0;
 // DG end
@@ -219,13 +222,16 @@ void Sys_CPUCount( int& numLogicalCPUCores, int& numPhysicalCPUCores, int& numCP
 						s_numPhysicalCPUCores = processor;
 					}
 				}
-				else
+			}
+			else	// "else" is displayed here because some processors do not have information about the "cpu cores" in /proc/cpuinfo
 				{
 					common->Printf( "failed parsing /proc/cpuinfo\n" );
+					common->Printf( "Alternate method used\n" );
+					s_numPhysicalCPUCores = sysconf(_SC_NPROCESSORS_CONF);
 					break;
 				}
-			}
-			else if( !idStr::Cmpn( buf + pos, "siblings", 8 ) )
+			
+			if( !idStr::Cmpn( buf + pos, "siblings", 8 ) )
 			{
 				pos = strchr( buf + pos, ':' ) - buf + 2;
 				end = strchr( buf + pos, '\n' ) - buf;
@@ -242,12 +248,12 @@ void Sys_CPUCount( int& numLogicalCPUCores, int& numPhysicalCPUCores, int& numCP
 						s_numLogicalCPUCores = coreId;
 					}
 				}
-				else
+			}
+			else	// "else" is displayed here because some processors do not have information about the "siblings" in /proc/cpuinfo
 				{
 					common->Printf( "failed parsing /proc/cpuinfo\n" );
 					break;
 				}
-			}
 
 			pos = strchr( buf + pos, '\n' ) - buf + 1;
 		}
