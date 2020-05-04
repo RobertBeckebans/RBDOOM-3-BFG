@@ -176,6 +176,7 @@ numCPUPackages		- the total number of packages (physical processors)
 void Sys_CPUCount( int& numLogicalCPUCores, int& numPhysicalCPUCores, int& numCPUPackages )
 {
 	static bool		init = false;
+	static bool		CPUCores = false;	// for alternate method
 	static double	ret;
 
 	static int		s_numLogicalCPUCores;
@@ -220,6 +221,7 @@ void Sys_CPUCount( int& numLogicalCPUCores, int& numPhysicalCPUCores, int& numCP
 					if( ( processor ) > s_numPhysicalCPUCores )
 					{
 						s_numPhysicalCPUCores = processor;
+						CPUcores = true;
 					}
 				}
 			}
@@ -227,7 +229,7 @@ void Sys_CPUCount( int& numLogicalCPUCores, int& numPhysicalCPUCores, int& numCP
 				{
 					common->Printf( "failed parsing /proc/cpuinfo\n" );
 					common->Printf( "Alternate method used\n" );
-					s_numPhysicalCPUCores = sysconf(_SC_NPROCESSORS_CONF);
+					CPUcores = false;
 					break;
 				}
 			
@@ -252,11 +254,22 @@ void Sys_CPUCount( int& numLogicalCPUCores, int& numPhysicalCPUCores, int& numCP
 			else	// "else" is displayed here because some processors do not have information about the "siblings" in /proc/cpuinfo
 				{
 					common->Printf( "failed parsing /proc/cpuinfo\n" );
+					CPUsiblings = false;
 					break;
 				}
 
 			pos = strchr( buf + pos, '\n' ) - buf + 1;
 		}
+		if( CPUcores = false )
+		{
+			s_numPhysicalCPUCores = sysconf(_SC_NPROCESSORS_CONF);
+		}
+	}
+	else
+	{
+		common->Printf( "failed read /proc/cpuinfo\n" );
+		common->Printf( "Alternate method used\n" );
+		s_numPhysicalCPUCores = sysconf(_SC_NPROCESSORS_CONF);
 	}
 
 	common->Printf( "/proc/cpuinfo CPU processors: %d\n", s_numPhysicalCPUCores );
