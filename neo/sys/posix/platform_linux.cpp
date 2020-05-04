@@ -254,7 +254,6 @@ void Sys_CPUCount( int& numLogicalCPUCores, int& numPhysicalCPUCores, int& numCP
 			else	// "else" is displayed here because some processors do not have information about the "siblings" in /proc/cpuinfo
 				{
 					common->Printf( "failed parsing /proc/cpuinfo\n" );
-					CPUsiblings = false;
 					break;
 				}
 
