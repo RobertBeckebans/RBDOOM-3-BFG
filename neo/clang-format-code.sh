@@ -40,9 +40,9 @@ fi
 #clang-format -i renderer/RenderBackend.h
 #clang-format -i renderer/RenderBackend.cpp
 
-clang-format -i aas/AASFile.h
-clang-format -i aas/*
+#clang-format -i aas/AASFile.h
+#clang-format -i aas/*
 
-#find . -regex ".*\.\(cpp\|cc\|cxx\|h\|hpp\)" ! -path "./libs/*" ! -path "./d3xp/gamesys/SysCvar.cpp" ! -path "./d3xp/gamesys/Callbacks.cpp" ! -path "./sys/win32/win_cpu.cpp" ! -path "./sys/win32_win_main.cpp" -exec $CLANGFMT_BIN -i {} \;
+find . -regex ".*\.\(cpp\|cc\|cxx\|h\|hpp\)" ! -path "./libs/*" ! -path "./d3xp/gamesys/SysCvar.cpp" ! -path "./d3xp/gamesys/Callbacks.cpp" ! -path "./sys/win32/win_cpu.cpp" ! -path "./sys/win32_win_main.cpp" -exec $CLANGFMT_BIN -i {} \;
 
 #find . -regex ".*\.\(c\|cpp\|cc\|cxx\|h\|hpp\)" ! -path "./libs/*" ! -exec $CLANGFMT_BIN -i {} \;
