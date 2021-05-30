@@ -990,6 +990,19 @@ static bool IsTriangleDegenerate( const optVertex_t* v1, const optVertex_t* v2, 
 #endif
 }
 
+/*
+==================
+norm2lt0
+
+this functions aims to avert a compiler optimization problem, that made some triangles disappear when they shouldn't.
+==================
+*/
+static bool norm2lt0( const idVec3& v1, const idVec3 &v2 ) __attribute__((optimize("O0")));
+static bool norm2lt0( const idVec3& v1, const idVec3 &v2 ) {
+
+	float z = v1.x * v2.y - v1.y * v2.x;
+	return z < 0.0f;
+}
 
 /*
 ==================
@@ -1008,7 +1021,8 @@ static bool PointInTri( const idVec3& p, const mapTri_t* tri, optIsland_t* islan
 	d1 = tri->optVert[0]->pv - p;
 	d2 = tri->optVert[1]->pv - p;
 	normal = d1.Cross( d2 );
-	if( normal[2] < 0 )
+	//if( normal[2] < 0 ) //this caused an optimization problem
+	if( norm2lt0(d1, d2) )
 	{
 		return false;
 	}
@@ -1016,7 +1030,8 @@ static bool PointInTri( const idVec3& p, const mapTri_t* tri, optIsland_t* islan
 	d1 = tri->optVert[1]->pv - p;
 	d2 = tri->optVert[2]->pv - p;
 	normal = d1.Cross( d2 );
-	if( normal[2] < 0 )
+	//if( normal[2] < 0 ) //this caused an optimization problem
+	if( norm2lt0(d1, d2) )
 	{
 		return false;
 	}
@@ -1024,7 +1039,8 @@ static bool PointInTri( const idVec3& p, const mapTri_t* tri, optIsland_t* islan
 	d1 = tri->optVert[2]->pv - p;
 	d2 = tri->optVert[0]->pv - p;
 	normal = d1.Cross( d2 );
-	if( normal[2] < 0 )
+	//if( normal[2] < 0 ) //this caused an optimization problem
+	if( norm2lt0(d1, d2) )
 	{
 		return false;
 	}
