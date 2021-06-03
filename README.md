@@ -56,7 +56,7 @@ I started this project in 2012 and focused on making this code being future proo
 * Changed light interaction shaders to use Half-Lambert lighting like in Half-Life 2 to 
 	make the game less dark. https://developer.valvesoftware.com/wiki/Half_Lambert
 * True internal 64 bit HDR lighting with filmic ACES tone mapping and gamma-correct rendering in linear RGB space
-* Enhanced Subpixel Morphological Antialiasing as a cheap alternative for MSAA. For more information see "Anti-Aliasing Methods in CryENGINE 3" and the docs at http://www.iryoku.com/smaa/
+* Enhanced Subpixel Morphological Antialiasing as a cheap alternative for MSAA. For more information see "Anti-Aliasing Methods in CryENGINE 3" and the docs at https://www.iryoku.com/smaa/
 * Filmic post process effects like Chromatic Aberration and Dithering
 * Additional ambient render pass to make the game less dark similar to the Quake 4 r_forceAmbient technique
 * Screen Space Ambient Occlusion http://graphics.cs.williams.edu/papers/SAOHPG12/
@@ -153,7 +153,7 @@ Left: No post processing except HDR tone mapping. Right: r_useFilmicPostProcessi
 ---
 # May or may not ".plan" <a name=".plan2"></a>
 * Add a DX12 Ultimate renderer backend
-* Add [Volumetric Lighting](http://www.alexandre-pestana.com/volumetric-lights/)
+* Add [Volumetric Lighting](https://www.alexandre-pestana.com/volumetric-lights/)
 * Give Mara's and McGuire's DeepGBuffer Screen Space Global Illumination a second try with Christoph Schieds' A-SVGF realtime denoising because A-SVGF works really well in Q2RTX
 * Port Virtual Texturing support from [IcedTech](https://github.com/jmarshall23/IcedTech)
 * Slim texture loading routines based on stb_image
@@ -184,7 +184,7 @@ You can purchase Doom 3 BFG Edition from GOG (DRM Free):
 https://www.gog.com/game/doom_3_bfg_edition
 
 Or the game can be purchased from Steam (with DRM):
-http://store.steampowered.com/app/208200/
+https://store.steampowered.com/app/208200/Doom_3_BFG_Edition/
 
 
 ## Steam
@@ -233,7 +233,7 @@ Existing repositories can be updated manually:
 1. Download and install the Visual Studio 2017 Community Edition.
 
 2. Download the DirectX SDK (June 2010) here: (Only for Windows 7 builds)
-	http://www.microsoft.com/en-us/download/details.aspx?id=6812
+	https://www.microsoft.com/en-us/download/details.aspx?id=6812
 
 3. Download and install the latest CMake.
 
