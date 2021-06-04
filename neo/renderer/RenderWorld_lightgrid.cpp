@@ -1240,6 +1240,10 @@ CONSOLE_COMMAND( bakeLightGrids, "Bake irradiance/vis light grid data", NULL )
 							{
 								ref.rdflags |= RDF_NOAMBIENT;
 							}
+							else if( bounce == 1 )
+							{
+								ref.rdflags |= RDF_NODIRECT;
+							}
 
 							ref.fov_x = ref.fov_y = 90;
 
