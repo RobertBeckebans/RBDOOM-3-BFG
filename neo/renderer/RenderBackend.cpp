@@ -3609,7 +3609,7 @@ idRenderBackend::DrawInteractions
 */
 void idRenderBackend::DrawInteractions( const viewDef_t* _viewDef )
 {
-	if( r_skipInteractions.GetBool() || viewDef->viewLights == NULL )
+	if( r_skipInteractions.GetBool() || viewDef->viewLights == NULL || viewDef->renderView.rdflags & RDF_NODIRECT )
 	{
 		return;
 	}
