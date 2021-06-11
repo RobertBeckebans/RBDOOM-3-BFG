@@ -57,7 +57,7 @@ I started this project in 2012 and focused on making this code being future proo
 	All 3 light types (point, spot, parallel/sun) are supported which means parallel lights (sun) use
 	scene independent cascaded shadow mapping.
 * True internal 64 bit HDR lighting with filmic ACES tone mapping and gamma-correct rendering in linear RGB space
-* Enhanced Subpixel Morphological Antialiasing as a cheap alternative for MSAA. For more information see "Anti-Aliasing Methods in CryENGINE 3" and the docs at http://www.iryoku.com/smaa/
+* Enhanced Subpixel Morphological Antialiasing as a cheap alternative for MSAA. For more information see "Anti-Aliasing Methods in CryENGINE 3" and the docs at https://www.iryoku.com/smaa/
 * Filmic post process effects like Chromatic Aberration and Dithering
 * Screen Space Ambient Occlusion http://graphics.cs.williams.edu/papers/SAOHPG12/ used to only dim down the Global Illumination contribution like in the Frostbite engine
 * Bink video playback through libbinkdec (thanks to Daniel Gibson) or FFmpeg (thanks to Carl Kenner)
@@ -367,7 +367,7 @@ If you want to see what is planned or in progress in a Trello style manner look 
 ---
 # May or may not ".plan" <a name=".plan2"></a>
 * Add a DX12 Ultimate renderer backend
-* Add [Volumetric Lighting](http://www.alexandre-pestana.com/volumetric-lights/)
+* Add [Volumetric Lighting](https://www.alexandre-pestana.com/volumetric-lights/)
 * Give Mara's and McGuire's DeepGBuffer Screen Space Global Illumination a second try with Christoph Schieds' A-SVGF realtime denoising because A-SVGF works really well in Q2RTX
 * Slim texture loading routines based on stb_image
 * Add texture compression based on [Basis Universal GPU Texture and Texture Video Compression Codec](https://github.com/binomialLLC/basis_universal)
@@ -399,7 +399,7 @@ You can purchase Doom 3 BFG Edition from GOG (DRM Free):
 https://www.gog.com/game/doom_3_bfg_edition
 
 Or the game can be purchased from Steam (with DRM):
-http://store.steampowered.com/app/208200/
+https://store.steampowered.com/app/208200/Doom_3_BFG_Edition/
 
 
 ## Steam
@@ -448,7 +448,7 @@ Existing repositories can be updated manually:
 1. Download and install the Visual Studio 2017 Community Edition.
 
 2. Download the DirectX SDK (June 2010) here: (Only for Windows 7 builds)
-	http://www.microsoft.com/en-us/download/details.aspx?id=6812
+	https://www.microsoft.com/en-us/download/details.aspx?id=6812
 
 3. Download and install the latest CMake.
 
