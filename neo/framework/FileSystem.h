@@ -94,6 +94,20 @@ private:
 	idStrList				list;
 };
 
+
+// mod list
+class idModList {
+	friend class idFileSystemLocal;
+public:
+	int						GetNumMods(void) const { return mods.Num(); }
+	const char *			GetMod(int index) const { return mods[index]; }
+	const char *			GetDescription(int index) const { return descriptions[index]; }
+
+private:
+	idStrList				mods;
+	idStrList				descriptions;
+};
+
 class idFileSystem
 {
 public:
@@ -106,6 +120,12 @@ public:
 	virtual void			Shutdown( bool reloading ) = 0;
 	// Returns true if the file system is initialized.
 	virtual bool			IsInitialized() const = 0;
+	// Returns a list of mods found along with descriptions
+	// 'mods' contains the directory names to be passed to fs_game
+	// 'descriptions' contains a free form string to be used in the UI
+	virtual idModList*		ListMods() = 0;
+	// Frees the given mod list
+	virtual void			FreeModList(idModList *modList) = 0;
 	// Lists files with the given extension in the given directory.
 	// Directory should not have either a leading or trailing '/'
 	// The returned files will not include any directories or '/' unless fullRelativePath is set.
