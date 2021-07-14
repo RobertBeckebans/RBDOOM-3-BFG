@@ -397,7 +397,7 @@ static int CompileGLSLtoSPIRV( const char* filename, const idStr& dataGLSL, cons
 
 // SRS - redefine INFINITY otherwise cmath complains in Xcode 11.3 / clang-1100.0.33.16 and later (note: INFINITY #undef in idMath)
 //     - cmath is a glslang dependency (via #include SPIRV/GlslangToSpv.h) when the SPIRV_SHADERC build option is not defined
-#if defined(__APPLE__) && ( __clang_major__ >= 11 )
+#if defined(__APPLE__) && ( __clang_major__ >= 11 ) && !defined( INFINITY )
 #define INFINITY    HUGE_VALF
 #endif
 
