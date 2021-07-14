@@ -453,9 +453,15 @@ Existing repositories can be updated manually:
 
 	> git submodule init
 	> git submodule update
+	
+For Vulkan builds the **glslang** submodule may require an update for certain platforms:
 
+	> cd neo/extern/glslang
+	> git checkout 11.4.0 (minimum recommended version for macOS)
 
+or
 
+	> git submodule update --remote (for most recent commits)
 
 ---
 # Compiling on Windows <a name="compile_windows"></a>
