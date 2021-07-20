@@ -1306,7 +1306,7 @@ bool idInterpreter::Execute()
 				if( *var_b.floatPtr == 0.0f )
 				{
 					Warning( "Divide by zero" );
-					*var_c.floatPtr = idMath::INFINITY;
+					*var_c.floatPtr = idMath::infinity;
 				}
 				else
 				{
@@ -1578,7 +1578,7 @@ bool idInterpreter::Execute()
 				if( *var_a.floatPtr == 0.0f )
 				{
 					Warning( "Divide by zero" );
-					*var_b.floatPtr = idMath::INFINITY;
+					*var_b.floatPtr = idMath::infinity;
 				}
 				else
 				{
@@ -1593,7 +1593,7 @@ bool idInterpreter::Execute()
 				if( *var_a.floatPtr == 0.0f )
 				{
 					Warning( "Divide by zero" );
-					var_b.vectorPtr->Set( idMath::INFINITY, idMath::INFINITY, idMath::INFINITY );
+					var_b.vectorPtr->Set( idMath::infinity, idMath::infinity, idMath::infinity );
 				}
 				else
 				{

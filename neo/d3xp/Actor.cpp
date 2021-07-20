@@ -2064,7 +2064,7 @@ idActor* idActor::ClosestEnemyToPoint( const idVec3& pos )
 	float		distSquared;
 	idVec3		delta;
 
-	bestDistSquared = idMath::INFINITY;
+	bestDistSquared = idMath::infinity;
 	bestEnt = NULL;
 	for( ent = enemyList.Next(); ent != NULL; ent = ent->enemyNode.Next() )
 	{
