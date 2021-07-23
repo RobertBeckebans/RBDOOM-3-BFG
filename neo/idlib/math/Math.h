@@ -502,7 +502,7 @@ idMath::InvSqrt
 ID_INLINE float idMath::InvSqrt( float x )
 {
 
-	return ( x > FLT_SMALLEST_NON_DENORMAL ) ? sqrtf( 1.0f / x ) : INFINITY;
+	return ( x > FLT_SMALLEST_NON_DENORMAL ) ? sqrtf( 1.0f / x ) : infinity;
 
 }
 
@@ -513,7 +513,7 @@ idMath::InvSqrt16
 */
 ID_INLINE float idMath::InvSqrt16( float x )
 {
-	return ( x > FLT_SMALLEST_NON_DENORMAL ) ? sqrtf( 1.0f / x ) : INFINITY;
+	return ( x > FLT_SMALLEST_NON_DENORMAL ) ? sqrtf( 1.0f / x ) : infinity;
 }
 
 /*
