@@ -40,6 +40,9 @@ If you have questions concerning this license or the applicable additional terms
 
 	// Vista OpenGL wrapper check
 	#include "../sys/win32/win_local.h"
+#else
+    // SRS - used for SDL2 vs SDL differences
+    #include <SDL.h>
 #endif
 // RB end
 
@@ -71,20 +74,25 @@ idCVar r_glDriver( "r_glDriver", "", CVAR_RENDERER, "\"opengl32\", etc." );
 idCVar r_antiAliasing( "r_antiAliasing", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, " 0 = None\n 1 = SMAA 1x\n 2 = MSAA 2x\n 3 = MSAA 4x\n 4 = MSAA 8x\n", 0, ANTI_ALIASING_MSAA_8X );
 // RB end
 idCVar r_vidMode( "r_vidMode", "0", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_INTEGER, "fullscreen video mode number" );
-idCVar r_displayRefresh( "r_displayRefresh", "0", CVAR_RENDERER | CVAR_INTEGER | CVAR_NOCHEAT, "optional display refresh rate option for vid mode", 0.0f, 240.0f );
-#ifdef WIN32
+idCVar r_displayRefresh( "r_displayRefresh", "0", CVAR_RENDERER | CVAR_INTEGER | CVAR_NOCHEAT, "optional display refresh rate. set r_vidMode to -1 to activate", 0.0f, 240.0f );
+#if defined(_WIN32)
 	idCVar r_fullscreen( "r_fullscreen", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "0 = windowed, 1 = full screen on monitor 1, 2 = full screen on monitor 2, etc" );
 #else
+#if SDL_VERSION_ATLEAST(2, 0, 0)
 	// DG: add mode -2 for SDL, also defaulting to windowed mode, as that causes less trouble on linux
-	idCVar r_fullscreen( "r_fullscreen", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "-2 = use current monitor, -1 = (reserved), 0 = windowed, 1 = full screen on monitor 1, 2 = full screen on monitor 2, etc" );
+    // SRS - added mode -1 borderless windowed for SDL2 on linux and macOS
+	idCVar r_fullscreen( "r_fullscreen", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "-2 = fullscreen on current monitor, -1 = borderless windowed, 0 = windowed, 1 = full screen on monitor 1, 2 = full screen on monitor 2, etc" );
 	// DG end
+#else
+    idCVar r_fullscreen( "r_fullscreen", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "0 = windowed, 1 = full screen on monitor 1, 2 = full screen on monitor 2, etc" );
+#endif
 #endif
 idCVar r_customWidth( "r_customWidth", "1280", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "custom screen width. set r_vidMode to -1 to activate" );
 idCVar r_customHeight( "r_customHeight", "720", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "custom screen height. set r_vidMode to -1 to activate" );
-idCVar r_windowX( "r_windowX", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "Non-fullscreen parameter" );
-idCVar r_windowY( "r_windowY", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "Non-fullscreen parameter" );
-idCVar r_windowWidth( "r_windowWidth", "1280", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "Non-fullscreen parameter" );
-idCVar r_windowHeight( "r_windowHeight", "720", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "Non-fullscreen parameter" );
+idCVar r_windowX( "r_windowX", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "non-fullscreen window left edge position" );
+idCVar r_windowY( "r_windowY", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "non-fullscreen window top edge position" );
+idCVar r_windowWidth( "r_windowWidth", "1280", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "non-fullscreen window width" );
+idCVar r_windowHeight( "r_windowHeight", "720", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "non-fullscreen window height" );
 
 idCVar r_useViewBypass( "r_useViewBypass", "1", CVAR_RENDERER | CVAR_INTEGER, "bypass a frame of latency to the view" );
 idCVar r_useLightPortalFlow( "r_useLightPortalFlow", "1", CVAR_RENDERER | CVAR_BOOL, "use a more precise area reference determination" );
@@ -456,7 +464,8 @@ void R_SetNewMode( const bool fullInit )
 				// it worked
 
 				// DG: ImGui must be initialized after the window has been created, it needs an opengl context
-				ImGuiHook::Init( parms.width, parms.height );
+                // SRS - Use actual window size vs parms size since they may be different (e.g. for r_fullscreen == -2)
+				ImGuiHook::Init( glConfig.nativeScreenWidth, glConfig.nativeScreenHeight );
 
 				break;
 			}
@@ -474,7 +483,8 @@ void R_SetNewMode( const bool fullInit )
 				// it worked
 
 				// DG: ImGui must know about the changed window size
-				ImGuiHook::NotifyDisplaySizeChanged( parms.width, parms.height );
+                // SRS - Use actual window size vs parms size since they may be different (e.g. for r_fullscreen == -2)
+				ImGuiHook::NotifyDisplaySizeChanged( glConfig.nativeScreenWidth, glConfig.nativeScreenHeight );
 				break;
 			}
 		}

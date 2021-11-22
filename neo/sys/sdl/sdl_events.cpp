@@ -970,11 +970,16 @@ sysEvent_t Sys_GetEvent()
 					{
 						int w = ev.window.data1;
 						int h = ev.window.data2;
-						r_windowWidth.SetInteger( w );
-						r_windowHeight.SetInteger( h );
+                        // SRS - Only handle window resized events when in windowed or borderless window modes, fullscreen changes are handled by sdl_glimp or sdl_vkimp
+                        if( glConfig.isFullscreen == 0 || glConfig.isFullscreen == -1 )
+                        {
+                            r_windowWidth.SetInteger( w );
+                            r_windowHeight.SetInteger( h );
 
-						glConfig.nativeScreenWidth = w;
-						glConfig.nativeScreenHeight = h;
+                            glConfig.nativeScreenWidth = w;
+                            glConfig.nativeScreenHeight = h;
+                        }
+                        common->Printf( "Sys_GetEvent() w = %i, h = %i, r_windowWidth = %i, r_windowHeight = %i\n", w, h, r_windowWidth.GetInteger(), r_windowHeight.GetInteger() );
 						break;
 					}
 
@@ -982,8 +987,20 @@ sysEvent_t Sys_GetEvent()
 					{
 						int x = ev.window.data1;
 						int y = ev.window.data2;
-						r_windowX.SetInteger( x );
-						r_windowY.SetInteger( y );
+                        // SRS - Ignore window moved event caused by exiting a fullscreen mode - this prevents overwrite of windowed mode X and Y positions
+                        // Proper sizing and positioning of windowed mode arising from fullscreen transitions are already handled by sdl_glimp or sdl_vkimp
+                        common->Printf( "Sys_GetEvent() glConfig.exitingFullscreen = %i, glConfig.isFullscreen = %i\n", glConfig.exitingFullscreen, glConfig.isFullscreen );
+                        if( glConfig.exitingFullscreen )
+                        {
+                            glConfig.exitingFullscreen = false;
+                        }
+                        // SRS - Only handle window moved events when in windowed or borderless window modes, fullscreen changes are handled by sdl_glimp or sdl_vkimp
+                        else if( glConfig.isFullscreen == 0 || glConfig.isFullscreen == -1 )
+                        {
+                            r_windowX.SetInteger( x );
+                            r_windowY.SetInteger( y );
+                        }
+                        common->Printf( "Sys_GetEvent() x = %i, y = %i, r_windowX = %i, r_windowY = %i\n", x, y, r_windowX.GetInteger(), r_windowY.GetInteger() );
 						break;
 					}
 				}
@@ -1033,14 +1050,18 @@ sysEvent_t Sys_GetEvent()
 			{
 				int w = ev.resize.w;
 				int h = ev.resize.h;
-				r_windowWidth.SetInteger( w );
-				r_windowHeight.SetInteger( h );
+                // SRS - Only handle video resize events when in windowed mode, fullscreen changes are handled by sdl_glimp or sdl_vkimp
+                if( glConfig.isFullscreen == 0 )
+                {
+                    r_windowWidth.SetInteger( w );
+                    r_windowHeight.SetInteger( h );
 
-				glConfig.nativeScreenWidth = w;
-				glConfig.nativeScreenHeight = h;
+                    glConfig.nativeScreenWidth = w;
+                    glConfig.nativeScreenHeight = h;
 
-				// for some reason this needs a vid_restart in SDL1 but not SDL2 so GLimp_SetScreenParms() is called
-				PushConsoleEvent( "vid_restart" );
+                    // for some reason this needs a vid_restart in SDL1 but not SDL2 so GLimp_SetScreenParms() is called
+                    PushConsoleEvent( "vid_restart" );
+                }
 				continue; // handle next event
 			}
 				// DG end

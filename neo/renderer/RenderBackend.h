@@ -185,6 +185,7 @@ struct vulkanContext_t
 	bool							supersampling;
 
 	int								fullscreen;
+	int								displayFrequency;
 	VkSwapchainKHR					swapchain;
 	VkFormat						swapchainFormat;
 	VkExtent2D						swapchainExtent;

@@ -29,6 +29,10 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 #include "../Game_local.h"
 #include "../../renderer/RenderCommon.h"
+#if !defined(_WIN32)
+    // SRS - used for SDL2 vs SDL differences
+    #include <SDL.h>
+#endif
 
 const static int NUM_SETTING_OPTIONS = 7;
 
@@ -163,6 +167,23 @@ void idMenuScreen_Shell_Resolution::ShowScreen( const mainMenuTransition_t trans
 	optionData.Append( optionData_t( 0, 0 ) );
 
 	int viewIndex = 0;
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+    // SRS - Added Borderless Window mode r_fullscreen == -1
+    menuOptions.Alloc().Alloc() = "Borderless Window";
+    optionData.Append( optionData_t( -1, 0 ) );
+    if( originalOption.fullscreen == -1 )
+    {
+        viewIndex = menuOptions.Num() - 1;
+    }
+    // SRS - Added Current Monitor mode r_fullscreen == -2 showing requested resolution before mode change, and actual resolution after mode change
+    menuOptions.Alloc().Alloc() = va( "%s: %4i x %4i", "Current Monitor", ( glConfig.isFullscreen != -2 ? r_windowWidth.GetInteger() : glConfig.nativeScreenWidth ), ( glConfig.isFullscreen != -2 ? r_windowHeight.GetInteger() : glConfig.nativeScreenHeight ) );
+    optionData.Append( optionData_t( -2, 0 ) );
+    if( originalOption.fullscreen == -2 )
+    {
+        viewIndex = menuOptions.Num() - 1;
+    }
+    // SRS end
+#endif
 	idList< idList<vidMode_t> > displays;
 	for( int displayNum = 0 ; ; displayNum++ )
 	{
@@ -280,10 +301,11 @@ bool idMenuScreen_Shell_Resolution::HandleAction( idWidgetAction& action, const 
 					// No change
 					menuData->SetNextScreen( SHELL_AREA_SYSTEM_OPTIONS, MENU_TRANSITION_SIMPLE );
 				}
-				else if( currentOption.fullscreen == 0 )
+                // SRS - Add support for SDL2 borderless window (-1) and current monitor (-2) modes
+				else if( currentOption.fullscreen <= 0 )
 				{
-					// Changing to windowed mode
-					r_fullscreen.SetInteger( 0 );
+					// Changing to windowed, borderless window, or current monitor mode
+					r_fullscreen.SetInteger( currentOption.fullscreen );
 					cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "vid_restart\n" );
 					menuData->SetNextScreen( SHELL_AREA_SYSTEM_OPTIONS, MENU_TRANSITION_SIMPLE );
 				}

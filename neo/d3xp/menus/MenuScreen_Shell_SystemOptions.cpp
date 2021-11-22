@@ -29,6 +29,10 @@ If you have questions concerning this license or the applicable additional terms
 #include "precompiled.h"
 #pragma hdrstop
 #include "../Game_local.h"
+#if !defined(_WIN32)
+    // SRS - used for SDL2 vs SDL differences
+    #include <SDL.h>
+#endif
 
 const static int NUM_SYSTEM_OPTIONS_OPTIONS = 8;
 
@@ -620,6 +624,19 @@ idSWFScriptVar idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings
 			{
 				return "#str_swf_disabled";
 			}
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+            // SRS - Added Borderless Window mode r_fullscreen == -1
+            if( fullscreen == -1 )
+            {
+                return "Borderless Window";
+            }
+            // SRS - Added Current Monitor mode r_fullscreen == -2 showing requested resolution before mode change, and actual resolution after mode change
+            if( fullscreen == -2 )
+            {
+                return va( "%4i x %4i", ( glConfig.isFullscreen != -2 ? r_windowWidth.GetInteger() : glConfig.nativeScreenWidth ), ( glConfig.isFullscreen != -2 ? r_windowHeight.GetInteger() : glConfig.nativeScreenHeight ) );
+            }
+            // SRS end
+#endif
 			if( fullscreen < 0 || vidmode < 0 || vidmode >= modeList.Num() )
 			{
 				return "???";

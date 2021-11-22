@@ -929,6 +929,7 @@ static void CreateSwapChain()
 	vkcontext.presentMode = presentMode;
 	vkcontext.swapchainExtent = extent;
 	vkcontext.fullscreen = glConfig.isFullscreen;
+	vkcontext.displayFrequency = glConfig.displayFrequency;
 
 	uint32 numImages = 0;
 	ID_VK_CHECK( vkGetSwapchainImagesKHR( vkcontext.device, vkcontext.swapchain, &numImages, NULL ) );
@@ -1425,6 +1426,7 @@ static void ClearContext()
 	vkcontext.sampleCount = VK_SAMPLE_COUNT_1_BIT;
 	vkcontext.supersampling = false;
 	vkcontext.fullscreen = 0;
+	vkcontext.displayFrequency = 0;
 	vkcontext.swapchain = VK_NULL_HANDLE;
 	vkcontext.swapchainFormat = VK_FORMAT_UNDEFINED;
 	vkcontext.currentSwapIndex = 0;
@@ -1704,10 +1706,14 @@ void idRenderBackend::ResizeImages()
 {
 	if( vkcontext.swapchainExtent.width == glConfig.nativeScreenWidth &&
 			vkcontext.swapchainExtent.height == glConfig.nativeScreenHeight &&
-			vkcontext.fullscreen == glConfig.isFullscreen )
+			vkcontext.fullscreen == glConfig.isFullscreen &&
+			vkcontext.displayFrequency == glConfig.displayFrequency &&          // SRS - Support Vulkan refresh rate change - needed on Windows, not needed on linux & macOS but harmless there
+			!r_swapInterval.IsModified() )                                      // SRS - Support Vulkan vsync mode change
 	{
 		return;
 	}
+
+    r_swapInterval.ClearModified();
 
 	stagingManager.Flush();
 

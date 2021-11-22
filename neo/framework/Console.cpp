@@ -29,6 +29,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "precompiled.h"
 #pragma hdrstop
 #include "ConsoleHistory.h"
+#include "../renderer/RenderCommon.h"
 #include "../renderer/ResolutionScale.h"
 #include "Common_local.h"
 #include "../imgui/BFGimgui.h"
@@ -214,6 +215,7 @@ idConsoleLocal::DrawFPS
 float idConsoleLocal::DrawFPS( float y )
 {
 	extern idCVar com_smp;
+    extern idCVar r_swapInterval;
 
 	static float previousTimes[FPS_FRAMES];
 	static float previousTimesNormalized[FPS_FRAMES_HISTORY];
@@ -279,10 +281,14 @@ float idConsoleLocal::DrawFPS( float y )
 	const uint64 gameThreadGameTime		= commonLocal.mainFrameTiming.finishGameTime - commonLocal.mainFrameTiming.startGameTime;
 	const uint64 gameThreadRenderTime	= commonLocal.mainFrameTiming.finishDrawTime - commonLocal.mainFrameTiming.finishGameTime;
 
+    // SRS - Frame overhead time calculation is based on direct measurement from end of previous endframe sync to start of current frame sync
+    // Note this includes possible CPU idle time waiting for game thread to complete if game is operating in smp mode (com_smp = 1)
+    const uint64 frameOverheadTime = commonLocal.frameTiming.startSyncTime - commonLocal.mainFrameTiming.finishSyncTime_EndFrame;
+
 	const uint64 rendererBackEndTime = commonLocal.GetRendererBackEndMicroseconds();
 	const uint64 rendererShadowsTime = commonLocal.GetRendererShadowsMicroseconds();
-	// SRS - GPU idle time calculation depends on whether game is operating in smp mode or not
-	const uint64 rendererGPUIdleTime = commonLocal.GetRendererIdleMicroseconds() - ( com_smp.GetInteger() > 0 && com_editors == 0 ? 0 : gameThreadTotalTime );
+    // SRS - GPU idle time is augmented by frame overhead time when game is operating in Doom 3 mode (com_smp = -1)
+	const uint64 rendererGPUIdleTime = commonLocal.GetRendererIdleMicroseconds() + ( com_smp.GetInteger() < 0 ? frameOverheadTime : 0 );
 	const uint64 rendererGPUTime = commonLocal.GetRendererGPUMicroseconds();
 	const uint64 rendererGPUEarlyZTime = commonLocal.GetRendererGpuEarlyZMicroseconds();
 	const uint64 rendererGPU_SSAOTime = commonLocal.GetRendererGpuSSAOMicroseconds();
@@ -291,15 +297,20 @@ float idConsoleLocal::DrawFPS( float y )
 	const uint64 rendererGPUInteractionsTime = commonLocal.GetRendererGpuInteractionsMicroseconds();
 	const uint64 rendererGPUShaderPassesTime = commonLocal.GetRendererGpuShaderPassMicroseconds();
 	const uint64 rendererGPUPostProcessingTime = commonLocal.GetRendererGpuPostProcessingMicroseconds();
-	const int maxTime = int( 1000 / com_engineHz_latched ) * 1000;
 
-	// SRS - Get GPU sync time at the start of a frame (com_smp = 1 or 0) and at the end of a frame (com_smp = -1)
-	const uint64 rendererStartFrameSyncTime = commonLocal.GetRendererStartFrameSyncMicroseconds();
-	const uint64 rendererEndFrameSyncTime = commonLocal.GetRendererEndFrameSyncMicroseconds();
+    // SRS - Calculate max fps and max frame time based on glConfig.displayFrequency if vsync enabled and lower than engine Hz, otherwise use com_engineHz_latched
+    const int max_FPS = ( r_swapInterval.GetInteger() > 0 && glConfig.displayFrequency > 0 ? std::min( glConfig.displayFrequency, int( com_engineHz_latched ) ) : com_engineHz_latched );
+    const int maxTime = 1000.0 / max_FPS * 1000;
 
-	// SRS - Total CPU and Frame time calculations depend on whether game is operating in smp mode or not
-	const uint64 totalCPUTime = ( com_smp.GetInteger() > 0 && com_editors == 0 ? std::max( gameThreadTotalTime, rendererBackEndTime ) : gameThreadTotalTime + rendererBackEndTime );
-	const uint64 totalFrameTime = ( com_smp.GetInteger() > 0 && com_editors == 0 ? std::max( gameThreadTotalTime, rendererEndFrameSyncTime ) : gameThreadTotalTime + rendererEndFrameSyncTime ) + rendererStartFrameSyncTime;
+    // SRS - Total CPU time calculation depends on game smp mode combined with renderer backend time plus frame overhead time
+    // FIXME: Note that rendererBackEndTime and therefore totalCPUTime are incorrect when using vsync mode on macOS Vulkan:
+    // Vsync on MoltenVK blocks on vkQueueSubmit() during measurement of rendererBackEndTime. Not sure if this can be fixed or worked around.
+    // This is not an issue on Windows or Linux since with vsync enabled they block on vkAcquireNextImageKHR() before backend timing starts.
+    const uint64 totalCPUTime = ( com_smp.GetInteger() > 0 && com_editors == 0 ? 0 : gameThreadTotalTime ) + rendererBackEndTime + frameOverheadTime;
+
+    // SRS - Frame idle and busy time calculations are based on direct frame-over-frame measurement relative to finishSyncTime
+    const uint64 frameIdleTime = commonLocal.mainFrameTiming.startGameTime - commonLocal.mainFrameTiming.finishSyncTime;
+    const uint64 frameBusyTime = commonLocal.frameTiming.finishSyncTime - commonLocal.mainFrameTiming.startGameTime;
 
 #if 1
 
@@ -418,7 +429,7 @@ float idConsoleLocal::DrawFPS( float y )
 		}
 		else
 		{
-			ImGui::TextColored( fps < com_engineHz_latched ? colorRed : colorYellow, "Average FPS %i", fps );
+			ImGui::TextColored( fps < max_FPS ? colorRed : colorYellow, "Average FPS %i", fps );
 		}
 
 		ImGui::Spacing();
@@ -433,7 +444,9 @@ float idConsoleLocal::DrawFPS( float y )
 		ImGui::TextColored( rendererGPUPostProcessingTime > maxTime ? colorRed : colorWhite, "                    PostFX:       %5llu us", rendererGPUPostProcessingTime );
 		ImGui::TextColored( totalCPUTime > maxTime || rendererGPUTime > maxTime ? colorRed : colorWhite,
 							"Total:   %5llu us   Total:        %5llu us", totalCPUTime, rendererGPUTime );
-		ImGui::TextColored( totalFrameTime > maxTime ? colorRed : colorWhite,               "Frame:   %5llu us   Idle:         %5llu us", totalFrameTime, rendererGPUIdleTime );
+        // SRS - Display frameIdleTime vs. rendererGPUIdleTime - frameIdleTime is arguably more useful than rendererGPUIdleTime and shows true "available" idle time impacting frame rate
+        // In addition, rendererGPUIdleTime is only a lower bound approximation that ignores various overheads (e.g. renderer internals) and is grossly incorrect when vsync is enabled
+		ImGui::TextColored( frameBusyTime > maxTime ? colorRed : colorWhite,                "Frame:   %5llu us   Idle:         %5llu us", frameBusyTime, frameIdleTime );
 
 		ImGui::End();
 	}

@@ -846,10 +846,10 @@ void DumpAllDisplayDevices()
 			DEVMODE	registryDevmode = {};
 			if( !EnumDisplaySettings( device.DeviceName, ENUM_REGISTRY_SETTINGS, &registryDevmode ) )
 			{
-				common->Printf( "ERROR:  EnumDisplaySettings(ENUM_CURRENT_SETTINGS) failed!\n" );
+				common->Printf( "ERROR:  EnumDisplaySettings(ENUM_REGISTRY_SETTINGS) failed!\n" );
 			}
 			common->Printf( "          -------------------\n" );
-			common->Printf( "          ENUM_CURRENT_SETTINGS\n" );
+			common->Printf( "          ENUM_REGISTRY_SETTINGS\n" );
 			PrintDevMode( registryDevmode );
 
 			for( int modeNum = 0 ; ; modeNum++ )
@@ -966,10 +966,12 @@ bool R_GetModeListForDisplay( const int requestedDisplayNum, idList<vidMode_t>& 
 			{
 				continue;
 			}
+            /* SRS - Don't need to restrict display refresh rates, so why was this here?
 			if( ( devmode.dmDisplayFrequency != 60 ) && ( devmode.dmDisplayFrequency != 120 ) )
 			{
 				continue;
 			}
+            */
 			if( devmode.dmPelsHeight < 720 )
 			{
 				continue;
@@ -1260,6 +1262,30 @@ void GLimp_PreInit()
 }
 
 /*
+====================
+GetDisplayFrequency
+====================
+*/
+static int GetDisplayFrequency( glimpParms_t parms )
+{
+    idStr deviceName = GetDeviceName( Max( 0, parms.fullScreen - 1 ) );
+    if ( deviceName.Length() == 0 )
+    {
+        return parms.displayHz;
+    }
+
+    DEVMODE    devmode;
+    devmode.dmSize = sizeof( devmode );
+    if ( !EnumDisplaySettings( deviceName.c_str(), ENUM_CURRENT_SETTINGS, &devmode ) )
+    {
+        common->Printf( "GetDisplayFrequency() - Couldn't get display refresh rate\n" );
+        return parms.displayHz;
+    }
+
+    return devmode.dmDisplayFrequency;
+}
+
+/*
 ===================
 GLimp_Init
 
@@ -1334,6 +1360,8 @@ bool GLimp_Init( glimpParms_t parms )
 	glConfig.isStereoPixelFormat = parms.stereo;
 	glConfig.nativeScreenWidth = parms.width;
 	glConfig.nativeScreenHeight = parms.height;
+    // SRS - GetDisplayFrequency() gets the actual refresh rate for both windowed and fullscreen modes, even if parms.displayHz = 0
+    glConfig.displayFrequency = GetDisplayFrequency( parms );
 	glConfig.multisamples = parms.multiSamples;
 
 	glConfig.pixelAspect = 1.0f;	// FIXME: some monitor modes may be distorted
@@ -1419,6 +1447,8 @@ bool GLimp_SetScreenParms( glimpParms_t parms )
 	glConfig.isFullscreen = parms.fullScreen;
 	glConfig.nativeScreenWidth = parms.width;
 	glConfig.nativeScreenHeight = parms.height;
+    // SRS - GetDisplayFrequency() gets the actual refresh rate for both windowed and fullscreen modes, even if parms.displayHz = 0
+    glConfig.displayFrequency = GetDisplayFrequency( parms );
 
 	return true;
 }
