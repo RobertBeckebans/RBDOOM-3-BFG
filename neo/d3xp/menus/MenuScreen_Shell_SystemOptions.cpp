@@ -630,10 +630,17 @@ idSWFScriptVar idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings
             {
                 return "Borderless Window";
             }
-            // SRS - Added Current Monitor mode r_fullscreen == -2 showing requested resolution before mode change, and actual resolution after mode change
+            // SRS - Added Current Monitor mode r_fullscreen == -2
             if( fullscreen == -2 )
             {
-                return va( "%4i x %4i", ( glConfig.isFullscreen != -2 ? r_windowWidth.GetInteger() : glConfig.nativeScreenWidth ), ( glConfig.isFullscreen != -2 ? r_windowHeight.GetInteger() : glConfig.nativeScreenHeight ) );
+                if( glConfig.displayFrequency == 60 || glConfig.displayFrequency == 0 )
+                {
+                    return va( "%4i x %4i", glConfig.nativeScreenWidth, glConfig.nativeScreenHeight );
+                }
+                else
+                {
+                    return va( "%4i x %4i @ %dhz", glConfig.nativeScreenWidth, glConfig.nativeScreenHeight, glConfig.displayFrequency );
+                }
             }
             // SRS end
 #endif

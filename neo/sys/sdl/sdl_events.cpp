@@ -971,6 +971,7 @@ sysEvent_t Sys_GetEvent()
 						int w = ev.window.data1;
 						int h = ev.window.data2;
                         // SRS - Only handle window resized events when in windowed or borderless window modes, fullscreen changes are handled by sdl_glimp or sdl_vkimp
+                        common->Printf( "Sys_GetEvent() glConfig.isFullscreen = %i\n", glConfig.isFullscreen );
                         if( glConfig.isFullscreen == 0 || glConfig.isFullscreen == -1 )
                         {
                             r_windowWidth.SetInteger( w );
@@ -978,6 +979,9 @@ sysEvent_t Sys_GetEvent()
 
                             glConfig.nativeScreenWidth = w;
                             glConfig.nativeScreenHeight = h;
+                            
+                            // SRS - Needed to ensure ImGui gets new window boundaries
+                            ImGuiHook::NotifyDisplaySizeChanged( glConfig.nativeScreenWidth, glConfig.nativeScreenHeight );
                         }
                         common->Printf( "Sys_GetEvent() w = %i, h = %i, r_windowWidth = %i, r_windowHeight = %i\n", w, h, r_windowWidth.GetInteger(), r_windowHeight.GetInteger() );
 						break;
@@ -988,6 +992,7 @@ sysEvent_t Sys_GetEvent()
 						int x = ev.window.data1;
 						int y = ev.window.data2;
                         // SRS - Ignore window moved event caused by exiting a fullscreen mode - this prevents overwrite of windowed mode X and Y positions
+                        // with unwanted data caused by different window managers (e.g. macOS exiting fullscreen with a centered window, linux variations??)
                         // Proper sizing and positioning of windowed mode arising from fullscreen transitions are already handled by sdl_glimp or sdl_vkimp
                         common->Printf( "Sys_GetEvent() glConfig.exitingFullscreen = %i, glConfig.isFullscreen = %i\n", glConfig.exitingFullscreen, glConfig.isFullscreen );
                         if( glConfig.exitingFullscreen )
@@ -1000,7 +1005,7 @@ sysEvent_t Sys_GetEvent()
                             r_windowX.SetInteger( x );
                             r_windowY.SetInteger( y );
                         }
-                        common->Printf( "Sys_GetEvent() x = %i, y = %i, r_windowX = %i, r_windowY = %i\n", x, y, r_windowX.GetInteger(), r_windowY.GetInteger() );
+                        common->Printf( "Sys_GetEvent() x = %i, y = %i, r_windowX = %i, r_windowY = %i\n\n", x, y, r_windowX.GetInteger(), r_windowY.GetInteger() );
 						break;
 					}
 				}

@@ -175,8 +175,22 @@ void idMenuScreen_Shell_Resolution::ShowScreen( const mainMenuTransition_t trans
     {
         viewIndex = menuOptions.Num() - 1;
     }
-    // SRS - Added Current Monitor mode r_fullscreen == -2 showing requested resolution before mode change, and actual resolution after mode change
-    menuOptions.Alloc().Alloc() = va( "%s: %4i x %4i", "Current Monitor", ( glConfig.isFullscreen != -2 ? r_windowWidth.GetInteger() : glConfig.nativeScreenWidth ), ( glConfig.isFullscreen != -2 ? r_windowHeight.GetInteger() : glConfig.nativeScreenHeight ) );
+    // SRS - Added Current Monitor mode r_fullscreen == -2
+    idStr cm_str;
+    cm_str.Append( va( "%s: ", "Current Monitor" ) );
+    if( glConfig.isFullscreen != -2 )
+    {
+        cm_str.Append( va( "%s", "Desktop Settings" ) );
+    }
+    else
+    {
+        cm_str.Append( va( "%4i x %4i", glConfig.nativeScreenWidth, glConfig.nativeScreenHeight ) );
+        if( glConfig.displayFrequency != 60 && glConfig.displayFrequency != 0 )
+        {
+            cm_str.Append( va( " @ %dhz", glConfig.displayFrequency ) );
+        }
+    }
+    menuOptions.Alloc().Alloc() = cm_str;
     optionData.Append( optionData_t( -2, 0 ) );
     if( originalOption.fullscreen == -2 )
     {

@@ -343,19 +343,20 @@ const char* skyDirection[6] = { "_forward", "_back", "_left", "_right", "_up", "
 =============================
 R_SetNewMode
 
+r_fullscreen -2     fullscreen on current monitor using desktop settings
 r_fullScreen -1		borderless window at exact desktop coordinates
 r_fullScreen 0		bordered window at exact desktop coordinates
 r_fullScreen 1		fullscreen on monitor 1 at r_vidMode
 r_fullScreen 2		fullscreen on monitor 2 at r_vidMode
 ...
 
-r_vidMode -1		use r_customWidth / r_customHeight, even if they don't appear on the mode list
+r_vidMode -1		use r_customWidth / r_customHeight / r_displayRefresh, even if they don't appear on the mode list
 r_vidMode 0			use first mode returned by EnumDisplaySettings()
 r_vidMode 1			use second mode returned by EnumDisplaySettings()
 ...
 
 r_displayRefresh 0	don't specify refresh
-r_displayRefresh 70	specify 70 hz, etc
+r_displayRefresh 70	specify 70 hz, etc (for r_vidMode -1 only)
 =============================
 */
 void R_SetNewMode( const bool fullInit )
@@ -1477,8 +1478,10 @@ void GfxInfo_f( const idCmdArgs& args )
 
 	const char* fsstrings[] =
 	{
-		"windowed",
-		"fullscreen"
+        "current monitor",      // == -2
+        "borderless window",    // == -1
+		"bordered window",      // ==  0
+		"fullscreen"            // >=  1
 	};
 
 	common->Printf( "\nGL_VENDOR: %s\n", glConfig.vendor_string );
@@ -1498,7 +1501,17 @@ void GfxInfo_f( const idCmdArgs& args )
 	//DumpAllDisplayDevices();
 
 	common->Printf( "\nPIXELFORMAT: color(%d-bits) Z(%d-bit) stencil(%d-bits)\n", glConfig.colorBits, glConfig.depthBits, glConfig.stencilBits );
-	common->Printf( "MODE: %d, %d x %d %s hz:", r_vidMode.GetInteger(), renderSystem->GetWidth(), renderSystem->GetHeight(), fsstrings[r_fullscreen.GetBool()] );
+    // SRS - Added support for fullscreen modes -1 and -2
+    if( glConfig.isFullscreen > 0 )
+    {
+        common->Printf( "MODE: %d, ", r_vidMode.GetInteger() );
+    }
+    else
+    {
+        common->Printf( "MODE: N/A, " );
+    }
+    common->Printf( "%d x %d %s hz:", renderSystem->GetWidth(), renderSystem->GetHeight(), fsstrings[ Min( glConfig.isFullscreen, 1 ) + 2 ] );
+    // SRS end
 	if( glConfig.displayFrequency )
 	{
 		common->Printf( "%d\n", glConfig.displayFrequency );
