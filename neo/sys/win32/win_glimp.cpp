@@ -1017,46 +1017,91 @@ static bool GLW_GetWindowDimensions( const glimpParms_t parms, int& x, int& y, i
 	//
 	// compute width and height
 	//
-	if( parms.fullScreen != 0 )
+	if( parms.fullScreen <= 0 )
 	{
-		if( parms.fullScreen == -1 )
+        // SRS - Support the reserved value pair of ( parms.x == -1, parms.y == -1 ) for centered on monitor 1 (display 0)
+        int offsetX = 0, offsetY = 0;
+        if( parms.x == -1 && parms.y == -1 )
+        {
+            int displayHz = 0;
+            if( !GetDisplayCoordinates( 0, x, y, w, h, displayHz ) )
+            {
+                return false;
+            }
+
+            // SRS - If we are in current monitor mode just return monitor 1 (display 0) coordinates
+            if( parms.fullScreen == -2 )
+            {
+                return true;
+            }
+            // SRS - Otherwise calculate x and y offsets for centering window on monitor 1 (display 0)
+            else
+            {
+                offsetX = ( w - parms.width ) / 2 - parms.x;
+                offsetY = ( h - parms.height ) / 2 - parms.y;
+            }
+        }
+        // SRS end
+
+        if( parms.fullScreen == 0 )
+        {
+            RECT    r;
+
+            // adjust width and height for window border
+            r.bottom = parms.height;
+            r.left = 0;
+            r.top = 0;
+            r.right = parms.width;
+
+            AdjustWindowRect( &r, WINDOW_STYLE | WS_SYSMENU, FALSE );
+
+            x = parms.x + offsetX;  // SRS - Apply offsets for centering window if enabled
+            y = parms.y + offsetY;
+            w = r.right - r.left;
+            h = r.bottom - r.top;
+        }
+		else if( parms.fullScreen == -1 )
 		{
 			// borderless window at specific location, as for spanning
 			// multiple monitor outputs
-			x = parms.x;
-			y = parms.y;
+			x = parms.x + offsetX;  // SRS - Apply offsets for centering window if enabled
+			y = parms.y + offsetY;
 			w = parms.width;
 			h = parms.height;
 		}
-		else
-		{
-			// get the current monitor position and size on the desktop, assuming
-			// any required ChangeDisplaySettings has already been done
-			int displayHz = 0;
-			if( !GetDisplayCoordinates( parms.fullScreen - 1, x, y, w, h, displayHz ) )
-			{
-				return false;
-			}
-		}
-	}
-	else
-	{
-		RECT	r;
-
-		// adjust width and height for window border
-		r.bottom = parms.height;
-		r.left = 0;
-		r.top = 0;
-		r.right = parms.width;
-
-		AdjustWindowRect( &r, WINDOW_STYLE | WS_SYSMENU, FALSE );
-
-		w = r.right - r.left;
-		h = r.bottom - r.top;
-
-		x = parms.x;
-		y = parms.y;
-	}
+        // SRS - Added current monitor mode
+        else    // parms.fullScreen == -2
+        {
+            // SRS - Find coordinates of monitor containing the center of the bordered or borderless window
+            int windowPosX = parms.x + parms.width / 2;
+            int windowPosY = parms.y + parms.height / 2;
+            
+            for( int deviceNum = 0 ; ; deviceNum++ )
+            {
+                int displayHz = 0;
+                if( !GetDisplayCoordinates( deviceNum, x, y, w, h, displayHz ) )
+                {
+                    return false;
+                }
+                
+                if( windowPosX >= x && windowPosX < ( x + w ) && windowPosY >= y && windowPosY < ( y + h ) )
+                {
+                    break;
+                }
+            }
+        }
+        // SRS end
+    }
+    else    // parms.fullscreen > 0
+    {
+        // get the current monitor position and size on the desktop, assuming
+        // any required ChangeDisplaySettings has already been done
+        int displayHz = 0;
+        if( !GetDisplayCoordinates( parms.fullScreen - 1, x, y, w, h, displayHz ) )
+        {
+            return false;
+        }
+    }
 
 	return true;
 }
@@ -1079,7 +1124,7 @@ static bool GLW_CreateWindow( glimpParms_t parms )
 
 	int				stylebits;
 	int				exstyle;
-	if( parms.fullScreen != 0 )
+	if( parms.fullScreen > 0 || parms.fullScreen == -2 )
 	{
 		exstyle = WS_EX_TOPMOST;
 		stylebits = WS_POPUP | WS_VISIBLE | WS_SYSMENU;

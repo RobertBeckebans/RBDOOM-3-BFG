@@ -167,7 +167,7 @@ void idMenuScreen_Shell_Resolution::ShowScreen( const mainMenuTransition_t trans
 	optionData.Append( optionData_t( 0, 0 ) );
 
 	int viewIndex = 0;
-#if SDL_VERSION_ATLEAST(2, 0, 0)
+#if defined(_WIN32) || SDL_VERSION_ATLEAST(2, 0, 0)
     // SRS - Added Borderless Window mode r_fullscreen == -1
     menuOptions.Alloc().Alloc() = "Borderless Window";
     optionData.Append( optionData_t( -1, 0 ) );
@@ -315,7 +315,7 @@ bool idMenuScreen_Shell_Resolution::HandleAction( idWidgetAction& action, const 
 					// No change
 					menuData->SetNextScreen( SHELL_AREA_SYSTEM_OPTIONS, MENU_TRANSITION_SIMPLE );
 				}
-                // SRS - Add support for SDL2 borderless window (-1) and current monitor (-2) modes
+                // SRS - Add support for borderless window (-1) and current monitor (-2) modes
 				else if( currentOption.fullscreen <= 0 )
 				{
 					// Changing to windowed, borderless window, or current monitor mode

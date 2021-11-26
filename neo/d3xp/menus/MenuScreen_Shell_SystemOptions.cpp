@@ -624,7 +624,7 @@ idSWFScriptVar idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings
 			{
 				return "#str_swf_disabled";
 			}
-#if SDL_VERSION_ATLEAST(2, 0, 0)
+#if defined(_WIN32) || SDL_VERSION_ATLEAST(2, 0, 0)
             // SRS - Added Borderless Window mode r_fullscreen == -1
             if( fullscreen == -1 )
             {

@@ -109,9 +109,15 @@ static int GetDisplayIndex( glimpParms_t parms )
     }
     else // 0, -1, -2 == use current display
     {
-        // SRS - Find display containing the center of the windowed or borderless mode window
-        int windowPosX = r_windowX.GetInteger() + r_windowWidth.GetInteger() / 2;
-        int windowPosY = r_windowY.GetInteger() + r_windowHeight.GetInteger() / 2;
+        // SRS - Support the reserved value pair of ( parms.x == -1, parms.y == -1 ) for centered on monitor 1 (displayIdx 0)
+        if( parms.x == -1 && parms.y == -1 )
+        {
+            return 0;
+        }
+        
+        // SRS - Find display containing the center of the bordered or borderless window
+        int windowPosX = parms.x + parms.width / 2;
+        int windowPosY = parms.y + parms.height / 2;
         
         displayIdx = 0;
         for( int i = 0; i < SDL_GetNumVideoDisplays(); i++ )
@@ -140,11 +146,9 @@ static int GetDisplayFrequency( glimpParms_t parms )
     if( SDL_GetCurrentDisplayMode( displayIdx, &m ) < 0 )
     {
         common->Warning( "Couldn't get display refresh rate, reason: %s", SDL_GetError() );
-        common->Printf( "GetDisplayFrequency() displayIdx %i returning parms.displayHz = %i\n", displayIdx, parms.displayHz );
         return parms.displayHz;
     }
 
-    common->Printf( "GetDisplayFrequency() displayIdx %i returning mode.refresh_rate = %i\n", displayIdx, m.refresh_rate );
     return m.refresh_rate;
 }
 #endif
@@ -321,9 +325,10 @@ bool GLimp_Init( glimpParms_t parms )
 		}
 		// RB end
 
-        // SRS - This sets the default centered launch position and size for windowed mode parms.fullScreen == 0, other modes can override below
-        int windowPosX = SDL_WINDOWPOS_UNDEFINED;
-        int windowPosY = SDL_WINDOWPOS_UNDEFINED;
+        // SRS - This sets the default position (centered on monitor 1) and size for window creation, fullscreen modes can override below
+        // Ignore window position parms.x and parms.y for now (from r_windowX and r_windowY) but use after window creation if needed
+        int windowPosX = SDL_WINDOWPOS_CENTERED;
+        int windowPosY = SDL_WINDOWPOS_CENTERED;
         int windowWidth = parms.width;
         int windowHeight = parms.height;
 
@@ -341,7 +346,7 @@ bool GLimp_Init( glimpParms_t parms )
                 windowPosX = windowPosY = SDL_WINDOWPOS_UNDEFINED_DISPLAY( displayIdx );
                 
                 // SRS - Handle current monitor mode parms.fullScreen == -2 (from r_fullscreen -2) meaning "do fullscreen using the current monitor"
-                // The "current monitor" is defined as the one hosting the center of the windowed or borderless window, as returned by GetDisplayIndex()
+                // The "current monitor" is defined as the one hosting the center of the bordered or borderless window, as returned by GetDisplayIndex()
                 if( parms.fullScreen == -2 )
                 {
                     SDL_DisplayMode m = {0};
@@ -351,13 +356,6 @@ bool GLimp_Init( glimpParms_t parms )
                 }
 			}
 		}
-        // SRS - Support borderless mode parms.fullScreen == -1 that can span multiple displays using explicit position / size settings for the window
-        else if( parms.fullScreen == -1 )
-        {
-            windowPosX = parms.x;
-            windowPosY = parms.y;
-        }
-        common->Printf( "GLimp_Init() windowPosX = %i, windowPosY = %i, width = %i, height = %i\n", windowPosX, windowPosY, parms.width, parms.height );
 
 
 		window = SDL_CreateWindow( GAME_NAME,
@@ -375,8 +373,15 @@ bool GLimp_Init( glimpParms_t parms )
 			continue;
 		}
 
-        // SRS - If fullscreen is active make sure display refresh rate is set properly
-        if( parms.fullScreen > 0 && parms.displayHz != 0 )
+        // SRS - For bordered and borderless window modes move the window to the desired position after initial creation
+        // This deferred positioning is to avoid problems with various window manager policies regarding window placement
+        // Also supports the reserved value pair of ( parms.x == -1, parms.y == -1 ) for centered on monitor 1 (default)
+        if( ( parms.fullScreen == 0 || parms.fullScreen == -1 ) && ( parms.x != -1 || parms.y != -1  ) )
+        {
+            SDL_SetWindowPosition( window, parms.x, parms.y );
+        }
+        // SRS - If fullscreen is active make sure display refresh rate is set if specified
+        else if( parms.fullScreen > 0 && parms.displayHz != 0 )
         {
             SDL_DisplayMode m = {0};
             SDL_GetWindowDisplayMode( window, &m );
@@ -395,12 +400,10 @@ bool GLimp_Init( glimpParms_t parms )
 
 		// RB begin
 		SDL_GetWindowSize( window, &glConfig.nativeScreenWidth, &glConfig.nativeScreenHeight );
-        common->Printf( "GLimp_Init() setting glConfig.nativeScreenWidth = %i, glConfig.nativeScreenHeight = %i\n", glConfig.nativeScreenWidth, glConfig.nativeScreenHeight );
 		// RB end
 
         // SRS - Detect and save actual fullscreen state supporting all modes (-2, -1, 0, 1, ...)
         glConfig.isFullscreen = ( SDL_GetWindowFlags( window ) & SDL_WINDOW_FULLSCREEN || parms.fullScreen == -1 ? parms.fullScreen : 0 );
-        common->Printf( "GLimp_Init() parms.fullScreen = %i, glConfig.isFullscreen = %i\n", parms.fullScreen, glConfig.isFullscreen );
         // SRS - Initialize state variable capturing transition from fullscreen to windowed mode
         glConfig.exitingFullscreen = false;
         // SRS - Get the actual refresh rate for windowed and fullscreen modes
@@ -501,12 +504,12 @@ static int ScreenParmsHandleDisplayIndex( glimpParms_t parms )
         return -1;
     }
 
-    common->Printf( "...HandleDisplayIndex() parms.fullScreen = %i, glConfig.isFullscreen = %i, displayIdx = %i\n", parms.fullScreen, glConfig.isFullscreen, displayIdx );
 #if defined(__APPLE__)
-    // SRS - For reliable operation on OSX, disable fullscreen before monitor or mode switching
+    // SRS - For reliable operation on OSX, disable fullscreen/reposition window before monitor or mode switching
     if( parms.fullScreen != glConfig.isFullscreen || glConfig.isFullscreen )
     {
 #else
+    // SRS - On linux, disable fullscreen/reposition window only before monitor switching
 	if( parms.fullScreen != glConfig.isFullscreen )
 	{
 #endif
@@ -516,7 +519,6 @@ static int ScreenParmsHandleDisplayIndex( glimpParms_t parms )
 			// if we're already in fullscreen mode but want to switch to another monitor
 			// we have to go to windowed mode first to move the window.. SDL-oddity.
 			SDL_SetWindowFullscreen( window, SDL_FALSE );
-            common->Printf("SetScreenParmsFullscreen() setting to windowed mode\n");
 		}
         // select display ; SDL_WINDOWPOS_UNDEFINED_DISPLAY() doesn't work.
         int x = SDL_WINDOWPOS_CENTERED_DISPLAY( displayIdx );
@@ -540,7 +542,6 @@ static bool SetScreenParmsFullscreen( glimpParms_t parms )
     {
         // get current mode of display the window should be full-screened on
         SDL_GetCurrentDisplayMode( displayIdx, &m );
-        common->Printf( "SDL_GetCurrentDisplayMode() w = %i, h = %i, hz = %i\n", m.w, m.h, m.refresh_rate );
 
         // FIXME: check if refreshrate, width and height are supported?
         // SRS - Reenabled parms.displayHz - should defined by R_GetModeListForDisplay() unless set via r_displayRefresh (only for r_vidMode < 0)
@@ -552,11 +553,9 @@ static bool SetScreenParmsFullscreen( glimpParms_t parms )
     {
         // get desktop mode of display the window should be full-screened on
         SDL_GetDesktopDisplayMode( displayIdx, &m );
-        common->Printf( "SDL_GetDesktopDisplayMode() w = %i, h = %i, hz = %i\n", m.w, m.h, m.refresh_rate );
     }
 
 	// set that displaymode
-    common->Printf( "SDL_SetWindowDisplayMode() w = %i, h = %i, hz = %i\n", m.w, m.h, m.refresh_rate );
 	if( SDL_SetWindowDisplayMode( window, &m ) < 0 )
 	{
 		common->Warning( "Couldn't set window mode for fullscreen, reason: %s", SDL_GetError() );
@@ -571,7 +570,6 @@ static bool SetScreenParmsFullscreen( glimpParms_t parms )
 			common->Warning( "Couldn't switch to fullscreen mode, reason: %s!", SDL_GetError() );
 			return false;
 		}
-        common->Printf( "SetScreenParmsFullscreen() setting to fullscreen mode\n" );
 	}
 	return true;
 }
@@ -583,7 +581,6 @@ static bool SetScreenParmsWindowed( glimpParms_t parms )
 	{
         // SRS - Inform the SDL2 event handler to ignore the next window moved event caused by exiting fullscreen mode
         glConfig.exitingFullscreen = true;
-        common->Printf("SetScreenParmsWindowed() setting to windowed mode\n");
 		if( SDL_SetWindowFullscreen( window, SDL_FALSE ) < 0 )
 		{
 			common->Warning( "Couldn't switch to windowed mode, reason: %s!", SDL_GetError() );
@@ -594,8 +591,16 @@ static bool SetScreenParmsWindowed( glimpParms_t parms )
     // SRS - Set window border based on fullscreen mode (off when in borderless mode -1, on otherwise)
     SDL_SetWindowBordered( window, ( parms.fullScreen == -1 ? SDL_FALSE : SDL_TRUE ) );
     SDL_SetWindowSize( window, parms.width, parms.height );
-    SDL_SetWindowPosition( window, parms.x, parms.y );
-    common->Printf( "...ParmsWindowed() x = %i, y = %i, width = %i, height = %i, fullScreen = %i\n", parms.x, parms.y, parms.width, parms.height, parms.fullScreen );
+    
+    // SRS - Set window position supporting the reserved value pair of ( parms.x == -1, parms.y == -1 ) for centered on monitor 1
+    if( parms.x == -1 && parms.y == -1 )
+    {
+        SDL_SetWindowPosition( window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED );
+    }
+    else
+    {
+        SDL_SetWindowPosition( window, parms.x, parms.y );
+    }
 
 	return true;
 }
@@ -676,7 +681,6 @@ bool GLimp_SetScreenParms( glimpParms_t parms )
     glConfig.isFullscreen = ( window->flags & SDL_FULLSCREEN ) == SDL_FULLSCREEN;
     glConfig.displayFrequency = parms.displayHz;
 #endif // SDL_VERSION_ATLEAST(2, 0, 0)
-    common->Printf( "...SetScreenParms() nativeScreenWidth = %i, nativeScreenHeight = %i\n\n", glConfig.nativeScreenWidth, glConfig.nativeScreenHeight );
 
 	// Note: the following stuff would also work with SDL1.2
 	SDL_GL_SetAttribute( SDL_GL_STEREO, parms.stereo ? 1 : 0 );
