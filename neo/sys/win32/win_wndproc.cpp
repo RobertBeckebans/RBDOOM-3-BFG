@@ -204,7 +204,7 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 		case WM_MOVE:
 		{
 			int		xPos, yPos;
-			RECT r;
+			RECT	r;
 
 			// save the window origin in cvars if we aren't fullscreen
 			int style = GetWindowLong( hWnd, GWL_STYLE );
@@ -220,8 +220,16 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 
 				AdjustWindowRect( &r, style, FALSE );
 
-				r_windowX.SetInteger( xPos + r.left );
-				r_windowY.SetInteger( yPos + r.top );
+				// SRS - If flag is set, ignore window move event and don't update cvars
+				if( glConfig.ignoreNextMoveEvent )
+				{
+					glConfig.ignoreNextMoveEvent = false;
+				}
+				else
+				{
+					r_windowX.SetInteger( xPos + r.left );
+					r_windowY.SetInteger( yPos + r.top );
+				}
 			}
 			break;
 		}

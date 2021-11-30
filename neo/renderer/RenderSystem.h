@@ -236,7 +236,7 @@ struct glconfig_t
 	int					displayFrequency;
 
 	int					isFullscreen;					// monitor number
-    bool                exitingFullscreen;              // SRS - state variable capturing transition from fullscreen to windowed modes
+    bool                ignoreNextMoveEvent;			// SRS - flag instructing window event handler to ignore next move event
 	bool				isStereoPixelFormat;
 	bool				stereoPixelFormatAvailable;
 	int					multisamples;

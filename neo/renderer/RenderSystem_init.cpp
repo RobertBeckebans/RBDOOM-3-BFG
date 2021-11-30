@@ -85,8 +85,8 @@ idCVar r_displayRefresh( "r_displayRefresh", "0", CVAR_RENDERER | CVAR_INTEGER |
 #endif
 idCVar r_customWidth( "r_customWidth", "1280", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "custom screen width. set r_vidMode to -1 to activate" );
 idCVar r_customHeight( "r_customHeight", "720", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "custom screen height. set r_vidMode to -1 to activate" );
-idCVar r_windowX( "r_windowX", "-1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "non-fullscreen window left position. set to -1 for centered on monitor 1" );
-idCVar r_windowY( "r_windowY", "-1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "non-fullscreen window top position. set to -1 for centered on monitor 1" );
+idCVar r_windowX( "r_windowX", "-1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "non-fullscreen window left edge. set pair to (-1,-1) for centered on monitor 1" );
+idCVar r_windowY( "r_windowY", "-1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "non-fullscreen window top edge. set pair to (-1,-1) for centered on monitor 1" );
 idCVar r_windowWidth( "r_windowWidth", "1280", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "non-fullscreen window width" );
 idCVar r_windowHeight( "r_windowHeight", "720", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "non-fullscreen window height" );
 
@@ -354,8 +354,10 @@ r_vidMode 1			use second mode returned by EnumDisplaySettings()
 r_displayRefresh 0	don't specify refresh
 r_displayRefresh 70	specify 70 hz, etc (for r_vidMode -1 only)
 
-r_windowX -1        when both values set to -1 position bordered or borderless window at center of monitor 1
-r_windowY -1        when both values set to -1 position bordered or borderless window at center of monitor 1
+r_windowX -1        when pair set to (-1,-1) or center of window out of desktop range, position non-fullscreen window at center of monitor 1
+r_windowY -1
+r_windowX ...       when center of window within desktop range, position non-fullscreen window left edge to value specified
+r_windowY ...       when center of window within desktop range, position non-fullscreen window top edge to value specified
 =============================
 */
 void R_SetNewMode( const bool fullInit )
@@ -378,7 +380,7 @@ void R_SetNewMode( const bool fullInit )
 			parms.y = r_windowY.GetInteger();
 			parms.width = r_windowWidth.GetInteger();
 			parms.height = r_windowHeight.GetInteger();
-			// may still be -1 to force a borderless window
+			// may still be -1 to force a borderless window, or -2 for fullscreen on current monitor at desktop resolution
 			parms.fullScreen = r_fullscreen.GetInteger();
 			parms.displayHz = 0;		// ignored
 		}

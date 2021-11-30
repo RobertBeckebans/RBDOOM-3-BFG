@@ -970,18 +970,19 @@ sysEvent_t Sys_GetEvent()
 					{
 						int w = ev.window.data1;
 						int h = ev.window.data2;
-                        // SRS - Only handle window resized events when in bordered or borderless window modes, fullscreen changes are handled by sdl_glimp or sdl_vkimp
-                        if( glConfig.isFullscreen == 0 || glConfig.isFullscreen == -1 )
-                        {
-                            r_windowWidth.SetInteger( w );
-                            r_windowHeight.SetInteger( h );
+						// SRS - Only save window resized events when in bordered or borderless window modes
+						if( glConfig.isFullscreen == 0 || glConfig.isFullscreen == -1 )
+						{
+							r_windowWidth.SetInteger( w );
+							r_windowHeight.SetInteger( h );
+						}
 
-                            glConfig.nativeScreenWidth = w;
-                            glConfig.nativeScreenHeight = h;
-                            
-                            // SRS - Needed to ensure ImGui gets new window boundaries
-                            ImGuiHook::NotifyDisplaySizeChanged( glConfig.nativeScreenWidth, glConfig.nativeScreenHeight );
-                        }
+						glConfig.nativeScreenWidth = w;
+						glConfig.nativeScreenHeight = h;
+
+                        // SRS - Make sure ImGui gets new window boundaries
+                        ImGuiHook::NotifyDisplaySizeChanged( glConfig.nativeScreenWidth, glConfig.nativeScreenHeight );
+
 						break;
 					}
 
@@ -992,11 +993,11 @@ sysEvent_t Sys_GetEvent()
                         // SRS - Ignore window moved event caused by exiting a fullscreen mode - this prevents overwrite of windowed mode X and Y positions
                         // with unwanted data caused by different window managers (e.g. macOS exiting fullscreen with a centered window, linux variations??)
                         // Proper sizing and positioning of windowed mode arising from fullscreen transitions are already handled by sdl_glimp or sdl_vkimp
-                        if( glConfig.exitingFullscreen )
+                        if( glConfig.ignoreNextMoveEvent )
                         {
-                            glConfig.exitingFullscreen = false;
+                            glConfig.ignoreNextMoveEvent = false;
                         }
-                        // SRS - Only handle window moved events when in bordered or borderless window modes, fullscreen changes are handled by sdl_glimp or sdl_vkimp
+                        // SRS - Only save window moved events when in bordered or borderless window modes
                         else if( glConfig.isFullscreen == 0 || glConfig.isFullscreen == -1 )
                         {
                             r_windowX.SetInteger( x );
