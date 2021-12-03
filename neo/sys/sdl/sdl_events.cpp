@@ -970,7 +970,8 @@ sysEvent_t Sys_GetEvent()
 					{
 						int w = ev.window.data1;
 						int h = ev.window.data2;
-						// SRS - Only save window resized events when in bordered or borderless window modes
+
+						// SRS - Only save window resized events when in windowed modes
 						if( glConfig.isFullscreen == 0 || glConfig.isFullscreen == -1 )
 						{
 							r_windowWidth.SetInteger( w );
@@ -982,7 +983,6 @@ sysEvent_t Sys_GetEvent()
 
                         // SRS - Make sure ImGui gets new window boundaries
                         ImGuiHook::NotifyDisplaySizeChanged( glConfig.nativeScreenWidth, glConfig.nativeScreenHeight );
-
 						break;
 					}
 
@@ -990,18 +990,20 @@ sysEvent_t Sys_GetEvent()
 					{
 						int x = ev.window.data1;
 						int y = ev.window.data2;
-                        // SRS - Ignore window moved event caused by exiting a fullscreen mode - this prevents overwrite of windowed mode X and Y positions
-                        // with unwanted data caused by different window managers (e.g. macOS exiting fullscreen with a centered window, linux variations??)
-                        // Proper sizing and positioning of windowed mode arising from fullscreen transitions are already handled by sdl_glimp or sdl_vkimp
-                        if( glConfig.ignoreNextMoveEvent )
+
+                        // SRS - Only save window moved events when in windowed modes
+                        if( glConfig.isFullscreen == 0 || glConfig.isFullscreen == -1 )
                         {
-                            glConfig.ignoreNextMoveEvent = false;
-                        }
-                        // SRS - Only save window moved events when in bordered or borderless window modes
-                        else if( glConfig.isFullscreen == 0 || glConfig.isFullscreen == -1 )
-                        {
-                            r_windowX.SetInteger( x );
-                            r_windowY.SetInteger( y );
+                            // SRS - If flag is set, ignore window moved event and don't update cvars
+                            if( ignoreNextMoveEvent )
+                            {
+                                ignoreNextMoveEvent = false;
+                            }
+                            else
+                            {
+                                r_windowX.SetInteger( x );
+                                r_windowY.SetInteger( y );
+                            }
                         }
 						break;
 					}
@@ -1052,18 +1054,19 @@ sysEvent_t Sys_GetEvent()
 			{
 				int w = ev.resize.w;
 				int h = ev.resize.h;
-                // SRS - Only handle video resize events when in windowed mode, fullscreen changes are handled by sdl_glimp or sdl_vkimp
+
+                // SRS - Only save window resize events when in windowed mode
                 if( glConfig.isFullscreen == 0 )
                 {
                     r_windowWidth.SetInteger( w );
                     r_windowHeight.SetInteger( h );
-
-                    glConfig.nativeScreenWidth = w;
-                    glConfig.nativeScreenHeight = h;
-
-                    // for some reason this needs a vid_restart in SDL1 but not SDL2 so GLimp_SetScreenParms() is called
-                    PushConsoleEvent( "vid_restart" );
                 }
+
+				glConfig.nativeScreenWidth = w;
+				glConfig.nativeScreenHeight = h;
+
+				// for some reason this needs a vid_restart in SDL1 but not SDL2 so GLimp_SetScreenParms() is called
+				PushConsoleEvent( "vid_restart" );
 				continue; // handle next event
 			}
 				// DG end
@@ -1731,6 +1734,13 @@ sysEvent_t Sys_GetEvent()
 						common->Warning( "unknown user event %u", ev.user.code );
 				}
 				continue; // just handle next event
+
+#if SDL_VERSION_ATLEAST(2, 0, 4)
+            case SDL_KEYMAPCHANGED:
+                // SRS - Get rid of annoying console and log messages on linux
+                continue; // just handle next event
+#endif
+
 			default:
 				common->Warning( "unknown event %u", ev.type );
 				continue; // just handle next event

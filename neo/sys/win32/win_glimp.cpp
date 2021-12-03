@@ -56,6 +56,8 @@ If you have questions concerning this license or the applicable additional terms
 	idCVar r_useOpenGL45( "r_useOpenGL45", "2", CVAR_INTEGER, "0 = OpenGL 4.0, 1 = OpenGL 4.5 compatibility profile, 2 = OpenGL 4.5 core profile", 0, 2 );
 #endif
 
+// SRS - Flag informing window event handler to skip cvars update for next window move event
+bool ignoreNextMoveEvent = false;
 
 
 #if !defined(USE_VULKAN)
@@ -1012,6 +1014,7 @@ bool R_GetModeListForDisplay( const int requestedDisplayNum, idList<vidMode_t>& 
 GetDisplayNum
 ====================
 */
+// SRS - Function to get display number for both fullscreen and windowed modes
 static int GetDisplayNum( glimpParms_t parms )
 {
 	int displayNum = 0;
@@ -1112,7 +1115,7 @@ static bool GLW_GetWindowDimensions( const glimpParms_t parms, int& x, int& y, i
 			r.right = parms.width;
 
 			// SRS - Inform the window event handler to ignore the next move event caused by calling AdjustWindowRect()
-			glConfig.ignoreNextMoveEvent = true;
+			ignoreNextMoveEvent = true;
 
 			AdjustWindowRect( &r, WINDOW_STYLE | WS_SYSMENU, FALSE );
 
@@ -1343,6 +1346,7 @@ void GLimp_PreInit()
 GetDisplayFrequency
 ====================
 */
+// SRS - Function to get display frequency for both fullscreen and windowed modes
 static int GetDisplayFrequency( glimpParms_t parms )
 {
 	int displayNum = GetDisplayNum( parms );
@@ -1440,7 +1444,6 @@ bool GLimp_Init( glimpParms_t parms )
 	}
 
 	glConfig.isFullscreen = parms.fullScreen;
-	glConfig.ignoreNextMoveEvent = false;
 	glConfig.isStereoPixelFormat = parms.stereo;
 
 	// SRS - For current monitor mode == -2 need to get actual window dimensions
@@ -1461,7 +1464,7 @@ bool GLimp_Init( glimpParms_t parms )
 		glConfig.nativeScreenHeight = parms.height;
 	}
 
-	// SRS - GetDisplayFrequency() gets the actual refresh rate for both windowed and fullscreen modes, even if parms.displayHz = 0
+	// SRS - Get the display refresh rate for windowed and fullscreen modes
     glConfig.displayFrequency = GetDisplayFrequency( parms );
 	glConfig.multisamples = parms.multiSamples;
 
@@ -1558,7 +1561,7 @@ bool GLimp_SetScreenParms( glimpParms_t parms )
 		glConfig.nativeScreenHeight = parms.height;
 	}
 
-	// SRS - GetDisplayFrequency() gets the actual refresh rate for both windowed and fullscreen modes, even if parms.displayHz = 0
+	// SRS - Get the display refresh rate for windowed and fullscreen modes
     glConfig.displayFrequency = GetDisplayFrequency( parms );
 
 	return true;

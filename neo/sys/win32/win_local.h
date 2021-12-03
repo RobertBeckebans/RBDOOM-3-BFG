@@ -141,4 +141,7 @@ typedef struct
 
 extern Win32Vars_t	win32;
 
+// SRS - Flag informing window event handler to skip cvars update for next window move event
+extern bool ignoreNextMoveEvent;
+
 #endif /* !__WIN_LOCAL_H__ */

@@ -1,3 +1,4 @@
+
 /*
 ===========================================================================
 
@@ -221,9 +222,9 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 				AdjustWindowRect( &r, style, FALSE );
 
 				// SRS - If flag is set, ignore window move event and don't update cvars
-				if( glConfig.ignoreNextMoveEvent )
+				if( ignoreNextMoveEvent )
 				{
-					glConfig.ignoreNextMoveEvent = false;
+					ignoreNextMoveEvent = false;
 				}
 				else
 				{

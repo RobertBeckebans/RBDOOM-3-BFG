@@ -43,4 +43,9 @@ const int GRAB_SETSTATE		= ( 1 << 3 );
 #endif
 char*	Sys_ConsoleInput();
 
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+// SRS - Flag informing SDL2 event handler to skip cvars update for next window move event
+extern bool ignoreNextMoveEvent;
+#endif
+
 #endif

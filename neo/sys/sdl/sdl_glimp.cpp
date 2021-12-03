@@ -66,6 +66,8 @@ static bool grabbed = false;
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	static SDL_Window* window = NULL;
 	static SDL_GLContext context = NULL;
+    // SRS - Flag informing SDL2 event handler to skip cvars update for next window move event
+    bool ignoreNextMoveEvent = false;
 #else
 	static SDL_Surface* window = NULL;
 	#define SDL_WINDOW_OPENGL SDL_OPENGL
@@ -100,6 +102,7 @@ void GLimp_PreInit() // DG: added this function for SDL compatibility
 */
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
+// SRS - Function to get display index for both fullscreen and windowed modes
 static int GetDisplayIndex( glimpParms_t parms )
 {
     int displayIdx = 0;
@@ -134,6 +137,7 @@ static int GetDisplayIndex( glimpParms_t parms )
     return displayIdx;
 }
 
+// SRS - Function to get display frequency for both fullscreen and windowed modes
 static int GetDisplayFrequency( glimpParms_t parms )
 {
     int displayIdx = GetDisplayIndex( parms );
@@ -173,22 +177,16 @@ bool GLimp_Init( glimpParms_t parms )
 	Uint32 flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
 	// DG end
 
-	if( parms.fullScreen > 0 )
+	if( parms.fullScreen != 0 )
 	{
-		flags |= SDL_WINDOW_FULLSCREEN;
-	}
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-    // SRS - Current monitor fullscreen mode
-    else if( parms.fullScreen == -2 )
-    {
-        flags |= SDL_WINDOW_FULLSCREEN;
-    }
-    // SRS - Support basic borderless mode that can span multiple displays using explicit position / size for window
-    else if( parms.fullScreen == -1 )
-    {
-        flags |= SDL_WINDOW_BORDERLESS;
-    }
+        // SRS - For SDL2 set all non-zero modes to borderless first, then go to fullscreen later if required
+        // This works around some SDL2 oddities on linux regarding sticky sizing with fullscreen window creation
+		flags |= SDL_WINDOW_BORDERLESS;
+#else
+		flags |= SDL_WINDOW_FULLSCREEN;
 #endif
+	}
 
 	int colorbits = 24;
 	int depthbits = 24;
@@ -373,26 +371,39 @@ bool GLimp_Init( glimpParms_t parms )
 			continue;
 		}
 
+        // SRS - For fullscreen and current monitor modes switch to fullscreen after initial window creation
+        // This works around an SDL2 problem on linux where the initial fullscreen window size is sticky and
+        // resists resizing when switching back to windowed modes after launch
+        if( parms.fullScreen > 0 || parms.fullScreen == -2 )
+        {
+            if( SDL_SetWindowFullscreen( window, SDL_TRUE ) < 0 )
+            {
+                common->Warning( "Couldn't switch to fullscreen mode, reason: %s!", SDL_GetError() );
+            }
+            // SRS - When in fullscreen make sure the display refresh rate is set properly if specified
+            else if( parms.displayHz != 0 )
+            {
+                SDL_DisplayMode m = {0};
+                SDL_GetWindowDisplayMode( window, &m );
+
+                m.refresh_rate = parms.displayHz;
+                if( SDL_SetWindowDisplayMode( window, &m ) < 0 )
+                {
+                    common->Warning( "Couldn't set display refresh rate to %i Hz", parms.displayHz );
+                }
+            }
+        }
         // SRS - For bordered and borderless window modes move the window to the desired position after initial creation
         // This deferred positioning is to avoid problems with various window manager policies regarding window placement
         // Also supports the reserved value pair of ( parms.x == -1, parms.y == -1 ) for centered on monitor 1 (default)
         // Finally, ensure center of window is within bounds on the desktop, otherwise skip and leave centered on monitor 1
-        if( ( parms.fullScreen == 0 || parms.fullScreen == -1 ) && ( parms.x != -1 || parms.y != -1  ) && GetDisplayIndex( parms ) >= 0 )
+        else if( ( parms.x != -1 || parms.y != -1  ) && GetDisplayIndex( parms ) >= 0 )
         {
             SDL_SetWindowPosition( window, parms.x, parms.y );
         }
-        // SRS - If fullscreen is active make sure display refresh rate is set if specified
-        else if( parms.fullScreen > 0 && parms.displayHz != 0 )
-        {
-            SDL_DisplayMode m = {0};
-            SDL_GetWindowDisplayMode( window, &m );
 
-            m.refresh_rate = parms.displayHz;
-            if( SDL_SetWindowDisplayMode( window, &m ) < 0 )
-            {
-                common->Warning( "Couldn't set display refresh rate to %i Hz", parms.displayHz );
-            }
-        }
+        // SRS - If in a windowed mode, suppress cvar update for possible window move event at startup driven by window manager policies
+        ignoreNextMoveEvent = ( parms.fullScreen == 0 || parms.fullScreen == -1 );
 
 		if( SDL_GL_SetSwapInterval( r_swapInterval.GetInteger() ) < 0 )
 		{
@@ -405,8 +416,7 @@ bool GLimp_Init( glimpParms_t parms )
 
         // SRS - Detect and save actual fullscreen state supporting all modes (-2, -1, 0, 1, ...)
         glConfig.isFullscreen = ( SDL_GetWindowFlags( window ) & SDL_WINDOW_FULLSCREEN || parms.fullScreen == -1 ? parms.fullScreen : 0 );
-        glConfig.ignoreNextMoveEvent = false;
-        // SRS - Get the actual refresh rate for windowed and fullscreen modes
+        // SRS - Get the display refresh rate for windowed and fullscreen modes
         glConfig.displayFrequency = GetDisplayFrequency( parms );
 #else
 		glConfig.driverType = GLDRV_OPENGL3X;
@@ -576,11 +586,12 @@ static bool SetScreenParmsFullscreen( glimpParms_t parms )
 
 static bool SetScreenParmsWindowed( glimpParms_t parms )
 {
-	// SRS - if we're currently in fullscreen mode, we first need to disable that before setting window border, size, and position
+    // SRS - Suppress cvar update for next window move event caused by exiting fullscreen mode and/or changing the border
+    ignoreNextMoveEvent = true;
+
+    // SRS - if we're currently in fullscreen mode, we first need to disable that before setting window border, size, and position
 	if( SDL_GetWindowFlags( window ) & SDL_WINDOW_FULLSCREEN )
 	{
-        // SRS - Inform the SDL2 event handler to ignore the next window move event caused by exiting fullscreen mode
-        glConfig.ignoreNextMoveEvent = true;
 		if( SDL_SetWindowFullscreen( window, SDL_FALSE ) < 0 )
 		{
 			common->Warning( "Couldn't switch to windowed mode, reason: %s!", SDL_GetError() );
@@ -588,10 +599,10 @@ static bool SetScreenParmsWindowed( glimpParms_t parms )
 		}
     }
 
-    // SRS - Set window border based on fullscreen mode (off when in borderless mode -1, on otherwise)
-    SDL_SetWindowBordered( window, ( parms.fullScreen == -1 ? SDL_FALSE : SDL_TRUE ) );
+    // SRS - Set window border based on mode (on when in bordered window mode 0, off when in borderless window mode -1)
+    SDL_SetWindowBordered( window, ( parms.fullScreen == 0 ? SDL_TRUE : SDL_FALSE ) );
     SDL_SetWindowSize( window, parms.width, parms.height );
-    
+
     // SRS - Set window position supporting the reserved value pair of ( parms.x == -1, parms.y == -1 ) for centered on monitor 1
     // If can't find display index and center of window is out of bounds for the desktop, also move to centered on monitor 1
     if( ( parms.x == -1 && parms.y == -1 ) || GetDisplayIndex( parms ) < 0 )
@@ -641,7 +652,7 @@ bool GLimp_SetScreenParms( glimpParms_t parms )
 
     // SRS - Detect and save actual fullscreen state supporting all modes (-2, -1, 0, 1, ...)
     glConfig.isFullscreen = ( SDL_GetWindowFlags( window ) & SDL_WINDOW_FULLSCREEN || parms.fullScreen == -1 ? parms.fullScreen : 0 );
-    // SRS - Get the actual refresh rate for windowed and fullscreen modes
+    // SRS - Get the display refresh rate for windowed and fullscreen modes
     glConfig.displayFrequency = GetDisplayFrequency( parms );
 #else // SDL 1.2 - so much shorter, but doesn't handle multiple displays
 	SDL_Surface* s = SDL_GetVideoSurface();

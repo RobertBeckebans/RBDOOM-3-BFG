@@ -236,7 +236,6 @@ struct glconfig_t
 	int					displayFrequency;
 
 	int					isFullscreen;					// monitor number
-    bool                ignoreNextMoveEvent;			// SRS - flag instructing window event handler to ignore next move event
 	bool				isStereoPixelFormat;
 	bool				stereoPixelFormatAvailable;
 	int					multisamples;
