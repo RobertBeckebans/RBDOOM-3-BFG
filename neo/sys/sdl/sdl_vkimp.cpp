@@ -449,35 +449,28 @@ bool VKimp_Init( glimpParms_t parms )
 */
 static int ScreenParmsHandleDisplayIndex( glimpParms_t parms )
 {
+    // SRS - For reliable operation on all SDL2 platforms, disable fullscreen before monitor or mode switching
+    if( SDL_GetWindowFlags( window ) & SDL_WINDOW_FULLSCREEN )
+    {
+		// if we're already in fullscreen mode but want to switch to another monitor
+		// we have to go to windowed mode first to move the window.. SDL-oddity.
+		SDL_SetWindowFullscreen( window, SDL_FALSE );
+    }
+    
+    // SRS - Must call GetDisplayIndex() after exiting fullscreen or may get incorrect displayIdx when parms.fullScreen == -2
     int displayIdx = GetDisplayIndex( parms );
     if( displayIdx < 0 || displayIdx >= SDL_GetNumVideoDisplays() )
 	{
 		common->Warning( "Can't find display for r_fullscreen mode %i because window out of bounds or SDL2 only knows about %i display(s), falling back to display 1",
 						 parms.fullScreen, SDL_GetNumVideoDisplays() );
         displayIdx = 0;
-	}
-
-#if defined(__APPLE__)
-    // SRS - For reliable operation on OSX, disable fullscreen/reposition window before monitor or mode switching
-    if( parms.fullScreen != glConfig.isFullscreen || glConfig.isFullscreen )
-    {
-#else
-    // SRS - On linux, disable fullscreen/reposition window only before monitor switching
-	if( parms.fullScreen != glConfig.isFullscreen )
-	{
-#endif
-		// we have to switch to another display
-		if( glConfig.isFullscreen )
-		{
-			// if we're already in fullscreen mode but want to switch to another monitor
-			// we have to go to windowed mode first to move the window.. SDL-oddity.
-			SDL_SetWindowFullscreen( window, SDL_FALSE );
-		}
-		// select display ; SDL_WINDOWPOS_UNDEFINED_DISPLAY() doesn't work.
-        int x = SDL_WINDOWPOS_CENTERED_DISPLAY( displayIdx );
-        // move window to the center of selected display
-        SDL_SetWindowPosition( window, x, x );
-	}
+    }
+        
+    // select display ; SDL_WINDOWPOS_UNDEFINED_DISPLAY() doesn't work.
+    int x = SDL_WINDOWPOS_CENTERED_DISPLAY( displayIdx );
+    // move window to the center of selected display
+    SDL_SetWindowPosition( window, x, x );
+        
     return displayIdx;
 }
 
@@ -497,7 +490,7 @@ static bool SetScreenParmsFullscreen( glimpParms_t parms )
         SDL_GetCurrentDisplayMode( displayIdx, &m );
 
 		// FIXME: check if refreshrate, width and height are supported?
-        // SRS - Reenabled parms.displayHz - should defined by R_GetModeListForDisplay() unless set via r_displayRefresh (only for r_vidMode < 0)
+        // SRS - Reenabled parms.displayHz - should be defined by R_GetModeListForDisplay() unless set via r_displayRefresh (only for r_vidMode < 0)
 		m.refresh_rate = parms.displayHz;
 		m.w = parms.width;
 		m.h = parms.height;
@@ -529,7 +522,7 @@ static bool SetScreenParmsFullscreen( glimpParms_t parms )
 
 static bool SetScreenParmsWindowed( glimpParms_t parms )
 {
-    // SRS - Suppress cvar update for window move event caused by exiting fullscreen mode and/or changing the border
+    // SRS - Suppress cvar update for next window move event caused by exiting fullscreen mode and/or changing the border
     ignoreNextMoveEvent = true;
 
     // SRS - if we're currently in fullscreen mode, we first need to disable that before setting window border, size, and position
@@ -585,8 +578,6 @@ bool VKimp_SetScreenParms( glimpParms_t parms )
 	   
     // SRS - Must query actual window size vs using parms.width or parms.height which may be incorrect for fullscreen mode -2
     SDL_GetWindowSize( window, &glConfig.nativeScreenWidth, &glConfig.nativeScreenHeight );
-    // SRS - move mouse to upper left quadrant of changed window, helpful for monitor and mode changes
-    SDL_WarpMouseInWindow( window, glConfig.nativeScreenWidth / 4, glConfig.nativeScreenHeight / 4 );
 
     // SRS - Detect and save actual fullscreen state supporting all modes (-2, -1, 0, 1, ...)
     glConfig.isFullscreen = ( SDL_GetWindowFlags( window ) & SDL_WINDOW_FULLSCREEN || parms.fullScreen == -1 ? parms.fullScreen : 0 );
@@ -652,6 +643,9 @@ void VKimp_GrabInput( int flags )
 {
 	bool grab = flags & GRAB_ENABLE;
 
+    // SRS - Always grab mouse when in fullscreen mode, same as in Win32
+    grab = grab || SDL_GetWindowFlags( window ) & SDL_WINDOW_FULLSCREEN;
+    
 	if( grab && ( flags & GRAB_REENABLE ) )
 	{
 		grab = false;
