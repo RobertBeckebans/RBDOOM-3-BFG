@@ -169,7 +169,10 @@ void idMenuScreen_Shell_Resolution::ShowScreen( const mainMenuTransition_t trans
 	int viewIndex = 0;
 #if defined(_WIN32) || SDL_VERSION_ATLEAST(2, 0, 0)
     // SRS - Added Borderless Window mode r_fullscreen == -1
-    menuOptions.Alloc().Alloc() = "Borderless Window";
+    idStr bw_str;
+    bw_str.Append( va( "%s: ", "Borderless Window" ) );
+    bw_str.Append( va( "%4i x %4i", r_windowWidth.GetInteger(), r_windowHeight.GetInteger() ) );
+    menuOptions.Alloc().Alloc() = bw_str;
     optionData.Append( optionData_t( -1, 0 ) );
     if( originalOption.fullscreen == -1 )
     {
