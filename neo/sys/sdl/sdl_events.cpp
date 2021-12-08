@@ -1079,9 +1079,14 @@ sysEvent_t Sys_GetEvent()
 					int fullscreen = 0;
 					if( ! renderSystem->IsFullScreen() )
 					{
+#if SDL_VERSION_ATLEAST(2, 0, 0)
 						// this will be handled as "fullscreen on current window"
 						// r_fullscreen 1 means "fullscreen on first window" in d3 bfg
 						fullscreen = -2;
+#else
+                        // SRS - use r_fullscreen 1 since SDL1.2 doesn't know about multiple monitors
+                        fullscreen = 1;
+#endif
 					}
 					cvarSystem->SetCVarInteger( "r_fullscreen", fullscreen );
 					// DG end
