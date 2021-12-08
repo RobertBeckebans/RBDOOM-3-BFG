@@ -2415,7 +2415,11 @@ idRenderSystemLocal::IsFullScreen
 */
 bool idRenderSystemLocal::IsFullScreen() const
 {
+#if defined(_WIN32) || SDL_VERSION_ATLEAST(2, 0, 0)
+    return glConfig.isFullscreen != 0 && glConfig.isFullscreen != -1;
+#else
 	return glConfig.isFullscreen != 0;
+#endif
 }
 
 /*

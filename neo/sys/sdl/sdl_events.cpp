@@ -972,7 +972,7 @@ sysEvent_t Sys_GetEvent()
 						int h = ev.window.data2;
 
 						// SRS - Only save window resized events when in windowed modes
-						if( glConfig.isFullscreen == 0 || glConfig.isFullscreen == -1 )
+						if( ! renderSystem->IsFullScreen() )
 						{
 							r_windowWidth.SetInteger( w );
 							r_windowHeight.SetInteger( h );
@@ -992,7 +992,7 @@ sysEvent_t Sys_GetEvent()
 						int y = ev.window.data2;
 
                         // SRS - Only save window moved events when in windowed modes
-                        if( glConfig.isFullscreen == 0 || glConfig.isFullscreen == -1 )
+                        if( ! renderSystem->IsFullScreen() )
                         {
                             // SRS - If flag is set, ignore window moved event and don't update cvars
                             if( ignoreNextMoveEvent )
@@ -1056,7 +1056,7 @@ sysEvent_t Sys_GetEvent()
 				int h = ev.resize.h;
 
                 // SRS - Only save window resize events when in windowed mode
-                if( glConfig.isFullscreen == 0 )
+                if( ! renderSystem->IsFullScreen() )
                 {
                     r_windowWidth.SetInteger( w );
                     r_windowHeight.SetInteger( h );
