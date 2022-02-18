@@ -77,8 +77,8 @@ idCVar r_vidMode( "r_vidMode", "0", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_INTEGER,
 idCVar r_displayRefresh( "r_displayRefresh", "0", CVAR_RENDERER | CVAR_INTEGER | CVAR_NOCHEAT, "optional custom refresh rate. set r_vidMode to -1 to activate", 0.0f, 240.0f );
 #if defined(_WIN32) || SDL_VERSION_ATLEAST(2, 0, 0)
 	// DG: add mode -2 for SDL, also defaulting to windowed mode, as that causes less trouble on linux
-    // SRS - added mode -1 borderless windowed, also added support for mode -2 on Windows
-	idCVar r_fullscreen( "r_fullscreen", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "-2 = fullscreen on current monitor, -1 = borderless windowed, 0 = windowed, 1 = full screen on monitor 1, 2 = full screen on monitor 2, etc" );
+    // SRS - added mode -1 custom (multi-monitor) borderless window, changed mode -2 to be fullscreen borderless window, added support for modes -1 and -2 on Windows
+	idCVar r_fullscreen( "r_fullscreen", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "-2 = fullscreen borderless window, -1 = custom borderless window, 0 = bordered window, 1 = fullscreen on monitor 1, 2 = fullscreen on monitor 2, etc" );
 	// DG end
 #else
     idCVar r_fullscreen( "r_fullscreen", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "0 = windowed, 1 = full screen on monitor 1, 2 = full screen on monitor 2, etc" );
@@ -339,8 +339,8 @@ const char* skyDirection[6] = { "_forward", "_back", "_left", "_right", "_up", "
 =============================
 R_SetNewMode
 
-r_fullscreen -2     fullscreen on current monitor using desktop settings
-r_fullScreen -1		borderless window at exact desktop coordinates
+r_fullscreen -2     fullscreen borderless window on current monitor using desktop settings
+r_fullScreen -1		custom (multi-monitor) borderless window at exact desktop coordinates
 r_fullScreen 0		bordered window at exact desktop coordinates
 r_fullScreen 1		fullscreen on monitor 1 at r_vidMode
 r_fullScreen 2		fullscreen on monitor 2 at r_vidMode
@@ -380,7 +380,7 @@ void R_SetNewMode( const bool fullInit )
 			parms.y = r_windowY.GetInteger();
 			parms.width = r_windowWidth.GetInteger();
 			parms.height = r_windowHeight.GetInteger();
-			// may still be -1 to force a borderless window, or -2 for fullscreen on current monitor at desktop resolution
+			// may still be -1 to force a custom borderless window, or -2 for fullscreen borderless window on current monitor at desktop resolution
 			parms.fullScreen = r_fullscreen.GetInteger();
 			parms.displayHz = 0;		// ignored
 		}
@@ -1479,10 +1479,10 @@ void GfxInfo_f( const idCmdArgs& args )
 
 	const char* fsstrings[] =
 	{
-        "current monitor",      // == -2
-        "borderless window",    // == -1
-		"bordered window",      // ==  0
-		"fullscreen"            // >=  1
+        "fullscreen borderless window",	// == -2
+        "custom borderless window",		// == -1
+		"bordered window",				// ==  0
+		"fullscreen"					// >=  1
 	};
 
 	common->Printf( "\nGL_VENDOR: %s\n", glConfig.vendor_string );

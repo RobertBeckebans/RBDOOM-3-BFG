@@ -625,22 +625,15 @@ idSWFScriptVar idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings
 				return "#str_swf_disabled";
 			}
 #if defined(_WIN32) || SDL_VERSION_ATLEAST(2, 0, 0)
-            // SRS - Added Borderless Window mode r_fullscreen == -1
+            // SRS - Added custom borderless window mode r_fullscreen == -1
             if( fullscreen == -1 )
             {
-                return "Borderless Window";
+                return "Custom Borderless";
             }
-            // SRS - Added Current Monitor mode r_fullscreen == -2
+            // SRS - Added fullscreen borderless window mode r_fullscreen == -2
             if( fullscreen == -2 )
             {
-                if( glConfig.displayFrequency == 60 || glConfig.displayFrequency == 0 )
-                {
-                    return va( "%4i x %4i", glConfig.nativeScreenWidth, glConfig.nativeScreenHeight );
-                }
-                else
-                {
-                    return va( "%4i x %4i @ %dhz", glConfig.nativeScreenWidth, glConfig.nativeScreenHeight, glConfig.displayFrequency );
-                }
+				return "Borderless Window";
             }
             // SRS end
 #endif

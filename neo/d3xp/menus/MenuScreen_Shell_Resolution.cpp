@@ -168,32 +168,10 @@ void idMenuScreen_Shell_Resolution::ShowScreen( const mainMenuTransition_t trans
 
 	int viewIndex = 0;
 #if defined(_WIN32) || SDL_VERSION_ATLEAST(2, 0, 0)
-    // SRS - Added Borderless Window mode r_fullscreen == -1
+    // SRS - Added fullscreen borderless window mode r_fullscreen == -2
     idStr bw_str;
-    bw_str.Append( va( "%s: ", "Borderless Window" ) );
-    bw_str.Append( va( "%4i x %4i", r_windowWidth.GetInteger(), r_windowHeight.GetInteger() ) );
+    bw_str.Append( va( "%s", "Borderless Window" ) );
     menuOptions.Alloc().Alloc() = bw_str;
-    optionData.Append( optionData_t( -1, 0 ) );
-    if( originalOption.fullscreen == -1 )
-    {
-        viewIndex = menuOptions.Num() - 1;
-    }
-    // SRS - Added Current Monitor mode r_fullscreen == -2
-    idStr cm_str;
-    cm_str.Append( va( "%s: ", "Current Monitor" ) );
-    if( glConfig.isFullscreen != -2 )
-    {
-        cm_str.Append( va( "%s", "Desktop Settings" ) );
-    }
-    else
-    {
-        cm_str.Append( va( "%4i x %4i", glConfig.nativeScreenWidth, glConfig.nativeScreenHeight ) );
-        if( glConfig.displayFrequency != 60 && glConfig.displayFrequency != 0 )
-        {
-            cm_str.Append( va( " @ %dhz", glConfig.displayFrequency ) );
-        }
-    }
-    menuOptions.Alloc().Alloc() = cm_str;
     optionData.Append( optionData_t( -2, 0 ) );
     if( originalOption.fullscreen == -2 )
     {
@@ -318,10 +296,10 @@ bool idMenuScreen_Shell_Resolution::HandleAction( idWidgetAction& action, const 
 					// No change
 					menuData->SetNextScreen( SHELL_AREA_SYSTEM_OPTIONS, MENU_TRANSITION_SIMPLE );
 				}
-                // SRS - Add support for borderless window (-1) and current monitor (-2) modes
+                // SRS - Add support for custom borderless window (-1) and fullscreen borderless window (-2) modes
 				else if( currentOption.fullscreen <= 0 )
 				{
-					// Changing to windowed, borderless window, or current monitor mode
+					// Changing to windowed, custom borderless, or fullscreen borderless mode
 					r_fullscreen.SetInteger( currentOption.fullscreen );
 					cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "vid_restart\n" );
 					menuData->SetNextScreen( SHELL_AREA_SYSTEM_OPTIONS, MENU_TRANSITION_SIMPLE );

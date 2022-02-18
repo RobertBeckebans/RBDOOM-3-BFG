@@ -968,12 +968,11 @@ bool R_GetModeListForDisplay( const int requestedDisplayNum, idList<vidMode_t>& 
 			{
 				continue;
 			}
-            /* SRS - Don't need to restrict display refresh rates, so why was this here?
-			if( ( devmode.dmDisplayFrequency != 60 ) && ( devmode.dmDisplayFrequency != 120 ) )
+            // SRS - Based on feedback from RB, added 144 Hz to the set of filtered refresh frequencies (60, 120, 144 Hz)
+			if( ( devmode.dmDisplayFrequency != 60 ) && ( devmode.dmDisplayFrequency != 120 ) && ( devmode.dmDisplayFrequency != 144 ) )
 			{
 				continue;
 			}
-            */
 			if( devmode.dmPelsHeight < 720 )
 			{
 				continue;
@@ -1023,7 +1022,7 @@ static int GetDisplayNum( glimpParms_t parms )
 	{
 		displayNum = parms.fullScreen - 1; // first display for Windows is 0, in parms it's 1
 	}
-	else // 0, -1, -2 == use current display
+	else // 0, -1, -2 == windowed modes
 	{
 		// SRS - Support the reserved value pair of ( parms.x == -1, parms.y == -1 ) for centered on monitor 1 (display 0)
 		if( parms.x != -1 || parms.y != -1 )
@@ -1097,7 +1096,7 @@ static bool GLW_GetWindowDimensions( const glimpParms_t parms, int& x, int& y, i
 
 		if( parms.fullScreen == -1 )
 		{
-			// borderless window at specific location, as for spanning
+			// custom borderless window at specific location, as for spanning
 			// multiple monitor outputs
 			x = parms.x + offsetX;  // SRS - Apply offsets for centering window if enabled
 			y = parms.y + offsetY;
@@ -1270,19 +1269,11 @@ static bool GLW_ChangeDislaySettingsIfNeeded( glimpParms_t parms )
 		Sys_Sleep( 1000 ); // Give the driver some time to think about this change
 	}
 
-	// 0 is dragable mode on desktop, -1 is borderless window on desktop, -2 is fullscreen on current monitor at desktop resolution
+	// 0 is dragable mode on desktop, -1 is custom borderless window on desktop, -2 is fullscreen borderless window on current monitor at desktop resolution
 	if( parms.fullScreen <= 0 )
 	{
-		// SRS - For current monitor mode, set negative value (-2) to skip next settings reset and enable fullscreen mode input handling (i.e. mouse, ALT-tab)
-		if( parms.fullScreen == -2 )
-		{
-			win32.cdsFullscreen = -2;
-		}
-		// Otherwise set zero value to skip next settings reset and enable windowed mode input handling (i.e. mouse, ALT-tab)
-		else
-		{
-			win32.cdsFullscreen = 0;
-		}
+		// SRS - Set zero value to skip next settings reset and enable windowed mode input handling (i.e. mouse, ALT-tab)
+		win32.cdsFullscreen = 0;
 		return true;
 	}
 
@@ -1295,8 +1286,8 @@ static bool GLW_ChangeDislaySettingsIfNeeded( glimpParms_t parms )
 	}
 	if( width == parms.width && height == parms.height && ( displayHz == parms.displayHz || parms.displayHz == 0 ) )
 	{
-		// SRS - Set negative value (-2) to skip next settings reset and enable fullscreen mode input handling (i.e. mouse, ALT-tab)
-		win32.cdsFullscreen = -2;
+		// SRS - Set negative value (-1) to skip next settings reset and enable fullscreen mode input handling (i.e. mouse, ALT-tab)
+		win32.cdsFullscreen = -1;
 		return true;
 	}
 
@@ -1446,7 +1437,7 @@ bool GLimp_Init( glimpParms_t parms )
 	glConfig.isFullscreen = parms.fullScreen;
 	glConfig.isStereoPixelFormat = parms.stereo;
 
-	// SRS - For current monitor mode == -2 need to get actual window dimensions
+	// SRS - For fullscreen borderless windowed mode == -2 need to use actual display dimensions
 	if( parms.fullScreen == -2 )
 	{
 		int x, y, w, h;
@@ -1548,7 +1539,7 @@ bool GLimp_SetScreenParms( glimpParms_t parms )
 	glConfig.isFullscreen = parms.fullScreen;
 	glConfig.pixelAspect = 1.0f;	// FIXME: some monitor modes may be distorted
 
-	// SRS - For current monitor mode == -2 need to use actual window dimensions
+	// SRS - For fullscreen borderless windowed mode == -2 need to use actual display dimensions
 	if( parms.fullScreen == -2 )
 	{
 		glConfig.nativeScreenWidth = w;
