@@ -2089,7 +2089,10 @@ void idPlayer::Spawn()
 	playerView.SetPlayerEntity( this );
 
 	// supress model in non-player views, but allow it in mirrors and remote views
-	renderEntity.suppressSurfaceInViewID = entityNumber + 1;
+	if( !pm_fullBodyAwareness.GetBool() || pm_thirdPerson.GetBool() )
+	{
+		renderEntity.suppressSurfaceInViewID = entityNumber + 1;
+	}
 
 	// don't project shadow on self or weapon
 	renderEntity.noSelfShadow = true;
@@ -6933,7 +6936,7 @@ void idPlayer::BobCycle( const idVec3& pushVelocity )
 	// calculate position for view bobbing
 	viewBob.Zero();
 
-	if( physicsObj.HasSteppedUp() )
+	if( ( !pm_fullBodyAwareness.GetBool() || pm_thirdPerson.GetBool() ) && physicsObj.HasSteppedUp() )
 	{
 
 		// check for stepping up before a previous step is completed
@@ -6955,11 +6958,14 @@ void idPlayer::BobCycle( const idVec3& pushVelocity )
 
 	idVec3 gravity = physicsObj.GetGravityNormal();
 
-	// if the player stepped up recently
-	deltaTime = gameLocal.time - stepUpTime;
-	if( deltaTime < STEPUP_TIME )
+	if( !pm_fullBodyAwareness.GetBool() || pm_thirdPerson.GetBool() )
 	{
-		viewBob += gravity * ( stepUpDelta * ( STEPUP_TIME - deltaTime ) / STEPUP_TIME );
+		// if the player stepped up recently
+		deltaTime = gameLocal.time - stepUpTime;
+		if( deltaTime < STEPUP_TIME )
+		{
+			viewBob += gravity * ( stepUpDelta * ( STEPUP_TIME - deltaTime ) / STEPUP_TIME );
+		}
 	}
 
 	// add bob height after any movement smoothing
@@ -8823,6 +8829,15 @@ Called every tic for each player
 */
 void idPlayer::Think()
 {
+	if( !pm_fullBodyAwareness.GetBool() || pm_thirdPerson.GetBool() )
+	{
+		renderEntity.suppressSurfaceInViewID = entityNumber + 1;
+	}
+	else
+	{
+		renderEntity.suppressSurfaceInViewID = 0;
+	}
+
 	playedTimeResidual += ( gameLocal.time - gameLocal.previousTime );
 	playedTimeSecs += playedTimeResidual / 1000;
 	playedTimeResidual = playedTimeResidual % 1000;
@@ -10515,7 +10530,7 @@ void idPlayer::GetViewPos( idVec3& origin, idMat3& axis ) const
 	idAngles angles;
 
 	// if dead, fix the angle and don't add any kick
-	if( health <= 0 )
+	if( ( !pm_fullBodyAwareness.GetBool() || pm_thirdPerson.GetBool() ) && health <= 0 )
 	{
 		angles.yaw = viewAngles.yaw;
 		angles.roll = 40;
@@ -10546,30 +10561,63 @@ idPlayer::CalculateFirstPersonView
 */
 void idPlayer::CalculateFirstPersonView()
 {
-	if( ( pm_modelView.GetInteger() == 1 ) || ( ( pm_modelView.GetInteger() == 2 ) && ( health <= 0 ) ) )
+	if( !pm_fullBodyAwareness.GetBool() || pm_thirdPerson.GetBool() )
 	{
-		//	Displays the view from the point of view of the "camera" joint in the player model
+		if( ( pm_modelView.GetInteger() == 1 ) || ( ( pm_modelView.GetInteger() == 2 ) && ( health <= 0 ) ) )
+		{
+			//	Displays the view from the point of view of the "camera" joint in the player model
 
-		idMat3 axis;
-		idVec3 origin;
-		idAngles ang;
+			idMat3 axis;
+			idVec3 origin;
+			idAngles ang;
 
-		ang = viewBobAngles + playerView.AngleOffset();
-		ang.yaw += viewAxis[ 0 ].ToYaw();
+			ang = viewBobAngles + playerView.AngleOffset();
+			ang.yaw += viewAxis[ 0 ].ToYaw();
 
-		jointHandle_t joint = animator.GetJointHandle( "camera" );
-		animator.GetJointTransform( joint, gameLocal.time, origin, axis );
-		firstPersonViewOrigin = ( origin + modelOffset ) * ( viewAxis * physicsObj.GetGravityAxis() ) + physicsObj.GetOrigin() + viewBob;
-		firstPersonViewAxis = axis * ang.ToMat3() * physicsObj.GetGravityAxis();
+			jointHandle_t joint = animator.GetJointHandle( "camera" );
+			animator.GetJointTransform( joint, gameLocal.time, origin, axis );
+			firstPersonViewOrigin = ( origin + modelOffset ) * ( viewAxis * physicsObj.GetGravityAxis() ) + physicsObj.GetOrigin() + viewBob;
+			firstPersonViewAxis = axis * ang.ToMat3() * physicsObj.GetGravityAxis();
+		}
+		else
+		{
+			// offset for local bobbing and kicks
+			GetViewPos( firstPersonViewOrigin, firstPersonViewAxis );
+#if 0
+			// shakefrom sound stuff only happens in first person
+			firstPersonViewAxis = firstPersonViewAxis * playerView.ShakeAxis();
+#endif
+		}
 	}
 	else
 	{
-		// offset for local bobbing and kicks
-		GetViewPos( firstPersonViewOrigin, firstPersonViewAxis );
-#if 0
-		// shakefrom sound stuff only happens in first person
-		firstPersonViewAxis = firstPersonViewAxis * playerView.ShakeAxis();
-#endif
+		if( af.IsActive() )
+		{
+			idAFBody* head = af.GetPhysics()->GetBody( "head" );
+			if( head )
+			{
+				firstPersonViewOrigin = head->GetWorldOrigin();
+				firstPersonViewAxis = head->GetWorldAxis();
+			}
+		}
+		else
+		{
+			idMat3 axis;
+			idVec3 origin;
+			GetViewPos( firstPersonViewOrigin, firstPersonViewAxis );
+
+			if( health > 0 )
+			{
+				// rotate chest
+				idAngles ang = firstPersonViewAxis.ToAngles();
+				ang.yaw = playerView.AngleOffset().yaw;
+				animator.SetJointAxis( animator.GetJointHandle( "Chest" ), JOINTMOD_WORLD, ang.ToMat3() );
+			}
+
+			// position camera at head
+			animator.GetJointTransform( animator.GetJointHandle( "Head" ), gameLocal.time, origin, axis );
+			firstPersonViewOrigin = ( origin + modelOffset ) * ( viewAxis * physicsObj.GetGravityAxis() ) + physicsObj.GetOrigin() + viewBob;
+		}
 	}
 }
 
@@ -12292,6 +12340,11 @@ idPlayer::CanShowWeaponViewmodel
 */
 bool idPlayer::CanShowWeaponViewmodel() const
 {
+	if( pm_fullBodyAwareness.GetBool() && !pm_thirdPerson.GetBool() )
+	{
+		return false;
+	}
+
 	return ui_showGun.GetBool();
 }
 
