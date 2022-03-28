@@ -69,6 +69,10 @@ option(USE_SYSTEM_LIBGLEW
 option(USE_SYSTEM_RAPIDJSON
                 "Use the system rapidjson instead of the bundled one" OFF)
 
+option(USE_SYSTEM_IMGUI
+                "Use the system imgui instead of the bundled one" OFF)
+
+
 set(CPU_TYPE "" CACHE STRING "When set, passes this string as CPU-ID which will be embedded into the binary.")
 
 # SRS - Turn on optimization when cross-compiling from Apple arm64 to x86_64
@@ -355,6 +359,18 @@ else (JPEG_FOUND)
 endif (JPEG_FOUND)
 
 
+if (USE_SYSTEM_IMGUI)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(IMGUI REQUIRED imgui)
+endif()
+
+if(IMGUI_FOUND)
+    include_directories(${IMGUI_INCLUDE_DIRS})
+else()
+    include_directories("libs/imgui/../")
+    set(IMGUI_LIBRARIES "")
+endif()
+
 macro(SET_OPTION option value)
   set(${option} ${value} CACHE "" INTERNAL FORCE)
 endmacro()
@@ -481,7 +497,6 @@ else (RAPIDJSON_FOUND)
 endif (RAPIDJSON_FOUND)
 
 
-	
 add_subdirectory(idlib)
 
 file(GLOB AAS_INCLUDES aas/*.h)
@@ -534,8 +549,13 @@ file(GLOB SHADERS_BUILTIN_VR ../base/renderprogs/builtin/VR/*.hlsl )
 file(GLOB IRRXML_INCLUDES libs/irrxml/src/*.h)
 file(GLOB IRRXML_SOURCES libs/irrxml/src/*.cpp)
 
-file(GLOB IMGUI_INCLUDES libs/imgui/*.h)
-file(GLOB IMGUI_SOURCES libs/imgui/*.cpp)
+if(NOT USE_SYSTEM_IMGUI)
+    file(GLOB IMGUI_INCLUDES libs/imgui/*.h)
+    file(GLOB IMGUI_SOURCES libs/imgui/*.cpp)
+else()
+    set(IMGUI_INCLUDES "")
+    set(IMGUI_SOURCES "")
+endif()
 
 file(GLOB STB_INCLUDES libs/stb/*.h)
 
@@ -1860,6 +1880,7 @@ else()
             ${PNG_LIBRARY}
             ${JPEG_LIBRARY}
             ${GLEW_LIBRARY}
+            ${IMGUI_LIBRARIES}
 	    	${CMAKE_DL_LIBS}
 			)
 	endif()
