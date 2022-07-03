@@ -133,7 +133,7 @@ public:
 		return texSize;
 	}
 
-	void					ConvertToValve220Format( const idMat4& entityTransform );
+	void					ConvertToValve220Format( const idMat4& entityTransform, idStrList& textureCollections );
 	// RB end
 
 protected:
@@ -142,6 +142,7 @@ protected:
 	idVec3					texMat[2];
 	idVec3					origin;
 
+public:
 	// RB
 	idVec3					planepts[ 3 ]; // for writing back original planepts
 	ProjectionType			projection;
@@ -484,6 +485,9 @@ public:
 	bool					WriteJSON( const char* fileName, const char* ext, bool fromBasePath = true );
 	bool					ConvertToPolygonMeshFormat();
 	bool					ConvertToValve220Format();
+
+	// converts Wad texture names to valid Doom 3 materials and gives every entity a unique name
+	bool					ConvertQuakeToDoom();
 	// RB end
 
 	// get the number of entities in the map
@@ -516,8 +520,8 @@ public:
 	bool					NeedsReload();
 
 	int						AddEntity( idMapEntity* mapentity );
-	idMapEntity* 			FindEntity( const char* name );
-	idMapEntity*			FindEntityAtOrigin( const idVec3& org ); // RB
+	idMapEntity* 			FindEntity( const char* name ) const;
+	idMapEntity*			FindEntityAtOrigin( const idVec3& org ) const; // RB
 	void					RemoveEntity( idMapEntity* mapEnt );
 	void					RemoveEntities( const char* classname );
 	void					RemoveAllEntities();
@@ -526,6 +530,9 @@ public:
 	{
 		return hasPrimitiveData;
 	}
+
+	static void				AddMaterialToCollection( const char* material, idStrList& textureCollections );
+	static void				WadTextureToMaterial( const char* material, idStr& matName );
 
 protected:
 	float					version;
@@ -538,6 +545,7 @@ protected:
 
 private:
 	void					SetGeometryCRC();
+	const char*				GetUniqueEntityName( const char* classname ) const; // RB
 };
 
 ID_INLINE idMapFile::idMapFile()

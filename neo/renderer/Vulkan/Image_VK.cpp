@@ -78,6 +78,7 @@ static VkFormat VK_GetFormatFromTextureFormat( const textureFormat_t format )
 		case FMT_DXT5:
 			return VK_FORMAT_BC3_UNORM_BLOCK;
 		case FMT_DEPTH:
+		case FMT_DEPTH_STENCIL:
 			return vkcontext.depthFormat;
 		case FMT_X16:
 			return VK_FORMAT_R16_UNORM;
@@ -267,7 +268,7 @@ void idImage::CreateSampler()
 			if( r_maxAnisotropicFiltering.GetInteger() > 0 )
 			{
 				createInfo.anisotropyEnable = VK_TRUE;
-				createInfo.maxAnisotropy = r_maxAnisotropicFiltering.GetInteger();
+				createInfo.maxAnisotropy = Min( r_maxAnisotropicFiltering.GetFloat(), vkcontext.gpu->props.limits.maxSamplerAnisotropy );
 			}
 			break;
 
@@ -492,17 +493,6 @@ void idImage::CopyDepthbuffer( int x, int y, int imageWidth, int imageHeight )
 }
 
 
-
-/*
-========================
-idImage::SetPixel
-========================
-*/
-void idImage::SetPixel( int mipLevel, int x, int y, const void* data, int dataSize )
-{
-	SubImageUpload( mipLevel, x, y, 0, 1, 1, data );
-}
-
 /*
 ========================
 idImage::SetTexParameters
@@ -716,6 +706,22 @@ void idImage::SubImageUpload( int mipLevel, int x, int y, int z, int width, int 
 			data[ i + 1 ] = byte( hdr[1] * 255 );
 			data[ i + 2 ] = byte( hdr[2] * 255 );
 			data[ i + 3 ] = 255;
+		}
+	}
+#endif
+#if defined(__APPLE__) && defined(USE_BINKDEC)
+	else if( opts.format == FMT_LUM8 && ( imgName == "_cinematicCr" || imgName == "_cinematicCb" ) )
+	{
+		// SRS - When decoding YUV420 cinematics on OSX, copy and duplicate individual rows of half-height chroma planes into full-height planes
+		// This works around a stall that occurs with half-height planes when exiting levels or after demo playback (possible issue in MoltenVK??)
+		// ***IMPORTANT - Assumes that SubImageUpload() has been called with half-width and full-height parameters and a packed pic buffer ***
+		byte* imgData = ( byte* )pic;
+		int evenRow;
+		for( int i = 0; i < size / 2; i++ )
+		{
+			evenRow = ( i / width ) * 2;
+			data[ evenRow * width + i % width ] = imgData[ i ];            // SRS - Copy image data into even-numbered rows of new chroma plane
+			data[( evenRow + 1 ) * width + i % width ] = imgData[ i ];     // SRS - Duplicate image data into odd-numbered rows of new chroma plane
 		}
 	}
 #endif

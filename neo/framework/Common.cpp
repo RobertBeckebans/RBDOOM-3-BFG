@@ -931,8 +931,8 @@ void idCommonLocal::RenderBink( const char* path )
 	material->Parse( materialText.c_str(), materialText.Length(), false );
 	material->ResetCinematicTime( Sys_Milliseconds() );
 
-	// RB: FFmpeg might return the wrong play length so I changed the intro video to play max 30 seconds until finished
-	int cinematicLength = 30000; //material->CinematicLength();
+	// SRS - Restored original calculation after implementing idCinematicLocal::GetStartTime() and fixing animationLength in idCinematicLocal::InitFromBinkDecFile()
+	int cinematicLength = material->CinematicLength();
 	int	mouseEvents[MAX_MOUSE_EVENTS][2];
 
 	bool escapeEvent = false;
@@ -1571,10 +1571,6 @@ void idCommonLocal::Shutdown()
 	printf( "uiManager->Shutdown();\n" );
 	uiManager->Shutdown();
 
-	// shut down the sound system
-	printf( "soundSystem->Shutdown();\n" );
-	soundSystem->Shutdown();
-
 	// shut down the user command input code
 	printf( "usercmdGen->Shutdown();\n" );
 	usercmdGen->Shutdown();
@@ -1584,8 +1580,15 @@ void idCommonLocal::Shutdown()
 	eventLoop->Shutdown();
 
 	// shutdown the decl manager
+	// SRS - Note this also shuts down all cinematic resources, including cinematic audio voices
 	printf( "declManager->Shutdown();\n" );
 	declManager->Shutdown();
+
+	// shut down the sound system
+	// SRS - Shut down sound system after decl manager so cinematic audio voices are destroyed first
+	// Important for XAudio2 where the mastering voice cannot be destroyed if any other voices exist
+	printf( "soundSystem->Shutdown();\n" );
+	soundSystem->Shutdown();
 
 	// shut down the renderSystem
 	printf( "renderSystem->Shutdown();\n" );

@@ -229,7 +229,7 @@ static void R_DepthImage( idImage* image )
 #else
 	int msaaSamples = 0;
 #endif
-	image->GenerateImage( NULL, renderSystem->GetWidth(), renderSystem->GetHeight(), TF_NEAREST, TR_CLAMP, TD_DEPTH );//, msaaSamples );
+	image->GenerateImage( NULL, renderSystem->GetWidth(), renderSystem->GetHeight(), TF_NEAREST, TR_CLAMP, TD_DEPTH_STENCIL );//, msaaSamples );
 	// RB end
 }
 
@@ -272,7 +272,7 @@ static void R_EnvprobeImage_HDR( idImage* image )
 
 static void R_EnvprobeImage_Depth( idImage* image )
 {
-	image->GenerateImage( NULL, ENVPROBE_CAPTURE_SIZE, ENVPROBE_CAPTURE_SIZE, TF_NEAREST, TR_CLAMP, TD_DEPTH );
+	image->GenerateImage( NULL, ENVPROBE_CAPTURE_SIZE, ENVPROBE_CAPTURE_SIZE, TF_NEAREST, TR_CLAMP, TD_DEPTH_STENCIL );
 }
 
 static void R_SMAAImage_ResNative( idImage* image )
@@ -294,7 +294,23 @@ static void R_HierarchicalZBufferImage_ResNative( idImage* image )
 {
 	image->GenerateImage( NULL, renderSystem->GetWidth(), renderSystem->GetHeight(), TF_NEAREST_MIPMAP, TR_CLAMP, TD_R32F );
 }
+
+static void R_R8Image_ResNative_Linear( idImage* image )
+{
+	image->GenerateImage( NULL, renderSystem->GetWidth(), renderSystem->GetHeight(), TF_LINEAR, TR_CLAMP, TD_LOOKUP_TABLE_MONO );
+}
 // RB end
+
+static void R_HDR_RGBA8Image_ResNative( idImage* image )
+{
+	// FIXME
+#if defined(USE_HDR_MSAA)
+	int msaaSamples = glConfig.multisamples;
+#else
+	int msaaSamples = 0;
+#endif
+	image->GenerateImage( NULL, renderSystem->GetWidth(), renderSystem->GetHeight(), TF_NEAREST, TR_CLAMP, TD_LOOKUP_TABLE_RGBA ); //, msaaSamples );
+}
 
 static void R_AlphaNotchImage( idImage* image )
 {
@@ -922,18 +938,11 @@ static void R_CreateImGuiFontImage( idImage* image )
 	int width, height;
 	io.Fonts->GetTexDataAsRGBA32( &pixels, &width, &height ); // Load as RGBA 32-bits for OpenGL3 demo because it is more likely to be compatible with user's existing shader.
 
-	/*
-	glGenTextures( 1, &g_FontTexture );
-	glBindTexture( GL_TEXTURE_2D, g_FontTexture );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels );
-	*/
-
 	image->GenerateImage( ( byte* )pixels, width, height, TF_LINEAR, TR_CLAMP, TD_LOOKUP_TABLE_RGBA );
 
 	// Store our identifier
-	io.Fonts->TexID = ( void* )( intptr_t )image->GetImGuiTextureID();
+	//io.Fonts->TexID = ( void* )( intptr_t )image->GetImGuiTextureID();
+	io.Fonts->TexID = ( void* )( intptr_t )declManager->FindMaterial( "_imguiFont" );
 
 	// Cleanup (don't clear the input data if you want to append new fonts later)
 	//io.Fonts->ClearInputData();

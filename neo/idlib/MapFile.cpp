@@ -3,7 +3,8 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2015-2021 Robert Beckebans
+Copyright (C) 2015-2022 Robert Beckebans
+Copyright (C) 2020 Admer (id Tech Fox)
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -133,8 +134,13 @@ inline bool BrushPrimitive_Degenerate( const idVec3& bpTexMatX, const idVec3& bp
 }
 
 // heavily inspired by Valve220_from_BP from Netradiant-custom
-void idMapBrushSide::ConvertToValve220Format( const idMat4& entityTransform )
+void idMapBrushSide::ConvertToValve220Format( const idMat4& entityTransform, idStrList& textureCollections )
 {
+	if( projection == idMapBrushSide::PROJECTION_VALVE220 )
+	{
+		return;
+	}
+
 	// create p1, p2, p3
 	idVec3 forward = plane.Normal();
 	idVec3 p1 = forward * plane.Dist();
@@ -192,7 +198,7 @@ void idMapBrushSide::ConvertToValve220Format( const idMat4& entityTransform )
 		texValve[i].Normalize();
 	}
 
-	//material = "enpro/enwall16";
+	idMapFile::AddMaterialToCollection( GetMaterial(), textureCollections );
 
 	const idMaterial* material = declManager->FindMaterial( GetMaterial() );
 
@@ -213,6 +219,16 @@ void idMapBrushSide::ConvertToValve220Format( const idMat4& entityTransform )
 	// these shift scale rot values are to be understood in the local axis base
 	texScale[0] = 1.0f / idMath::Sqrt( localMat[0][0] * localMat[0][0] + localMat[1][0] * localMat[1][0] );
 	texScale[1] = 1.0f / idMath::Sqrt( localMat[0][1] * localMat[0][1] + localMat[1][1] * localMat[1][1] );
+
+	if( IsNAN( texScale[0] ) )
+	{
+		texScale[0] = 0.5f;
+	}
+
+	if( IsNAN( texScale[1] ) )
+	{
+		texScale[1] = 0.5f;
+	}
 
 	if( texMat[0][0] < idMath::FLOAT_EPSILON )
 	{
@@ -710,7 +726,7 @@ idMapBrush* idMapBrush::ParseValve220( idLexer& src, const idVec3& origin )
 				!src.Parse1DMatrix( 3, planepts[1].ToFloatPtr() ) ||
 				!src.Parse1DMatrix( 3, planepts[2].ToFloatPtr() ) )
 		{
-			src.Error( "idMapBrush::ParseQ3: unable to read brush side plane definition" );
+			src.Error( "idMapBrush::ParseValve220: unable to read brush side plane definition" );
 			sides.DeleteContents( true );
 			return NULL;
 		}
@@ -729,13 +745,55 @@ idMapBrush* idMapBrush::ParseValve220( idLexer& src, const idVec3& origin )
 		// read the material
 		if( !src.ReadTokenOnLine( &token ) )
 		{
-			src.Error( "idMapBrush::ParseQ3: unable to read brush side material" );
+			src.Error( "idMapBrush::ParseValve220: unable to read brush side material" );
 			sides.DeleteContents( true );
 			return NULL;
 		}
 
+		idToken matPrefix;
+		idToken numberToken;
+		if( token == "*" || token == "+" || token.type == TT_NUMBER )
+		{
+			// RB: try again for Quake 1 maps
+
+			matPrefix = token;
+
+			if( token == "+" )
+			{
+				if( !src.ReadTokenOnLine( &numberToken ) )
+				{
+					src.Error( "idMapBrush::ParseValve220: unable to read brush side material" );
+					sides.DeleteContents( true );
+					return NULL;
+				}
+
+				if( numberToken.type == TT_NUMBER )
+				{
+					if( !src.ReadTokenOnLine( &token ) )
+					{
+						src.Error( "idMapBrush::ParseValve220: unable to read brush side material" );
+						sides.DeleteContents( true );
+						return NULL;
+					}
+				}
+			}
+			else if( !src.ReadTokenOnLine( &token ) )
+			{
+				src.Error( "idMapBrush::ParseValve220: unable to read brush side material" );
+				sides.DeleteContents( true );
+				return NULL;
+			}
+		}
+
 		// we have an implicit 'textures/' in the old format
-		side->material = "textures/" + token;
+		if( numberToken.type == TT_NUMBER )
+		{
+			side->material = "textures/" + numberToken + token;
+		}
+		else
+		{
+			side->material = "textures/" + token;
+		}
 		side->projection = idMapBrushSide::PROJECTION_VALVE220;
 
 		for( int axis = 0; axis < 2; axis++ )
@@ -1421,6 +1479,8 @@ unsigned int idMapEntity::GetGeometryCRC() const
 
 /*
 ===============
+Admer
+
 idMapEntity::CalculateBrushOrigin
 ===============
 */
@@ -1685,7 +1745,10 @@ bool idMapFile::Parse( const char* filename, bool ignoreRegion, bool osPath )
 		}
 
 		// move the primitives of any func_group entities to the worldspawn
-		if( entities[0]->epairs.GetBool( "moveFuncGroups" ) )
+
+		// RB: TrenchBroom interop - especially those created by TrenchBroom and
+		// they also won't be spawned by the gamecode
+		if( entities[0]->epairs.GetBool( "moveFuncGroups" ) || valve220Format )
 		{
 			for( i = 1; i < entities.Num(); i++ )
 			{
@@ -1879,7 +1942,7 @@ int idMapFile::AddEntity( idMapEntity* mapEnt )
 idMapFile::FindEntity
 ===============
 */
-idMapEntity* idMapFile::FindEntity( const char* name )
+idMapEntity* idMapFile::FindEntity( const char* name ) const
 {
 	for( int i = 0; i < entities.Num(); i++ )
 	{
@@ -1897,7 +1960,7 @@ idMapEntity* idMapFile::FindEntity( const char* name )
 RB idMapFile::FindEntityAtOrigin
 ===============
 */
-idMapEntity* idMapFile::FindEntityAtOrigin( const idVec3& org )
+idMapEntity* idMapFile::FindEntityAtOrigin( const idVec3& org ) const
 {
 	idBounds bo( org );
 	bo.ExpandSelf( 0.125f );
@@ -1915,6 +1978,33 @@ idMapEntity* idMapFile::FindEntityAtOrigin( const idVec3& org )
 		}
 	}
 	return NULL;
+}
+
+/*
+=============
+RB from idGameEdit::GetUniqueEntityName
+
+generates a unique name for a given classname
+=============
+*/
+const char* idMapFile::GetUniqueEntityName( const char* classname ) const
+{
+	int			id;
+	static char	name[1024];
+
+	// can only have MAX_GENTITIES, so if we have a spot available, we're guaranteed to find one
+	for( id = 0; id < 99999; id++ )
+	{
+		idStr::snPrintf( name, sizeof( name ), "%s_%d", classname, id );
+		if( FindEntity( name ) == NULL )
+		{
+			return name;
+		}
+	}
+
+	// id == MAX_GENTITIES + 1, which can't be in use if we get here
+	idStr::snPrintf( name, sizeof( name ), "%s_%d", classname, id );
+	return name;
 }
 
 /*
@@ -2116,6 +2206,24 @@ void MapPolygonMesh::ConvertFromBrush( const idMapBrush* mapBrush, int entityNum
 			idVec2 st;
 			st.x = ( xyz * texVec[0].ToVec3() ) + texVec[0][3];
 			st.y = ( xyz * texVec[1].ToVec3() ) + texVec[1][3];
+
+			// support Valve 220 projection
+			if( mapSide->GetProjectionType() == idMapBrushSide::PROJECTION_VALVE220 )
+			{
+				const idMaterial* material = declManager->FindMaterial( mapSide->GetMaterial() );
+
+				idVec2i texSize = mapSide->GetTextureSize();
+
+				idImage* image = material->GetEditorImage();
+				if( image != NULL )
+				{
+					texSize.x = image->GetUploadWidth();
+					texSize.y = image->GetUploadHeight();
+				}
+
+				st.x /= texSize[0];
+				st.y /= texSize[1];
+			}
 
 			// flip y
 			//st.y = 1.0f - st.y;
@@ -2773,6 +2881,7 @@ bool idMapFile::ConvertToValve220Format()
 	valve220Format = true;
 
 	idDict classTypeOverview;
+	idStrList textureCollections;
 
 	int count = GetNumEntities();
 	for( int j = 0; j < count; j++ )
@@ -2782,56 +2891,67 @@ bool idMapFile::ConvertToValve220Format()
 		{
 			idStr classname = ent->epairs.GetString( "classname" );
 
-			if( idStr::Icmp( classname, "worldspawn" ) == 0 )
+			// build entity transform
+			idVec3 origin;
+			origin.Zero();
+
+			idMat3 rot;
+			rot.Identity();
+
+			idStr name = ent->epairs.GetString( "name" );
+
+			origin = ent->epairs.GetVector( "origin", "0 0 0" );
+
+			if( !ent->epairs.GetMatrix( "rotation", "1 0 0 0 1 0 0 0 1", rot ) )
 			{
-				ent->epairs.Set( "_tb_textures", "textures/common;textures/editor;textures/decals;textures/decals2" );
-			}
+				idAngles angles;
 
-			if( ent->GetNumPrimitives() > 0 )
-			{
-				// build entity transform
-				idVec3 origin;
-				origin.Zero();
-
-				idMat3 rot;
-				rot.Identity();
-
-				idStr name = ent->epairs.GetString( "name" );
-
-				origin = ent->epairs.GetVector( "origin", "0 0 0" );
-
-				if( !ent->epairs.GetMatrix( "rotation", "1 0 0 0 1 0 0 0 1", rot ) )
+				if( ent->epairs.GetAngles( "angles", "0 0 0", angles ) )
 				{
-					idAngles angles;
-
-					if( ent->epairs.GetAngles( "angles", "0 0 0", angles ) )
+					if( angles.pitch != 0.0f || angles.yaw != 0.0f || angles.roll != 0.0f )
 					{
-						if( angles.pitch != 0.0f || angles.yaw != 0.0f || angles.roll != 0.0f )
-						{
-							rot = angles.ToMat3();
-						}
-						else
-						{
-							rot.Identity();
-						}
+						rot = angles.ToMat3();
 					}
 					else
 					{
-						float angle = ent->epairs.GetFloat( "angle" );
-						if( angle != 0.0f )
-						{
-							rot = idAngles( 0.0f, angle, 0.0f ).ToMat3();
-						}
-						else
-						{
-							rot.Identity();
-						}
+						rot.Identity();
 					}
 				}
+				else
+				{
+					float angle = ent->epairs.GetFloat( "angle" );
+					if( angle != 0.0f )
+					{
+						rot = idAngles( 0.0f, angle, 0.0f ).ToMat3();
+					}
+					else
+					{
+						rot.Identity();
+					}
+				}
+			}
 
-				idMat4 transform( rot, origin );
-				//transform.Identity();
+			idMat4 transform( rot, origin );
+			//transform.Identity();
 
+			const idKeyValue* modelPair = ent->epairs.FindKey( "model" );
+			idStr model = ent->epairs.GetString( "model" );
+#if 1
+			// HACK: convert every old .lwo, .ase model to an .obj proxy model so it can be displayed properly in TrenchBroom
+			idStr ext;
+			model.ExtractFileExtension( ext );
+
+			if( ext.Icmp( "lwo" ) == 0 || ext.Icmp( "ase" ) == 0 || ext.Icmp( "dae" ) == 0 )
+			{
+				model.SetFileExtension( "obj" );
+				model = "_tb/" + model;
+
+				ent->epairs.Set( "proxymodel", model );
+			}
+#endif
+			// is this oldschool brushes & patches?
+			if( ent->GetNumPrimitives() > 0 )
+			{
 #if 1
 				if( !transform.IsIdentity() &&
 						idStr::Icmp( classname, "func_static" ) != 0 &&
@@ -2844,7 +2964,6 @@ bool idMapFile::ConvertToValve220Format()
 				}
 #endif
 
-				idStr model = ent->epairs.GetString( "model" );
 				if( idStr::Icmp( classname, "func_static" ) == 0 && idStr::Icmp( model.c_str(), classname.c_str() ) == 0 )
 				{
 					ent->epairs.Delete( "model" );
@@ -2862,8 +2981,13 @@ bool idMapFile::ConvertToValve220Format()
 						for( int s = 0; s < brushPrim->GetNumSides(); s++ )
 						{
 							idMapBrushSide* side = brushPrim->GetSide( s );
-							side->ConvertToValve220Format( transform );
+							side->ConvertToValve220Format( transform, textureCollections );
 						}
+					}
+					else if( mapPrim->GetType() == idMapPrimitive::TYPE_PATCH )
+					{
+						idMapPatch* patch = static_cast<idMapPatch*>( mapPrim );
+						idMapFile::AddMaterialToCollection( patch->GetMaterial(), textureCollections );
 					}
 				}
 
@@ -2884,6 +3008,39 @@ bool idMapFile::ConvertToValve220Format()
 			}
 			else
 			{
+				// just a regular entity
+
+				// TrenchBroom doesn't allow models for SolidClasses so use helper classes instead
+				if( idStr::Icmp( classname, "func_static" ) == 0 && idStr::Icmp( model.c_str(), classname.c_str() ) != 0 )
+				{
+					ent->epairs.Set( "classname", "misc_model" );
+				}
+				else if( idStr::Icmp( classname, "func_door" ) == 0 && idStr::Icmp( model.c_str(), classname.c_str() ) != 0 )
+				{
+					ent->epairs.Set( "classname", "func_door_model" );
+				}
+				else if( idStr::Icmp( classname, "func_mover" ) == 0 && idStr::Icmp( model.c_str(), classname.c_str() ) != 0 )
+				{
+					ent->epairs.Set( "classname", "func_mover_amodel" );
+				}
+				else if( idStr::Icmp( classname, "func_rotating" ) == 0 && idStr::Icmp( model.c_str(), classname.c_str() ) != 0 )
+				{
+					ent->epairs.Set( "classname", "func_rotating_model" );
+				}
+				else if( idStr::Icmp( classname, "func_plat" ) == 0 && idStr::Icmp( model.c_str(), classname.c_str() ) != 0 )
+				{
+					ent->epairs.Set( "classname", "func_plat_model" );
+				}
+
+				// replace "rotation" with angles because it is not supported by TrenchBroom
+				if( ent->epairs.FindKey( "rotation" ) )
+				{
+					ent->epairs.Delete( "rotation" );
+
+					idAngles angles = rot.ToAngles();
+					ent->epairs.SetAngles( "angles", angles );
+				}
+
 				const idKeyValue* kv = classTypeOverview.FindKey( classname );
 				if( kv && kv->GetValue().Length() )
 				{
@@ -2898,6 +3055,26 @@ bool idMapFile::ConvertToValve220Format()
 				}
 			}
 		}
+	}
+
+	idMapEntity* worldspawn = GetEntity( 0 );
+	if( worldspawn )
+	{
+		//worldspawn->epairs.Set( "_tb_textures", "textures/common;textures/editor;textures/decals;textures/decals2" );
+
+		idStr list;
+		for( int i = 0; i < textureCollections.Num(); i++ )
+		{
+			list += textureCollections[ i ];
+
+			if( i != ( textureCollections.Num() - 1 ) )
+			{
+				list += ";";
+			}
+		}
+
+		worldspawn->epairs.Set( "_tb_textures", list );
+		worldspawn->epairs.Set( "_tb_def", "builtin:DOOM-3-all.fgd" );
 	}
 
 	int n = classTypeOverview.GetNumKeyVals();
@@ -2937,5 +3114,1000 @@ bool idMapFile::ConvertToValve220Format()
 
 	return true;
 }
+
+bool idMapFile::ConvertQuakeToDoom()
+{
+	idDict classTypeOverview;
+	idStrList textureCollections;
+
+	int count = GetNumEntities();
+	for( int j = 0; j < count; j++ )
+	{
+		idMapEntity* ent = GetEntity( j );
+		if( ent )
+		{
+			idStr classname = ent->epairs.GetString( "classname" );
+
+			const idKeyValue* targetnamePair = ent->epairs.FindKey( "targetname" );
+			if( targetnamePair )
+			{
+				ent->epairs.Set( "name", targetnamePair->GetValue() );
+				ent->epairs.Delete( "targetname" );
+			}
+
+			const idKeyValue* namePair = ent->epairs.FindKey( "name" );
+			if( !namePair )
+			{
+				idStr uniqueName = GetUniqueEntityName( classname );
+
+				ent->epairs.Set( "name", uniqueName );
+			}
+			else
+			{
+				// is there a name clash with another entity?
+				bool clash = false;
+
+				for( int i = 1; i < count; i++ )
+				{
+					if( i == j )
+					{
+						continue;
+					}
+
+					idMapEntity* otherEnt = GetEntity( i );
+
+					const idKeyValue* otherNamePair = otherEnt->epairs.FindKey( "name" );
+					if( otherNamePair && !otherNamePair->GetValue().IsEmpty() && idStr::Cmp( namePair->GetValue(), otherNamePair->GetValue() ) == 0 )
+					{
+						// both entities have the same name, give this one a new name
+						idStr uniqueName = GetUniqueEntityName( classname );
+
+						ent->epairs.Set( "name", uniqueName );
+						break;
+					}
+				}
+			}
+
+			if( idStr::Icmp( classname, "func_wall" ) == 0 )
+			{
+				ent->epairs.Set( "classname", "func_static" );
+			}
+
+			if( ent->GetNumPrimitives() > 0 )
+			{
+				const idKeyValue* namePair = ent->epairs.FindKey( "name" );
+				ent->epairs.Set( "model", namePair->GetValue() );
+
+				// map Wad brushes names to proper Doom 3 compatible material names
+				for( int i = 0; i < ent->GetNumPrimitives(); i++ )
+				{
+					idMapPrimitive*	mapPrim;
+
+					mapPrim = ent->GetPrimitive( i );
+					if( mapPrim->GetType() == idMapPrimitive::TYPE_BRUSH )
+					{
+						idMapBrush* brushPrim = static_cast<idMapBrush*>( mapPrim );
+						for( int s = 0; s < brushPrim->GetNumSides(); s++ )
+						{
+							idMapBrushSide* side = brushPrim->GetSide( s );
+							idStr matName;
+							WadTextureToMaterial( side->GetMaterial(), matName );
+							side->SetMaterial( matName );
+						}
+					}
+					else if( mapPrim->GetType() == idMapPrimitive::TYPE_PATCH )
+					{
+						idMapPatch* patch = static_cast<idMapPatch*>( mapPrim );
+						idMapFile::AddMaterialToCollection( patch->GetMaterial(), textureCollections );
+					}
+				}
+			}
+		}
+	}
+
+	idMapEntity* worldspawn = GetEntity( 0 );
+	if( worldspawn )
+	{
+#if 1
+		worldspawn->epairs.Set( "_tb_textures", "textures/common;textures/editor;textures/id1" );
+#else
+		TODO
+
+		idStr list;
+		for( int i = 0; i < textureCollections.Num(); i++ )
+		{
+			list += textureCollections[ i ];
+
+			if( i != ( textureCollections.Num() - 1 ) )
+			{
+				list += ";";
+			}
+		}
+
+		worldspawn->epairs.Set( "_tb_textures", list );
+#endif
+		worldspawn->epairs.Set( "_tb_def", "builtin:DOOM-3-slim.fgd" );
+	}
+
+	return true;
+}
+
+void idMapFile::AddMaterialToCollection( const char* material, idStrList& textureCollections )
+{
+	idStr withoutPath = material;
+	withoutPath.StripPath();
+
+	idStr textureCollection = material;
+	textureCollection.StripTrailingOnce( "/" + withoutPath );
+
+	textureCollections.AddUnique( textureCollection );
+}
+
+typedef struct
+{
+	const char*	quakeName;
+	const char*	doomName;
+} quakeToDoom_t;
+
+static quakeToDoom_t textureConvertNames[] =
+{
+	// id1.wad
+	{"textures/#04awater1", "textures/id1/04awater1"},
+	{"textures/#04mwat1", "textures/id1/04mwat1"},
+	{"textures/#04mwat2", "textures/id1/04mwat2"},
+	{"textures/#04water1", "textures/id1/04water1"},
+	{"textures/#04water2", "textures/id1/04water2"},
+	{"textures/#lava1", "textures/id1/lava1"},
+	{"textures/#slime", "textures/id1/slime"},
+	{"textures/#slime0", "textures/id1/slime0"},
+	{"textures/#slime1", "textures/id1/slime1"},
+	{"textures/#teleport", "textures/id1/teleport"},
+	{"textures/#water0", "textures/id1/water0"},
+	{"textures/#water1", "textures/id1/water1"},
+	{"textures/#water2", "textures/id1/water2"},
+	{"textures/0_box_side", "textures/id1/0_box_side"},
+	{"textures/0_box_top", "textures/id1/0_box_top"},
+	{"textures/0_med100", "textures/id1/0_med100"},
+	{"textures/0_med25", "textures/id1/0_med25"},
+	{"textures/0_med25s", "textures/id1/0_med25s"},
+	{"textures/0basebtn", "textures/id1/0basebtn"},
+	{"textures/0butn", "textures/id1/0butn"},
+	{"textures/0butnn", "textures/id1/0butnn"},
+	{"textures/0button", "textures/id1/0button"},
+	{"textures/0floorsw", "textures/id1/0floorsw"},
+	{"textures/0light01", "textures/id1/0light01"},
+	{"textures/0mtlsw", "textures/id1/0mtlsw"},
+	{"textures/0planet", "textures/id1/0planet"},
+	{"textures/0shoot", "textures/id1/0shoot"},
+	{"textures/0slip", "textures/id1/0slip"},
+	{"textures/0slipbot", "textures/id1/0slipbot"},
+	{"textures/0sliptop", "textures/id1/0sliptop"},
+	{"textures/1_box_side", "textures/id1/1_box_side"},
+	{"textures/1_box_top", "textures/id1/1_box_top"},
+	{"textures/1_med100", "textures/id1/1_med100"},
+	{"textures/1_med25", "textures/id1/1_med25"},
+	{"textures/1_med25s", "textures/id1/1_med25s"},
+	{"textures/1basebtn", "textures/id1/1basebtn"},
+	{"textures/1butn", "textures/id1/1butn"},
+	{"textures/1butnn", "textures/id1/1butnn"},
+	{"textures/1button", "textures/id1/1button"},
+	{"textures/1floorsw", "textures/id1/1floorsw"},
+	{"textures/1light01", "textures/id1/1light01"},
+	{"textures/1mtlsw", "textures/id1/1mtlsw"},
+	{"textures/1planet", "textures/id1/1planet"},
+	{"textures/1shoot", "textures/id1/1shoot"},
+	{"textures/1slip", "textures/id1/1slip"},
+	{"textures/2_med100", "textures/id1/2_med100"},
+	{"textures/2_med25", "textures/id1/2_med25"},
+	{"textures/2butn", "textures/id1/2butn"},
+	{"textures/2butnn", "textures/id1/2butnn"},
+	{"textures/2button", "textures/id1/2button"},
+	{"textures/2floorsw", "textures/id1/2floorsw"},
+	{"textures/2light01", "textures/id1/2light01"},
+	{"textures/2mtlsw", "textures/id1/2mtlsw"},
+	{"textures/2planet", "textures/id1/2planet"},
+	{"textures/2shoot", "textures/id1/2shoot"},
+	{"textures/2slip", "textures/id1/2slip"},
+	{"textures/3_med100", "textures/id1/3_med100"},
+	{"textures/3_med25", "textures/id1/3_med25"},
+	{"textures/3butn", "textures/id1/3butn"},
+	{"textures/3butnn", "textures/id1/3butnn"},
+	{"textures/3button", "textures/id1/3button"},
+	{"textures/3floorsw", "textures/id1/3floorsw"},
+	{"textures/3mtlsw", "textures/id1/3mtlsw"},
+	{"textures/3planet", "textures/id1/3planet"},
+	{"textures/3shoot", "textures/id1/3shoot"},
+	{"textures/3slip", "textures/id1/3slip"},
+	{"textures/4slip", "textures/id1/4slip"},
+	{"textures/5slip", "textures/id1/5slip"},
+	{"textures/6slip", "textures/id1/6slip"},
+	{"textures/abasebtn", "textures/id1/abasebtn"},
+	{"textures/abutn", "textures/id1/abutn"},
+	{"textures/abutnn", "textures/id1/abutnn"},
+	{"textures/abutton", "textures/id1/abutton"},
+	{"textures/afloorsw", "textures/id1/afloorsw"},
+	{"textures/amtlsw", "textures/id1/amtlsw"},
+	{"textures/ashoot", "textures/id1/ashoot"},
+	{"textures/adoor01_2", "textures/id1/adoor01_2"},
+	{"textures/adoor02_2", "textures/id1/adoor02_2"},
+	{"textures/adoor03_2", "textures/id1/adoor03_2"},
+	{"textures/adoor03_3", "textures/id1/adoor03_3"},
+	{"textures/adoor03_4", "textures/id1/adoor03_4"},
+	{"textures/adoor03_5", "textures/id1/adoor03_5"},
+	{"textures/adoor03_6", "textures/id1/adoor03_6"},
+	{"textures/adoor09_1", "textures/id1/adoor09_1"},
+	{"textures/adoor09_2", "textures/id1/adoor09_2"},
+	{"textures/afloor1_3", "textures/id1/afloor1_3"},
+	{"textures/afloor1_4", "textures/id1/afloor1_4"},
+	{"textures/afloor1_8", "textures/id1/afloor1_8"},
+	{"textures/afloor3_1", "textures/id1/afloor3_1"},
+	{"textures/altar1_1", "textures/id1/altar1_1"},
+	{"textures/altar1_3", "textures/id1/altar1_3"},
+	{"textures/altar1_4", "textures/id1/altar1_4"},
+	{"textures/altar1_6", "textures/id1/altar1_6"},
+	{"textures/altar1_7", "textures/id1/altar1_7"},
+	{"textures/altar1_8", "textures/id1/altar1_8"},
+	{"textures/altarb_1", "textures/id1/altarb_1"},
+	{"textures/altarb_2", "textures/id1/altarb_2"},
+	{"textures/altarc_1", "textures/id1/altarc_1"},
+	{"textures/arch7", "textures/id1/arch7"},
+	{"textures/arrow_m", "textures/id1/arrow_m"},
+	{"textures/az1_6", "textures/id1/az1_6"},
+	{"textures/azfloor1_1", "textures/id1/azfloor1_1"},
+	{"textures/azswitch3", "textures/id1/azswitch3"},
+	{"textures/azwall1_5", "textures/id1/azwall1_5"},
+	{"textures/azwall3_1", "textures/id1/azwall3_1"},
+	{"textures/azwall3_2", "textures/id1/azwall3_2"},
+	{"textures/basebutn3", "textures/id1/basebutn3"},
+	{"textures/batt0sid", "textures/id1/batt0sid"},
+	{"textures/batt0top", "textures/id1/batt0top"},
+	{"textures/batt1sid", "textures/id1/batt1sid"},
+	{"textures/batt1top", "textures/id1/batt1top"},
+	{"textures/black", "textures/id1/black"},
+	{"textures/bodiesa2_1", "textures/id1/bodiesa2_1"},
+	{"textures/bodiesa2_4", "textures/id1/bodiesa2_4"},
+	{"textures/bodiesa3_1", "textures/id1/bodiesa3_1"},
+	{"textures/bodiesa3_2", "textures/id1/bodiesa3_2"},
+	{"textures/bodiesa3_3", "textures/id1/bodiesa3_3"},
+	{"textures/bricka2_1", "textures/id1/bricka2_1"},
+	{"textures/bricka2_2", "textures/id1/bricka2_2"},
+	{"textures/bricka2_4", "textures/id1/bricka2_4"},
+	{"textures/bricka2_6", "textures/id1/bricka2_6"},
+	{"textures/carch02", "textures/id1/carch02"},
+	{"textures/carch03", "textures/id1/carch03"},
+	{"textures/carch04_1", "textures/id1/carch04_1"},
+	{"textures/carch04_2", "textures/id1/carch04_2"},
+	{"textures/ceil1_1", "textures/id1/ceil1_1"},
+	{"textures/ceiling1_3", "textures/id1/ceiling1_3"},
+	{"textures/ceiling4", "textures/id1/ceiling4"},
+	{"textures/ceiling5", "textures/id1/ceiling5"},
+	{"textures/church1_2", "textures/id1/church1_2"},
+	{"textures/church7", "textures/id1/church7"},
+	{"textures/city1_4", "textures/id1/city1_4"},
+	{"textures/city1_7", "textures/id1/city1_7"},
+	{"textures/city2_1", "textures/id1/city2_1"},
+	{"textures/city2_2", "textures/id1/city2_2"},
+	{"textures/city2_3", "textures/id1/city2_3"},
+	{"textures/city2_5", "textures/id1/city2_5"},
+	{"textures/city2_6", "textures/id1/city2_6"},
+	{"textures/city2_7", "textures/id1/city2_7"},
+	{"textures/city2_8", "textures/id1/city2_8"},
+	{"textures/city3_2", "textures/id1/city3_2"},
+	{"textures/city3_4", "textures/id1/city3_4"},
+	{"textures/city4_1", "textures/id1/city4_1"},
+	{"textures/city4_2", "textures/id1/city4_2"},
+	{"textures/city4_5", "textures/id1/city4_5"},
+	{"textures/city4_6", "textures/id1/city4_6"},
+	{"textures/city4_7", "textures/id1/city4_7"},
+	{"textures/city4_8", "textures/id1/city4_8"},
+	{"textures/city5_1", "textures/id1/city5_1"},
+	{"textures/city5_2", "textures/id1/city5_2"},
+	{"textures/city5_3", "textures/id1/city5_3"},
+	{"textures/city5_4", "textures/id1/city5_4"},
+	{"textures/city5_6", "textures/id1/city5_6"},
+	{"textures/city5_7", "textures/id1/city5_7"},
+	{"textures/city5_8", "textures/id1/city5_8"},
+	{"textures/city6_3", "textures/id1/city6_3"},
+	{"textures/city6_4", "textures/id1/city6_4"},
+	{"textures/city6_7", "textures/id1/city6_7"},
+	{"textures/city6_8", "textures/id1/city6_8"},
+	{"textures/city8_2", "textures/id1/city8_2"},
+	{"textures/citya1_1", "textures/id1/citya1_1"},
+	{"textures/clip", "textures/common/clip"},
+	{"textures/column01_3", "textures/id1/column01_3"},
+	{"textures/column01_4", "textures/id1/column01_4"},
+	{"textures/column1_2", "textures/id1/column1_2"},
+	{"textures/column1_4", "textures/id1/column1_4"},
+	{"textures/column1_5", "textures/id1/column1_5"},
+	{"textures/comp1_1", "textures/id1/comp1_1"},
+	{"textures/comp1_2", "textures/id1/comp1_2"},
+	{"textures/comp1_3", "textures/id1/comp1_3"},
+	{"textures/comp1_4", "textures/id1/comp1_4"},
+	{"textures/comp1_5", "textures/id1/comp1_5"},
+	{"textures/comp1_6", "textures/id1/comp1_6"},
+	{"textures/comp1_7", "textures/id1/comp1_7"},
+	{"textures/comp1_8", "textures/id1/comp1_8"},
+	{"textures/cop1_1", "textures/id1/cop1_1"},
+	{"textures/cop1_2", "textures/id1/cop1_2"},
+	{"textures/cop1_3", "textures/id1/cop1_3"},
+	{"textures/cop1_4", "textures/id1/cop1_4"},
+	{"textures/cop1_5", "textures/id1/cop1_5"},
+	{"textures/cop1_6", "textures/id1/cop1_6"},
+	{"textures/cop1_7", "textures/id1/cop1_7"},
+	{"textures/cop1_8", "textures/id1/cop1_8"},
+	{"textures/cop2_1", "textures/id1/cop2_1"},
+	{"textures/cop2_2", "textures/id1/cop2_2"},
+	{"textures/cop2_3", "textures/id1/cop2_3"},
+	{"textures/cop2_4", "textures/id1/cop2_4"},
+	{"textures/cop2_5", "textures/id1/cop2_5"},
+	{"textures/cop2_6", "textures/id1/cop2_6"},
+	{"textures/cop3_1", "textures/id1/cop3_1"},
+	{"textures/cop3_2", "textures/id1/cop3_2"},
+	{"textures/cop3_4", "textures/id1/cop3_4"},
+	{"textures/cop4_3", "textures/id1/cop4_3"},
+	{"textures/cop4_5", "textures/id1/cop4_5"},
+	{"textures/crate0_side", "textures/id1/crate0_side"},
+	{"textures/crate0_top", "textures/id1/crate0_top"},
+	{"textures/crate1_side", "textures/id1/crate1_side"},
+	{"textures/crate1_top", "textures/id1/crate1_top"},
+	{"textures/dem4_1", "textures/id1/dem4_1"},
+	{"textures/dem4_4", "textures/id1/dem4_4"},
+	{"textures/dem5_3", "textures/id1/dem5_3"},
+	{"textures/demc4_4", "textures/id1/demc4_4"},
+	{"textures/door01_2", "textures/id1/door01_2"},
+	{"textures/door02_1", "textures/id1/door02_1"},
+	{"textures/door02_2", "textures/id1/door02_2"},
+	{"textures/door02_3", "textures/id1/door02_3"},
+	{"textures/door02_7", "textures/id1/door02_7"},
+	{"textures/door03_2", "textures/id1/door03_2"},
+	{"textures/door03_3", "textures/id1/door03_3"},
+	{"textures/door03_4", "textures/id1/door03_4"},
+	{"textures/door03_5", "textures/id1/door03_5"},
+	{"textures/door04_1", "textures/id1/door04_1"},
+	{"textures/door04_2", "textures/id1/door04_2"},
+	{"textures/door05_2", "textures/id1/door05_2"},
+	{"textures/door05_3", "textures/id1/door05_3"},
+	{"textures/dopeback", "textures/id1/dopeback"},
+	{"textures/dopefish", "textures/id1/dopefish"},
+	{"textures/dr01_1", "textures/id1/dr01_1"},
+	{"textures/dr01_2", "textures/id1/dr01_2"},
+	{"textures/dr02_1", "textures/id1/dr02_1"},
+	{"textures/dr02_2", "textures/id1/dr02_2"},
+	{"textures/dr03_1", "textures/id1/dr03_1"},
+	{"textures/dr05_2", "textures/id1/dr05_2"},
+	{"textures/dr07_1", "textures/id1/dr07_1"},
+	{"textures/dung01_1", "textures/id1/dung01_1"},
+	{"textures/dung01_2", "textures/id1/dung01_2"},
+	{"textures/dung01_3", "textures/id1/dung01_3"},
+	{"textures/dung01_4", "textures/id1/dung01_4"},
+	{"textures/dung01_5", "textures/id1/dung01_5"},
+	{"textures/dung02_1", "textures/id1/dung02_1"},
+	{"textures/dung02_5", "textures/id1/dung02_5"},
+	{"textures/ecop1_1", "textures/id1/ecop1_1"},
+	{"textures/ecop1_4", "textures/id1/ecop1_4"},
+	{"textures/ecop1_6", "textures/id1/ecop1_6"},
+	{"textures/ecop1_7", "textures/id1/ecop1_7"},
+	{"textures/ecop1_8", "textures/id1/ecop1_8"},
+	{"textures/edoor01_1", "textures/id1/edoor01_1"},
+	{"textures/elwall1_1", "textures/id1/elwall1_1"},
+	{"textures/elwall2_4", "textures/id1/elwall2_4"},
+	{"textures/emetal1_3", "textures/id1/emetal1_3"},
+	{"textures/enter01", "textures/id1/enter01"},
+	{"textures/exit01", "textures/id1/exit01"},
+	{"textures/exit02_2", "textures/id1/exit02_2"},
+	{"textures/exit02_3", "textures/id1/exit02_3"},
+	{"textures/floor01_5", "textures/id1/floor01_5"},
+	{"textures/grave01_1", "textures/id1/grave01_1"},
+	{"textures/grave01_3", "textures/id1/grave01_3"},
+	{"textures/grave02_1", "textures/id1/grave02_1"},
+	{"textures/grave02_2", "textures/id1/grave02_2"},
+	{"textures/grave02_3", "textures/id1/grave02_3"},
+	{"textures/grave02_4", "textures/id1/grave02_4"},
+	{"textures/grave02_5", "textures/id1/grave02_5"},
+	{"textures/grave02_6", "textures/id1/grave02_6"},
+	{"textures/grave02_7", "textures/id1/grave02_7"},
+	{"textures/grave03_1", "textures/id1/grave03_1"},
+	{"textures/grave03_2", "textures/id1/grave03_2"},
+	{"textures/grave03_3", "textures/id1/grave03_3"},
+	{"textures/grave03_4", "textures/id1/grave03_4"},
+	{"textures/grave03_5", "textures/id1/grave03_5"},
+	{"textures/grave03_6", "textures/id1/grave03_6"},
+	{"textures/grave03_7", "textures/id1/grave03_7"},
+	{"textures/ground1_1", "textures/id1/ground1_1"},
+	{"textures/ground1_2", "textures/id1/ground1_2"},
+	{"textures/ground1_5", "textures/id1/ground1_5"},
+	{"textures/ground1_6", "textures/id1/ground1_6"},
+	{"textures/ground1_7", "textures/id1/ground1_7"},
+	{"textures/ground1_8", "textures/id1/ground1_8"},
+	{"textures/key01_1", "textures/id1/key01_1"},
+	{"textures/key01_2", "textures/id1/key01_2"},
+	{"textures/key01_3", "textures/id1/key01_3"},
+	{"textures/key02_1", "textures/id1/key02_1"},
+	{"textures/key02_2", "textures/id1/key02_2"},
+	{"textures/key03_1", "textures/id1/key03_1"},
+	{"textures/key03_2", "textures/id1/key03_2"},
+	{"textures/key03_3", "textures/id1/key03_3"},
+	{"textures/lgmetal", "textures/id1/lgmetal"},
+	{"textures/lgmetal2", "textures/id1/lgmetal2"},
+	{"textures/lgmetal3", "textures/id1/lgmetal3"},
+	{"textures/lgmetal4", "textures/id1/lgmetal4"},
+	{"textures/light1_1", "textures/id1/light1_1"},
+	{"textures/light1_2", "textures/id1/light1_2"},
+	{"textures/light1_3", "textures/id1/light1_3"},
+	{"textures/light1_4", "textures/id1/light1_4"},
+	{"textures/light1_5", "textures/id1/light1_5"},
+	{"textures/light1_7", "textures/id1/light1_7"},
+	{"textures/light1_8", "textures/id1/light1_8"},
+	{"textures/light3_3", "textures/id1/light3_3"},
+	{"textures/light3_5", "textures/id1/light3_5"},
+	{"textures/light3_6", "textures/id1/light3_6"},
+	{"textures/light3_7", "textures/id1/light3_7"},
+	{"textures/light3_8", "textures/id1/light3_8"},
+	{"textures/m5_3", "textures/id1/m5_3"},
+	{"textures/m5_5", "textures/id1/m5_5"},
+	{"textures/m5_8", "textures/id1/m5_8"},
+	{"textures/med100", "textures/id1/med100"},
+	{"textures/med3_0", "textures/id1/med3_0"},
+	{"textures/med3_1", "textures/id1/med3_1"},
+	{"textures/met5_1", "textures/id1/met5_1"},
+	{"textures/met5_2", "textures/id1/met5_2"},
+	{"textures/met5_3", "textures/id1/met5_3"},
+	{"textures/metal1_1", "textures/id1/metal1_1"},
+	{"textures/metal1_2", "textures/id1/metal1_2"},
+	{"textures/metal1_3", "textures/id1/metal1_3"},
+	{"textures/metal1_4", "textures/id1/metal1_4"},
+	{"textures/metal1_5", "textures/id1/metal1_5"},
+	{"textures/metal1_6", "textures/id1/metal1_6"},
+	{"textures/metal1_7", "textures/id1/metal1_7"},
+	{"textures/metal2_1", "textures/id1/metal2_1"},
+	{"textures/metal2_2", "textures/id1/metal2_2"},
+	{"textures/metal2_3", "textures/id1/metal2_3"},
+	{"textures/metal2_4", "textures/id1/metal2_4"},
+	{"textures/metal2_5", "textures/id1/metal2_5"},
+	{"textures/metal2_6", "textures/id1/metal2_6"},
+	{"textures/metal2_7", "textures/id1/metal2_7"},
+	{"textures/metal2_8", "textures/id1/metal2_8"},
+	{"textures/metal3_2", "textures/id1/metal3_2"},
+	{"textures/metal4_2", "textures/id1/metal4_2"},
+	{"textures/metal4_3", "textures/id1/metal4_3"},
+	{"textures/metal4_4", "textures/id1/metal4_4"},
+	{"textures/metal4_5", "textures/id1/metal4_5"},
+	{"textures/metal4_6", "textures/id1/metal4_6"},
+	{"textures/metal4_7", "textures/id1/metal4_7"},
+	{"textures/metal4_8", "textures/id1/metal4_8"},
+	{"textures/metal5_1", "textures/id1/metal5_1"},
+	{"textures/metal5_2", "textures/id1/metal5_2"},
+	{"textures/metal5_3", "textures/id1/metal5_3"},
+	{"textures/metal5_4", "textures/id1/metal5_4"},
+	{"textures/metal5_5", "textures/id1/metal5_5"},
+	{"textures/metal5_6", "textures/id1/metal5_6"},
+	{"textures/metal5_8", "textures/id1/metal5_8"},
+	{"textures/metal6_1", "textures/id1/metal6_1"},
+	{"textures/metal6_2", "textures/id1/metal6_2"},
+	{"textures/metal6_3", "textures/id1/metal6_3"},
+	{"textures/metal6_4", "textures/id1/metal6_4"},
+	{"textures/metalt1_1", "textures/id1/metalt1_1"},
+	{"textures/metalt1_2", "textures/id1/metalt1_2"},
+	{"textures/metalt1_7", "textures/id1/metalt1_7"},
+	{"textures/metalt2_1", "textures/id1/metalt2_1"},
+	{"textures/metalt2_2", "textures/id1/metalt2_2"},
+	{"textures/metalt2_3", "textures/id1/metalt2_3"},
+	{"textures/metalt2_4", "textures/id1/metalt2_4"},
+	{"textures/metalt2_5", "textures/id1/metalt2_5"},
+	{"textures/metalt2_6", "textures/id1/metalt2_6"},
+	{"textures/metalt2_7", "textures/id1/metalt2_7"},
+	{"textures/metalt2_8", "textures/id1/metalt2_8"},
+	{"textures/metflor2_1", "textures/id1/metflor2_1"},
+	{"textures/mmetal1_1", "textures/id1/mmetal1_1"},
+	{"textures/mmetal1_2", "textures/id1/mmetal1_2"},
+	{"textures/mmetal1_3", "textures/id1/mmetal1_3"},
+	{"textures/mmetal1_5", "textures/id1/mmetal1_5"},
+	{"textures/mmetal1_6", "textures/id1/mmetal1_6"},
+	{"textures/mmetal1_7", "textures/id1/mmetal1_7"},
+	{"textures/mmetal1_8", "textures/id1/mmetal1_8"},
+	{"textures/mswtch_2", "textures/id1/mswtch_2"},
+	{"textures/mswtch_3", "textures/id1/mswtch_3"},
+	{"textures/mswtch_4", "textures/id1/mswtch_4"},
+	{"textures/muh_bad", "textures/id1/muh_bad"},
+	{"textures/nail0sid", "textures/id1/nail0sid"},
+	{"textures/nail0top", "textures/id1/nail0top"},
+	{"textures/nail1sid", "textures/id1/nail1sid"},
+	{"textures/nail1top", "textures/id1/nail1top"},
+	{"textures/nmetal2_1", "textures/id1/nmetal2_1"},
+	{"textures/nmetal2_6", "textures/id1/nmetal2_6"},
+	{"textures/plat_side1", "textures/id1/plat_side1"},
+	{"textures/plat_stem", "textures/id1/plat_stem"},
+	{"textures/plat_top1", "textures/id1/plat_top1"},
+	{"textures/plat_top2", "textures/id1/plat_top2"},
+	{"textures/quake", "textures/id1/quake"},
+	{"textures/raven", "textures/id1/raven"},
+	{"textures/rock0sid", "textures/id1/rock0sid"},
+	{"textures/rock1_2", "textures/id1/rock1_2"},
+	{"textures/rock1sid", "textures/id1/rock1sid"},
+	{"textures/rock3_2", "textures/id1/rock3_2"},
+	{"textures/rock3_7", "textures/id1/rock3_7"},
+	{"textures/rock3_8", "textures/id1/rock3_8"},
+	{"textures/rock4_1", "textures/id1/rock4_1"},
+	{"textures/rock4_2", "textures/id1/rock4_2"},
+	{"textures/rock5_2", "textures/id1/rock5_2"},
+	{"textures/rockettop", "textures/id1/rockettop"},
+	{"textures/rune1_1", "textures/id1/rune1_1"},
+	{"textures/rune1_4", "textures/id1/rune1_4"},
+	{"textures/rune1_5", "textures/id1/rune1_5"},
+	{"textures/rune1_6", "textures/id1/rune1_6"},
+	{"textures/rune1_7", "textures/id1/rune1_7"},
+	{"textures/rune2_1", "textures/id1/rune2_1"},
+	{"textures/rune2_2", "textures/id1/rune2_2"},
+	{"textures/rune2_3", "textures/id1/rune2_3"},
+	{"textures/rune2_4", "textures/id1/rune2_4"},
+	{"textures/rune2_5", "textures/id1/rune2_5"},
+	{"textures/rune_a", "textures/id1/rune_a"},
+	{"textures/sfloor1_2", "textures/id1/sfloor1_2"},
+	{"textures/sfloor3_2", "textures/id1/sfloor3_2"},
+	{"textures/sfloor4_1", "textures/id1/sfloor4_1"},
+	{"textures/sfloor4_2", "textures/id1/sfloor4_2"},
+	{"textures/sfloor4_4", "textures/id1/sfloor4_4"},
+	{"textures/sfloor4_5", "textures/id1/sfloor4_5"},
+	{"textures/sfloor4_6", "textures/id1/sfloor4_6"},
+	{"textures/sfloor4_7", "textures/id1/sfloor4_7"},
+	{"textures/sfloor4_8", "textures/id1/sfloor4_8"},
+	{"textures/shot0sid", "textures/id1/shot0sid"},
+	{"textures/shot0top", "textures/id1/shot0top"},
+	{"textures/shot1sid", "textures/id1/shot1sid"},
+	{"textures/shot1top", "textures/id1/shot1top"},
+	{"textures/skill0", "textures/id1/skill0"},
+	{"textures/skill1", "textures/id1/skill1"},
+	{"textures/skill2", "textures/id1/skill2"},
+	{"textures/skill3", "textures/id1/skill3"},
+	{"textures/sky1", "textures/id1/sky1"},
+	{"textures/sky4", "textures/id1/sky4"},
+	{"textures/slip1", "textures/id1/slip1"},
+	{"textures/slip2", "textures/id1/slip2"},
+	{"textures/slipbotsd", "textures/id1/slipbotsd"},
+	{"textures/sliplite", "textures/id1/sliplite"},
+	{"textures/slipside", "textures/id1/slipside"},
+	{"textures/sliptopsd", "textures/id1/sliptopsd"},
+	{"textures/stone1_3", "textures/id1/stone1_3"},
+	{"textures/stone1_5", "textures/id1/stone1_5"},
+	{"textures/stone1_7", "textures/id1/stone1_7"},
+	{"textures/switch_1", "textures/id1/switch_1"},
+	{"textures/swtch1_1", "textures/id1/swtch1_1"},
+	{"textures/tech01_1", "textures/id1/tech01_1"},
+	{"textures/tech01_2", "textures/id1/tech01_2"},
+	{"textures/tech01_3", "textures/id1/tech01_3"},
+	{"textures/tech01_5", "textures/id1/tech01_5"},
+	{"textures/tech01_6", "textures/id1/tech01_6"},
+	{"textures/tech01_7", "textures/id1/tech01_7"},
+	{"textures/tech01_9", "textures/id1/tech01_9"},
+	{"textures/tech02_1", "textures/id1/tech02_1"},
+	{"textures/tech02_2", "textures/id1/tech02_2"},
+	{"textures/tech02_3", "textures/id1/tech02_3"},
+	{"textures/tech02_5", "textures/id1/tech02_5"},
+	{"textures/tech02_6", "textures/id1/tech02_6"},
+	{"textures/tech02_7", "textures/id1/tech02_7"},
+	{"textures/tech03_1", "textures/id1/tech03_1"},
+	{"textures/tech03_2", "textures/id1/tech03_2"},
+	{"textures/tech04_1", "textures/id1/tech04_1"},
+	{"textures/tech04_2", "textures/id1/tech04_2"},
+	{"textures/tech04_3", "textures/id1/tech04_3"},
+	{"textures/tech04_4", "textures/id1/tech04_4"},
+	{"textures/tech04_5", "textures/id1/tech04_5"},
+	{"textures/tech04_6", "textures/id1/tech04_6"},
+	{"textures/tech04_7", "textures/id1/tech04_7"},
+	{"textures/tech04_8", "textures/id1/tech04_8"},
+	{"textures/tech05_1", "textures/id1/tech05_1"},
+	{"textures/tech05_2", "textures/id1/tech05_2"},
+	{"textures/tech06_1", "textures/id1/tech06_1"},
+	{"textures/tech06_2", "textures/id1/tech06_2"},
+	{"textures/tech07_1", "textures/id1/tech07_1"},
+	{"textures/tech07_2", "textures/id1/tech07_2"},
+	{"textures/tech08_1", "textures/id1/tech08_1"},
+	{"textures/tech08_2", "textures/id1/tech08_2"},
+	{"textures/tech09_3", "textures/id1/tech09_3"},
+	{"textures/tech09_4", "textures/id1/tech09_4"},
+	{"textures/tech10_1", "textures/id1/tech10_1"},
+	{"textures/tech10_3", "textures/id1/tech10_3"},
+	{"textures/tech11_1", "textures/id1/tech11_1"},
+	{"textures/tech11_2", "textures/id1/tech11_2"},
+	{"textures/tech12_1", "textures/id1/tech12_1"},
+	{"textures/tech13_2", "textures/id1/tech13_2"},
+	{"textures/tech14_1", "textures/id1/tech14_1"},
+	{"textures/tech14_2", "textures/id1/tech14_2"},
+	{"textures/tele_top", "textures/id1/tele_top"},
+	{"textures/tlight01", "textures/id1/tlight01"},
+	{"textures/tlight01_2", "textures/id1/tlight01_2"},
+	{"textures/tlight02", "textures/id1/tlight02"},
+	{"textures/tlight03", "textures/id1/tlight03"},
+	{"textures/tlight05", "textures/id1/tlight05"},
+	{"textures/tlight07", "textures/id1/tlight07"},
+	{"textures/tlight08", "textures/id1/tlight08"},
+	{"textures/tlight09", "textures/id1/tlight09"},
+	{"textures/tlight10", "textures/id1/tlight10"},
+	{"textures/tlight11", "textures/id1/tlight11"},
+	{"textures/trigger", "textures/common/trigger"},
+	{"textures/twall1_1", "textures/id1/twall1_1"},
+	{"textures/twall1_2", "textures/id1/twall1_2"},
+	{"textures/twall1_4", "textures/id1/twall1_4"},
+	{"textures/twall2_1", "textures/id1/twall2_1"},
+	{"textures/twall2_2", "textures/id1/twall2_2"},
+	{"textures/twall2_3", "textures/id1/twall2_3"},
+	{"textures/twall2_5", "textures/id1/twall2_5"},
+	{"textures/twall2_6", "textures/id1/twall2_6"},
+	{"textures/twall3_1", "textures/id1/twall3_1"},
+	{"textures/twall5_1", "textures/id1/twall5_1"},
+	{"textures/twall5_2", "textures/id1/twall5_2"},
+	{"textures/twall5_3", "textures/id1/twall5_3"},
+	{"textures/unwall1_8", "textures/id1/unwall1_8"},
+	{"textures/uwall1_2", "textures/id1/uwall1_2"},
+	{"textures/uwall1_3", "textures/id1/uwall1_3"},
+	{"textures/uwall1_4", "textures/id1/uwall1_4"},
+	{"textures/vine1_2", "textures/id1/vine1_2"},
+	{"textures/wall11_2", "textures/id1/wall11_2"},
+	{"textures/wall11_6", "textures/id1/wall11_6"},
+	{"textures/wall14_5", "textures/id1/wall14_5"},
+	{"textures/wall14_6", "textures/id1/wall14_6"},
+	{"textures/wall16_7", "textures/id1/wall16_7"},
+	{"textures/wall3_4", "textures/id1/wall3_4"},
+	{"textures/wall5_4", "textures/id1/wall5_4"},
+	{"textures/wall9_3", "textures/id1/wall9_3"},
+	{"textures/wall9_8", "textures/id1/wall9_8"},
+	{"textures/warch05", "textures/id1/warch05"},
+	{"textures/wbrick1_4", "textures/id1/wbrick1_4"},
+	{"textures/wbrick1_5", "textures/id1/wbrick1_5"},
+	{"textures/wceiling4", "textures/id1/wceiling4"},
+	{"textures/wceiling5", "textures/id1/wceiling5"},
+	{"textures/wenter01", "textures/id1/wenter01"},
+	{"textures/wexit01", "textures/id1/wexit01"},
+	{"textures/wgrass1_1", "textures/id1/wgrass1_1"},
+	{"textures/wgrnd1_5", "textures/id1/wgrnd1_5"},
+	{"textures/wgrnd1_6", "textures/id1/wgrnd1_6"},
+	{"textures/wgrnd1_8", "textures/id1/wgrnd1_8"},
+	{"textures/window01_1", "textures/id1/window01_1"},
+	{"textures/window01_2", "textures/id1/window01_2"},
+	{"textures/window01_3", "textures/id1/window01_3"},
+	{"textures/window01_4", "textures/id1/window01_4"},
+	{"textures/window02_1", "textures/id1/window02_1"},
+	{"textures/window03", "textures/id1/window03"},
+	{"textures/window1_2", "textures/id1/window1_2"},
+	{"textures/window1_3", "textures/id1/window1_3"},
+	{"textures/window1_4", "textures/id1/window1_4"},
+	{"textures/wiz1_1", "textures/id1/wiz1_1"},
+	{"textures/wiz1_4", "textures/id1/wiz1_4"},
+	{"textures/wizmet1_1", "textures/id1/wizmet1_1"},
+	{"textures/wizmet1_2", "textures/id1/wizmet1_2"},
+	{"textures/wizmet1_3", "textures/id1/wizmet1_3"},
+	{"textures/wizmet1_4", "textures/id1/wizmet1_4"},
+	{"textures/wizmet1_5", "textures/id1/wizmet1_5"},
+	{"textures/wizmet1_6", "textures/id1/wizmet1_6"},
+	{"textures/wizmet1_7", "textures/id1/wizmet1_7"},
+	{"textures/wizmet1_8", "textures/id1/wizmet1_8"},
+	{"textures/wizwin1_2", "textures/id1/wizwin1_2"},
+	{"textures/wizwin1_8", "textures/id1/wizwin1_8"},
+	{"textures/wizwood1_2", "textures/id1/wizwood1_2"},
+	{"textures/wizwood1_3", "textures/id1/wizwood1_3"},
+	{"textures/wizwood1_4", "textures/id1/wizwood1_4"},
+	{"textures/wizwood1_5", "textures/id1/wizwood1_5"},
+	{"textures/wizwood1_6", "textures/id1/wizwood1_6"},
+	{"textures/wizwood1_7", "textures/id1/wizwood1_7"},
+	{"textures/wizwood1_8", "textures/id1/wizwood1_8"},
+	{"textures/wkey02_1", "textures/id1/wkey02_1"},
+	{"textures/wkey02_2", "textures/id1/wkey02_2"},
+	{"textures/wkey02_3", "textures/id1/wkey02_3"},
+	{"textures/wmet1_1", "textures/id1/wmet1_1"},
+	{"textures/wmet2_1", "textures/id1/wmet2_1"},
+	{"textures/wmet2_2", "textures/id1/wmet2_2"},
+	{"textures/wmet2_3", "textures/id1/wmet2_3"},
+	{"textures/wmet2_4", "textures/id1/wmet2_4"},
+	{"textures/wmet2_6", "textures/id1/wmet2_6"},
+	{"textures/wmet3_1", "textures/id1/wmet3_1"},
+	{"textures/wmet3_3", "textures/id1/wmet3_3"},
+	{"textures/wmet3_4", "textures/id1/wmet3_4"},
+	{"textures/wmet4_2", "textures/id1/wmet4_2"},
+	{"textures/wmet4_3", "textures/id1/wmet4_3"},
+	{"textures/wmet4_4", "textures/id1/wmet4_4"},
+	{"textures/wmet4_5", "textures/id1/wmet4_5"},
+	{"textures/wmet4_6", "textures/id1/wmet4_6"},
+	{"textures/wmet4_7", "textures/id1/wmet4_7"},
+	{"textures/wmet4_8", "textures/id1/wmet4_8"},
+	{"textures/wood1_1", "textures/id1/wood1_1"},
+	{"textures/wood1_5", "textures/id1/wood1_5"},
+	{"textures/wood1_7", "textures/id1/wood1_7"},
+	{"textures/wood1_8", "textures/id1/wood1_8"},
+	{"textures/woodflr1_2", "textures/id1/woodflr1_2"},
+	{"textures/woodflr1_4", "textures/id1/woodflr1_4"},
+	{"textures/woodflr1_5", "textures/id1/woodflr1_5"},
+	{"textures/wswamp1_2", "textures/id1/wswamp1_2"},
+	{"textures/wswamp1_4", "textures/id1/wswamp1_4"},
+	{"textures/wswamp2_1", "textures/id1/wswamp2_1"},
+	{"textures/wswamp2_2", "textures/id1/wswamp2_2"},
+	{"textures/wswitch1", "textures/id1/wswitch1"},
+	{"textures/wwall1_1", "textures/id1/wwall1_1"},
+	{"textures/wwood1_5", "textures/id1/wwood1_5"},
+	{"textures/wwood1_7", "textures/id1/wwood1_7"},
+	{"textures/z_exit", "textures/id1/z_exit"},
+
+	// prototype.wad
+	{"textures/#64_water1_1", "textures/prototype/64_water1_1"},
+	{"textures/#64_water1_2", "textures/prototype/64_water1_2"},
+	{"textures/#64_water1_3", "textures/prototype/64_water1_3"},
+	{"textures/#64_water2_1", "textures/prototype/64_water2_1"},
+	{"textures/#64_water2_2", "textures/prototype/64_water2_2"},
+	{"textures/#64_water2_3", "textures/prototype/64_water2_3"},
+	{"textures/#lava2_1", "textures/prototype/lava2_1"},
+	{"textures/#lava2_2", "textures/prototype/lava2_2"},
+	{"textures/#lava2_3", "textures/prototype/lava2_3"},
+	{"textures/#lava_64_1", "textures/prototype/lava_64_1"},
+	{"textures/#lava_64_2", "textures/prototype/lava_64_2"},
+	{"textures/#lava_64_3", "textures/prototype/lava_64_3"},
+	{"textures/#lavaskip", "textures/prototype/lavaskip"},
+	{"textures/#slime2_1", "textures/prototype/slime2_1"},
+	{"textures/#slime2_2", "textures/prototype/slime2_2"},
+	{"textures/#slime2_3", "textures/prototype/slime2_3"},
+	{"textures/#slimeskip", "textures/prototype/slimeskip"},
+	{"textures/#tele01", "textures/prototype/tele01"},
+	{"textures/#water3_1", "textures/prototype/water3_1"},
+	{"textures/#water3_2", "textures/prototype/water3_2"},
+	{"textures/#water3_3", "textures/prototype/water3_3"},
+	{"textures/#waterskip", "textures/prototype/waterskip"},
+	{"textures/+0button_0", "textures/prototype/0button_0"},
+	{"textures/+0button_1", "textures/prototype/0button_1"},
+	{"textures/+0button_2", "textures/prototype/0button_2"},
+	{"textures/+0button_3", "textures/prototype/0button_3"},
+	{"textures/+0shbtn_1", "textures/prototype/0shbtn_1"},
+	{"textures/+0shbtn_2", "textures/prototype/0shbtn_2"},
+	{"textures/+0shbtn_3", "textures/prototype/0shbtn_3"},
+	{"textures/+0shbtn_4", "textures/prototype/0shbtn_4"},
+	{"textures/+0shbtn_5", "textures/prototype/0shbtn_5"},
+	{"textures/+0shbtn_6", "textures/prototype/0shbtn_6"},
+	{"textures/+0shbtn_7", "textures/prototype/0shbtn_7"},
+	{"textures/+1button_0", "textures/prototype/1button_0"},
+	{"textures/+1button_1", "textures/prototype/1button_1"},
+	{"textures/+1button_2", "textures/prototype/1button_2"},
+	{"textures/+1button_3", "textures/prototype/1button_3"},
+	{"textures/+1shbtn_1", "textures/prototype/1shbtn_1"},
+	{"textures/+1shbtn_2", "textures/prototype/1shbtn_2"},
+	{"textures/+1shbtn_3", "textures/prototype/1shbtn_3"},
+	{"textures/+1shbtn_4", "textures/prototype/1shbtn_4"},
+	{"textures/+1shbtn_5", "textures/prototype/1shbtn_5"},
+	{"textures/+1shbtn_6", "textures/prototype/1shbtn_6"},
+	{"textures/+1shbtn_7", "textures/prototype/1shbtn_7"},
+	{"textures/128_blood_1", "textures/prototype/128_blood_1"},
+	{"textures/128_blood_2", "textures/prototype/128_blood_2"},
+	{"textures/128_blood_3", "textures/prototype/128_blood_3"},
+	{"textures/128_blue_1", "textures/prototype/128_blue_1"},
+	{"textures/128_blue_2", "textures/prototype/128_blue_2"},
+	{"textures/128_blue_3", "textures/prototype/128_blue_3"},
+	{"textures/128_brown_1", "textures/prototype/128_brown_1"},
+	{"textures/128_brown_2", "textures/prototype/128_brown_2"},
+	{"textures/128_brown_3", "textures/prototype/128_brown_3"},
+	{"textures/128_cyan_1", "textures/prototype/128_cyan_1"},
+	{"textures/128_cyan_2", "textures/prototype/128_cyan_2"},
+	{"textures/128_cyan_3", "textures/prototype/128_cyan_3"},
+	{"textures/128_gold_1", "textures/prototype/128_gold_1"},
+	{"textures/128_gold_2", "textures/prototype/128_gold_2"},
+	{"textures/128_gold_3", "textures/prototype/128_gold_3"},
+	{"textures/128_green_1", "textures/prototype/128_green_1"},
+	{"textures/128_green_2", "textures/prototype/128_green_2"},
+	{"textures/128_green_3", "textures/prototype/128_green_3"},
+	{"textures/128_grey_1", "textures/prototype/128_grey_1"},
+	{"textures/128_grey_2", "textures/prototype/128_grey_2"},
+	{"textures/128_grey_3", "textures/prototype/128_grey_3"},
+	{"textures/128_honey_1", "textures/prototype/128_honey_1"},
+	{"textures/128_honey_2", "textures/prototype/128_honey_2"},
+	{"textures/128_honey_3", "textures/prototype/128_honey_3"},
+	{"textures/16_blood_1", "textures/prototype/16_blood_1"},
+	{"textures/16_blood_2", "textures/prototype/16_blood_2"},
+	{"textures/16_blood_3", "textures/prototype/16_blood_3"},
+	{"textures/16_blue_1", "textures/prototype/16_blue_1"},
+	{"textures/16_blue_2", "textures/prototype/16_blue_2"},
+	{"textures/16_blue_3", "textures/prototype/16_blue_3"},
+	{"textures/16_brown_1", "textures/prototype/16_brown_1"},
+	{"textures/16_brown_2", "textures/prototype/16_brown_2"},
+	{"textures/16_brown_3", "textures/prototype/16_brown_3"},
+	{"textures/16_cyan_1", "textures/prototype/16_cyan_1"},
+	{"textures/16_cyan_2", "textures/prototype/16_cyan_2"},
+	{"textures/16_cyan_3", "textures/prototype/16_cyan_3"},
+	{"textures/16_gold_1", "textures/prototype/16_gold_1"},
+	{"textures/16_gold_2", "textures/prototype/16_gold_2"},
+	{"textures/16_gold_3", "textures/prototype/16_gold_3"},
+	{"textures/16_green_1", "textures/prototype/16_green_1"},
+	{"textures/16_green_2", "textures/prototype/16_green_2"},
+	{"textures/16_green_3", "textures/prototype/16_green_3"},
+	{"textures/16_grey_1", "textures/prototype/16_grey_1"},
+	{"textures/16_grey_2", "textures/prototype/16_grey_2"},
+	{"textures/16_grey_3", "textures/prototype/16_grey_3"},
+	{"textures/16_honey_1", "textures/prototype/16_honey_1"},
+	{"textures/16_honey_2", "textures/prototype/16_honey_2"},
+	{"textures/16_honey_3", "textures/prototype/16_honey_3"},
+	{"textures/32_blood_1", "textures/prototype/32_blood_1"},
+	{"textures/32_blood_2", "textures/prototype/32_blood_2"},
+	{"textures/32_blood_3", "textures/prototype/32_blood_3"},
+	{"textures/32_blue_1", "textures/prototype/32_blue_1"},
+	{"textures/32_blue_2", "textures/prototype/32_blue_2"},
+	{"textures/32_blue_3", "textures/prototype/32_blue_3"},
+	{"textures/32_brown_1", "textures/prototype/32_brown_1"},
+	{"textures/32_brown_2", "textures/prototype/32_brown_2"},
+	{"textures/32_brown_3", "textures/prototype/32_brown_3"},
+	{"textures/32_cyan_1", "textures/prototype/32_cyan_1"},
+	{"textures/32_cyan_2", "textures/prototype/32_cyan_2"},
+	{"textures/32_cyan_3", "textures/prototype/32_cyan_3"},
+	{"textures/32_gold_1", "textures/prototype/32_gold_1"},
+	{"textures/32_gold_2", "textures/prototype/32_gold_2"},
+	{"textures/32_gold_3", "textures/prototype/32_gold_3"},
+	{"textures/32_green_1", "textures/prototype/32_green_1"},
+	{"textures/32_green_2", "textures/prototype/32_green_2"},
+	{"textures/32_green_3", "textures/prototype/32_green_3"},
+	{"textures/32_grey_1", "textures/prototype/32_grey_1"},
+	{"textures/32_grey_2", "textures/prototype/32_grey_2"},
+	{"textures/32_grey_3", "textures/prototype/32_grey_3"},
+	{"textures/32_honey_1", "textures/prototype/32_honey_1"},
+	{"textures/32_honey_2", "textures/prototype/32_honey_2"},
+	{"textures/32_honey_3", "textures/prototype/32_honey_3"},
+	{"textures/64_blood_1", "textures/prototype/64_blood_1"},
+	{"textures/64_blood_2", "textures/prototype/64_blood_2"},
+	{"textures/64_blood_3", "textures/prototype/64_blood_3"},
+	{"textures/64_blue_1", "textures/prototype/64_blue_1"},
+	{"textures/64_blue_2", "textures/prototype/64_blue_2"},
+	{"textures/64_blue_3", "textures/prototype/64_blue_3"},
+	{"textures/64_brown_1", "textures/prototype/64_brown_1"},
+	{"textures/64_brown_2", "textures/prototype/64_brown_2"},
+	{"textures/64_brown_3", "textures/prototype/64_brown_3"},
+	{"textures/64_cyan_1", "textures/prototype/64_cyan_1"},
+	{"textures/64_cyan_2", "textures/prototype/64_cyan_2"},
+	{"textures/64_cyan_3", "textures/prototype/64_cyan_3"},
+	{"textures/64_gold_1", "textures/prototype/64_gold_1"},
+	{"textures/64_gold_2", "textures/prototype/64_gold_2"},
+	{"textures/64_gold_3", "textures/prototype/64_gold_3"},
+	{"textures/64_green_1", "textures/prototype/64_green_1"},
+	{"textures/64_green_2", "textures/prototype/64_green_2"},
+	{"textures/64_green_3", "textures/prototype/64_green_3"},
+	{"textures/64_grey_1", "textures/prototype/64_grey_1"},
+	{"textures/64_grey_3", "textures/prototype/64_grey_3"},
+	{"textures/64_grey_4", "textures/prototype/64_grey_4"},
+	{"textures/64_honey_1", "textures/prototype/64_honey_1"},
+	{"textures/64_honey_2", "textures/prototype/64_honey_2"},
+	{"textures/64_honey_3", "textures/prototype/64_honey_3"},
+	{"textures/blood_1", "textures/prototype/blood_1"},
+	{"textures/blood_2", "textures/prototype/blood_2"},
+	{"textures/blood_3", "textures/prototype/blood_3"},
+	{"textures/blue_1", "textures/prototype/blue_1"},
+	{"textures/blue_2", "textures/prototype/blue_2"},
+	{"textures/blue_3", "textures/prototype/blue_3"},
+	{"textures/brown_1", "textures/prototype/brown_1"},
+	{"textures/brown_2", "textures/prototype/brown_2"},
+	{"textures/brown_3", "textures/prototype/brown_3"},
+	{"textures/clip", "textures/prototype/clip"},
+	{"textures/cyan_1", "textures/prototype/cyan_1"},
+	{"textures/cyan_2", "textures/prototype/cyan_2"},
+	{"textures/cyan_3", "textures/prototype/cyan_3"},
+	{"textures/fullbright_1", "textures/prototype/fullbright_1"},
+	{"textures/fullbright_2", "textures/prototype/fullbright_2"},
+	{"textures/fullbright_3", "textures/prototype/fullbright_3"},
+	{"textures/fullbright_4", "textures/prototype/fullbright_4"},
+	{"textures/fullbright_5", "textures/prototype/fullbright_5"},
+	{"textures/fullbright_6", "textures/prototype/fullbright_6"},
+	{"textures/fullbright_7", "textures/prototype/fullbright_7"},
+	{"textures/fullbright_8", "textures/prototype/fullbright_8"},
+	{"textures/fullbright_9", "textures/prototype/fullbright_9"},
+	{"textures/gold_1", "textures/prototype/gold_1"},
+	{"textures/gold_2", "textures/prototype/gold_2"},
+	{"textures/gold_3", "textures/prototype/gold_3"},
+	{"textures/green_1", "textures/prototype/green_1"},
+	{"textures/green_2", "textures/prototype/green_2"},
+	{"textures/green_3", "textures/prototype/green_3"},
+	{"textures/grey_1", "textures/prototype/grey_1"},
+	{"textures/grey_2", "textures/prototype/grey_2"},
+	{"textures/grey_3", "textures/prototype/grey_3"},
+	{"textures/hint", "textures/prototype/hint"},
+	{"textures/hintskip", "textures/prototype/hintskip"},
+	{"textures/honey_1", "textures/prototype/honey_1"},
+	{"textures/honey_2", "textures/prototype/honey_2"},
+	{"textures/honey_3", "textures/prototype/honey_3"},
+	{"textures/key_gold_1", "textures/prototype/key_gold_1"},
+	{"textures/key_silver_1", "textures/prototype/key_silver_1"},
+	{"textures/light1_big", "textures/prototype/light1_big"},
+	{"textures/light1_grt", "textures/prototype/light1_grt"},
+	{"textures/light1_sml", "textures/prototype/light1_sml"},
+	{"textures/origin", "textures/common/origin"},
+	{"textures/skip", "textures/prototype/skip"},
+	{"textures/sky1", "textures/prototype/sky1"},
+	{"textures/sky2", "textures/prototype/sky2"},
+	{"textures/sky_blood_1", "textures/prototype/sky_blood_1"},
+	{"textures/sky_blood_2", "textures/prototype/sky_blood_2"},
+	{"textures/sky_blood_3", "textures/prototype/sky_blood_3"},
+	{"textures/sky_blue_1", "textures/prototype/sky_blue_1"},
+	{"textures/sky_blue_2", "textures/prototype/sky_blue_2"},
+	{"textures/sky_blue_3", "textures/prototype/sky_blue_3"},
+	{"textures/sky_brown_1", "textures/prototype/sky_brown_1"},
+	{"textures/sky_brown_2", "textures/prototype/sky_brown_2"},
+	{"textures/sky_brown_3", "textures/prototype/sky_brown_3"},
+	{"textures/sky_cyan_1", "textures/prototype/sky_cyan_1"},
+	{"textures/sky_cyan_2", "textures/prototype/sky_cyan_2"},
+	{"textures/sky_cyan_3", "textures/prototype/sky_cyan_3"},
+	{"textures/sky_gold_1", "textures/prototype/sky_gold_1"},
+	{"textures/sky_gold_2", "textures/prototype/sky_gold_2"},
+	{"textures/sky_gold_3", "textures/prototype/sky_gold_3"},
+	{"textures/sky_green_1", "textures/prototype/sky_green_1"},
+	{"textures/sky_green_2", "textures/prototype/sky_green_2"},
+	{"textures/sky_green_3", "textures/prototype/sky_green_3"},
+	{"textures/sky_grey_1", "textures/prototype/sky_grey_1"},
+	{"textures/sky_grey_2", "textures/prototype/sky_grey_2"},
+	{"textures/sky_grey_3", "textures/prototype/sky_grey_3"},
+	{"textures/sky_honey_1", "textures/prototype/sky_honey_1"},
+	{"textures/sky_honey_2", "textures/prototype/sky_honey_2"},
+	{"textures/sky_honey_3", "textures/prototype/sky_honey_3"},
+	{"textures/sky_void", "textures/prototype/sky_void"},
+	{"textures/text_0", "textures/prototype/text_0"},
+	{"textures/text_1", "textures/prototype/text_1"},
+	{"textures/text_2", "textures/prototype/text_2"},
+	{"textures/text_3", "textures/prototype/text_3"},
+	{"textures/text_4", "textures/prototype/text_4"},
+	{"textures/text_5", "textures/prototype/text_5"},
+	{"textures/text_6", "textures/prototype/text_6"},
+	{"textures/text_7", "textures/prototype/text_7"},
+	{"textures/text_8", "textures/prototype/text_8"},
+	{"textures/text_9", "textures/prototype/text_9"},
+	{"textures/text_A", "textures/prototype/text_A"},
+	{"textures/text_B", "textures/prototype/text_B"},
+	{"textures/text_C", "textures/prototype/text_C"},
+	{"textures/text_D", "textures/prototype/text_D"},
+	{"textures/text_E", "textures/prototype/text_E"},
+	{"textures/text_F", "textures/prototype/text_F"},
+	{"textures/text_G", "textures/prototype/text_G"},
+	{"textures/text_H", "textures/prototype/text_H"},
+	{"textures/text_I", "textures/prototype/text_I"},
+	{"textures/text_J", "textures/prototype/text_J"},
+	{"textures/text_K", "textures/prototype/text_K"},
+	{"textures/text_L", "textures/prototype/text_L"},
+	{"textures/text_M", "textures/prototype/text_M"},
+	{"textures/text_N", "textures/prototype/text_N"},
+	{"textures/text_O", "textures/prototype/text_O"},
+	{"textures/text_P", "textures/prototype/text_P"},
+	{"textures/text_Q", "textures/prototype/text_Q"},
+	{"textures/text_R", "textures/prototype/text_R"},
+	{"textures/text_S", "textures/prototype/text_S"},
+	{"textures/text_T", "textures/prototype/text_T"},
+	{"textures/text_U", "textures/prototype/text_U"},
+	{"textures/text_V", "textures/prototype/text_V"},
+	{"textures/text_W", "textures/prototype/text_W"},
+	{"textures/text_X", "textures/prototype/text_X"},
+	{"textures/text_Y", "textures/prototype/text_Y"},
+	{"textures/text_Z", "textures/prototype/text_Z"},
+	{"textures/text_amper", "textures/prototype/text_amper"},
+	{"textures/text_arrow", "textures/prototype/text_arrow"},
+	{"textures/text_circle", "textures/prototype/text_circle"},
+	{"textures/text_comma", "textures/prototype/text_comma"},
+	{"textures/text_dash", "textures/prototype/text_dash"},
+	{"textures/text_dot", "textures/prototype/text_dot"},
+	{"textures/text_emark", "textures/prototype/text_emark"},
+	{"textures/text_hash", "textures/prototype/text_hash"},
+	{"textures/text_light", "textures/prototype/text_light"},
+	{"textures/text_percent", "textures/prototype/text_percent"},
+	{"textures/text_qmark", "textures/prototype/text_qmark"},
+	{"textures/text_smiley", "textures/prototype/text_smiley"},
+	{"textures/text_sound", "textures/prototype/text_sound"},
+	{"textures/text_uscore", "textures/prototype/text_uscore"},
+	{"textures/trigger", "textures/common/trigger"},
+	{"textures/void", "textures/prototype/void"},
+
+	// TODO add more wads like Makkon et cetera
+};
+
+static const int numTextureConvertNames = sizeof( textureConvertNames ) / sizeof( textureConvertNames[0] );
+
+void idMapFile::WadTextureToMaterial( const char* material, idStr& matName )
+{
+	for( int i = 0 ; i < numTextureConvertNames ; i++ )
+	{
+		if( !idStr::Icmp( material, textureConvertNames[i].quakeName ) )
+		{
+			matName = textureConvertNames[i].doomName;
+			return;
+		}
+	}
+
+	matName = material;
+}
+
 
 // RB end

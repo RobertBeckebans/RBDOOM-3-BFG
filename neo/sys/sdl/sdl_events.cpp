@@ -1741,13 +1741,12 @@ sysEvent_t Sys_GetEvent()
 				continue; // just handle next event
 
 #if SDL_VERSION_ATLEAST(2, 0, 4)
-            case SDL_KEYMAPCHANGED:
-                // SRS - Get rid of annoying console and log messages on linux
-                continue; // just handle next event
+			case SDL_KEYMAPCHANGED:
+				continue; // just handle next event
 #endif
 
 			default:
-				common->Warning( "unknown event %u", ev.type );
+				common->Warning( "unknown event %u = %#x", ev.type, ev.type );
 				continue; // just handle next event
 		}
 	}

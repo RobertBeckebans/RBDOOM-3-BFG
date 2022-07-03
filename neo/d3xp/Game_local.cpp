@@ -976,7 +976,7 @@ void idGameLocal::LoadMap( const char* mapName, int randseed )
 	mapFileName = mapFile->GetName();
 
 	// load the collision map
-	collisionModelManager->LoadMap( mapFile );
+	collisionModelManager->LoadMap( mapFile, false );
 	collisionModelManager->Preload( mapName );
 
 	numClients = 0;
@@ -1894,7 +1894,7 @@ void idGameLocal::CacheDictionaryMedia( const idDict* dict )
 				renderModelManager->FindModel( kv->GetValue() );
 
 				// precache .cm files only
-				collisionModelManager->LoadModel( kv->GetValue() );
+				collisionModelManager->LoadModel( kv->GetValue(), true );
 			}
 		}
 		kv = dict->MatchPrefix( "model", kv );
@@ -4022,6 +4022,17 @@ bool idGameLocal::InhibitEntitySpawn( idDict& spawnArgs )
 		}
 	}
 
+	// RB: TrenchBroom interop skip func_group entities
+	{
+		const char* name = spawnArgs.GetString( "classname" );
+		const char* groupType = spawnArgs.GetString( "_tb_type" );
+
+		if( idStr::Icmp( name, "func_group" ) == 0 && ( idStr::Icmp( groupType, "_tb_group" ) == 0 || idStr::Icmp( groupType, "_tb_layer" ) == 0 ) )
+		{
+			result = true;
+		}
+	}
+
 	return result;
 }
 
@@ -5028,6 +5039,8 @@ bool idGameLocal::SkipCinematic( void )
 	{
 		skipCinematic = true;
 		cinematicMaxSkipTime = gameLocal.time + SEC2MS( g_cinematicMaxSkipTime.GetFloat() );
+		// SRS - Skip the remainder of the currently playing cinematic sound
+		soundSystem->GetPlayingSoundWorld()->Skip( cinematicMaxSkipTime );
 	}
 
 	return true;

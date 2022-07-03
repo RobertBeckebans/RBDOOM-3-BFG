@@ -56,10 +56,11 @@ public:
 	void				Load2DAtlasMipchainFromMemory( int width, int height, const byte* pic_const, int numLevels, textureFormat_t& textureFormat, textureColor_t& colorFormat );
 	void				LoadCubeFromMemory( int width, const byte* pics[6], int numLevels, textureFormat_t& textureFormat, bool gammaMips );
 
+	bool				LoadFromGeneratedFile( idFile* f, ID_TIME_T sourceFileTime );
 	ID_TIME_T			LoadFromGeneratedFile( ID_TIME_T sourceFileTime );
 	ID_TIME_T			WriteGeneratedFile( ID_TIME_T sourceFileTime );
 
-	const bimageFile_t& 	GetFileHeader()
+	const bimageFile_t& GetFileHeader()
 	{
 		return fileData;
 	}
@@ -77,6 +78,7 @@ public:
 		return images[i].data;
 	}
 	static void			GetGeneratedFileName( idStr& gfn, const char* imageName );
+
 private:
 	idStr				imgName;			// game path, including extension (except for cube maps), may be an image program
 	bimageFile_t		fileData;
@@ -123,7 +125,6 @@ private:
 
 private:
 	void				MakeGeneratedFileName( idStr& gfn );
-	bool				LoadFromGeneratedFile( idFile* f, ID_TIME_T sourceFileTime );
 };
 
 #endif // __BINARYIMAGE_H__

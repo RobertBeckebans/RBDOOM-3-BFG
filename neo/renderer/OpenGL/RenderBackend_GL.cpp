@@ -48,6 +48,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "../RenderBackend.h"
 #include "../../framework/Common_local.h"
 
+#include "../../imgui/imgui.h"
+
 idCVar r_drawFlickerBox( "r_drawFlickerBox", "0", CVAR_RENDERER | CVAR_BOOL, "visual test for dropping frames" );
 idCVar stereoRender_warp( "stereoRender_warp", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "use the optical warping renderprog instead of stereoDeGhost" );
 idCVar stereoRender_warpStrength( "stereoRender_warpStrength", "1.45", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_FLOAT, "amount of pre-distortion" );
@@ -194,17 +196,22 @@ static void R_CheckPortableExtensions()
 		idLib::FatalError( "%s", badVideoCard );
 	}
 
-	if( idStr::Icmpn( glConfig.renderer_string, "ATI ", 4 ) == 0 || idStr::Icmpn( glConfig.renderer_string, "AMD ", 4 ) == 0 )
+	if( idStr::Icmpn( glConfig.vendor_string, "ATI ", 4 ) == 0 || idStr::Icmpn( glConfig.renderer_string, "ATI ", 4 ) == 0 || idStr::Icmpn( glConfig.renderer_string, "AMD ", 4 ) == 0 )
 	{
 		glConfig.vendor = VENDOR_AMD;
 	}
-	else if( idStr::Icmpn( glConfig.renderer_string, "NVIDIA", 6 ) == 0 )
+	else if( idStr::Icmpn( glConfig.vendor_string, "NVIDIA", 6 ) == 0 || idStr::Icmpn( glConfig.renderer_string, "NVIDIA", 6 ) == 0 )
 	{
 		glConfig.vendor = VENDOR_NVIDIA;
 	}
-	else if( idStr::Icmpn( glConfig.renderer_string, "Intel", 5 ) == 0 )
+	else if( idStr::Icmpn( glConfig.vendor_string, "Intel", 5 ) == 0 || idStr::Icmpn( glConfig.renderer_string, "Intel", 5 ) == 0 )
 	{
 		glConfig.vendor = VENDOR_INTEL;
+	}
+	// SRS - Added support for Apple GPUs
+	else if( idStr::Icmpn( glConfig.vendor_string, "Apple", 5 ) == 0 || idStr::Icmpn( glConfig.renderer_string, "Apple", 5 ) == 0 )
+	{
+		glConfig.vendor = VENDOR_APPLE;
 	}
 
 	// RB: Mesa support
@@ -2369,6 +2376,12 @@ void idRenderBackend::ImGui_Shutdown()
 
 void idRenderBackend::ImGui_RenderDrawLists( ImDrawData* draw_data )
 {
+	if( draw_data->CmdListsCount == 0 )
+	{
+		// Nothing to do.
+		return;
+	}
+
 #if IMGUI_BFGUI
 
 	tr.guiModel->EmitImGui( draw_data );

@@ -409,7 +409,7 @@ This is an out-of-sequence screen update, not the normal game rendering
 // DG: added possibility to *not* release mouse in UpdateScreen(), it fucks up the view angle for screenshots
 void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
 {
-	if( insideUpdateScreen )
+	if( insideUpdateScreen || com_shuttingDown )
 	{
 		return;
 	}
@@ -427,6 +427,7 @@ void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
 
 	// build all the draw commands without running a new game tic
 	Draw();
+	frameTiming.finishDrawTime = Sys_Microseconds();    // SRS - Added frame timing for out-of-sequence updates (e.g. used in timedemo "twice" mode)
 
 	// foresthale 2014-03-01: note: the only place that has captureToImage=true is idAutoRender::StartBackgroundAutoSwaps
 	if( captureToImage )
@@ -438,7 +439,9 @@ void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
 	const emptyCommand_t* cmd = renderSystem->SwapCommandBuffers( &time_frontend, &time_backend, &time_shadows, &time_gpu, &stats_backend, &stats_frontend );
 
 	// get the GPU busy with new commands
+	frameTiming.startRenderTime = Sys_Microseconds();   // SRS - Added frame timing for out-of-sequence updates (e.g. used in timedemo "twice" mode)
 	renderSystem->RenderCommandBuffers( cmd );
+	frameTiming.finishRenderTime = Sys_Microseconds();  // SRS - Added frame timing for out-of-sequence updates (e.g. used in timedemo "twice" mode)
 
 	insideUpdateScreen = false;
 }
@@ -859,7 +862,7 @@ void idCommonLocal::Frame()
 		// RB begin
 #if defined(USE_DOOMCLASSIC)
 		// If we're in Doom or Doom 2, run tics and upload the new texture.
-		// SRS - Add check for com_pause cvar to make sure window is in focus - if not classic game should be paused (FIXME: but classic music still plays in background)
+		// SRS - Add check for com_pause cvar to make sure window is in focus - if not classic game should be paused
 		if( ( GetCurrentGame() == DOOM_CLASSIC || GetCurrentGame() == DOOM2_CLASSIC ) && !( Dialog().IsDialogPausing() || session->IsSystemUIShowing() || com_pause.GetInteger() ) )
 		{
 			RunDoomClassicFrame();
@@ -919,16 +922,18 @@ void idCommonLocal::Frame()
 		{
 			soundWorld->Pause();
 			soundSystem->SetPlayingSoundWorld( menuSoundWorld );
+			soundSystem->SetMute( false );
 		}
 		else
 		{
 			soundWorld->UnPause();
 			soundSystem->SetPlayingSoundWorld( soundWorld );
+			soundSystem->SetMute( false );
 		}
-		// SRS - Play silence when dialog waiting or window not in focus
+		// SRS - Mute all sound output when dialog waiting or window not in focus (mutes Doom3, Classic, Cinematic Audio)
 		if( Dialog().IsDialogPausing() || session->IsSystemUIShowing() || com_pause.GetInteger() )
 		{
-			soundSystem->SetPlayingSoundWorld( NULL );
+			soundSystem->SetMute( true );
 		}
 
 		soundSystem->Render();
