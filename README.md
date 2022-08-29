@@ -354,7 +354,7 @@ https://github.com/RobertBeckebans/TrenchBroom
 Doom 3 BFG also requires some extensions in order to work with TrenchBroom. 
 The Quake 1/2/3 communities already adopted the Valve 220 .map format in the BSP compilers and I did the same with dmap in RBDOOM-3-BFG.
 
-### TrenchBroom speficic Changes
+### TrenchBroom specific Changes
 * idMapFile and dmap were changed to support the Valve 220 .map format to aid mapping with TrenchBroom
 * Added exportFGD `[nomodels]` console command which exports all def/*.def entityDef declarations to base/exported/_tb/ as Forge Game Data files. TrenchBroom has native support to read those files https://developer.valvesoftware.com/wiki/FGD.
 If the nomodels argument is not given then it will also export all needed models by entity declarations to base/_tb/ as Wavefront OBJ files.
