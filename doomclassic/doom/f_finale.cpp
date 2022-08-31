@@ -725,7 +725,8 @@ void F_BunnyScroll (void)
     int		x;
     patch_t*	p1;
     patch_t*	p2;
-    char	name[10];
+    size_t	name_len = 10;
+    char	name[name_len];
     int		stage;
 		
     p1 = (patch_t*)W_CacheLumpName ("PFUB2", PU_LEVEL_SHARED);
@@ -765,8 +766,8 @@ void F_BunnyScroll (void)
 	S_StartSound (NULL, sfx_pistol);
 	::g->laststage = stage;
     }
-	
-    snprintf (name, strlen(name), "END%i",stage);
+
+	snprintf(name, name_len, "END%i", stage);
     V_DrawPatch ((ORIGINAL_WIDTH-13*8)/2, (ORIGINAL_HEIGHT-8*8)/2,0, (patch_t*)W_CacheLumpName (name,PU_CACHE_SHARED));
 }
 
