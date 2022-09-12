@@ -743,6 +743,7 @@ void idMenuHandler_Shell::ActivateMenu( bool show )
 			if( gui != NULL )
 			{
 
+#if 0
 				idSWFSpriteInstance* mars = gui->GetRootObject().GetNestedSprite( "mars" );
 				if( mars )
 				{
@@ -769,6 +770,32 @@ void idMenuHandler_Shell::ActivateMenu( bool show )
 						planet->SetMaterial( mat );
 					}
 				}
+#else
+				// RB: replace background with Dredd logo
+				idSWFSpriteInstance* bg = gui->GetRootObject().GetNestedSprite( "background" );
+				if( bg )
+				{
+					const idMaterial* mat = marsRotation;
+					if( mat != NULL )
+					{
+						bg->SetMaterial( mat );//, 1800, 1013 );
+					}
+				}
+
+				// remove planet sprite by scaling it down
+				idSWFSpriteInstance* mars = gui->GetRootObject().GetNestedSprite( "mars" );
+				if( mars )
+				{
+					mars->stereoDepth = STEREO_DEPTH_TYPE_FAR;
+
+					idSWFSpriteInstance* planet = mars->GetScriptObject()->GetNestedSprite( "planet" );
+					if( planet != NULL )
+					{
+						planet->PlayFrame( "rollOff" );
+						planet->SetScale( 0.001f, 0.001f );
+					}
+				}
+#endif
 			}
 		}
 

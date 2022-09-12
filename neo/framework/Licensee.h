@@ -44,7 +44,7 @@ If you have questions concerning this license or the applicable additional terms
 // RB end
 
 // jmarshall
-#define ENGINE_BRANCH					"Iced-Hellfire-Dev"
+#define ENGINE_BRANCH					"DREDD"
 // jmarshall end
 
 #ifdef STANDALONE

@@ -624,7 +624,7 @@ void idSWFSpriteInstance::SetMaterial( const idMaterial* material, int width, in
 		}
 		else
 		{
-			assert( materialOverride->GetImageWidth() > 0 && materialOverride->GetImageHeight() > 0 );
+			//assert( materialOverride->GetImageWidth() > 0 && materialOverride->GetImageHeight() > 0 );
 			assert( materialOverride->GetImageWidth() <= 8192 && materialOverride->GetImageHeight() <= 8192 );
 			materialWidth = ( uint16 )materialOverride->GetImageWidth();
 			materialHeight = ( uint16 )materialOverride->GetImageHeight();
