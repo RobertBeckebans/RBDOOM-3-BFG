@@ -287,9 +287,6 @@ float idConsoleLocal::DrawFPS( float y )
 
 	const uint64 rendererBackEndTime = commonLocal.GetRendererBackEndMicroseconds();
 	const uint64 rendererShadowsTime = commonLocal.GetRendererShadowsMicroseconds();
-    // SRS - GPU idle time is augmented by frame overhead time when game is operating in Doom 3 mode (com_smp = -1)
-	const uint64 rendererGPUIdleTime = commonLocal.GetRendererIdleMicroseconds() + ( com_smp.GetInteger() < 0 ? frameOverheadTime : 0 );
-	const uint64 rendererGPUTime = commonLocal.GetRendererGPUMicroseconds();
 	const uint64 rendererGPUEarlyZTime = commonLocal.GetRendererGpuEarlyZMicroseconds();
 	const uint64 rendererGPU_SSAOTime = commonLocal.GetRendererGpuSSAOMicroseconds();
 	const uint64 rendererGPU_SSRTime = commonLocal.GetRendererGpuSSRMicroseconds();
@@ -302,15 +299,22 @@ float idConsoleLocal::DrawFPS( float y )
     const int max_FPS = ( r_swapInterval.GetInteger() > 0 && glConfig.displayFrequency > 0 ? std::min( glConfig.displayFrequency, int( com_engineHz_latched ) ) : com_engineHz_latched );
     const int maxTime = 1000.0 / max_FPS * 1000;
 
+	// SRS - Frame idle and busy time calculations are based on direct frame-over-frame measurement relative to finishSyncTime
+	const uint64 frameIdleTime = commonLocal.mainFrameTiming.startGameTime - commonLocal.mainFrameTiming.finishSyncTime;
+	const uint64 frameBusyTime = commonLocal.frameTiming.finishSyncTime - commonLocal.mainFrameTiming.startGameTime;
+	
     // SRS - Total CPU time calculation depends on game smp mode combined with renderer backend time plus frame overhead time
     // FIXME: Note that rendererBackEndTime and therefore totalCPUTime are incorrect when using vsync mode on macOS Vulkan:
     // Vsync on MoltenVK blocks on vkQueueSubmit() during measurement of rendererBackEndTime. Not sure if this can be fixed or worked around.
     // This is not an issue on Windows or Linux since with vsync enabled they block on vkAcquireNextImageKHR() before backend timing starts.
     const uint64 totalCPUTime = ( com_smp.GetInteger() > 0 && com_editors == 0 ? 0 : gameThreadTotalTime ) + rendererBackEndTime + frameOverheadTime;
+	const uint64 vsyncAwareCPUIdleTime = r_swapInterval.GetInteger() > 0 ? frameBusyTime + frameIdleTime - totalCPUTime : frameIdleTime;
 
-    // SRS - Frame idle and busy time calculations are based on direct frame-over-frame measurement relative to finishSyncTime
-    const uint64 frameIdleTime = commonLocal.mainFrameTiming.startGameTime - commonLocal.mainFrameTiming.finishSyncTime;
-    const uint64 frameBusyTime = commonLocal.frameTiming.finishSyncTime - commonLocal.mainFrameTiming.startGameTime;
+	// SRS - GPU idle time is augmented by frame overhead time when game is operating in Doom 3 mode (com_smp = -1)
+	const uint64 rendererGPUIdleTime = commonLocal.GetRendererIdleMicroseconds() + ( com_smp.GetInteger() < 0 ? frameOverheadTime : 0 );
+	// SRS - GPU busy time can't be larger than total frame time less GPU idle time, typically a no-op but useful on macOS OpenGL with buggy elapsed timers
+	const uint64 rendererGPUTime = std::min( commonLocal.GetRendererGPUMicroseconds(), frameBusyTime + frameIdleTime - rendererGPUIdleTime );
+	const uint64 vsyncAwareGPUIdleTime = r_swapInterval.GetInteger() > 0 ? frameBusyTime + frameIdleTime - rendererGPUTime : rendererGPUIdleTime;
 
 #if 1
 
@@ -442,11 +446,8 @@ float idConsoleLocal::DrawFPS( float y )
 		ImGui::TextColored( rendererShadowsTime > maxTime ? colorRed : colorWhite,			"Shadows: %5llu us   Interactions: %5llu us", rendererShadowsTime, rendererGPUInteractionsTime );
 		ImGui::TextColored( rendererGPUShaderPassesTime > maxTime ? colorRed : colorWhite,	"                    ShaderPass:   %5llu us", rendererGPUShaderPassesTime );
 		ImGui::TextColored( rendererGPUPostProcessingTime > maxTime ? colorRed : colorWhite, "                    PostFX:       %5llu us", rendererGPUPostProcessingTime );
-		ImGui::TextColored( totalCPUTime > maxTime || rendererGPUTime > maxTime ? colorRed : colorWhite,
-							"Total:   %5llu us   Total:        %5llu us", totalCPUTime, rendererGPUTime );
-        // SRS - Display frameIdleTime vs. rendererGPUIdleTime - frameIdleTime is arguably more useful than rendererGPUIdleTime and shows true "available" idle time impacting frame rate
-        // In addition, rendererGPUIdleTime is only a lower bound approximation that ignores various overheads (e.g. renderer internals) and is grossly incorrect when vsync is enabled
-		ImGui::TextColored( frameBusyTime > maxTime ? colorRed : colorWhite,                "Frame:   %5llu us   Idle:         %5llu us", frameBusyTime, frameIdleTime );
+		ImGui::TextColored( totalCPUTime > maxTime || rendererGPUTime > maxTime ? colorRed : colorWhite, "Total:   %5llu us   Total:        %5llu us", totalCPUTime, rendererGPUTime );
+		ImGui::TextColored( colorWhite,														"Idle:    %5llu us   Idle:         %5llu us", vsyncAwareCPUIdleTime, vsyncAwareGPUIdleTime );
 
 		ImGui::End();
 	}

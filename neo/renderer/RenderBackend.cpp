@@ -5881,7 +5881,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 
 #if !defined(USE_VULKAN)
 
-// SRS - For OSX OpenGL record the final portion of GPU time while no other elapsed time query is active (after final shader pass and before post processing)
+// SRS - For OSX OpenGL record the final portion of GPU time while no other elapsed time query is active (after debug tools and before bloom + post processing)
 #if defined(__APPLE__)
 	renderLog.OpenMainBlock( MRB_GPU_TIME );
 #endif
@@ -5944,15 +5944,14 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		Tonemap( _viewDef );
 	}
 
-	if( !r_skipBloom.GetBool() )
-	{
-		Bloom( _viewDef );
-	}
-
 #if defined(__APPLE__)
 	renderLog.CloseMainBlock();
 #endif
 
+	if( !r_skipBloom.GetBool() )
+	{
+		Bloom( _viewDef );
+	}
 #endif
 
 	renderLog.CloseBlock();

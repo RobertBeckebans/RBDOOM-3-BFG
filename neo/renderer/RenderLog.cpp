@@ -388,6 +388,10 @@ void idRenderLog::CloseMainBlock()
 		{
 			glEndQuery( GL_TIME_ELAPSED_EXT );
 			glcontext.renderLogMainBlockTimeQueryIssued[ glcontext.frameParity ][ mainBlock * 2 + 1 ]++;
+
+			// SRS - glFlush() seems to be needed on macOS for elapsed timers to yield more accurate results (esp. for Ambient and Interactions passes)
+			// FIXME: glFlush() helps but is not sufficient, something else is wrong with macOS elapsed timers for the Ambient and Interactions passes
+			glFlush();
 		}
 
 #else
