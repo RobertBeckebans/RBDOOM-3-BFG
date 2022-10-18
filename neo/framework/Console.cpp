@@ -308,7 +308,7 @@ float idConsoleLocal::DrawFPS( float y )
     // Vsync on MoltenVK blocks on vkQueueSubmit() during measurement of rendererBackEndTime. Not sure if this can be fixed or worked around.
     // This is not an issue on Windows or Linux since with vsync enabled they block on vkAcquireNextImageKHR() before backend timing starts.
     const uint64 totalCPUTime = ( com_smp.GetInteger() > 0 && com_editors == 0 ? 0 : gameThreadTotalTime ) + rendererBackEndTime + frameOverheadTime;
-	const uint64 vsyncAwareCPUIdleTime = r_swapInterval.GetInteger() > 0 ? frameBusyTime + frameIdleTime - totalCPUTime : frameIdleTime;
+	const uint64 vsyncAwareCPUIdleTime = r_swapInterval.GetInteger() > 0 && frameBusyTime + frameIdleTime > totalCPUTime ? frameBusyTime + frameIdleTime - totalCPUTime : frameIdleTime;
 
 	// SRS - GPU idle time is augmented by frame overhead time when game is operating in Doom 3 mode (com_smp = -1)
 	const uint64 rendererGPUIdleTime = commonLocal.GetRendererIdleMicroseconds() + ( com_smp.GetInteger() < 0 ? frameOverheadTime : 0 );
