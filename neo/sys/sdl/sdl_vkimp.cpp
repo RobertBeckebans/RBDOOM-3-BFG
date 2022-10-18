@@ -560,13 +560,17 @@ static bool SetScreenParmsWindowed( glimpParms_t parms )
 	}
 	else // -2 == use current display
 	{
+		// SRS - Set centered window position first so that maximizing works properly
+		SDL_SetWindowPosition( window, windowPosX, windowPosY );
+
+#if defined(__APPLE__)
+		SDL_MaximizeWindow( window );
+#else	// linux
+		// SRS - Don't use SDL_MaximizeWindow() on linux since it may cause display artifacts
 		SDL_Rect rect;
 		SDL_GetDisplayBounds( displayIdx, &rect );
-
-		// SRS - Set window size first so that centering works properly
-		// Note: Not using SDL_MaximizeWindow() here since it may cause display artifacts on Linux
 		SDL_SetWindowSize( window, rect.w, rect.h );
-		SDL_SetWindowPosition( window, windowPosX, windowPosY );
+#endif
 	}
 
 	return true;
