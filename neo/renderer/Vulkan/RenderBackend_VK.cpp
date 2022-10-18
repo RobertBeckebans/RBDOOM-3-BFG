@@ -2301,15 +2301,15 @@ void idRenderBackend::GL_BlockingSwapBuffers()
 	presentInfo.pSwapchains = &vkcontext.swapchain;
 	presentInfo.pImageIndices = &vkcontext.currentSwapIndex;
 
-	// Eric: // Eric: Since VK_SUBOPTIMAL_KHR and VK_ERROR_OUT_OF_DATE_KHR here means
+	// Eric: Since VK_SUBOPTIMAL_KHR is not a hard fault and VK_ERROR_OUT_OF_DATE_KHR means
 	// the window is being resized (or other stuff) handle them instead of killing the app.
 	VkResult result = vkQueuePresentKHR( vkcontext.presentQueue, &presentInfo );
 	switch( result )
 	{
 		case VK_SUCCESS:
+		case VK_SUBOPTIMAL_KHR:
 			break;
 		case VK_ERROR_OUT_OF_DATE_KHR:
-		case VK_SUBOPTIMAL_KHR:
 			// return on_window_size_changed(); Eric: Handle resizing the window.
 			DestroySwapChain();
 			CreateSwapChain();

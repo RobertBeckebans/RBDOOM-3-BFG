@@ -974,6 +974,16 @@ sysEvent_t Sys_GetEvent()
 						// SRS - Only save window resized events when in windowed modes
 						if( ! renderSystem->IsFullScreen() )
 						{
+							// SRS - If window was maximized by window manager set to borderless fullscreen mode = -2
+							SDL_Window *window = SDL_GetWindowFromID( ev.window.windowID );
+							if( SDL_GetWindowFlags( window ) & SDL_WINDOW_MAXIMIZED )
+							{
+								SDL_SetWindowFullscreen( window, SDL_WINDOW_FULLSCREEN_DESKTOP );
+								cvarSystem->SetCVarInteger( "r_fullscreen", -2 );
+								PushConsoleEvent( "vid_restart" );
+								continue; // handle next event
+							}
+
 							r_windowWidth.SetInteger( w );
 							r_windowHeight.SetInteger( h );
 						}
@@ -991,8 +1001,9 @@ sysEvent_t Sys_GetEvent()
 						int x = ev.window.data1;
 						int y = ev.window.data2;
 
-                        // SRS - Only save window moved events when in windowed modes
-                        if( ! renderSystem->IsFullScreen() )
+                        // SRS - Only save window moved events when in windowed modes and not maximized by window manager
+						SDL_Window *window = SDL_GetWindowFromID( ev.window.windowID );
+                        if( ! renderSystem->IsFullScreen() && ! ( SDL_GetWindowFlags( window ) & SDL_WINDOW_MAXIMIZED ) )
                         {
                             // SRS - If flag is set, ignore window moved event and don't update cvars
                             if( ignoreNextMoveEvent )

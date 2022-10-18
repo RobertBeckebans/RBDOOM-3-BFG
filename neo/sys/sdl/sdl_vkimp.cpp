@@ -160,7 +160,11 @@ static int GetDisplayIndex( glimpParms_t parms )
 
     if( parms.fullScreen > 0 )
     {
-        displayIdx = parms.fullScreen - 1; // first display for SDL is 0, in parms it's 1
+		displayIdx = -1;
+		if( parms.fullScreen <= SDL_GetNumVideoDisplays() )
+		{
+			displayIdx = parms.fullScreen - 1; // first display for SDL is 0, in parms it's 1
+		}
     }
     else // 0, -1, -2 == windowed modes
     {
@@ -192,7 +196,7 @@ static int GetDisplayIndex( glimpParms_t parms )
 static int GetDisplayFrequency( glimpParms_t parms )
 {
     int displayIdx = GetDisplayIndex( parms );
-    if( displayIdx < 0 || displayIdx >= SDL_GetNumVideoDisplays() )
+    if( displayIdx < 0 )
     {
         // SRS - Can't find the display index for the current window position, fall back to monitor 1
         displayIdx = 0;
@@ -329,13 +333,13 @@ bool VKimp_Init( glimpParms_t parms )
         int windowWidth = parms.width;
         int windowHeight = parms.height;
 
-        // DG: set display num and window position for fullscreen
+		// SRS - Set display index, window position, and size for fullscreen modes, skip for windowed mode (0) and custom bordlerless mode (-1)
 		if( parms.fullScreen > 0 || parms.fullScreen == -2 )
 		{
 			int displayIdx = GetDisplayIndex( parms );
-			if( displayIdx < 0 || displayIdx >= SDL_GetNumVideoDisplays() )
+			if( displayIdx < 0 )
 			{
-				common->Warning( "Can't find display for r_fullscreen mode %i because window out of bounds or SDL2 only knows about %i display(s), falling back to display 1",
+				common->Warning( "Can't find display for r_fullscreen = %i because window out of bounds or SDL2 only knows about %i display(s), falling back to display 1",
 								 parms.fullScreen, SDL_GetNumVideoDisplays() );
                 displayIdx = 0;
 			}
@@ -372,7 +376,7 @@ bool VKimp_Init( glimpParms_t parms )
         // resists resizing when switching back to windowed modes after launch
         if( parms.fullScreen > 0 )
         {
-            if( SDL_SetWindowFullscreen( window, SDL_TRUE ) < 0 )
+            if( SDL_SetWindowFullscreen( window, SDL_WINDOW_FULLSCREEN ) < 0 )
             {
                 common->Warning( "Couldn't switch to fullscreen mode, reason: %s!", SDL_GetError() );
             }
@@ -462,34 +466,33 @@ static int ScreenParmsHandleDisplayIndex( glimpParms_t parms )
 		// we have to go to windowed mode first to move the window.. SDL-oddity.
 		SDL_SetWindowFullscreen( window, SDL_FALSE );
     }
-    
+	// SRS - Otherwise if not in fullscreen mode, restore window size before before monitor or mode switching
+	else if( SDL_GetWindowFlags( window ) & SDL_WINDOW_MAXIMIZED )
+	{
+		SDL_RestoreWindow( window );
+	}
+
     // SRS - Must call GetDisplayIndex() after exiting fullscreen or may get incorrect displayIdx when parms.fullScreen == -2
     int displayIdx = GetDisplayIndex( parms );
-    if( displayIdx < 0 || displayIdx >= SDL_GetNumVideoDisplays() )
+    if( displayIdx < 0 )
 	{
-		common->Warning( "Can't find display for r_fullscreen mode %i because window out of bounds or SDL2 only knows about %i display(s), falling back to display 1",
+		common->Warning( "Can't find display for r_fullscreen = %i because window out of bounds or SDL2 only knows about %i display(s), falling back to display 1",
 						 parms.fullScreen, SDL_GetNumVideoDisplays() );
         displayIdx = 0;
     }
-        
-    // select display ; SDL_WINDOWPOS_UNDEFINED_DISPLAY() doesn't work.
-    int x = SDL_WINDOWPOS_CENTERED_DISPLAY( displayIdx );
-    // move window to the center of selected display
-    SDL_SetWindowPosition( window, x, x );
-        
+
     return displayIdx;
 }
 
 static bool SetScreenParmsFullscreen( glimpParms_t parms )
 {
-	SDL_DisplayMode m = {0};
     int displayIdx = ScreenParmsHandleDisplayIndex( parms );
-    if( displayIdx < 0 )
-	{
-		return false;
-	}
+
+	// SRS - Move window to the center of selected display
+	SDL_SetWindowPosition( window, SDL_WINDOWPOS_CENTERED_DISPLAY( displayIdx ), SDL_WINDOWPOS_CENTERED_DISPLAY( displayIdx ) );
 
 	// change settings in that display mode according to parms
+	SDL_DisplayMode m = {0};
     if( parms.fullScreen > 0 )
     {
         // get current mode of display the window should be full-screened on
@@ -517,7 +520,7 @@ static bool SetScreenParmsFullscreen( glimpParms_t parms )
 	// if we're currently not in fullscreen mode, we need to switch to fullscreen
 	if( !( SDL_GetWindowFlags( window ) & SDL_WINDOW_FULLSCREEN ) )
 	{
-		if( SDL_SetWindowFullscreen( window, SDL_TRUE ) < 0 )
+		if( SDL_SetWindowFullscreen( window, SDL_WINDOW_FULLSCREEN ) < 0 )
 		{
 			common->Warning( "Couldn't switch to fullscreen mode, reason: %s!", SDL_GetError() );
 			return false;
@@ -531,45 +534,39 @@ static bool SetScreenParmsWindowed( glimpParms_t parms )
     // SRS - Suppress cvar update for next window move event caused by exiting fullscreen mode and/or changing the border
     ignoreNextMoveEvent = true;
 
-    // SRS - if we're currently in fullscreen mode, we first need to disable that before setting window border, size, and position
-	if( SDL_GetWindowFlags( window ) & SDL_WINDOW_FULLSCREEN )
+	int displayIdx = ScreenParmsHandleDisplayIndex( parms );
+
+	// SRS - Set window position supporting the reserved value pair of ( parms.x == -1, parms.y == -1 ) for centered on monitor 1
+	// If can't find display index and center of window is out of bounds for the desktop, also move to centered on monitor 1
+	int windowPosX = parms.x;
+	int windowPosY = parms.y;
+	if( ( parms.x == -1 && parms.y == -1 ) || GetDisplayIndex( parms ) < 0 )
 	{
-		if( SDL_SetWindowFullscreen( window, SDL_FALSE ) < 0 )
-		{
-			common->Warning( "Couldn't switch to windowed mode, reason: %s!", SDL_GetError() );
-			return false;
-		}
+		windowPosX = windowPosY = SDL_WINDOWPOS_CENTERED;
+	}
+	else if( parms.fullScreen == -2 )
+	{
+		windowPosX = windowPosY = SDL_WINDOWPOS_CENTERED_DISPLAY( displayIdx );
 	}
 
-    // SRS - Set window border based on mode (on when in bordered window mode 0, off when in borderless window modes -1, -2)
+	// SRS - Set window border based on mode (on when in bordered window mode 0, off when in borderless window modes -1, -2)
     SDL_SetWindowBordered( window, ( parms.fullScreen == 0 ? SDL_TRUE : SDL_FALSE ) );
 
 	if( parms.fullScreen == 0 || parms.fullScreen == -1 )
 	{
 		// SRS - Set window size first so that centering works properly if needed
 		SDL_SetWindowSize( window, parms.width, parms.height );
-
-        // SRS - Set window position supporting the reserved value pair of ( parms.x == -1, parms.y == -1 ) for centered on monitor 1
-        // If can't find display index and center of window is out of bounds for the desktop, also move to centered on monitor 1
-        if( ( parms.x == -1 && parms.y == -1 ) || GetDisplayIndex( parms ) < 0 )
-        {
-            SDL_SetWindowPosition( window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED );
-        }
-        else
-        {
-            SDL_SetWindowPosition( window, parms.x, parms.y );
-        }
+		SDL_SetWindowPosition( window, windowPosX, windowPosY );
 	}
 	else // -2 == use current display
 	{
-        int displayIdx = std::max( 0, GetDisplayIndex( parms ) );
-
 		SDL_Rect rect;
 		SDL_GetDisplayBounds( displayIdx, &rect );
 
-		// SRS - Set borderless window position and size (order seems important for linux wm's) based on current display bounds
-		SDL_SetWindowPosition( window, rect.x, rect.y );
+		// SRS - Set window size first so that centering works properly
+		// Note: Not using SDL_MaximizeWindow() here since it may cause display artifacts on Linux
 		SDL_SetWindowSize( window, rect.w, rect.h );
+		SDL_SetWindowPosition( window, windowPosX, windowPosY );
 	}
 
 	return true;
@@ -597,7 +594,7 @@ bool VKimp_SetScreenParms( glimpParms_t parms )
 			return false;
 		}
 	}
-	   
+
     // SRS - Must query actual window size vs using parms.width or parms.height which may be incorrect for fullscreen mode -2
     SDL_GetWindowSize( window, &glConfig.nativeScreenWidth, &glConfig.nativeScreenHeight );
 
@@ -667,7 +664,7 @@ void VKimp_GrabInput( int flags )
 
     // SRS - Always grab mouse when in fullscreen mode, same as in Win32
     grab = grab || SDL_GetWindowFlags( window ) & SDL_WINDOW_FULLSCREEN;
-    
+
 	if( grab && ( flags & GRAB_REENABLE ) )
 	{
 		grab = false;

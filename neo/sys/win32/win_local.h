@@ -107,7 +107,7 @@ typedef struct
 	int				desktopBitsPixel;
 	int				desktopWidth, desktopHeight;
 
-	int				cdsFullscreen;	// 0 = not fullscreen, otherwise monitor number
+	int				cdsFullscreen = 0;	// 0 = not fullscreen, otherwise monitor number
 
 	idFileHandle	log_fp;
 

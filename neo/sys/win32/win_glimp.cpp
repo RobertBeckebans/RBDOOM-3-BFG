@@ -690,6 +690,8 @@ GetDisplayCoordinates
 */
 static bool GetDisplayCoordinates( const int deviceNum, int& x, int& y, int& width, int& height, int& displayHz )
 {
+	bool	verbose = false;
+
 	idStr deviceName = GetDeviceName( deviceNum );
 	if( deviceName.Length() == 0 )
 	{
@@ -725,24 +727,27 @@ static bool GetDisplayCoordinates( const int deviceNum, int& x, int& y, int& wid
 		return false;
 	}
 
-	common->Printf( "display device: %i\n", deviceNum );
-	common->Printf( "  DeviceName  : %s\n", device.DeviceName );
-	common->Printf( "  DeviceString: %s\n", device.DeviceString );
-	common->Printf( "  StateFlags  : 0x%x\n", device.StateFlags );
-	common->Printf( "  DeviceID    : %s\n", device.DeviceID );
-	common->Printf( "  DeviceKey   : %s\n", device.DeviceKey );
-	common->Printf( "      DeviceName  : %s\n", monitor.DeviceName );
-	common->Printf( "      DeviceString: %s\n", monitor.DeviceString );
-	common->Printf( "      StateFlags  : 0x%x\n", monitor.StateFlags );
-	common->Printf( "      DeviceID    : %s\n", monitor.DeviceID );
-	common->Printf( "      DeviceKey   : %s\n", monitor.DeviceKey );
-	common->Printf( "          dmPosition.x      : %i\n", devmode.dmPosition.x );
-	common->Printf( "          dmPosition.y      : %i\n", devmode.dmPosition.y );
-	common->Printf( "          dmBitsPerPel      : %i\n", devmode.dmBitsPerPel );
-	common->Printf( "          dmPelsWidth       : %i\n", devmode.dmPelsWidth );
-	common->Printf( "          dmPelsHeight      : %i\n", devmode.dmPelsHeight );
-	common->Printf( "          dmDisplayFlags    : 0x%x\n", devmode.dmDisplayFlags );
-	common->Printf( "          dmDisplayFrequency: %i\n", devmode.dmDisplayFrequency );
+	if( verbose )
+	{
+		common->Printf("display device: %i\n", deviceNum);
+		common->Printf("  DeviceName  : %s\n", device.DeviceName);
+		common->Printf("  DeviceString: %s\n", device.DeviceString);
+		common->Printf("  StateFlags  : 0x%x\n", device.StateFlags);
+		common->Printf("  DeviceID    : %s\n", device.DeviceID);
+		common->Printf("  DeviceKey   : %s\n", device.DeviceKey);
+		common->Printf("      DeviceName  : %s\n", monitor.DeviceName);
+		common->Printf("      DeviceString: %s\n", monitor.DeviceString);
+		common->Printf("      StateFlags  : 0x%x\n", monitor.StateFlags);
+		common->Printf("      DeviceID    : %s\n", monitor.DeviceID);
+		common->Printf("      DeviceKey   : %s\n", monitor.DeviceKey);
+		common->Printf("          dmPosition.x      : %i\n", devmode.dmPosition.x);
+		common->Printf("          dmPosition.y      : %i\n", devmode.dmPosition.y);
+		common->Printf("          dmBitsPerPel      : %i\n", devmode.dmBitsPerPel);
+		common->Printf("          dmPelsWidth       : %i\n", devmode.dmPelsWidth);
+		common->Printf("          dmPelsHeight      : %i\n", devmode.dmPelsHeight);
+		common->Printf("          dmDisplayFlags    : 0x%x\n", devmode.dmDisplayFlags);
+		common->Printf("          dmDisplayFrequency: %i\n", devmode.dmDisplayFrequency);
+	}
 
 	x = devmode.dmPosition.x;
 	y = devmode.dmPosition.y;
@@ -900,6 +905,56 @@ public:
 
 /*
 ====================
+Helper Functions for R_GetModeListForDisplay, GLW_GetWindowDimensions, GLW_ChangeDislaySettingsIfNeeded, and GetDisplayFrequency
+====================
+*/
+int DisplayMax()
+{
+	DISPLAY_DEVICE dd;
+	dd.cb = sizeof( DISPLAY_DEVICE );
+
+	int deviceNum = 0;
+	int deviceMax = 0;
+	while( EnumDisplayDevices( NULL, deviceNum, &dd, 0 ) )
+	{
+		if( dd.StateFlags & DISPLAY_DEVICE_ATTACHED_TO_DESKTOP )
+		{
+			DISPLAY_DEVICE monitor = { 0 };
+			monitor.cb = sizeof( DISPLAY_DEVICE );
+			if( EnumDisplayDevices( dd.DeviceName, 0, &monitor, 0 ) )
+			{
+				deviceMax = deviceNum;
+			}
+		}
+		deviceNum++;
+	}
+	return deviceMax;
+}
+
+int DisplayPrimary()
+{
+	DISPLAY_DEVICE dd;
+	dd.cb = sizeof( DISPLAY_DEVICE );
+
+	int deviceNum = 0;
+	while( EnumDisplayDevices( NULL, deviceNum, &dd, 0 ) )
+	{
+		if( dd.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE )
+		{
+			DISPLAY_DEVICE monitor = { 0 };
+			monitor.cb = sizeof( DISPLAY_DEVICE );
+			if( EnumDisplayDevices( dd.DeviceName, 0, &monitor, 0 ) )
+			{
+				return deviceNum;
+			}
+		}
+		deviceNum++;
+	}
+	return 0;
+}
+
+/*
+====================
 R_GetModeListForDisplay
 ====================
 */
@@ -911,6 +966,12 @@ bool R_GetModeListForDisplay( const int requestedDisplayNum, idList<vidMode_t>& 
 
 	for( int displayNum = requestedDisplayNum; ; displayNum++ )
 	{
+		// SRS - If can't get monitor modes for requested display, get modes for primary display instead (i.e. fallback)
+		if( displayNum != requestedDisplayNum && displayNum <= DisplayMax() )
+		{
+			displayNum = DisplayPrimary();
+		}
+
 		DISPLAY_DEVICE	device;
 		device.cb = sizeof( device );
 		if( !EnumDisplayDevices(
@@ -1020,7 +1081,15 @@ static int GetDisplayNum( glimpParms_t parms )
 
 	if( parms.fullScreen > 0 )
 	{
-		displayNum = parms.fullScreen - 1; // first display for Windows is 0, in parms it's 1
+		displayNum = -1;
+		if( parms.fullScreen <= DisplayMax() + 1 )
+		{
+			int x, y, w, h, displayHz = 0;
+			if( GetDisplayCoordinates( parms.fullScreen - 1, x, y, w, h, displayHz ) )
+			{
+				displayNum = parms.fullScreen - 1;		// first display for Windows is 0, in parms it's 1
+			}
+		}
 	}
 	else // 0, -1, -2 == windowed modes
 	{
@@ -1031,12 +1100,13 @@ static int GetDisplayNum( glimpParms_t parms )
 			int windowPosX = parms.x + parms.width / 2;
 			int windowPosY = parms.y + parms.height / 2;
 
-			for( int i = 0 ; ; i++ )
+			displayNum = -1;
+			for( int i = 0 ; i <= DisplayMax(); i++ )
 			{
 				int x, y, w, h, displayHz = 0;
 				if( !GetDisplayCoordinates( i, x, y, w, h, displayHz ) )
 				{
-					return -1;
+					continue;
 				}
 
 				if( windowPosX >= x && windowPosX < ( x + w ) && windowPosY >= y && windowPosY < ( y + h ) )
@@ -1068,10 +1138,8 @@ static bool GLW_GetWindowDimensions( const glimpParms_t parms, int& x, int& y, i
 	int displayNum = GetDisplayNum( parms );
 	if( displayNum < 0 )
 	{
-        common->Warning( "Can't find display for r_fullscreen mode %i because window out of bounds, falling back to display 1", parms.fullScreen );
-
 		displayNotFound = true;
-		displayNum = 0;
+		displayNum = DisplayPrimary();
 	}
 
 	// get the current monitor position and size on the desktop, assuming
@@ -1092,6 +1160,11 @@ static bool GLW_GetWindowDimensions( const glimpParms_t parms, int& x, int& y, i
 		{
 			offsetX = ( w - parms.width ) / 2 - parms.x;
 			offsetY = ( h - parms.height ) / 2 - parms.y;
+
+			if( displayNotFound )
+			{
+				common->Warning( "Can't find display for r_fullscreen = %i because window out of bounds, falling back to display %i", parms.fullScreen, displayNum + 1 );
+			}
 		}
 
 		if( parms.fullScreen == -1 )
@@ -1277,14 +1350,21 @@ static bool GLW_ChangeDislaySettingsIfNeeded( glimpParms_t parms )
 		return true;
 	}
 
-	// if we are already in the right resolution, don't do a ChangeDisplaySettings
-	int x, y, width, height, displayHz;
+	// SRS - Make sure the selected display is connected to an active monitor associated with the desktop, otherwise fall back to the primary display
+	int displayNum = GetDisplayNum( parms );
+	if( displayNum < 0 )
+	{
+		displayNum = DisplayPrimary();
+		common->Warning( "Can't change mode for r_fullscreen = %i because display not available, falling back to display %i", parms.fullScreen, displayNum + 1 );
+	}
 
-	if( !GetDisplayCoordinates( parms.fullScreen - 1, x, y, width, height, displayHz ) )
+	// if we are already on the same screen and in the right resolution, don't do a ChangeDisplaySettings
+	int x, y, width, height, displayHz;
+	if( !GetDisplayCoordinates( displayNum, x, y, width, height, displayHz ) )
 	{
 		return false;
 	}
-	if( width == parms.width && height == parms.height && ( displayHz == parms.displayHz || parms.displayHz == 0 ) )
+	if( win32.cdsFullscreen == displayNum + 1 && width == parms.width && height == parms.height && ( displayHz == parms.displayHz || parms.displayHz == 0 ) )
 	{
 		// SRS - Set negative value (-1) to skip next settings reset and enable fullscreen mode input handling (i.e. mouse, ALT-tab)
 		win32.cdsFullscreen = -1;
@@ -1307,7 +1387,7 @@ static bool GLW_ChangeDislaySettingsIfNeeded( glimpParms_t parms )
 
 	common->Printf( "...calling CDS: " );
 
-	const char* const deviceName = GetDisplayName( parms.fullScreen - 1 );
+	const char* const deviceName = GetDisplayName( displayNum );
 
 	int		cdsRet;
 	if( ( cdsRet = ChangeDisplaySettingsEx(
@@ -1318,7 +1398,7 @@ static bool GLW_ChangeDislaySettingsIfNeeded( glimpParms_t parms )
 					   NULL ) ) == DISP_CHANGE_SUCCESSFUL )
 	{
 		common->Printf( "ok\n" );
-		win32.cdsFullscreen = parms.fullScreen;
+		win32.cdsFullscreen = displayNum + 1;
 		return true;
 	}
 
@@ -1343,8 +1423,8 @@ static int GetDisplayFrequency( glimpParms_t parms )
 	int displayNum = GetDisplayNum( parms );
 	if( displayNum < 0 )
 	{
-		// SRS - Can't find the display number for the current window position, fall back to monitor 1
-		displayNum = 0;
+		// SRS - Can't find the display number for the current window position, fall back to primary display
+		displayNum = DisplayPrimary();
 	}
 
 	idStr deviceName = GetDeviceName( displayNum );
