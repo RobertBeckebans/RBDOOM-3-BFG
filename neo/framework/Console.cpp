@@ -312,8 +312,8 @@ float idConsoleLocal::DrawFPS( float y )
 
 	// SRS - GPU idle time is augmented by frame overhead time when game is operating in Doom 3 mode (com_smp = -1)
 	const uint64 rendererGPUIdleTime = commonLocal.GetRendererIdleMicroseconds() + ( com_smp.GetInteger() < 0 ? frameOverheadTime : 0 );
-	// SRS - GPU busy time can't be larger than total frame time less GPU idle time, typically a no-op but useful on macOS OpenGL with buggy elapsed timers
-	const uint64 rendererGPUTime = std::min( commonLocal.GetRendererGPUMicroseconds(), frameBusyTime + frameIdleTime - rendererGPUIdleTime );
+	// SRS - GPU busy time can't be zero or larger than total frame time less GPU idle time, typically a no-op but useful on macOS OpenGL with buggy elapsed timers
+	const uint64 rendererGPUTime = commonLocal.GetRendererGPUMicroseconds() > 0 && commonLocal.GetRendererGPUMicroseconds() < frameBusyTime + frameIdleTime - rendererGPUIdleTime ? commonLocal.GetRendererGPUMicroseconds() : frameBusyTime + frameIdleTime - rendererGPUIdleTime;
 	const uint64 vsyncAwareGPUIdleTime = r_swapInterval.GetInteger() > 0 ? frameBusyTime + frameIdleTime - rendererGPUTime : rendererGPUIdleTime;
 
 #if 1
