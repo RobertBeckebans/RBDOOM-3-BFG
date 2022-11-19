@@ -456,6 +456,19 @@ Recommended in this case is `cmake-vs2019-64bit-windows10.bat`
 ---
 # Compiling on Linux <a name="compile_linux"></a>
 
+## Containerised build
+	
+If your system has Docker installed, you can create RBDOOM3BFG builds without having to install any of the dependencies on your host system. There is a `Dockerfile` in this repository that will set up the environment inside an `ubuntu` container and run the build for you. To run a build inside a Docker container, simply run the following command in the root path of this repository:
+	
+	> docker build . --output type=local,dest=./build
+
+This will run a build and save the resulting executables to `./build` on your host machine. By default, this will create a build using the `eclipse-linux-profile` configuration; to customize this you can also pass in the `CONFIGSCRIPT` build argument. For example, to create a build using the Vulkan release configuration:
+
+	> docker build . --output type=local,dest=./build --build-arg CONFIGSCRIPT=cmake-linux-vulkan-release.sh
+
+
+## Local build
+	
 1. You need the following dependencies in order to compile RBDoom3BFG with all features:
 
 	On Debian or Ubuntu:
