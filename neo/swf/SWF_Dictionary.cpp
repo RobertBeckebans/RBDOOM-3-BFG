@@ -25,8 +25,8 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 /*
 ========================
@@ -90,6 +90,32 @@ idSWFDictionaryEntry& idSWFDictionaryEntry::operator=( idSWFDictionaryEntry& oth
 
 /*
 ========================
+idSWF::idSWFDictionaryEntry::operator= (move)
+========================
+*/
+idSWFDictionaryEntry& idSWFDictionaryEntry::operator=( idSWFDictionaryEntry&& other )
+{
+	type = other.type;
+	material = other.material;
+	shape = other.shape;
+	sprite = other.sprite;
+	font = other.font;
+	text = other.text;
+	edittext = other.edittext;
+	imageSize = other.imageSize;
+	imageAtlasOffset = other.imageAtlasOffset;
+	other.type = SWF_DICT_NULL;
+	other.material = NULL;
+	other.shape = NULL;
+	other.sprite = NULL;
+	other.font = NULL;
+	other.text = NULL;
+	other.edittext = NULL;
+	return *this;
+}
+
+/*
+========================
 idSWF::AddDictionaryEntry
 ========================
 */
@@ -100,15 +126,15 @@ idSWFDictionaryEntry* idSWF::AddDictionaryEntry( int characterID, swfDictType_t 
 	{
 		dictionary.SetNum( characterID + 1 );
 	}
-	
+
 	if( dictionary[ characterID ].type != SWF_DICT_NULL )
 	{
 		idLib::Warning( "%s: Duplicate character %d", filename.c_str(), characterID );
 		return NULL;
 	}
-	
+
 	dictionary[ characterID ].type = type;
-	
+
 	if( ( type == SWF_DICT_SHAPE ) || ( type == SWF_DICT_MORPH ) )
 	{
 		dictionary[ characterID ].shape = new( TAG_SWF ) idSWFShape;
@@ -129,7 +155,7 @@ idSWFDictionaryEntry* idSWF::AddDictionaryEntry( int characterID, swfDictType_t 
 	{
 		dictionary[ characterID ].edittext = new( TAG_SWF ) idSWFEditText;
 	}
-	
+
 	return &dictionary[ characterID ];
 }
 
@@ -146,13 +172,13 @@ idSWFDictionaryEntry* idSWF::FindDictionaryEntry( int characterID, swfDictType_t
 		idLib::Warning( "%s: Could not find character %d", filename.c_str(), characterID );
 		return NULL;
 	}
-	
+
 	if( dictionary[ characterID ].type != type )
 	{
 		idLib::Warning( "%s: Character %d is the wrong type", filename.c_str(), characterID );
 		return NULL;
 	}
-	
+
 	return &dictionary[ characterID ];
 }
 
@@ -170,6 +196,6 @@ idSWFDictionaryEntry* idSWF::FindDictionaryEntry( int characterID )
 		idLib::Warning( "%s: Could not find character %d", filename.c_str(), characterID );
 		return NULL;
 	}
-	
+
 	return &dictionary[ characterID ];
 }

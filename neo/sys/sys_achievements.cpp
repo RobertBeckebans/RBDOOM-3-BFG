@@ -25,8 +25,8 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 /*
 ========================
@@ -38,7 +38,7 @@ void idAchievementSystem::SyncAchievementBits( idLocalUser* user )
 	if( user != NULL )
 	{
 		idArray< bool, idAchievementSystem::MAX_ACHIEVEMENTS > achievements;
-		
+
 		if( GetAchievementState( user, achievements ) )
 		{
 			for( int i = 0; i < achievements.Num(); i++ )

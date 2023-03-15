@@ -3,6 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2022 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -25,8 +26,11 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
+
+#include "TileMap.h"
+#include "../libs/binpack2d/binpack2d.h"
 
 
 /*
@@ -79,7 +83,8 @@ public:
 	const idList<idVec2i>* inputSizes;
 };
 
-void RectAllocator( const idList<idVec2i>& inputSizes, idList<idVec2i>& outputPositions, idVec2i& totalSize )
+// RB: added START_MAX and imageMax
+void RectAllocator( const idList<idVec2i>& inputSizes, idList<idVec2i>& outputPositions, idVec2i& totalSize, const int START_MAX, const int imageMax )
 {
 	outputPositions.SetNum( inputSizes.Num() );
 	if( inputSizes.Num() == 0 )
@@ -93,23 +98,23 @@ void RectAllocator( const idList<idVec2i>& inputSizes, idList<idVec2i>& outputPo
 	{
 		sizeRemap[i] = i;
 	}
-	
+
 	// Sort the rects from largest to smallest (it makes allocating them in the image better)
 	idSortrects sortrectsBySize;
 	sortrectsBySize.inputSizes = &inputSizes;
 	sizeRemap.SortWithTemplate( sortrectsBySize );
-	
+
 	// the largest rect goes to the top-left corner
 	outputPositions[sizeRemap[0]].Set( 0, 0 );
-	
+
 	totalSize = inputSizes[sizeRemap[0]];
-	
+
 	// For each image try to fit it at a corner of one of the already fitted images while
 	// minimizing the total area.
 	// Somewhat better allocation could be had by checking all the combinations of x and y edges
 	// in the allocated rectangles, rather than just the corners of each rectangle, but it
 	// still does a pretty good job.
-	static const int START_MAX = 1 << 14;
+	//static const int START_MAX = 1 << 14;
 	for( int i = 1; i < inputSizes.Num(); i++ )
 	{
 		idVec2i	best( 0, 0 );
@@ -124,7 +129,7 @@ void RectAllocator( const idList<idVec2i>& inputSizes, idList<idVec2i>& outputPo
 				{
 					test[n] = outputPositions[sizeRemap[j]][n] + ( ( k >> n ) & 1 ) * inputSizes[sizeRemap[j]][n];
 				}
-				
+
 				idVec2i	newMax;
 				for( int n = 0 ; n < 2 ; n++ )
 				{
@@ -134,14 +139,16 @@ void RectAllocator( const idList<idVec2i>& inputSizes, idList<idVec2i>& outputPo
 				// allow it to be used directly as a GPU texture without re-packing
 				// FIXME: make this a parameter
 				newMax[0] = ( newMax[0] + 31 ) & ~31;
-				
+
 				// don't let an image get larger than 1024 DXT block, or PS3 crashes
 				// FIXME: pass maxSize in as a parameter
-				if( newMax[0] > 1024 || newMax[1] > 1024 )
+				//if( newMax[0] > 1024 || newMax[1] > 1024 )
+
+				if( imageMax > 0 && ( newMax[0] > imageMax || newMax[1] > imageMax ) )
 				{
 					continue;
 				}
-				
+
 				// if we have already found a spot that keeps the image smaller, don't bother checking here
 				// This calculation biases the rect towards more square shapes instead of
 				// allowing it to extend in one dimension for a long time.
@@ -151,13 +158,13 @@ void RectAllocator( const idList<idVec2i>& inputSizes, idList<idVec2i>& outputPo
 				{
 					continue;
 				}
-				
+
 				// if the image isn't required to grow, favor the location closest to the origin
 				if( newSize == bestSize && best.x + best.y < test.x + test.y )
 				{
 					continue;
 				}
-				
+
 				// see if this spot overlaps any already allocated rect
 				int n = 0;
 				for( ; n < i; n++ )
@@ -190,3 +197,198 @@ void RectAllocator( const idList<idVec2i>& inputSizes, idList<idVec2i>& outputPo
 	}
 }
 
+// Maximum resolution of one tile within tiled shadow map. Resolution must be power of two and
+// square, since quad-tree for managing tiles will not work correctly otherwise. Furthermore
+// resolution must be at least 16.
+//#define MAX_TILE_RES 512
+
+// Specifies how many levels the quad-tree for managing tiles within tiled shadow map should
+// have. The higher the value, the smaller the resolution of the smallest used tile will be.
+// In the current configuration of 8192 resolution and 8 levels, the smallest tile will have
+// a resolution of 64. 16 is the smallest allowed value for the min tile resolution.
+//#define NUM_QUAD_TREE_LEVELS 8
+
+void RectAllocatorQuadTree( const idList<idVec2i>& inputSizes, idList<idVec2i>& outputPositions, idVec2i& totalSize, const int TILED_SM_RES, const int MAX_TILE_RES = 512, const int NUM_QUAD_TREE_LEVELS = 8 )
+{
+	outputPositions.SetNum( inputSizes.Num() );
+	if( inputSizes.Num() == 0 )
+	{
+		totalSize.Set( 0, 0 );
+		return;
+	}
+
+	idList<int> sizeRemap;
+	sizeRemap.SetNum( inputSizes.Num() );
+	for( int i = 0; i < inputSizes.Num(); i++ )
+	{
+		sizeRemap[i] = i;
+	}
+
+	// Sort the rects from largest to smallest (it makes allocating them in the image better)
+	idSortrects sortrectsBySize;
+	sortrectsBySize.inputSizes = &inputSizes;
+	sizeRemap.SortWithTemplate( sortrectsBySize );
+
+	// quad-tree for managing tiles within tiled shadow map
+	TileMap tileMap;
+
+	totalSize.x = 0;
+	totalSize.y = 0;
+
+	// initialize tile-map that will manage tiles within tiled shadow map
+	if( !tileMap.Init( TILED_SM_RES, MAX_TILE_RES, NUM_QUAD_TREE_LEVELS ) )
+	{
+		return;
+	}
+
+	for( int i = 0; i < inputSizes.Num(); i++ )
+	{
+		idVec2i	size = inputSizes[sizeRemap[i]];
+
+		int area = Max( size.x, size.y );
+
+		Tile tile;
+		bool result = tileMap.GetTile( area, tile );
+
+		if( !result )
+		{
+			outputPositions[sizeRemap[i]].Set( -1, -1 );
+		}
+		else
+		{
+			// convert from [-1..-1] -> [0..1] and flip y
+			idVec2 uvPos;
+			uvPos.x = tile.position.x * 0.5f + 0.5f;
+			uvPos.y = 1.0f - ( tile.position.y * 0.5f + 0.5f );
+
+			outputPositions[sizeRemap[i]].x = uvPos.x * TILED_SM_RES;
+			outputPositions[sizeRemap[i]].y = uvPos.y * TILED_SM_RES;
+
+			if( ( tile.position.x + tile.size ) > totalSize.x )
+			{
+				totalSize.x = tile.position.x + tile.size;
+			}
+
+			if( ( tile.position.y + tile.size ) > totalSize.y )
+			{
+				totalSize.y = tile.position.y + tile.size;
+			}
+		}
+	}
+}
+
+// RB
+class MyContent
+{
+public:
+	int itemIndex;
+	idStr str;
+	MyContent() : str( "default string" ) {}
+	MyContent( const idStr& str ) : str( str ) {}
+};
+
+void RectAllocatorBinPack2D( const idList<idVec2i>& inputSizes, const idStrList& inputNames, idList<idVec2i>& outputPositions, idVec2i& totalSize, const int START_MAX )
+{
+	outputPositions.SetNum( inputSizes.Num() );
+
+	if( inputSizes.Num() == 0 )
+	{
+		totalSize.Set( 0, 0 );
+		return;
+	}
+
+	// Create some 'content' to work on.
+	BinPack2D::ContentAccumulator<MyContent> inputContent;
+
+	for( int i = 0; i < inputSizes.Num(); i++ )
+	{
+		// random size for this content
+		int width  = inputSizes[ i ].x;
+		int height = inputSizes[ i ].y;
+
+		// whatever data you want to associate with this content
+		MyContent mycontent( inputNames[ i ] );
+		mycontent.itemIndex = i;
+
+		// Add it
+		inputContent += BinPack2D::Content<MyContent>( mycontent, BinPack2D::Coord(), BinPack2D::Size( width, height ), false );
+	}
+
+	// Sort the input content by size... usually packs better.
+	inputContent.Sort();
+
+	// Create some bins! ( 2 bins, 128x128 in this example )
+	BinPack2D::CanvasArray<MyContent> canvasArray =
+		BinPack2D::UniformCanvasArrayBuilder<MyContent>( START_MAX, START_MAX, 2 ).Build();
+
+	// A place to store content that didnt fit into the canvas array.
+	BinPack2D::ContentAccumulator<MyContent> remainder;
+
+	// try to pack content into the bins.
+	bool success = canvasArray.Place( inputContent, remainder );
+
+	// A place to store packed content.
+	BinPack2D::ContentAccumulator<MyContent> outputContent;
+
+	// Read all placed content.
+	canvasArray.CollectContent( outputContent );
+
+	// parse output.
+	typedef BinPack2D::Content<MyContent>::Vector::iterator binpack2d_iterator;
+	//idLib::Printf( "PLACED:\n" );
+
+	totalSize.x = 0;
+	totalSize.y = 0;
+
+	int i = 0;
+	for( binpack2d_iterator itor = outputContent.Get().begin(); itor != outputContent.Get().end(); itor++, i++ )
+	{
+		const BinPack2D::Content<MyContent>& content = *itor;
+
+		// retreive your data.
+		const MyContent& myContent = content.content;
+
+		int index = myContent.itemIndex;
+		outputPositions[ index ].x = content.coord.x;
+		outputPositions[ index ].y = content.coord.y;
+
+		if( ( content.coord.x + content.size.w ) > totalSize.x )
+		{
+			totalSize.x = content.coord.x + content.size.w;
+		}
+
+		if( ( content.coord.y + content.size.h ) > totalSize.y )
+		{
+			totalSize.y = content.coord.y + content.size.h;
+		}
+
+#if 0
+		idLib::Printf( "\t%9s of size %3dx%3d at position %3d,%3d,%2d rotated=%s\n",
+					   myContent.str.c_str(),
+					   content.size.w,
+					   content.size.h,
+					   content.coord.x,
+					   content.coord.y,
+					   content.coord.z,
+					   ( content.rotated ? "yes" : " no" ) );
+#endif
+	}
+
+#if 0
+	for( binpack2d_iterator itor = remainder.Get().begin(); itor != remainder.Get().end(); itor++ )
+	{
+		const BinPack2D::Content<MyContent>& content = *itor;
+
+		const MyContent& myContent = content.content;
+
+		int index = myContent.itemIndex;
+		outputPositions[ index ].x = -1;
+		outputPositions[ index ].y = -1;
+
+		idLib::Printf( "\tFailed to place %9s of size %3dx%3d\n",
+					   myContent.str.c_str(),
+					   content.size.w,
+					   content.size.h );
+	}
+#endif
+}

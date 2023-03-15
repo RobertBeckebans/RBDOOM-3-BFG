@@ -26,8 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 #include "../Game_local.h"
 
@@ -121,14 +121,14 @@ idForce_Constant::Evaluate
 void idForce_Constant::Evaluate( int time )
 {
 	idVec3 p;
-	
+
 	if( !physics )
 	{
 		return;
 	}
-	
+
 	p = physics->GetOrigin( id ) + point * physics->GetAxis( id );
-	
+
 	physics->AddForce( id, p, force );
 }
 

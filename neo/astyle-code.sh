@@ -26,7 +26,7 @@ if [ -z "$ASTYLE_BIN" ]; then
 	ASTYLE_BIN="./astyle.$ASTYLE_SUFFIX"
 fi
 
-ASTYLE_VERSION=$($ASTYLE_BIN --version | grep -o -e "[[:digit:]\.]*")
+ASTYLE_VERSION=$($ASTYLE_BIN --version | grep -o -e "[[:digit:]\.]*$")
 
 if [ "$ASTYLE_VERSION" != "$OUR_ASTYLE_VERSION" ]; then
 	echo "ERROR: $ASTYLE_BIN has version $ASTYLE_VERSION, but we want $OUR_ASTYLE_VERSION"
@@ -34,6 +34,7 @@ if [ "$ASTYLE_VERSION" != "$OUR_ASTYLE_VERSION" ]; then
 	exit 1
 fi
 
-$ASTYLE_BIN -v --formatted --options=astyle-options.ini --exclude="libs" --recursive "*.h"
-$ASTYLE_BIN -v --formatted --options=astyle-options.ini --exclude="libs" --exclude="d3xp/gamesys/SysCvar.cpp" --exclude="d3xp/gamesys/Callbacks.cpp" \
+$ASTYLE_BIN -v --formatted --options=astyle-options.ini --exclude="libs" --exclude="extern" --recursive "*.h"
+$ASTYLE_BIN -v --formatted --options=astyle-options.ini --exclude="libs" --exclude="extern" --exclude="d3xp/gamesys/SysCvar.cpp" --exclude="d3xp/gamesys/Callbacks.cpp" \
 		--exclude="sys/win32/win_cpu.cpp" --exclude="sys/win32/win_main.cpp" --recursive "*.cpp"
+$ASTYLE_BIN -v --formatted --options=astyle-options.ini --recursive "../doomclassic/doom/*.h" "../doomclassic/doom/*.cpp"

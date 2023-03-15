@@ -41,15 +41,21 @@ class idWorldspawn : public idEntity
 {
 public:
 	CLASS_PROTOTYPE( idWorldspawn );
-	
+
 	~idWorldspawn();
-	
+
 	void			Spawn();
-	
+
 	void			Save( idSaveGame* savefile );
 	void			Restore( idRestoreGame* savefile );
-	
+
+	void			Event_PlayBackgroundMusic();
+
 private:
+	void			SetMusicTrack();
+
+	idStr			musicTrack;
+
 	void			Event_Remove();
 };
 

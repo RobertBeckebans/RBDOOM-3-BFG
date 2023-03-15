@@ -28,8 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 #include "snd_local.h"
 
@@ -103,19 +103,35 @@ idSoundShader::SetDefaultText
 bool idSoundShader::SetDefaultText()
 {
 	idStr wavname;
-	
+
 	wavname = GetName();
 	wavname.DefaultFileExtension( ".wav" );		// if the name has .ogg in it, that will stay
-	
+
 	// if there exists a wav file with the same name
 	if( 1 )    //fileSystem->ReadFile( wavname, NULL ) != -1 ) {
 	{
 		char generated[2048];
-		idStr::snPrintf( generated, sizeof( generated ),
-						 "sound %s // IMPLICITLY GENERATED\n"
-						 "{\n"
-						 "%s\n"
-						 "}\n", GetName(), wavname.c_str() );
+
+		// RB: make a looping track of it if the user has thrown some random music into base/music/
+		if( wavname.IcmpPrefix( "music/" ) == 0 )
+		{
+			idStr::snPrintf( generated, sizeof( generated ),
+							 "sound %s // IMPLICITLY GENERATED\n"
+							 "{\n"
+							 "global\n"
+							 "looping\n"
+							 "%s\n"
+							 "}\n", GetName(), wavname.c_str() );
+		}
+		else
+		{
+			idStr::snPrintf( generated, sizeof( generated ),
+							 "sound %s // IMPLICITLY GENERATED\n"
+							 "{\n"
+							 "%s\n"
+							 "}\n", GetName(), wavname.c_str() );
+		}
+
 		SetText( generated );
 		return true;
 	}
@@ -148,14 +164,16 @@ idSoundShader::Parse
 bool idSoundShader::Parse( const char* text, const int textLength, bool allowBinaryVersion )
 {
 	if( soundSystemLocal.currentSoundWorld )
+	{
 		soundSystemLocal.currentSoundWorld->WriteSoundShaderLoad( this );
-		
+	}
+
 	idLexer	src;
-	
+
 	src.LoadMemory( text, textLength, GetFileName(), GetLineNum() );
 	src.SetFlags( DECL_LEXER_FLAGS );
 	src.SkipUntilString( "{" );
-	
+
 	if( !ParseShader( src ) )
 	{
 		MakeDefault();
@@ -172,19 +190,19 @@ idSoundShader::ParseShader
 bool idSoundShader::ParseShader( idLexer& src )
 {
 	idToken		token;
-	
+
 	parms.minDistance = 1;
 	parms.maxDistance = 10;
 	parms.volume = 1;
 	parms.shakes = 0;
 	parms.soundShaderFlags = 0;
 	parms.soundClass = 0;
-	
+
 	speakerMask = 0;
 	altSound = NULL;
-	
+
 	entries.Clear();
-	
+
 	while( 1 )
 	{
 		if( !src.ExpectAnyToken( &token ) )
@@ -393,7 +411,7 @@ bool idSoundShader::ParseShader( idLexer& src )
 			return false;
 		}
 	}
-	
+
 	return true;
 }
 
@@ -405,7 +423,7 @@ idSoundShader::List
 void idSoundShader::List() const
 {
 	idStrList	shaders;
-	
+
 	common->Printf( "%4i: %s\n", Index(), GetName() );
 	for( int k = 0; k < entries.Num(); k++ )
 	{

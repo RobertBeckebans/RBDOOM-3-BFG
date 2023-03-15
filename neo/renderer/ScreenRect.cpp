@@ -26,10 +26,10 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
-#include "tr_local.h"
+#include "RenderCommon.h"
 
 /*
 ==========================================================================================
@@ -38,6 +38,26 @@ idScreenRect
 
 ==========================================================================================
 */
+
+/*
+======================
+idScreenRect::operator==
+======================
+*/
+bool idScreenRect::operator==( idScreenRect& other ) const
+{
+	return x1 == other.x1 && y1 == other.y1 && x2 == other.x2 && y2 == other.y2 && zmin == other.zmin && zmax == other.zmax;
+}
+
+/*
+======================
+idScreenRect::operator==
+======================
+*/
+bool idScreenRect::operator!=( idScreenRect& other ) const
+{
+	return !( *this == other );
+}
 
 /*
 ======================
@@ -61,7 +81,7 @@ void idScreenRect::AddPoint( float x, float y )
 {
 	int	ix = idMath::Ftoi( x );
 	int iy = idMath::Ftoi( y );
-	
+
 	if( ix < x1 )
 	{
 		x1 = ix;

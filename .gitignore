@@ -1,6 +1,15 @@
 build*
 eclipse*
+xcode*
 neo/ipch
+*~
+*.gch
+*.dll
+*.exe
+*.7z
+*.zip
+.DS_Store
+imgui.ini
 
 Doom3BFG.exe
 base/_common.crc
@@ -13,6 +22,7 @@ base/_sound_pc_en.crc
 base/_sound_pc_en.resources
 base/_sound_pc_fr.crc
 base/_sound_pc_gr.crc
+base/_sound_pc_gr.resources
 base/_sound_pc_it.crc
 base/_sound_pc_jp.crc
 base/_sound_pc_sp.crc
@@ -27,6 +37,8 @@ base/sound/
 base/strings/
 base/video/
 base/wads/
+base/renderprogs2/
+base/generated/
 
 GPATH
 GRTAGS
@@ -35,3 +47,5 @@ GTAGS
 HTML/
 neo/.kdev4
 neo/neo.kdev4
+neo/.idea/
+neo/cmake-build-*/

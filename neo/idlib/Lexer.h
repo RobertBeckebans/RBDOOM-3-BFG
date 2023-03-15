@@ -64,6 +64,13 @@ typedef enum
 	LEXFL_ONLYSTRINGS					= BIT( 13 )	// parse as whitespace deliminated strings (quoted strings keep quotes)
 } lexerFlags_t;
 
+typedef enum
+{
+	BRSKIP_BRACES,
+	BRSKIP_BRACKET
+} braceSkipMode_t;
+
+
 // punctuation ids
 #define P_RSHIFT_ASSIGN				1
 #define P_LSHIFT_ASSIGN				2
@@ -139,7 +146,7 @@ class idLexer
 {
 
 	friend class idParser;
-	
+
 public:
 	// constructor
 	idLexer();
@@ -182,17 +189,17 @@ public:
 	// skip the rest of the current line
 	int				SkipRestOfLine();
 	// skip the braced section
-	int				SkipBracedSection( bool parseFirstBrace = true );
+	int				SkipBracedSection( bool parseFirstBrace = true , braceSkipMode_t skipMode = BRSKIP_BRACES, int* skipped = nullptr );
 	// skips spaces, tabs, C-like comments etc. Returns false if there is no token left to read.
 	bool			SkipWhiteSpace( bool currentLine );
 	// unread the given token
 	void			UnreadToken( const idToken* token );
 	// read a token only if on the same line
 	int				ReadTokenOnLine( idToken* token );
-	
+
 	//Returns the rest of the current line
 	const char*		ReadRestOfLine( idStr& out );
-	
+
 	// read a signed integer
 	int				ParseInt();
 	// read a boolean
@@ -249,10 +256,10 @@ public:
 	void			Warning( VERIFY_FORMAT_STRING const char* str, ... );
 	// returns true if Error() was called with LEXFL_NOFATALERRORS or LEXFL_NOERRORS set
 	bool			HadError() const;
-	
+
 	// set the base folder to load files from
 	static void		SetBaseFolder( const char* path );
-	
+
 private:
 	int				loaded;					// set when a script file is loaded from file or memory
 	idStr			filename;				// file name of the script
@@ -267,6 +274,7 @@ private:
 	int				length;					// length of the script in bytes
 	int				line;					// current line in script
 	int				lastline;				// line before reading token
+	int				intialLine;				// line that was set on load as starting line
 	int				tokenavailable;			// set by unreadToken
 	int				flags;					// several script flags
 	const punctuation_t* punctuations;		// the punctuations used in the script
@@ -275,9 +283,9 @@ private:
 	idToken			token;					// available token
 	idLexer* 		next;					// next script in a chain
 	bool			hadError;				// set by idLexer::Error, even if the error is supressed
-	
+
 	static char		baseFolder[ 256 ];		// base folder to load files from
-	
+
 private:
 	void			CreatePunctuationTable( const punctuation_t* punctuations );
 	int				ReadWhiteSpace();

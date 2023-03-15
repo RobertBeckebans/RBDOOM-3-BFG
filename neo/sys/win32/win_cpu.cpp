@@ -27,8 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 #include "win_local.h"
 
@@ -102,7 +102,8 @@ Sys_ClockTicksPerSecond
 */
 double Sys_ClockTicksPerSecond() {
 	static double ticks = 0;
-#if 0
+// SRS - Make sure #ifdef is consistent with Sys_GetClockTicks() so same scale is used for ticks
+#if defined(_WIN64)
 
 	if ( !ticks ) {
 		LARGE_INTEGER li;

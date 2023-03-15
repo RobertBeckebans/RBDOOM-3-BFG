@@ -88,7 +88,7 @@ public:
 	{
 		return list;
 	}
-	
+
 private:
 	idStr					basePath;
 	idStrList				list;
@@ -112,42 +112,55 @@ class idFileSystem
 {
 public:
 	virtual					~idFileSystem() {}
+
 	// Initializes the file system.
 	virtual void			Init() = 0;
+
 	// Restarts the file system.
 	virtual void			Restart() = 0;
+
 	// Shutdown the file system.
 	virtual void			Shutdown( bool reloading ) = 0;
+
 	// Returns true if the file system is initialized.
 	virtual bool			IsInitialized() const = 0;
+
 	// Returns a list of mods found along with descriptions
 	// 'mods' contains the directory names to be passed to fs_game
 	// 'descriptions' contains a free form string to be used in the UI
 	virtual idModList*		ListMods() = 0;
 	// Frees the given mod list
 	virtual void			FreeModList(idModList *modList) = 0;
+
 	// Lists files with the given extension in the given directory.
 	// Directory should not have either a leading or trailing '/'
 	// The returned files will not include any directories or '/' unless fullRelativePath is set.
 	// The extension must include a leading dot and may not contain wildcards.
 	// If extension is "/", only subdirectories will be returned.
 	virtual idFileList* 	ListFiles( const char* relativePath, const char* extension, bool sort = false, bool fullRelativePath = false, const char* gamedir = NULL ) = 0;
+
 	// Lists files in the given directory and all subdirectories with the given extension.
 	// Directory should not have either a leading or trailing '/'
 	// The returned files include a full relative path.
 	// The extension must include a leading dot and may not contain wildcards.
-	virtual idFileList* 	ListFilesTree( const char* relativePath, const char* extension, bool sort = false, const char* gamedir = NULL ) = 0;
+	virtual idFileList* 	ListFilesTree( const char* relativePath, const char* extension, bool sort = false, bool allowSubdirsForResourcePaks = false, const char* gamedir = NULL ) = 0;
+
 	// Frees the given file list.
 	virtual void			FreeFileList( idFileList* fileList ) = 0;
+
 	// Converts a relative path to a full OS path.
 	virtual const char* 	OSPathToRelativePath( const char* OSPath ) = 0;
+
 	// Converts a full OS path to a relative path.
 	virtual const char* 	RelativePathToOSPath( const char* relativePath, const char* basePath = "fs_basepath" ) = 0;
+
 	// Builds a full OS path from the given components.
 	virtual const char* 	BuildOSPath( const char* base, const char* game, const char* relativePath ) = 0;
 	virtual const char* 	BuildOSPath( const char* base, const char* relativePath ) = 0;
+
 	// Creates the given OS path for as far as it doesn't exist already.
 	virtual void			CreateOSPath( const char* OSPath ) = 0;
+
 	// Reads a complete file.
 	// Returns the length of the file, or -1 on failure.
 	// A null buffer will just return the file length without loading.
@@ -156,48 +169,63 @@ public:
 	// A 0 byte will always be appended at the end, so string ops are safe.
 	// The buffer should be considered read-only, because it may be cached for other uses.
 	virtual int				ReadFile( const char* relativePath, void** buffer, ID_TIME_T* timestamp = NULL ) = 0;
+
 	// Frees the memory allocated by ReadFile.
 	virtual void			FreeFile( void* buffer ) = 0;
+
 	// Writes a complete file, will create any needed subdirectories.
 	// Returns the length of the file, or -1 on failure.
 	virtual int				WriteFile( const char* relativePath, const void* buffer, int size, const char* basePath = "fs_savepath" ) = 0;
+
 	// Removes the given file.
 	virtual void			RemoveFile( const char* relativePath ) = 0;
+
 	// Removes the specified directory.
 	virtual	bool			RemoveDir( const char* relativePath ) = 0;
+
 	// Renames a file, taken from idTech5 (minus the fsPath_t)
 	virtual bool			RenameFile( const char* relativePath, const char* newName, const char* basePath = "fs_savepath" ) = 0;
+
 	// Opens a file for reading.
 	virtual idFile* 		OpenFileRead( const char* relativePath, bool allowCopyFiles = true, const char* gamedir = NULL ) = 0;
+
 	// Opens a file for reading, reads the file completely in memory and returns an idFile_Memory obj.
 	virtual idFile* 		OpenFileReadMemory( const char* relativePath, bool allowCopyFiles = true, const char* gamedir = NULL ) = 0;
+
 	// Opens a file for writing, will create any needed subdirectories.
 	virtual idFile* 		OpenFileWrite( const char* relativePath, const char* basePath = "fs_savepath" ) = 0;
+
 	// Opens a file for writing at the end.
 	virtual idFile* 		OpenFileAppend( const char* filename, bool sync = false, const char* basePath = "fs_basepath" ) = 0;
+
 	// Opens a file for reading, writing, or appending depending on the value of mode.
 	virtual idFile* 		OpenFileByMode( const char* relativePath, fsMode_t mode ) = 0;
+
 	// Opens a file for reading from a full OS path.
 	virtual idFile* 		OpenExplicitFileRead( const char* OSPath ) = 0;
+
 	// Opens a file for writing to a full OS path.
 	virtual idFile* 		OpenExplicitFileWrite( const char* OSPath ) = 0;
+
 	// opens a zip container
 	virtual idFile_Cached* 		OpenExplicitPakFile( const char* OSPath ) = 0;
+
 	// Closes a file.
 	virtual void			CloseFile( idFile* f ) = 0;
+
 	// look for a dynamic module
 	virtual void			FindDLL( const char* basename, char dllPath[ MAX_OSPATH ] ) = 0;
-	
+
 	// don't use for large copies - allocates a single memory block for the copy
 	virtual void			CopyFile( const char* fromOSPath, const char* toOSPath ) = 0;
-	
+
 	// look for a file in the loaded paks or the addon paks
 	// if the file is found in addons, FS's internal structures are ready for a reloadEngine
 	virtual findFile_t		FindFile( const char* path ) = 0;
-	
+
 	// ignore case and seperator char distinctions
 	virtual bool			FilenameCompare( const char* s1, const char* s2 ) const = 0;
-	
+
 	// This is just handy
 	ID_TIME_T				GetTimestamp( const char* relativePath )
 	{
@@ -209,12 +237,12 @@ public:
 		ReadFile( relativePath, NULL, &timestamp );
 		return timestamp;
 	}
-	
+
 	// Returns length of file, -1 if no file exists
 	virtual int				GetFileLength( const char* relativePath ) = 0;
-	
+
 	virtual sysFolder_t		IsFolder( const char* relativePath, const char* basePath = "fs_basepath" ) = 0;
-	
+
 	// resource tracking and related things
 	virtual void			EnableBackgroundCache( bool enable ) = 0;
 	virtual void			BeginLevelLoad( const char* name, char* _blockBuffer, int _blockBufferSize ) = 0;
@@ -236,7 +264,7 @@ public:
 	virtual void			AddAnimPreload( const char* resName ) = 0;
 	virtual void			AddParticlePreload( const char* resName ) = 0;
 	virtual void			AddCollisionPreload( const char* resName ) = 0;
-	
+
 };
 
 extern idFileSystem* 		fileSystem;

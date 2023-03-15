@@ -40,8 +40,12 @@ If you have questions concerning this license or the applicable additional terms
 // RB: changed home folder so we don't break the savegame of the original game
 #define SAVE_PATH						"\\id Software\\RBDOOM 3 BFG"
 
-#define ENGINE_VERSION					"RBDOOM 3 BFG 1.1.0"	// printed in console
+#define ENGINE_VERSION					"RBDOOM 3 BFG 1.5.0"	// printed in console
 // RB end
+
+// jmarshall
+#define ENGINE_BRANCH					"master"
+// jmarshall end
 
 #define	BASE_GAMEDIR					"base"
 
@@ -64,10 +68,15 @@ If you have questions concerning this license or the applicable additional terms
 // RB begin
 // Default base path (used only if none could be found)
 #ifdef __APPLE__
-#define DEFAULT_BASEPATH				"/Applications/RBDOOM-3-BFG.app/Contents/Resources"
+	#define DEFAULT_BASEPATH				"/Applications/RBDoom3BFG.app/Contents/Resources"
 #else
-#define DEFAULT_BASEPATH				"/usr/share/games/doom3bfg"
+	#define DEFAULT_BASEPATH				"/usr/share/games/doom3bfg"
 #endif
 // RB end
 
+// raynorpat: Steam AppID and Steam App Name for figuring out Steam base path
+#define STEAMPATH_APPID					"208200"
+#define STEAMPATH_NAME					"DOOM 3 BFG Edition"
 
+// raynorpat: GOG.com Galaxy Launcher Game ID for figuring out Steam base path
+#define GOGPATH_ID						"1733124578"

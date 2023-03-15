@@ -42,7 +42,7 @@ class idStrPool;
 class idPoolStr : public idStr
 {
 	friend class idStrPool;
-	
+
 public:
 	idPoolStr()
 	{
@@ -52,7 +52,7 @@ public:
 	{
 		assert( numUsers == 0 );
 	}
-	
+
 	// returns total size of allocated memory
 	size_t				Allocated() const
 	{
@@ -68,7 +68,7 @@ public:
 	{
 		return pool;
 	}
-	
+
 private:
 	idStrPool* 			pool;
 	mutable int			numUsers;
@@ -81,26 +81,26 @@ public:
 	{
 		caseSensitive = true;
 	}
-	
+
 	void				SetCaseSensitive( bool caseSensitive );
-	
+
 	int					Num() const
 	{
 		return pool.Num();
 	}
 	size_t				Allocated() const;
 	size_t				Size() const;
-	
+
 	const idPoolStr* 	operator[]( int index ) const
 	{
 		return pool[index];
 	}
-	
+
 	const idPoolStr* 	AllocString( const char* string );
 	void				FreeString( const idPoolStr* poolStr );
 	const idPoolStr* 	CopyString( const idPoolStr* poolStr );
 	void				Clear();
-	
+
 private:
 	bool				caseSensitive;
 	idList<idPoolStr*>	pool;
@@ -126,7 +126,7 @@ ID_INLINE const idPoolStr* idStrPool::AllocString( const char* string )
 {
 	int i, hash;
 	idPoolStr* poolStr;
-	
+
 	hash = poolHash.GenerateKey( string, caseSensitive );
 	if( caseSensitive )
 	{
@@ -150,7 +150,7 @@ ID_INLINE const idPoolStr* idStrPool::AllocString( const char* string )
 			}
 		}
 	}
-	
+
 	poolStr = new( TAG_IDLIB_STRING ) idPoolStr;
 	*static_cast<idStr*>( poolStr ) = string;
 	poolStr->pool = this;
@@ -167,7 +167,7 @@ idStrPool::FreeString
 ID_INLINE void idStrPool::FreeString( const idPoolStr* poolStr )
 {
 	int i, hash;
-	
+
 	/*
 	 * DG: numUsers can actually be 0 when shutting down the game, because then
 	 * first idCommonLocal::Quit() -> idCommonLocal::Shutdown() -> idLib::Shutdown()
@@ -181,12 +181,20 @@ ID_INLINE void idStrPool::FreeString( const idPoolStr* poolStr )
 	 * we're shutting down (at this point) just get rid of the following assertion:
 	 * assert( poolStr->numUsers >= 1 );
 	 */
-	if( poolStr->numUsers < 1 )
-		return;
+	//if( poolStr->numUsers < 1 )           // SRS - This test does not work if idStrPool is empty and poolStr->numUsers is undefined
+	//{
+	//	return;
+	//}
 	// DG end
-	
+
+	if( pool.Num() <= 0 )                   // SRS - Instead, check for empty idStrPool and return to prevent segfaulting on shutdown
+	{
+		return;
+	}
+
 	assert( poolStr->pool == this );
-	
+	assert( poolStr->numUsers >= 1 );       // SRS - Reestablish assertion
+
 	poolStr->numUsers--;
 	if( poolStr->numUsers <= 0 )
 	{
@@ -228,7 +236,7 @@ ID_INLINE const idPoolStr* idStrPool::CopyString( const idPoolStr* poolStr )
 {
 
 	assert( poolStr->numUsers >= 1 );
-	
+
 	if( poolStr->pool == this )
 	{
 		// the string is from this pool so just increase the user count
@@ -250,7 +258,7 @@ idStrPool::Clear
 ID_INLINE void idStrPool::Clear()
 {
 	int i;
-	
+
 	for( i = 0; i < pool.Num(); i++ )
 	{
 		pool[i]->numUsers = 0;
@@ -268,7 +276,7 @@ ID_INLINE size_t idStrPool::Allocated() const
 {
 	int i;
 	size_t size;
-	
+
 	size = pool.Allocated() + poolHash.Allocated();
 	for( i = 0; i < pool.Num(); i++ )
 	{
@@ -286,7 +294,7 @@ ID_INLINE size_t idStrPool::Size() const
 {
 	int i;
 	size_t size;
-	
+
 	size = pool.Size() + poolHash.Size();
 	for( i = 0; i < pool.Num(); i++ )
 	{

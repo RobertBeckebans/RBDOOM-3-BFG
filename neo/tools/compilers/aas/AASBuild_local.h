@@ -3,6 +3,8 @@
 
 Doom 3 GPL Source Code
 Copyright (C) 1999-2011 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2022 Harrie van Ginneken
+Copyright (C) 2022 Robert Beckebans
 
 This file is part of the Doom 3 GPL Source Code (?Doom 3 Source Code?).
 
@@ -62,7 +64,7 @@ public:
 	int						numSplitPlanes;
 	int						numPlanes;
 	idPlane					planes[8];
-	
+
 public:
 	idLedge();
 	idLedge( const idVec3& v1, const idVec3& v2, const idVec3& gravityDir, idBrushBSPNode* n );
@@ -83,7 +85,7 @@ public:
 	bool					Build( const idStr& fileName, const idAASSettings* settings );
 	bool					BuildReachability( const idStr& fileName, const idAASSettings* settings );
 	void					Shutdown();
-	
+
 private:
 	const idAASSettings* 	aasSettings;
 	idAASFileLocal* 		file;
@@ -94,7 +96,7 @@ private:
 	int						numLedgeSubdivisions;
 	idList<idLedge>			ledgeList;
 	idBrushMap* 			ledgeMap;
-	
+
 private:	// map loading
 	void					ParseProcNodes( idLexer* src );
 	bool					LoadProcBSP( const char* name, ID_TIME_T minFileTime );
@@ -104,18 +106,19 @@ private:	// map loading
 	int						ContentsForAAS( int contents );
 	idBrushList				AddBrushesForMapBrush( const idMapBrush* mapBrush, const idVec3& origin, const idMat3& axis, int entityNum, int primitiveNum, idBrushList brushList );
 	idBrushList				AddBrushesForMapPatch( const idMapPatch* mapPatch, const idVec3& origin, const idMat3& axis, int entityNum, int primitiveNum, idBrushList brushList );
+	idBrushList				AddBrushesForMapPolygonMesh( const MapPolygonMesh* mapMesh, const idVec3& origin, const idMat3& axis, int entityNum, int primitiveNum, idBrushList brushList );
 	idBrushList				AddBrushesForMapEntity( const idMapEntity* mapEnt, int entityNum, idBrushList brushList );
 	idBrushList				AddBrushesForMapFile( const idMapFile* mapFile, idBrushList brushList );
 	bool					CheckForEntities( const idMapFile* mapFile, idStrList& entityClassNames ) const;
 	void					ChangeMultipleBoundingBoxContents_r( idBrushBSPNode* node, int mask );
-	
+
 private:	// gravitational subdivision
 	void					SetPortalFlags_r( idBrushBSPNode* node );
 	bool					PortalIsGap( idBrushBSPPortal* portal, int side );
 	void					GravSubdivLeafNode( idBrushBSPNode* node );
 	void					GravSubdiv_r( idBrushBSPNode* node );
 	void					GravitationalSubdivision( idBrushBSP& bsp );
-	
+
 private:	// ledge subdivision
 	void					LedgeSubdivFlood_r( idBrushBSPNode* node, const idLedge* ledge );
 	void					LedgeSubdivLeafNodes_r( idBrushBSPNode* node, const idLedge* ledge );
@@ -126,13 +129,13 @@ private:	// ledge subdivision
 	void					FindLedges_r( idBrushBSPNode* root, idBrushBSPNode* node );
 	void					LedgeSubdivision( idBrushBSP& bsp );
 	void					WriteLedgeMap( const idStr& fileName, const idStr& ext );
-	
+
 private:	// merging
 	bool					AllGapsLeadToOtherNode( idBrushBSPNode* nodeWithGaps, idBrushBSPNode* otherNode );
 	bool					MergeWithAdjacentLeafNodes( idBrushBSP& bsp, idBrushBSPNode* node );
 	void					MergeLeafNodes_r( idBrushBSP& bsp, idBrushBSPNode* node );
 	void					MergeLeafNodes( idBrushBSP& bsp );
-	
+
 private:	// storing file
 	void					SetupHash();
 	void					ShutdownHash();
@@ -146,7 +149,7 @@ private:	// storing file
 	void					GetSizeEstimate_r( idBrushBSPNode* parent, idBrushBSPNode* node, struct sizeEstimate_s& size );
 	void					SetSizeEstimate( const idBrushBSP& bsp, idAASFileLocal* file );
 	bool					StoreFile( const idBrushBSP& bsp );
-	
+
 };
 
 #endif /* !__AASBUILD_LOCAL_H__ */

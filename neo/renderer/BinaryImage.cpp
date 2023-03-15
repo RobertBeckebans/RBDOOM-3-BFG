@@ -3,6 +3,8 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2014-2021 Robert Beckebans
+Copyright (C) 2014-2016 Kot in Action Creative Artel
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -25,8 +27,9 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
+#include "framework/Common_local.h"
 
 /*
 ================================================================================================
@@ -36,11 +39,14 @@ If you have questions concerning this license or the applicable additional terms
 ================================================================================================
 */
 
-#include "tr_local.h"
+#include "RenderCommon.h"
 #include "DXT/DXTCodec.h"
 #include "Color/ColorSpace.h"
 
+#include "../libs/mesa/format_r11g11b10f.h"
+
 idCVar image_highQualityCompression( "image_highQualityCompression", "0", CVAR_BOOL, "Use high quality (slow) compression" );
+idCVar r_useHighQualitySky( "r_useHighQualitySky", "1", CVAR_BOOL | CVAR_ARCHIVE, "Use high quality skyboxes" );
 
 /*
 ========================
@@ -55,10 +61,12 @@ void idBinaryImage::Load2DFromMemory( int width, int height, const byte* pic_con
 	fileData.width = width;
 	fileData.height = height;
 	fileData.numLevels = numLevels;
-	
+
+	commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d)", width, height ) );
+
 	byte* pic = ( byte* )Mem_Alloc( width * height * 4, TAG_TEMP );
 	memcpy( pic, pic_const, width * height * 4 );
-	
+
 	if( colorFormat == CFM_YCOCG_DXT5 )
 	{
 		// convert the image data to YCoCg and use the YCoCgDXT5 compressor
@@ -87,14 +95,16 @@ void idBinaryImage::Load2DFromMemory( int width, int height, const byte* pic_con
 			pic[i * 4 + 3] = 0;
 		}
 	}
-	
+
 	int	scaledWidth = width;
 	int scaledHeight = height;
 	images.SetNum( numLevels );
 	for( int level = 0; level < images.Num(); level++ )
 	{
 		idBinaryImageData& img = images[ level ];
-		
+
+		commonLocal.LoadPacifierBinarizeMiplevel( level + 1, numLevels );
+
 		// Images that are going to be DXT compressed and aren't multiples of 4 need to be
 		// padded out before compressing.
 		byte* dxtPic = pic;
@@ -119,12 +129,12 @@ void idBinaryImage::Load2DFromMemory( int width, int height, const byte* pic_con
 				dxtHeight = scaledHeight;
 			}
 		}
-		
+
 		img.level = level;
 		img.destZ = 0;
 		img.width = scaledWidth;
 		img.height = scaledHeight;
-		
+
 		// compress data or convert floats as necessary
 		if( textureFormat == FMT_DXT1 )
 		{
@@ -132,10 +142,14 @@ void idBinaryImage::Load2DFromMemory( int width, int height, const byte* pic_con
 			img.Alloc( dxtWidth * dxtHeight / 2 );
 			if( image_highQualityCompression.GetBool() )
 			{
+				commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - DXT1HQ", width, height ) );
+
 				dxt.CompressImageDXT1HQ( dxtPic, img.data, dxtWidth, dxtHeight );
 			}
 			else
 			{
+				commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - DXT1Fast", width, height ) );
+
 				dxt.CompressImageDXT1Fast( dxtPic, img.data, dxtWidth, dxtHeight );
 			}
 		}
@@ -147,10 +161,14 @@ void idBinaryImage::Load2DFromMemory( int width, int height, const byte* pic_con
 			{
 				if( image_highQualityCompression.GetBool() )
 				{
+					commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - NormalMapDXT5HQ", width, height ) );
+
 					dxt.CompressNormalMapDXT5HQ( dxtPic, img.data, dxtWidth, dxtHeight );
 				}
 				else
 				{
+					commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - NormalMapDXT5Fast", width, height ) );
+
 					dxt.CompressNormalMapDXT5Fast( dxtPic, img.data, dxtWidth, dxtHeight );
 				}
 			}
@@ -158,10 +176,14 @@ void idBinaryImage::Load2DFromMemory( int width, int height, const byte* pic_con
 			{
 				if( image_highQualityCompression.GetBool() )
 				{
+					commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - YCoCgDXT5HQ", width, height ) );
+
 					dxt.CompressYCoCgDXT5HQ( dxtPic, img.data, dxtWidth, dxtHeight );
 				}
 				else
 				{
+					commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - YCoCgDXT5Fast", width, height ) );
+
 					dxt.CompressYCoCgDXT5Fast( dxtPic, img.data, dxtWidth, dxtHeight );
 				}
 			}
@@ -170,10 +192,14 @@ void idBinaryImage::Load2DFromMemory( int width, int height, const byte* pic_con
 				fileData.colorFormat = colorFormat = CFM_DEFAULT;
 				if( image_highQualityCompression.GetBool() )
 				{
+					commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - DXT5HQ", width, height ) );
+
 					dxt.CompressImageDXT5HQ( dxtPic, img.data, dxtWidth, dxtHeight );
 				}
 				else
 				{
+					commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - DXT5Fast", width, height ) );
+
 					dxt.CompressImageDXT5Fast( dxtPic, img.data, dxtWidth, dxtHeight );
 				}
 			}
@@ -216,6 +242,32 @@ void idBinaryImage::Load2DFromMemory( int width, int height, const byte* pic_con
 				img.data[ i * 2 + 1 ] = color & 0xFF;
 			}
 		}
+		else if( textureFormat == FMT_RG16F )
+		{
+			// RB: copy it as it was a RGBA8 because of the same size
+			img.Alloc( scaledWidth * scaledHeight * 4 );
+			for( int i = 0; i < img.dataSize; i++ )
+			{
+				img.data[ i ] = pic[ i ];
+			}
+		}
+		else if( textureFormat == FMT_R11G11B10F )
+		{
+			// RB: copy it as it was a RGBA8 because of the same size
+			img.Alloc( scaledWidth * scaledHeight * 4 );
+			for( int i = 0; i < img.dataSize; i++ )
+			{
+				img.data[ i ] = pic[ i ];
+			}
+		}
+		else if( textureFormat == FMT_RGBA16F )
+		{
+			img.Alloc( scaledWidth * scaledHeight * 8 );
+			for( int i = 0; i < img.dataSize; i++ )
+			{
+				img.data[ i ] = pic[ i ];
+			}
+		}
 		else
 		{
 			fileData.format = textureFormat = FMT_RGBA8;
@@ -225,14 +277,14 @@ void idBinaryImage::Load2DFromMemory( int width, int height, const byte* pic_con
 				img.data[ i ] = pic[ i ];
 			}
 		}
-		
+
 		// if we had to pad to quads, free the padded version
 		if( pic != dxtPic )
 		{
 			Mem_Free( dxtPic );
 			dxtPic = NULL;
 		}
-		
+
 		// downsample for the next level
 		byte* shrunk = NULL;
 		if( gammaMips )
@@ -245,12 +297,325 @@ void idBinaryImage::Load2DFromMemory( int width, int height, const byte* pic_con
 		}
 		Mem_Free( pic );
 		pic = shrunk;
-		
+
 		scaledWidth = Max( 1, scaledWidth >> 1 );
 		scaledHeight = Max( 1, scaledHeight >> 1 );
 	}
-	
+
 	Mem_Free( pic );
+}
+
+
+/*
+========================
+RB idBinaryImage::Load2DAtlasMipchainFromMemory
+========================
+*/
+void idBinaryImage::Load2DAtlasMipchainFromMemory( int width, int height, const byte* pic_const, int numLevels, textureFormat_t& textureFormat, textureColor_t& colorFormat )
+{
+	int sourceWidth = width * ( 2.0f / 3.0f ); // RB
+
+	fileData.textureType = TT_2D;
+	fileData.format = textureFormat;
+	fileData.colorFormat = CFM_DEFAULT;
+	fileData.width = sourceWidth;
+	fileData.height = height;
+	fileData.numLevels = numLevels;
+
+	commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d)", width, height ) );
+
+	byte* sourcePic = ( byte* )Mem_Alloc( width * height * 4, TAG_TEMP );
+	memcpy( sourcePic, pic_const, width * height * 4 );
+
+	if( colorFormat == CFM_YCOCG_DXT5 )
+	{
+		// convert the image data to YCoCg and use the YCoCgDXT5 compressor
+		idColorSpace::ConvertRGBToCoCg_Y( sourcePic, sourcePic, width, height );
+	}
+	else if( colorFormat == CFM_NORMAL_DXT5 )
+	{
+		// Blah, HQ swizzles automatically, Fast doesn't
+		if( !image_highQualityCompression.GetBool() )
+		{
+			for( int i = 0; i < width * height; i++ )
+			{
+				sourcePic[i * 4 + 3] = sourcePic[i * 4 + 0];
+				sourcePic[i * 4 + 0] = 0;
+				sourcePic[i * 4 + 2] = 0;
+			}
+		}
+	}
+	else if( colorFormat == CFM_GREEN_ALPHA )
+	{
+		for( int i = 0; i < width * height; i++ )
+		{
+			sourcePic[i * 4 + 1] = sourcePic[i * 4 + 3];
+			sourcePic[i * 4 + 0] = 0;
+			sourcePic[i * 4 + 2] = 0;
+			sourcePic[i * 4 + 3] = 0;
+		}
+	}
+
+	images.SetNum( numLevels );
+
+	const int numColors = 5;
+	static idVec4 colors[numColors] = { colorBlue, colorCyan, colorGreen, colorYellow, colorRed };
+
+	for( int level = 0; level < images.Num(); level++ )
+	{
+		idBinaryImageData& img = images[ level ];
+
+		// RB: create shrunk image which is a copy of the sub image in the atlas
+		idVec4 rect = R_CalculateMipRect( sourceWidth, level );
+
+		int	scaledWidth = rect.z;
+		int scaledHeight = rect.w;
+
+		byte* pic = ( byte* )Mem_Alloc( scaledWidth * scaledHeight * 4, TAG_TEMP );
+
+		for( int x = rect.x; x < ( rect.x + rect.z ); x++ )
+			//for( int x = 0; x < rect.z; x++ )
+		{
+			for( int y = rect.y; y < ( rect.y + rect.w ); y++ )
+				//for( int y = 0; y < rect.w; y++ )
+			{
+				int sx = x - rect.x;
+				int sy = y - rect.y;
+
+#if 1
+				pic[( sy * scaledWidth + sx ) * 4 + 0] = sourcePic[( y * width + x ) * 4 + 0];
+				pic[( sy * scaledWidth + sx ) * 4 + 1] = sourcePic[( y * width + x ) * 4 + 1];
+				pic[( sy * scaledWidth + sx ) * 4 + 2] = sourcePic[( y * width + x ) * 4 + 2];
+				pic[( sy * scaledWidth + sx ) * 4 + 3] = sourcePic[( y * width + x ) * 4 + 3];
+#else
+				int colorIdx = level % numColors;
+				float color[3];
+				color[0] = colors[ colorIdx ].x;
+				color[0] = colors[ colorIdx ].y;
+				color[0] = colors[ colorIdx ].z;
+
+				uint32_t value = float3_to_r11g11b10f( color );
+
+				union
+				{
+					uint32	i;
+					byte	b[4];
+				} tmp;
+
+				tmp.i = value;
+
+				//*( uint32_t* )pic[( sy * scaledWidth + sx ) * 3] = value;
+
+				pic[( sy * scaledWidth + sx ) * 4 + 0] = tmp.b[0];
+				pic[( sy * scaledWidth + sx ) * 4 + 1] = tmp.b[1];
+				pic[( sy * scaledWidth + sx ) * 4 + 2] = tmp.b[2];
+				pic[( sy * scaledWidth + sx ) * 4 + 3] = tmp.b[3];
+#endif
+			}
+		}
+		// RB end
+
+		commonLocal.LoadPacifierBinarizeMiplevel( level + 1, numLevels );
+
+		// Images that are going to be DXT compressed and aren't multiples of 4 need to be
+		// padded out before compressing.
+		byte* dxtPic = pic;
+		int	dxtWidth = 0;
+		int	dxtHeight = 0;
+		if( textureFormat == FMT_DXT5 || textureFormat == FMT_DXT1 )
+		{
+			if( ( scaledWidth & 3 ) || ( scaledHeight & 3 ) )
+			{
+				dxtWidth = ( scaledWidth + 3 ) & ~3;
+				dxtHeight = ( scaledHeight + 3 ) & ~3;
+				dxtPic = ( byte* )Mem_ClearedAlloc( dxtWidth * 4 * dxtHeight, TAG_IMAGE );
+				for( int i = 0; i < scaledHeight; i++ )
+				{
+					memcpy( dxtPic + i * dxtWidth * 4, pic + i * scaledWidth * 4, scaledWidth * 4 );
+				}
+			}
+			else
+			{
+				dxtPic = pic;
+				dxtWidth = scaledWidth;
+				dxtHeight = scaledHeight;
+			}
+		}
+
+		img.level = level;
+		img.destZ = 0;
+		img.width = scaledWidth;
+		img.height = scaledHeight;
+
+		// compress data or convert floats as necessary
+		if( textureFormat == FMT_DXT1 )
+		{
+			idDxtEncoder dxt;
+			img.Alloc( dxtWidth * dxtHeight / 2 );
+			if( image_highQualityCompression.GetBool() )
+			{
+				commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - DXT1HQ", width, height ) );
+
+				dxt.CompressImageDXT1HQ( dxtPic, img.data, dxtWidth, dxtHeight );
+			}
+			else
+			{
+				commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - DXT1Fast", width, height ) );
+
+				dxt.CompressImageDXT1Fast( dxtPic, img.data, dxtWidth, dxtHeight );
+			}
+		}
+		else if( textureFormat == FMT_DXT5 )
+		{
+			idDxtEncoder dxt;
+			img.Alloc( dxtWidth * dxtHeight );
+			if( colorFormat == CFM_NORMAL_DXT5 )
+			{
+				if( image_highQualityCompression.GetBool() )
+				{
+					commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - NormalMapDXT5HQ", width, height ) );
+
+					dxt.CompressNormalMapDXT5HQ( dxtPic, img.data, dxtWidth, dxtHeight );
+				}
+				else
+				{
+					commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - NormalMapDXT5Fast", width, height ) );
+
+					dxt.CompressNormalMapDXT5Fast( dxtPic, img.data, dxtWidth, dxtHeight );
+				}
+			}
+			else if( colorFormat == CFM_YCOCG_DXT5 )
+			{
+				if( image_highQualityCompression.GetBool() )
+				{
+					commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - YCoCgDXT5HQ", width, height ) );
+
+					dxt.CompressYCoCgDXT5HQ( dxtPic, img.data, dxtWidth, dxtHeight );
+				}
+				else
+				{
+					commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - YCoCgDXT5Fast", width, height ) );
+
+					dxt.CompressYCoCgDXT5Fast( dxtPic, img.data, dxtWidth, dxtHeight );
+				}
+			}
+			else
+			{
+				fileData.colorFormat = colorFormat = CFM_DEFAULT;
+				if( image_highQualityCompression.GetBool() )
+				{
+					commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - DXT5HQ", width, height ) );
+
+					dxt.CompressImageDXT5HQ( dxtPic, img.data, dxtWidth, dxtHeight );
+				}
+				else
+				{
+					commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - DXT5Fast", width, height ) );
+
+					dxt.CompressImageDXT5Fast( dxtPic, img.data, dxtWidth, dxtHeight );
+				}
+			}
+		}
+		else if( textureFormat == FMT_LUM8 || textureFormat == FMT_INT8 )
+		{
+			// LUM8 and INT8 just read the red channel
+			img.Alloc( scaledWidth * scaledHeight );
+			for( int i = 0; i < img.dataSize; i++ )
+			{
+				img.data[ i ] = pic[ i * 4 ];
+			}
+		}
+		else if( textureFormat == FMT_ALPHA )
+		{
+			// ALPHA reads the alpha channel
+			img.Alloc( scaledWidth * scaledHeight );
+			for( int i = 0; i < img.dataSize; i++ )
+			{
+				img.data[ i ] = pic[ i * 4 + 3 ];
+			}
+		}
+		else if( textureFormat == FMT_L8A8 )
+		{
+			// L8A8 reads the alpha and red channels
+			img.Alloc( scaledWidth * scaledHeight * 2 );
+			for( int i = 0; i < img.dataSize / 2; i++ )
+			{
+				img.data[ i * 2 + 0 ] = pic[ i * 4 + 0 ];
+				img.data[ i * 2 + 1 ] = pic[ i * 4 + 3 ];
+			}
+		}
+		else if( textureFormat == FMT_RGB565 )
+		{
+			img.Alloc( scaledWidth * scaledHeight * 2 );
+			for( int i = 0; i < img.dataSize / 2; i++ )
+			{
+				unsigned short color = ( ( pic[ i * 4 + 0 ] >> 3 ) << 11 ) | ( ( pic[ i * 4 + 1 ] >> 2 ) << 5 ) | ( pic[ i * 4 + 2 ] >> 3 );
+				img.data[ i * 2 + 0 ] = ( color >> 8 ) & 0xFF;
+				img.data[ i * 2 + 1 ] = color & 0xFF;
+			}
+		}
+		else if( textureFormat == FMT_RG16F )
+		{
+			// RB: copy it as it was a RGBA8 because of the same size
+			img.Alloc( scaledWidth * scaledHeight * 4 );
+			for( int i = 0; i < img.dataSize; i++ )
+			{
+				img.data[ i ] = pic[ i ];
+			}
+		}
+		else if( textureFormat == FMT_R11G11B10F )
+		{
+			// RB: copy it as it was a RGBA8 because of the same size
+			img.Alloc( scaledWidth * scaledHeight * 4 );
+			for( int i = 0; i < img.dataSize; i++ )
+			{
+				img.data[ i ] = pic[ i ];
+			}
+		}
+		else if( textureFormat == FMT_RGBA16F )
+		{
+			img.Alloc( scaledWidth * scaledHeight * 8 );
+			for( int i = 0; i < img.dataSize; i++ )
+			{
+				img.data[ i ] = pic[ i ];
+			}
+		}
+		else
+		{
+			fileData.format = textureFormat = FMT_RGBA8;
+			img.Alloc( scaledWidth * scaledHeight * 4 );
+			for( int i = 0; i < img.dataSize; i++ )
+			{
+				img.data[ i ] = pic[ i ];
+			}
+		}
+
+		// if we had to pad to quads, free the padded version
+		if( pic != dxtPic )
+		{
+			Mem_Free( dxtPic );
+			dxtPic = NULL;
+		}
+
+		// downsample for the next level
+		/*
+		byte* shrunk = NULL;
+		if( gammaMips )
+		{
+			shrunk = R_MipMapWithGamma( pic, scaledWidth, scaledHeight );
+		}
+		else
+		{
+			shrunk = R_MipMap( pic, scaledWidth, scaledHeight );
+		}
+		Mem_Free( pic );
+		pic = shrunk;
+		*/
+
+		Mem_Free( pic );
+	}
+
+	Mem_Free( sourcePic );
 }
 
 /*
@@ -267,7 +632,7 @@ static void PadImageTo4x4( const byte* src, int width, int height, byte dest[64]
 	// that when needed
 	assert( width <= 4 && height <= 4 );
 	assert( width > 0 && height > 0 );
-	
+
 	for( int y = 0 ; y < 4 ; y++ )
 	{
 		int	sy = y % height;
@@ -289,24 +654,29 @@ idBinaryImage::LoadCubeFromMemory
 */
 void idBinaryImage::LoadCubeFromMemory( int width, const byte* pics[6], int numLevels, textureFormat_t& textureFormat, bool gammaMips )
 {
+	commonLocal.LoadPacifierBinarizeInfo( va( "cube (%d)", width ) );
+
 	fileData.textureType = TT_CUBIC;
 	fileData.format = textureFormat;
 	fileData.colorFormat = CFM_DEFAULT;
 	fileData.height = fileData.width = width;
 	fileData.numLevels = numLevels;
-	
+
 	images.SetNum( fileData.numLevels * 6 );
-	
+
 	for( int side = 0; side < 6; side++ )
 	{
 		const byte* orig = pics[side];
 		const byte* pic = orig;
 		int	scaledWidth = fileData.width;
+
 		for( int level = 0; level < fileData.numLevels; level++ )
 		{
 			// compress data or convert floats as necessary
 			idBinaryImageData& img = images[ level * 6 + side ];
-			
+
+			commonLocal.LoadPacifierBinarizeMiplevel( level, fileData.numLevels );
+
 			// handle padding blocks less than 4x4 for the DXT compressors
 			ALIGN16( byte padBlock[64] );
 			int		padSize;
@@ -322,7 +692,7 @@ void idBinaryImage::LoadCubeFromMemory( int width, const byte* pics[6], int numL
 				padSize = scaledWidth;
 				padSrc = pic;
 			}
-			
+
 			img.level = level;
 			img.destZ = side;
 			img.width = padSize;
@@ -331,13 +701,37 @@ void idBinaryImage::LoadCubeFromMemory( int width, const byte* pics[6], int numL
 			{
 				img.Alloc( padSize * padSize / 2 );
 				idDxtEncoder dxt;
-				dxt.CompressImageDXT1Fast( padSrc, img.data, padSize, padSize );
+
+				if( image_highQualityCompression.GetBool() )
+				{
+					commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - DXT1HQ", width, width ) );
+
+					dxt.CompressImageDXT1HQ( padSrc, img.data, padSize, padSize );
+				}
+				else
+				{
+					commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - DXT1Fast", width, width ) );
+
+					dxt.CompressImageDXT1Fast( padSrc, img.data, padSize, padSize );
+				}
 			}
 			else if( textureFormat == FMT_DXT5 )
 			{
 				img.Alloc( padSize * padSize );
 				idDxtEncoder dxt;
-				dxt.CompressImageDXT5Fast( padSrc, img.data, padSize, padSize );
+
+				if( image_highQualityCompression.GetBool() )
+				{
+					commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - DXT5HQ", width, width ) );
+
+					dxt.CompressImageDXT5HQ( padSrc, img.data, padSize, padSize );
+				}
+				else
+				{
+					commonLocal.LoadPacifierBinarizeInfo( va( "(%d x %d) - DXT5Fast", width, width ) );
+
+					dxt.CompressImageDXT5Fast( padSrc, img.data, padSize, padSize );
+				}
 			}
 			else
 			{
@@ -345,7 +739,7 @@ void idBinaryImage::LoadCubeFromMemory( int width, const byte* pics[6], int numL
 				img.Alloc( padSize * padSize * 4 );
 				memcpy( img.data, pic, img.dataSize );
 			}
-			
+
 			// downsample for the next level
 			byte* shrunk = NULL;
 			if( gammaMips )
@@ -362,7 +756,7 @@ void idBinaryImage::LoadCubeFromMemory( int width, const byte* pics[6], int numL
 				pic = NULL;
 			}
 			pic = shrunk;
-			
+
 			scaledWidth = Max( 1, scaledWidth >> 1 );
 		}
 		if( pic != orig )
@@ -390,10 +784,10 @@ ID_TIME_T idBinaryImage::WriteGeneratedFile( ID_TIME_T sourceFileTime )
 		return FILE_NOT_FOUND_TIMESTAMP;
 	}
 	idLib::Printf( "Writing %s: %ix%i\n", binaryFileName.c_str(), fileData.width, fileData.height );
-	
+
 	fileData.headerMagic = BIMAGE_MAGIC;
 	fileData.sourceFileTime = sourceFileTime;
-	
+
 	file->WriteBig( fileData.sourceFileTime );
 	file->WriteBig( fileData.headerMagic );
 	file->WriteBig( fileData.textureType );
@@ -402,7 +796,7 @@ ID_TIME_T idBinaryImage::WriteGeneratedFile( ID_TIME_T sourceFileTime )
 	file->WriteBig( fileData.width );
 	file->WriteBig( fileData.height );
 	file->WriteBig( fileData.numLevels );
-	
+
 	for( int i = 0; i < images.Num(); i++ )
 	{
 		idBinaryImageData& img = images[ i ];
@@ -461,27 +855,27 @@ bool idBinaryImage::LoadFromGeneratedFile( idFile* bFile, ID_TIME_T sourceTimeSt
 	swap.Big( fileData.width );
 	swap.Big( fileData.height );
 	swap.Big( fileData.numLevels );
-	
+
 	if( BIMAGE_MAGIC != fileData.headerMagic )
 	{
 		return false;
 	}
-	
+
 	// RB: source might be from .resources, so we ignore the time stamp and assume a release build
 	if( !fileSystem->InProductionMode() && ( sourceTimeStamp != FILE_NOT_FOUND_TIMESTAMP ) && ( sourceTimeStamp != 0 ) && ( sourceTimeStamp != fileData.sourceFileTime ) )
 	{
 		return false;
 	}
 	// RB end
-	
+
 	int numImages = fileData.numLevels;
 	if( fileData.textureType == TT_CUBIC )
 	{
 		numImages *= 6;
 	}
-	
+
 	images.SetNum( numImages );
-	
+
 	for( int i = 0; i < numImages; i++ )
 	{
 		idBinaryImageData& img = images[ i ];
@@ -502,18 +896,66 @@ bool idBinaryImage::LoadFromGeneratedFile( idFile* bFile, ID_TIME_T sourceTimeSt
 		// sizes are still retained, so the stored data size may be larger than
 		// just the multiplication of dimensions
 		assert( img.dataSize >= img.width * img.height * BitsForFormat( ( textureFormat_t )fileData.format ) / 8 );
+#if ( defined( __APPLE__ ) && defined( USE_VULKAN ) ) || defined( USE_NVRHI )
+		int imgfile_dataSize = img.dataSize;
+		// SRS - Allocate 2x memory to prepare for in-place conversion from FMT_RGB565 to FMT_RGBA8
+		if( ( textureFormat_t )fileData.format == FMT_RGB565 )
+		{
+			img.Alloc( img.dataSize * 2 );
+		}
+		else
+		{
+			img.Alloc( img.dataSize );
+		}
+		if( img.data == NULL )
+		{
+			return false;
+		}
+
+		// SRS - Read image data using actual on-disk data size
+		if( bFile->Read( img.data, imgfile_dataSize ) <= 0 )
+		{
+			return false;
+		}
+
+		// SRS - Convert FMT_RGB565 16-bits to FMT_RGBA8 32-bits in place using pre-allocated space
+		if( ( textureFormat_t )fileData.format == FMT_RGB565 )
+		{
+			//SRS - Make sure we have an integer number of RGBA8 storage slots
+			assert( img.dataSize % 4 == 0 );
+			for( int pixelIndex = img.dataSize / 2 - 2; pixelIndex >= 0; pixelIndex -= 2 )
+			{
+#if 1
+				// SRS - Option 1: Scale and shift algorithm
+				uint16 pixelValue_rgb565 = img.data[pixelIndex + 0] << 8 | img.data[pixelIndex + 1];
+				img.data[pixelIndex * 2 + 0] = ( ( ( pixelValue_rgb565 ) >> 11 ) * 527 + 23 ) >> 6;
+				img.data[pixelIndex * 2 + 1] = ( ( ( pixelValue_rgb565 & 0x07E0 ) >>  5 ) * 259 + 33 ) >> 6;
+				img.data[pixelIndex * 2 + 2] = ( ( ( pixelValue_rgb565 & 0x001F ) ) * 527 + 23 ) >> 6;
+#else
+				// SRS - Option 2: Shift and combine algorithm - is this faster?
+				uint8 pixelValue_rgb565_hi = img.data[pixelIndex + 0];
+				uint8 pixelValue_rgb565_lo = img.data[pixelIndex + 1];
+				img.data[pixelIndex * 2 + 0] = ( pixelValue_rgb565_hi & 0xF8 ) | ( pixelValue_rgb565_hi          >> 5 );
+				img.data[pixelIndex * 2 + 1] = ( pixelValue_rgb565_hi        << 5 ) | ( ( pixelValue_rgb565_lo & 0xE0 ) >> 3 ) | ( ( pixelValue_rgb565_hi & 0x07 ) >> 1 );
+				img.data[pixelIndex * 2 + 2] = ( pixelValue_rgb565_lo        << 3 ) | ( ( pixelValue_rgb565_lo & 0x1F ) >> 2 );
+#endif
+				img.data[pixelIndex * 2 + 3] = 0xFF;
+			}
+		}
+#else
 		img.Alloc( img.dataSize );
 		if( img.data == NULL )
 		{
 			return false;
 		}
-		
+
 		if( bFile->Read( img.data, img.dataSize ) <= 0 )
 		{
 			return false;
 		}
+#endif
 	}
-	
+
 	return true;
 }
 

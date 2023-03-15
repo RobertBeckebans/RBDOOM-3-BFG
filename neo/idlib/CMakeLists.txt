@@ -25,24 +25,24 @@ else()
 endif()
 
 set(ID_INCLUDES_ALL
-			${ID__INCLUDES}
-			${ID_BV_INCLUDES}
-			${ID_CONTAINERS_INCLUDES}
-			${ID_GEOMETRY_INCLUDES}
-			${ID_HASHING_INCLUDES}
-			${ID_MATH_INCLUDES}
-			${ID_SYS_INCLUDES}
-			)
+		${ID__INCLUDES}
+		${ID_BV_INCLUDES}
+		${ID_CONTAINERS_INCLUDES}
+		${ID_GEOMETRY_INCLUDES}
+		${ID_HASHING_INCLUDES}
+		${ID_MATH_INCLUDES}
+		${ID_SYS_INCLUDES}
+		)
 			
 set(ID_SOURCES_ALL
-			${ID__SOURCES}
-			${ID_BV_SOURCES}
-			${ID_CONTAINERS_SOURCES}
-			${ID_GEOMETRY_SOURCES}
-			${ID_HASHING_SOURCES}
-			${ID_MATH_SOURCES}
-			${ID_SYS_SOURCES}
-			)
+		${ID__SOURCES}
+		${ID_BV_SOURCES}
+		${ID_CONTAINERS_SOURCES}
+		${ID_GEOMETRY_SOURCES}
+		${ID_HASHING_SOURCES}
+		${ID_MATH_SOURCES}
+		${ID_SYS_SOURCES}
+		)
 			
 if(MSVC)
 	list(APPEND ID_INCLUDES_ALL ${ID_SYS_WIN32_INCLUDES})
@@ -117,7 +117,7 @@ else()
 	if (USE_PRECOMPILED_HEADERS)
 	# precompiled magic for GCC/clang, adapted from https://gist.github.com/573926
 	STRING(TOUPPER "CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}" _flags_var_name)
-	SET(_compiler_FLAGS ${${_flags_var_name}})
+	SET(_compiler_FLAGS "${${_flags_var_name}} -std=c++${CMAKE_CXX_STANDARD}")
 	GET_DIRECTORY_PROPERTY(_directory_flags INCLUDE_DIRECTORIES)
 	FOREACH(item ${_directory_flags})
 		LIST(APPEND _compiler_FLAGS " -I${item}")
@@ -144,6 +144,11 @@ else()
 	
 endif()
 	
+if(OPTICK)
+	target_compile_definitions(idlib PUBLIC USE_OPTICK=1)
+else()
+	target_compile_definitions(idlib PUBLIC USE_OPTICK=0)
+endif()
 
 # if(MSVC)
 	# # set_source_files_properties(precompiled.cpp

@@ -29,8 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SYS_INTRIINSICS_H__
 #define __SYS_INTRIINSICS_H__
 
-#if defined(USE_INTRINSICS)
-#include <emmintrin.h>
+#if defined(USE_INTRINSICS_SSE)
+	#include <emmintrin.h>
 #endif
 /*
 ================================================================================================
@@ -93,7 +93,7 @@ ID_INLINE_EXTERN float __frndz( float x )
 ================================================================================================
 */
 
-#if defined(USE_INTRINSICS)
+#if defined(USE_INTRINSICS_SSE)
 // The code below assumes that a cache line is 64 bytes.
 // We specify the cache line size as 128 here to make the code consistent with the consoles.
 #define CACHE_LINE_SIZE						128
@@ -191,7 +191,7 @@ ID_INLINE_EXTERN int CACHE_LINE_CLEAR_OVERFLOW_COUNT( int size )
 ================================================================================================
 */
 
-#if defined(USE_INTRINSICS)
+#if defined(USE_INTRINSICS_SSE)
 
 /*
 ================================================
@@ -200,22 +200,22 @@ ID_INLINE_EXTERN int CACHE_LINE_CLEAR_OVERFLOW_COUNT( int size )
 */
 
 #if !defined( R_SHUFFLE_D )
-#define R_SHUFFLE_D( x, y, z, w )	(( (w) & 3 ) << 6 | ( (z) & 3 ) << 4 | ( (y) & 3 ) << 2 | ( (x) & 3 ))
+	#define R_SHUFFLE_D( x, y, z, w )	(( (w) & 3 ) << 6 | ( (z) & 3 ) << 4 | ( (y) & 3 ) << 2 | ( (x) & 3 ))
 #endif
 
 // DG: _CRT_ALIGN seems to be MSVC specific, so provide implementation..
 #ifndef _CRT_ALIGN
-#if defined(__GNUC__) // also applies for clang
-#define _CRT_ALIGN(x) __attribute__ ((__aligned__ (x)))
-#elif defined(_MSC_VER) // also for MSVC, just to be sure
-#define _CRT_ALIGN(x) __declspec(align(x))
-#endif
+	#if defined(__GNUC__) // also applies for clang
+		#define _CRT_ALIGN(x) __attribute__ ((__aligned__ (x)))
+	#elif defined(_MSC_VER) // also for MSVC, just to be sure
+		#define _CRT_ALIGN(x) __declspec(align(x))
+	#endif
 #endif
 // DG: make sure __declspec(intrin_type) is only used on MSVC (it's not available on GCC etc
 #ifdef _MSC_VER
-#define DECLSPEC_INTRINTYPE __declspec( intrin_type )
+	#define DECLSPEC_INTRINTYPE __declspec( intrin_type )
 #else
-#define DECLSPEC_INTRINTYPE
+	#define DECLSPEC_INTRINTYPE
 #endif
 // DG end
 
@@ -301,6 +301,6 @@ ID_FORCE_INLINE_EXTERN __m128 _mm_div16_ps( __m128 x, __m128 y )
 // load idBounds::GetMaxs()
 #define _mm_loadu_bounds_1( bounds )		_mm_perm_ps( _mm_loadh_pi( _mm_load_ss( & bounds[1].x ), (__m64 *) & bounds[1].y ), _MM_SHUFFLE( 1, 3, 2, 0 ) )
 
-#endif // #if defined(USE_INTRINSICS)
+#endif // #if defined(USE_INTRINSICS_SSE)
 
 #endif	// !__SYS_INTRIINSICS_H__

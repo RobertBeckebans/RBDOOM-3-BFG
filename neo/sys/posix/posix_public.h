@@ -31,17 +31,19 @@ If you have questions concerning this license or the applicable additional terms
 
 #include <signal.h>
 
+extern glconfig_t glConfig;
+
 void		Posix_QueEvent( sysEventType_t type, int value, int value2, int ptrLength, void* ptr );
 const char*	Posix_Cwd();
 
 // called first thing. does InitSigs and various things
-void		Posix_EarlyInit( );
+void		Posix_EarlyInit();
 // called after common has been initialized
-void		Posix_LateInit( );
+void		Posix_LateInit();
 
-void		Posix_InitPThreads( );
-void		Posix_InitSigs( );
-void		Posix_ClearSigs( );
+void		Posix_InitPThreads();
+void		Posix_InitSigs();
+void		Posix_ClearSigs();
 
 void		Posix_Exit( int ret );
 void		Posix_SetExit( int ret ); // override the exit code
@@ -62,8 +64,10 @@ char*		Posix_ConsoleInput();
 double 		MeasureClockTicks();
 
 #ifdef __APPLE__
-enum clk_id_t { CLOCK_REALTIME, CLOCK_MONOTONIC, CLOCK_MONOTONIC_RAW };
-int clock_gettime( clk_id_t clock, struct timespec* tp );
+#if !defined(CLOCK_REALTIME)                    // SRS - define clockid_t enum for OSX 10.11 and earlier
+enum /*clk_id_t*/ clockid_t { CLOCK_REALTIME, CLOCK_MONOTONIC, CLOCK_MONOTONIC_RAW };
+#endif
+int clock_gettime( /*clk_id_t*/ clockid_t clock, struct timespec* tp );     // SRS - use APPLE clockid_t
 #endif
 
 #endif

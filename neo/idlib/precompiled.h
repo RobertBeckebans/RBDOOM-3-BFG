@@ -46,6 +46,9 @@ If you have questions concerning this license or the applicable additional terms
 
 // id lib
 #include "../idlib/Lib.h"
+#include "../idlib/gltfProperties.h"
+#include "../idlib/gltfParser.h"
+
 
 #include "sys/sys_filesystem.h"
 
@@ -84,10 +87,17 @@ const int MAX_EXPRESSION_OPS = 4096;
 const int MAX_EXPRESSION_REGISTERS = 4096;
 
 // renderer
+// everything that is needed by the backend needs
+// to be double buffered to allow it to run in
+// parallel on a dual cpu machine
+// SRS - use triple buffering for NVRHI with command queue event query sync method
+const uint32 NUM_FRAME_DATA	= 3;
 
-// RB: replaced QGL with GLEW
-#include <GL/glew.h>
-// RB end
+#include "nvrhi/nvrhi.h"
+
+// RB: make Optick profiling available everywhere
+#include "../libs/optick/optick.h"
+
 #include "../renderer/Cinematic.h"
 #include "../renderer/Material.h"
 #include "../renderer/BufferObject.h"
@@ -96,6 +106,8 @@ const int MAX_EXPRESSION_REGISTERS = 4096;
 #include "../renderer/ModelManager.h"
 #include "../renderer/RenderSystem.h"
 #include "../renderer/RenderWorld.h"
+#include "../renderer/BindingCache.h"
+#include "../renderer/RenderCommon.h"
 
 // sound engine
 #include "../sound/sound.h"
@@ -105,7 +117,7 @@ const int MAX_EXPRESSION_REGISTERS = 4096;
 #include "../ui/UserInterface.h"
 
 // RB: required for SWF extensions
-#include "../libs/rapidjson/include/rapidjson/document.h"
+//#include "rapidjson/document.h"
 
 #include "../swf/SWF.h"
 
@@ -136,31 +148,37 @@ const int MAX_EXPRESSION_REGISTERS = 4096;
 #include "../sys/sys_achievements.h"
 
 // tools
+
+// The editor entry points are always declared, but may just be
+// stubbed out on non-windows platforms.
+#include "../imgui/ImGui_Hooks.h"
+#include "../tools/edit_public.h"
+
 #include "../tools/compilers/compiler_public.h"
 
 //-----------------------------------------------------
 
 #ifndef _D3SDK
 
-#ifdef GAME_DLL
+	#ifdef GAME_DLL
 
-#include "../d3xp/Game_local.h"
+		#include "../d3xp/Game_local.h"
 
-#else
+	#else
 
-#include "../framework/DemoChecksum.h"
+		#include "../framework/DemoChecksum.h"
 
-// framework
-#include "../framework/Compressor.h"
-#include "../framework/EventLoop.h"
-#include "../framework/KeyInput.h"
-#include "../framework/EditField.h"
-#include "../framework/DebugGraph.h"
-#include "../framework/Console.h"
-#include "../framework/DemoFile.h"
-#include "../framework/Common_dialog.h"
+		// framework
+		#include "../framework/Compressor.h"
+		#include "../framework/EventLoop.h"
+		#include "../framework/KeyInput.h"
+		#include "../framework/EditField.h"
+		#include "../framework/DebugGraph.h"
+		#include "../framework/Console.h"
+		#include "../framework/DemoFile.h"
+		#include "../framework/Common_dialog.h"
 
-#endif /* !GAME_DLL */
+	#endif /* !GAME_DLL */
 
 #endif /* !_D3SDK */
 

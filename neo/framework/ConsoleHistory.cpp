@@ -25,8 +25,8 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 #include "ConsoleHistory.h"
 
 idConsoleHistory consoleHistory;
@@ -57,7 +57,7 @@ void idConsoleHistory::AddToHistory( const char* line, bool writeHistoryFile )
 	{
 		return;
 	}
-	
+
 	// repeating the last command doesn't add to the list
 	if( historyLines[( numHistory - 1 ) & ( COMMAND_HISTORY - 1 )].Icmp( line ) == 0 )
 	{
@@ -84,7 +84,7 @@ void idConsoleHistory::AddToHistory( const char* line, bool writeHistoryFile )
 	historyLines[numHistory & ( COMMAND_HISTORY - 1 )] = line;
 //	//mem.PopHeap();
 	numHistory++;
-	
+
 	// write the history file to disk
 	if( writeHistoryFile )
 	{

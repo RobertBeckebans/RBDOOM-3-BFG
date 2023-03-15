@@ -26,8 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 #include "ListGUILocal.h"
 
@@ -39,12 +39,12 @@ idListGUILocal::StateChanged
 void idListGUILocal::StateChanged()
 {
 	int i;
-	
+
 	if( !m_stateUpdates )
 	{
 		return;
 	}
-	
+
 	for( i = 0; i < Num(); i++ )
 	{
 		m_pGUI->SetStateString( va( "%s_item_%i", m_name.c_str(), i ), ( *this )[i].c_str() );

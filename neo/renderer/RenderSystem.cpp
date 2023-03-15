@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2013-2016 Robert Beckebans
+Copyright (C) 2013-2023 Robert Beckebans
 Copyright (C) 2014-2016 Kot in Action Creative Artel
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
@@ -28,10 +28,16 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
-#include "tr_local.h"
+#include "RenderCommon.h"
+#include "../framework/Common_local.h"
+#include "../imgui/BFGimgui.h"
+
+#include <sys/DeviceManager.h>
+extern DeviceManager* deviceManager;
+
 
 idRenderSystemLocal	tr;
 idRenderSystem* renderSystem = &tr;
@@ -44,56 +50,56 @@ This prints both front and back end counters, so it should
 only be called when the back end thread is idle.
 =====================
 */
-static void R_PerformanceCounters()
+void idRenderSystemLocal::PrintPerformanceCounters()
 {
 	if( r_showPrimitives.GetInteger() != 0 )
 	{
 		common->Printf( "views:%i draws:%i tris:%i (shdw:%i)\n",
-						tr.pc.c_numViews,
-						backEnd.pc.c_drawElements + backEnd.pc.c_shadowElements,
-						( backEnd.pc.c_drawIndexes + backEnd.pc.c_shadowIndexes ) / 3,
-						backEnd.pc.c_shadowIndexes / 3
+						pc.c_numViews,
+						backend.pc.c_drawElements + backend.pc.c_shadowElements,
+						( backend.pc.c_drawIndexes + backend.pc.c_shadowIndexes ) / 3,
+						backend.pc.c_shadowIndexes / 3
 					  );
 	}
-	
+
 	if( r_showDynamic.GetBool() )
 	{
 		common->Printf( "callback:%i md5:%i dfrmVerts:%i dfrmTris:%i tangTris:%i guis:%i\n",
-						tr.pc.c_entityDefCallbacks,
-						tr.pc.c_generateMd5,
-						tr.pc.c_deformedVerts,
-						tr.pc.c_deformedIndexes / 3,
-						tr.pc.c_tangentIndexes / 3,
-						tr.pc.c_guiSurfs
+						pc.c_entityDefCallbacks,
+						pc.c_generateMd5,
+						pc.c_deformedVerts,
+						pc.c_deformedIndexes / 3,
+						pc.c_tangentIndexes / 3,
+						pc.c_guiSurfs
 					  );
 	}
-	
+
 	if( r_showCull.GetBool() )
 	{
 		common->Printf( "%i box in %i box out\n",
-						tr.pc.c_box_cull_in, tr.pc.c_box_cull_out );
+						pc.c_box_cull_in, pc.c_box_cull_out );
 	}
-	
+
 	if( r_showAddModel.GetBool() )
 	{
 		common->Printf( "callback:%i createInteractions:%i createShadowVolumes:%i\n",
-						tr.pc.c_entityDefCallbacks, tr.pc.c_createInteractions, tr.pc.c_createShadowVolumes );
-		common->Printf( "viewEntities:%i  shadowEntities:%i  viewLights:%i\n", tr.pc.c_visibleViewEntities,
-						tr.pc.c_shadowViewEntities, tr.pc.c_viewLights );
+						pc.c_entityDefCallbacks, pc.c_createInteractions, pc.c_createShadowVolumes );
+		common->Printf( "viewEntities:%i  shadowEntities:%i  viewLights:%i\n", pc.c_visibleViewEntities,
+						pc.c_shadowViewEntities, pc.c_viewLights );
 	}
 	if( r_showUpdates.GetBool() )
 	{
 		common->Printf( "entityUpdates:%i  entityRefs:%i  lightUpdates:%i  lightRefs:%i\n",
-						tr.pc.c_entityUpdates, tr.pc.c_entityReferences,
-						tr.pc.c_lightUpdates, tr.pc.c_lightReferences );
+						pc.c_entityUpdates, pc.c_entityReferences,
+						pc.c_lightUpdates, pc.c_lightReferences );
 	}
 	if( r_showMemory.GetBool() )
 	{
 		common->Printf( "frameData: %i (%i)\n", frameData->frameMemoryAllocated.GetValue(), frameData->highWaterAllocated );
 	}
-	
-	memset( &tr.pc, 0, sizeof( tr.pc ) );
-	memset( &backEnd.pc, 0, sizeof( backEnd.pc ) );
+
+	memset( &pc, 0, sizeof( pc ) );
+	memset( &backend.pc, 0, sizeof( backend.pc ) );
 }
 
 /*
@@ -117,36 +123,20 @@ void idRenderSystemLocal::RenderCommandBuffers( const emptyCommand_t* const cmdH
 	{
 		return;
 	}
-	
+
 	// r_skipBackEnd allows the entire time of the back end
 	// to be removed from performance measurements, although
 	// nothing will be drawn to the screen.  If the prints
 	// are going to a file, or r_skipBackEnd is later disabled,
 	// usefull data can be received.
-	
+
 	// r_skipRender is usually more usefull, because it will still
 	// draw 2D graphics
 	if( !r_skipBackEnd.GetBool() )
 	{
-#if !defined(USE_GLES2) && !defined(USE_GLES3)
-		if( glConfig.timerQueryAvailable )
-		{
-			if( tr.timerQueryId == 0 )
-			{
-				glGenQueries( 1, & tr.timerQueryId );
-			}
-			glBeginQuery( GL_TIME_ELAPSED_EXT, tr.timerQueryId );
-			RB_ExecuteBackEndCommands( cmdHead );
-			glEndQuery( GL_TIME_ELAPSED_EXT );
-			glFlush();
-		}
-		else
-#endif
-		{
-			RB_ExecuteBackEndCommands( cmdHead );
-		}
+		backend.ExecuteBackEndCommands( cmdHead );
 	}
-	
+
 	// pass in null for now - we may need to do some map specific hackery in the future
 	resolutionScale.InitForMap( NULL );
 }
@@ -163,12 +153,12 @@ current command chain.
 void* R_GetCommandBuffer( int bytes )
 {
 	emptyCommand_t*	cmd;
-	
+
 	cmd = ( emptyCommand_t* )R_FrameAlloc( bytes, FRAME_ALLOC_DRAW_COMMAND );
 	cmd->next = NULL;
 	frameData->cmdTail->next = &cmd->commandId;
 	frameData->cmdTail = cmd;
-	
+
 	return ( void* )cmd;
 }
 
@@ -198,14 +188,14 @@ have multiple views if a mirror, portal, or dynamic texture is present.
 void	R_AddDrawViewCmd( viewDef_t* parms, bool guiOnly )
 {
 	drawSurfsCommand_t*	cmd;
-	
+
 	cmd = ( drawSurfsCommand_t* )R_GetCommandBuffer( sizeof( *cmd ) );
 	cmd->commandId = ( guiOnly ) ? RC_DRAW_VIEW_GUI : RC_DRAW_VIEW_3D;
-	
+
 	cmd->viewDef = parms;
-	
+
 	tr.pc.c_numViews++;
-	
+
 	R_ViewStatistics( parms );
 }
 
@@ -228,107 +218,7 @@ void	R_AddDrawPostProcess( viewDef_t* parms )
 //=================================================================================
 
 
-/*
-=============
-R_CheckCvars
 
-See if some cvars that we watch have changed
-=============
-*/
-static void R_CheckCvars()
-{
-	// gamma stuff
-	if( r_gamma.IsModified() || r_brightness.IsModified() )
-	{
-		r_gamma.ClearModified();
-		r_brightness.ClearModified();
-		R_SetColorMappings();
-	}
-	
-	// filtering
-	if( r_maxAnisotropicFiltering.IsModified() || r_useTrilinearFiltering.IsModified() || r_lodBias.IsModified() )
-	{
-		idLib::Printf( "Updating texture filter parameters.\n" );
-		r_maxAnisotropicFiltering.ClearModified();
-		r_useTrilinearFiltering.ClearModified();
-		r_lodBias.ClearModified();
-		for( int i = 0 ; i < globalImages->images.Num() ; i++ )
-		{
-			if( globalImages->images[i] )
-			{
-				globalImages->images[i]->Bind();
-				globalImages->images[i]->SetTexParameters();
-			}
-		}
-	}
-	
-	extern idCVar r_useSeamlessCubeMap;
-	if( r_useSeamlessCubeMap.IsModified() )
-	{
-		r_useSeamlessCubeMap.ClearModified();
-		if( glConfig.seamlessCubeMapAvailable )
-		{
-			if( r_useSeamlessCubeMap.GetBool() )
-			{
-				glEnable( GL_TEXTURE_CUBE_MAP_SEAMLESS );
-			}
-			else
-			{
-				glDisable( GL_TEXTURE_CUBE_MAP_SEAMLESS );
-			}
-		}
-	}
-	
-	extern idCVar r_useSRGB;
-	if( r_useSRGB.IsModified() )
-	{
-		r_useSRGB.ClearModified();
-		if( glConfig.sRGBFramebufferAvailable )
-		{
-			if( r_useSRGB.GetBool() && r_useSRGB.GetInteger() != 3 )
-			{
-				glEnable( GL_FRAMEBUFFER_SRGB );
-			}
-			else
-			{
-				glDisable( GL_FRAMEBUFFER_SRGB );
-			}
-		}
-	}
-	
-	if( r_antiAliasing.IsModified() )
-	{
-		switch( r_antiAliasing.GetInteger() )
-		{
-			case ANTI_ALIASING_MSAA_2X:
-			case ANTI_ALIASING_MSAA_4X:
-			case ANTI_ALIASING_MSAA_8X:
-				if( r_antiAliasing.GetInteger() > 0 )
-				{
-					glEnable( GL_MULTISAMPLE );
-				}
-				break;
-				
-			default:
-				glDisable( GL_MULTISAMPLE );
-				break;
-		}
-	}
-	
-	// RB: turn off shadow mapping for OpenGL drivers that are too slow
-	switch( glConfig.driverType )
-	{
-		case GLDRV_OPENGL_ES2:
-		case GLDRV_OPENGL_ES3:
-			//case GLDRV_OPENGL_MESA:
-			r_useShadowMapping.SetInteger( 0 );
-			break;
-			
-		default:
-			break;
-	}
-	// RB end
-}
 
 /*
 =============
@@ -338,7 +228,10 @@ idRenderSystemLocal::idRenderSystemLocal
 idRenderSystemLocal::idRenderSystemLocal() :
 	unitSquareTriangles( NULL ),
 	zeroOneCubeTriangles( NULL ),
-	testImageTriangles( NULL )
+	zeroOneSphereTriangles( NULL ),
+	testImageTriangles( NULL ),
+	bInitialized( false ),
+	omitSwapBuffers( false )
 {
 	Clear();
 }
@@ -398,9 +291,9 @@ void idRenderSystemLocal::DrawFilled( const idVec4& color, float x, float y, flo
 idRenderSystemLocal::DrawStretchPic
 =============
 */
-void idRenderSystemLocal::DrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, const idMaterial* material )
+void idRenderSystemLocal::DrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, const idMaterial* material, float z )
 {
-	DrawStretchPic( idVec4( x, y, s1, t1 ), idVec4( x + w, y, s2, t1 ), idVec4( x + w, y + h, s2, t2 ), idVec4( x, y + h, s1, t2 ), material );
+	DrawStretchPic( idVec4( x, y, s1, t1 ), idVec4( x + w, y, s2, t1 ), idVec4( x + w, y + h, s2, t2 ), idVec4( x, y + h, s1, t2 ), material, z );
 }
 
 /*
@@ -409,9 +302,9 @@ idRenderSystemLocal::DrawStretchPic
 =============
 */
 static triIndex_t quadPicIndexes[6] = { 3, 0, 2, 2, 0, 1 };
-void idRenderSystemLocal::DrawStretchPic( const idVec4& topLeft, const idVec4& topRight, const idVec4& bottomRight, const idVec4& bottomLeft, const idMaterial* material )
+void idRenderSystemLocal::DrawStretchPic( const idVec4& topLeft, const idVec4& topRight, const idVec4& bottomRight, const idVec4& bottomLeft, const idMaterial* material, float z )
 {
-	if( !R_IsInitialized() )
+	if( !IsInitialized() )
 	{
 		return;
 	}
@@ -419,43 +312,47 @@ void idRenderSystemLocal::DrawStretchPic( const idVec4& topLeft, const idVec4& t
 	{
 		return;
 	}
-	
+
 	idDrawVert* verts = guiModel->AllocTris( 4, quadPicIndexes, 6, material, currentGLState, STEREO_DEPTH_TYPE_NONE );
 	if( verts == NULL )
 	{
 		return;
 	}
-	
+
 	ALIGNTYPE16 idDrawVert localVerts[4];
-	
+
 	localVerts[0].Clear();
 	localVerts[0].xyz[0] = topLeft.x;
 	localVerts[0].xyz[1] = topLeft.y;
+	localVerts[0].xyz[2] = z;
 	localVerts[0].SetTexCoord( topLeft.z, topLeft.w );
 	localVerts[0].SetNativeOrderColor( currentColorNativeBytesOrder );
 	localVerts[0].ClearColor2();
-	
+
 	localVerts[1].Clear();
 	localVerts[1].xyz[0] = topRight.x;
 	localVerts[1].xyz[1] = topRight.y;
+	localVerts[1].xyz[2] = z;
 	localVerts[1].SetTexCoord( topRight.z, topRight.w );
 	localVerts[1].SetNativeOrderColor( currentColorNativeBytesOrder );
 	localVerts[1].ClearColor2();
-	
+
 	localVerts[2].Clear();
 	localVerts[2].xyz[0] = bottomRight.x;
 	localVerts[2].xyz[1] = bottomRight.y;
+	localVerts[2].xyz[2] = z;
 	localVerts[2].SetTexCoord( bottomRight.z, bottomRight.w );
 	localVerts[2].SetNativeOrderColor( currentColorNativeBytesOrder );
 	localVerts[2].ClearColor2();
-	
+
 	localVerts[3].Clear();
 	localVerts[3].xyz[0] = bottomLeft.x;
 	localVerts[3].xyz[1] = bottomLeft.y;
+	localVerts[3].xyz[2] = z;
 	localVerts[3].SetTexCoord( bottomLeft.z, bottomLeft.w );
 	localVerts[3].SetNativeOrderColor( currentColorNativeBytesOrder );
 	localVerts[3].ClearColor2();
-	
+
 	WriteDrawVerts16( verts, localVerts, 4 );
 }
 
@@ -466,7 +363,7 @@ idRenderSystemLocal::DrawStretchTri
 */
 void idRenderSystemLocal::DrawStretchTri( const idVec2& p1, const idVec2& p2, const idVec2& p3, const idVec2& t1, const idVec2& t2, const idVec2& t3, const idMaterial* material )
 {
-	if( !R_IsInitialized() )
+	if( !IsInitialized() )
 	{
 		return;
 	}
@@ -474,38 +371,38 @@ void idRenderSystemLocal::DrawStretchTri( const idVec2& p1, const idVec2& p2, co
 	{
 		return;
 	}
-	
+
 	triIndex_t tempIndexes[3] = { 1, 0, 2 };
-	
+
 	idDrawVert* verts = guiModel->AllocTris( 3, tempIndexes, 3, material, currentGLState, STEREO_DEPTH_TYPE_NONE );
 	if( verts == NULL )
 	{
 		return;
 	}
-	
+
 	ALIGNTYPE16 idDrawVert localVerts[3];
-	
+
 	localVerts[0].Clear();
 	localVerts[0].xyz[0] = p1.x;
 	localVerts[0].xyz[1] = p1.y;
 	localVerts[0].SetTexCoord( t1 );
 	localVerts[0].SetNativeOrderColor( currentColorNativeBytesOrder );
 	localVerts[0].ClearColor2();
-	
+
 	localVerts[1].Clear();
 	localVerts[1].xyz[0] = p2.x;
 	localVerts[1].xyz[1] = p2.y;
 	localVerts[1].SetTexCoord( t2 );
 	localVerts[1].SetNativeOrderColor( currentColorNativeBytesOrder );
 	localVerts[1].ClearColor2();
-	
+
 	localVerts[2].Clear();
 	localVerts[2].xyz[0] = p3.x;
 	localVerts[2].xyz[1] = p3.y;
 	localVerts[2].SetTexCoord( t3 );
 	localVerts[2].SetNativeOrderColor( currentColorNativeBytesOrder );
 	localVerts[2].ClearColor2();
-	
+
 	WriteDrawVerts16( verts, localVerts, 3 );
 }
 
@@ -531,26 +428,26 @@ void idRenderSystemLocal::DrawSmallChar( int x, int y, int ch )
 	int row, col;
 	float frow, fcol;
 	float size;
-	
+
 	ch &= 255;
-	
+
 	if( ch == ' ' )
 	{
 		return;
 	}
-	
+
 	if( y < -SMALLCHAR_HEIGHT )
 	{
 		return;
 	}
-	
+
 	row = ch >> 4;
 	col = ch & 15;
-	
+
 	frow = row * 0.0625f;
 	fcol = col * 0.0625f;
 	size = 0.0625f;
-	
+
 	DrawStretchPic( x, y, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT,
 					fcol, frow,
 					fcol + size, frow + size,
@@ -572,7 +469,7 @@ void idRenderSystemLocal::DrawSmallStringExt( int x, int y, const char* string, 
 	idVec4		color;
 	const unsigned char*	s;
 	int			xx;
-	
+
 	// draw the colored text
 	s = ( const unsigned char* )string;
 	xx = x;
@@ -614,26 +511,26 @@ void idRenderSystemLocal::DrawBigChar( int x, int y, int ch )
 	int row, col;
 	float frow, fcol;
 	float size;
-	
+
 	ch &= 255;
-	
+
 	if( ch == ' ' )
 	{
 		return;
 	}
-	
+
 	if( y < -BIGCHAR_HEIGHT )
 	{
 		return;
 	}
-	
+
 	row = ch >> 4;
 	col = ch & 15;
-	
+
 	frow = row * 0.0625f;
 	fcol = col * 0.0625f;
 	size = 0.0625f;
-	
+
 	DrawStretchPic( x, y, BIGCHAR_WIDTH, BIGCHAR_HEIGHT,
 					fcol, frow,
 					fcol + size, frow + size,
@@ -655,7 +552,7 @@ void idRenderSystemLocal::DrawBigStringExt( int x, int y, const char* string, co
 	idVec4		color;
 	const char*	s;
 	int			xx;
-	
+
 	// draw the colored text
 	s = string;
 	xx = x;
@@ -709,11 +606,13 @@ const emptyCommand_t* idRenderSystemLocal::SwapCommandBuffers(
 	uint64* frontEndMicroSec,
 	uint64* backEndMicroSec,
 	uint64* shadowMicroSec,
-	uint64* gpuMicroSec )
+	uint64* gpuMicroSec,
+	backEndCounters_t* bc,
+	performanceCounters_t* pc
+)
 {
+	SwapCommandBuffers_FinishRendering( frontEndMicroSec, backEndMicroSec, shadowMicroSec, gpuMicroSec, bc, pc );
 
-	SwapCommandBuffers_FinishRendering( frontEndMicroSec, backEndMicroSec, shadowMicroSec, gpuMicroSec );
-	
 	return SwapCommandBuffers_FinishCommandBuffers();
 }
 
@@ -722,77 +621,90 @@ const emptyCommand_t* idRenderSystemLocal::SwapCommandBuffers(
 idRenderSystemLocal::SwapCommandBuffers_FinishRendering
 =====================
 */
+#define	FPS_FRAMES	6
 void idRenderSystemLocal::SwapCommandBuffers_FinishRendering(
 	uint64* frontEndMicroSec,
 	uint64* backEndMicroSec,
 	uint64* shadowMicroSec,
-	uint64* gpuMicroSec )
+	uint64* gpuMicroSec,
+	backEndCounters_t* bc,
+	performanceCounters_t* pc
+)
 {
-	SCOPED_PROFILE_EVENT( "SwapCommandBuffers" );
-	
+	SCOPED_PROFILE_EVENT( "SwapCommandBuffers_FinishRendering" );
+
 	if( gpuMicroSec != NULL )
 	{
 		*gpuMicroSec = 0;		// until shown otherwise
 	}
-	
-	if( !R_IsInitialized() )
+
+	if( !IsInitialized() )
 	{
 		return;
 	}
-	
-	
+
+	//GL_CheckErrors();
+
 	// After coming back from an autoswap, we won't have anything to render
-	if( frameData->cmdHead->next != NULL )
+	//if( frameData && frameData->cmdHead->next != NULL )
+
+	// keep capturing envprobes completely in the background
+	// and only update the screen when we update the progress bar in the console
+	if( !omitSwapBuffers )
 	{
+
+#if !IMGUI_BFGUI
+		ImGuiHook::Render();
+#endif
+
 		// wait for our fence to hit, which means the swap has actually happened
 		// We must do this before clearing any resources the GPU may be using
-		void GL_BlockingSwapBuffers();
-		GL_BlockingSwapBuffers();
+		backend.GL_BlockingSwapBuffers();
 	}
-	
-	// read back the start and end timer queries from the previous frame
-	if( glConfig.timerQueryAvailable )
+
+	if( gpuMicroSec != NULL )
 	{
-		// RB: 64 bit fixes, changed int64 to GLuint64EXT
-		GLuint64EXT drawingTimeNanoseconds = 0;
-		// RB end
-		
-		if( tr.timerQueryId != 0 )
-		{
-			glGetQueryObjectui64vEXT( tr.timerQueryId, GL_QUERY_RESULT, &drawingTimeNanoseconds );
-		}
-		if( gpuMicroSec != NULL )
-		{
-			*gpuMicroSec = drawingTimeNanoseconds / 1000;
-		}
+		*gpuMicroSec = backend.pc.gpuMicroSec;
 	}
-	
+
 	//------------------------------
-	
+
 	// save out timing information
 	if( frontEndMicroSec != NULL )
 	{
-		*frontEndMicroSec = pc.frontEndMicroSec;
+		*frontEndMicroSec = this->pc.frontEndMicroSec;
 	}
+
 	if( backEndMicroSec != NULL )
 	{
-		*backEndMicroSec = backEnd.pc.totalMicroSec;
+		*backEndMicroSec = backend.pc.cpuTotalMicroSec;
 	}
+
 	if( shadowMicroSec != NULL )
 	{
-		*shadowMicroSec = backEnd.pc.shadowMicroSec;
+		*shadowMicroSec = backend.pc.cpuShadowMicroSec;
 	}
-	
+
+	// RB: TODO clean up the above and just pass entire backend and performance stats before they get cleared
+	if( bc != NULL )
+	{
+		*bc = backend.pc;
+	}
+
+	if( pc != NULL )
+	{
+		*pc = this->pc;
+	}
+
 	// print any other statistics and clear all of them
-	R_PerformanceCounters();
-	
+	PrintPerformanceCounters();
+
 	// check for dynamic changes that require some initialization
-	R_CheckCvars();
-	
+	backend.CheckCVars();
+
 	// RB: resize HDR buffers
 	Framebuffer::CheckFramebuffers();
-	// RB end
-	
+
 	// check for errors
 	GL_CheckErrors();
 }
@@ -804,45 +716,52 @@ idRenderSystemLocal::SwapCommandBuffers_FinishCommandBuffers
 */
 const emptyCommand_t* idRenderSystemLocal::SwapCommandBuffers_FinishCommandBuffers()
 {
-	if( !R_IsInitialized() )
+	OPTICK_EVENT( "SwapCommandBuffers_FinishCommandBuffers" );
+
+	if( !IsInitialized() )
 	{
 		return NULL;
 	}
-	
+
+	// RB: general GUI system path to treat ImGui surfaces in the renderer frontend like SWF
+	// this calls io.RenderDrawListsFn
+#if IMGUI_BFGUI
+	ImGuiHook::Render();
+#endif
+
 	// close any gui drawing
 	guiModel->EmitFullScreen();
 	guiModel->Clear();
-	
+
 	// unmap the buffer objects so they can be used by the GPU
 	vertexCache.BeginBackEnd();
-	
+
 	// save off this command buffer
 	const emptyCommand_t* commandBufferHead = frameData->cmdHead;
-	
+
 	// copy the code-used drawsurfs that were
 	// allocated at the start of the buffer memory to the backEnd referenced locations
-	backEnd.unitSquareSurface = tr.unitSquareSurface_;
-	backEnd.zeroOneCubeSurface = tr.zeroOneCubeSurface_;
-	backEnd.testImageSurface = tr.testImageSurface_;
-	
+	backend.unitSquareSurface = tr.unitSquareSurface_;
+	backend.zeroOneCubeSurface = tr.zeroOneCubeSurface_;
+	backend.zeroOneSphereSurface = tr.zeroOneSphereSurface_;
+	backend.testImageSurface = tr.testImageSurface_;
+
 	// use the other buffers next frame, because another CPU
 	// may still be rendering into the current buffers
 	R_ToggleSmpFrame();
-	
+
 	// possibly change the stereo3D mode
 	// PC
-	if( glConfig.nativeScreenWidth == 1280 && glConfig.nativeScreenHeight == 1470 )
+	UpdateStereo3DMode();
+
+	if( !commandList )
 	{
-		glConfig.stereo3Dmode = STEREO3D_HDMI_720;
+		commandList = deviceManager->GetDevice()->createCommandList();
 	}
-	else
-	{
-		glConfig.stereo3Dmode = GetStereoScopicRenderingMode();
-	}
-	
+
 	// prepare the new command buffer
 	guiModel->BeginFrame();
-	
+
 	//------------------------------
 	// Make sure that geometry used by code is present in the buffer cache.
 	// These use frame buffer cache (not static) because they may be used during
@@ -852,24 +771,25 @@ const emptyCommand_t* idRenderSystemLocal::SwapCommandBuffers_FinishCommandBuffe
 	// scene generation, the basic surfaces needed for drawing the buffers will
 	// always be present.
 	//------------------------------
-	R_InitDrawSurfFromTri( tr.unitSquareSurface_, *tr.unitSquareTriangles );
-	R_InitDrawSurfFromTri( tr.zeroOneCubeSurface_, *tr.zeroOneCubeTriangles );
-	R_InitDrawSurfFromTri( tr.testImageSurface_, *tr.testImageTriangles );
-	
+	R_InitDrawSurfFromTri( tr.unitSquareSurface_, *tr.unitSquareTriangles, commandList );
+	R_InitDrawSurfFromTri( tr.zeroOneCubeSurface_, *tr.zeroOneCubeTriangles, commandList );
+	R_InitDrawSurfFromTri( tr.zeroOneSphereSurface_, *tr.zeroOneSphereTriangles, commandList );
+	R_InitDrawSurfFromTri( tr.testImageSurface_, *tr.testImageTriangles, commandList );
+
 	// Reset render crop to be the full screen
 	renderCrops[0].x1 = 0;
 	renderCrops[0].y1 = 0;
 	renderCrops[0].x2 = GetWidth() - 1;
 	renderCrops[0].y2 = GetHeight() - 1;
 	currentRenderCrop = 0;
-	
+
 	// this is the ONLY place this is modified
 	frameCount++;
-	
+
 	// just in case we did a common->Error while this
 	// was set
 	guiRecursionLevel = 0;
-	
+
 	// the first rendering will be used for commands like
 	// screenshot, rather than a possible subsequent remote
 	// or mirror render
@@ -877,11 +797,12 @@ const emptyCommand_t* idRenderSystemLocal::SwapCommandBuffers_FinishCommandBuffe
 
 	// set the time for shader effects in 2D rendering
 	frameShaderTime = Sys_Milliseconds() * 0.001;
-	
+
+	// RB: TODO RC_SET_BUFFER is not handled in OpenGL
 	setBufferCommand_t* cmd2 = ( setBufferCommand_t* )R_GetCommandBuffer( sizeof( *cmd2 ) );
 	cmd2->commandId = RC_SET_BUFFER;
-	cmd2->buffer = ( int )GL_BACK;
-	
+	cmd2->buffer = 0;
+
 	// the old command buffer can now be rendered, while the new one can
 	// be built in parallel
 	return commandBufferHead;
@@ -941,11 +862,10 @@ In split screen mode the rendering size is also smaller.
 */
 void idRenderSystemLocal::PerformResolutionScaling( int& newWidth, int& newHeight )
 {
-
 	float xScale = 1.0f;
 	float yScale = 1.0f;
 	resolutionScale.GetCurrentResolutionScale( xScale, yScale );
-	
+
 	newWidth = idMath::Ftoi( GetWidth() * xScale );
 	newHeight = idMath::Ftoi( GetHeight() * yScale );
 }
@@ -957,44 +877,101 @@ idRenderSystemLocal::CropRenderSize
 */
 void idRenderSystemLocal::CropRenderSize( int width, int height )
 {
-	if( !R_IsInitialized() )
+	if( !IsInitialized() )
 	{
 		return;
 	}
-	
+
 	// close any gui drawing before changing the size
 	guiModel->EmitFullScreen();
 	guiModel->Clear();
-	
-	
+
+
 	if( width < 1 || height < 1 )
 	{
 		common->Error( "CropRenderSize: bad sizes" );
 	}
-	
+
 	if( common->WriteDemo() )
 	{
 		common->WriteDemo()->WriteInt( DS_RENDER );
 		common->WriteDemo()->WriteInt( DC_CROP_RENDER );
 		common->WriteDemo()->WriteInt( width );
 		common->WriteDemo()->WriteInt( height );
-		
+
 		if( r_showDemo.GetBool() )
 		{
 			common->Printf( "write DC_CROP_RENDER\n" );
 		}
 	}
-	
+
 	idScreenRect& previous = renderCrops[currentRenderCrop];
-	
+
 	currentRenderCrop++;
-	
+
 	idScreenRect& current = renderCrops[currentRenderCrop];
-	
+
 	current.x1 = previous.x1;
 	current.x2 = previous.x1 + width - 1;
 	current.y1 = previous.y2 - height + 1;
 	current.y2 = previous.y2;
+}
+
+/*
+================
+idRenderSystemLocal::CropRenderSize
+================
+*/
+void idRenderSystemLocal::CropRenderSize( int x, int y, int width, int height, bool topLeftAncor )
+{
+	if( !IsInitialized() )
+	{
+		return;
+	}
+
+	// close any gui drawing before changing the size
+	guiModel->EmitFullScreen();
+	guiModel->Clear();
+
+
+	if( width < 1 || height < 1 )
+	{
+		common->Error( "CropRenderSize: bad sizes" );
+	}
+
+	if( common->WriteDemo() )
+	{
+		common->WriteDemo()->WriteInt( DS_RENDER );
+		common->WriteDemo()->WriteInt( DC_CROP_RENDER );
+		common->WriteDemo()->WriteInt( width );
+		common->WriteDemo()->WriteInt( height );
+
+		if( r_showDemo.GetBool() )
+		{
+			common->Printf( "write DC_CROP_RENDER\n" );
+		}
+	}
+
+	idScreenRect& previous = renderCrops[currentRenderCrop];
+
+	currentRenderCrop++;
+
+	idScreenRect& current = renderCrops[currentRenderCrop];
+
+	if( topLeftAncor )
+	{
+		current.x1 = x;
+		current.x2 = width - 1;
+		current.y1 = y;
+		current.y2 = height - 1;
+	}
+	else
+	{
+		current.x1 = x;
+		current.x2 = previous.x1 + width - 1;
+		current.y1 = y;
+		current.y2 = previous.y2;
+	}
 }
 
 /*
@@ -1004,27 +981,27 @@ idRenderSystemLocal::UnCrop
 */
 void idRenderSystemLocal::UnCrop()
 {
-	if( !R_IsInitialized() )
+	if( !IsInitialized() )
 	{
 		return;
 	}
-	
+
 	if( currentRenderCrop < 1 )
 	{
 		common->Error( "idRenderSystemLocal::UnCrop: currentRenderCrop < 1" );
 	}
-	
+
 	// close any gui drawing
 	guiModel->EmitFullScreen();
 	guiModel->Clear();
-	
+
 	currentRenderCrop--;
-	
+
 	if( common->WriteDemo() )
 	{
 		common->WriteDemo()->WriteInt( DS_RENDER );
 		common->WriteDemo()->WriteInt( DC_UNCROP_RENDER );
-		
+
 		if( r_showDemo.GetBool() )
 		{
 			common->Printf( "write DC_UNCROP\n" );
@@ -1039,32 +1016,32 @@ idRenderSystemLocal::CaptureRenderToImage
 */
 void idRenderSystemLocal::CaptureRenderToImage( const char* imageName, bool clearColorAfterCopy )
 {
-	if( !R_IsInitialized() )
+	if( !IsInitialized() )
 	{
 		return;
 	}
 	guiModel->EmitFullScreen();
 	guiModel->Clear();
-	
+
 	if( common->WriteDemo() )
 	{
 		common->WriteDemo()->WriteInt( DS_RENDER );
 		common->WriteDemo()->WriteInt( DC_CAPTURE_RENDER );
 		common->WriteDemo()->WriteHashString( imageName );
-		
+
 		if( r_showDemo.GetBool() )
 		{
 			common->Printf( "write DC_CAPTURE_RENDER: %s\n", imageName );
 		}
 	}
-	idImage*	 image = globalImages->GetImage( imageName );
+	idImage* image = globalImages->GetImage( imageName );
 	if( image == NULL )
 	{
 		image = globalImages->AllocImage( imageName );
 	}
-	
+
 	idScreenRect& rc = renderCrops[currentRenderCrop];
-	
+
 	copyRenderCommand_t* cmd = ( copyRenderCommand_t* )R_GetCommandBuffer( sizeof( *cmd ) );
 	cmd->commandId = RC_COPY_RENDER;
 	cmd->x = rc.x1;
@@ -1073,7 +1050,7 @@ void idRenderSystemLocal::CaptureRenderToImage( const char* imageName, bool clea
 	cmd->imageHeight = rc.GetHeight();
 	cmd->image = image;
 	cmd->clearColorAfterCopy = clearColorAfterCopy;
-	
+
 	guiModel->Clear();
 }
 
@@ -1084,27 +1061,31 @@ idRenderSystemLocal::CaptureRenderToFile
 */
 void idRenderSystemLocal::CaptureRenderToFile( const char* fileName, bool fixAlpha )
 {
-	if( !R_IsInitialized() )
+	if( !IsInitialized() )
 	{
 		return;
 	}
-	
+
 	idScreenRect& rc = renderCrops[currentRenderCrop];
-	
+
 	guiModel->EmitFullScreen();
 	guiModel->Clear();
+
 	RenderCommandBuffers( frameData->cmdHead );
-	
+
+	// TODO implement for NVRHI
+
+#if !defined( USE_VULKAN ) && !defined( USE_NVRHI )
 	glReadBuffer( GL_BACK );
-	
+
 	// include extra space for OpenGL padding to word boundaries
 	int	c = ( rc.GetWidth() + 3 ) * rc.GetHeight();
 	byte* data = ( byte* )R_StaticAlloc( c * 3 );
-	
+
 	glReadPixels( rc.x1, rc.y1, rc.GetWidth(), rc.GetHeight(), GL_RGB, GL_UNSIGNED_BYTE, data );
-	
+
 	byte* data2 = ( byte* )R_StaticAlloc( c * 4 );
-	
+
 	for( int i = 0 ; i < c ; i++ )
 	{
 		data2[ i * 4 ] = data[ i * 3 ];
@@ -1112,11 +1093,12 @@ void idRenderSystemLocal::CaptureRenderToFile( const char* fileName, bool fixAlp
 		data2[ i * 4 + 2 ] = data[ i * 3 + 2 ];
 		data2[ i * 4 + 3 ] = 0xff;
 	}
-	
+
 	R_WriteTGA( fileName, data2, rc.GetWidth(), rc.GetHeight(), true );
-	
+
 	R_StaticFree( data );
 	R_StaticFree( data2 );
+#endif
 }
 
 
@@ -1157,12 +1139,12 @@ void idRenderSystemLocal::PrintMemInfo( MemInfo_t* mi )
 {
 	// sum up image totals
 	globalImages->PrintMemInfo( mi );
-	
+
 	// sum up model totals
 	renderModelManager->PrintMemInfo( mi );
-	
+
 	// compute render totals
-	
+
 }
 
 /*
@@ -1177,6 +1159,13 @@ bool idRenderSystemLocal::UploadImage( const char* imageName, const byte* data, 
 	{
 		return false;
 	}
-	image->UploadScratch( data, width, height );
+
+	commandList->open();
+
+	image->UploadScratch( data, width, height, commandList );
+
+	commandList->close();
+	deviceManager->GetDevice()->executeCommandList( commandList );
+
 	return true;
 }

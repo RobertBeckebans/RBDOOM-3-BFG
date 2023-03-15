@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2015 Robert Beckebans
+Copyright (C) 2015-2021 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -29,6 +29,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #ifndef __MAPFILE_H__
 #define __MAPFILE_H__
+#include "gltfProperties.h"
 
 /*
 ===============================================================================
@@ -62,9 +63,9 @@ public:
 	// RB: new mesh primitive to work with Blender Ngons
 	enum { TYPE_INVALID = -1, TYPE_BRUSH, TYPE_PATCH, TYPE_MESH };
 	// RB end
-	
+
 	idDict					epairs;
-	
+
 	idMapPrimitive()
 	{
 		type = TYPE_INVALID;
@@ -74,7 +75,7 @@ public:
 	{
 		return type;
 	}
-	
+
 protected:
 	int						type;
 };
@@ -83,10 +84,11 @@ protected:
 class idMapBrushSide
 {
 	friend class idMapBrush;
-	
+
 public:
 	idMapBrushSide();
 	~idMapBrushSide() { }
+
 	const char* 			GetMaterial() const
 	{
 		return material;
@@ -114,12 +116,41 @@ public:
 		mat2 = texMat[1];
 	}
 	void					GetTextureVectors( idVec4 v[2] ) const;
-	
+
+	// RB: support Valve 220 projection by TrenchBroom
+	enum ProjectionType
+	{
+		PROJECTION_BP		= 0,
+		PROJECTION_VALVE220	= 1
+	};
+
+	ProjectionType			GetProjectionType() const
+	{
+		return projection;
+	}
+
+	const idVec2i&			GetTextureSize() const
+	{
+		return texSize;
+	}
+
+	void					ConvertToValve220Format( const idMat4& entityTransform, idStrList& textureCollections );
+	// RB end
+
 protected:
 	idStr					material;
 	idPlane					plane;
 	idVec3					texMat[2];
 	idVec3					origin;
+
+public:
+	// RB
+	idVec3					planepts[ 3 ]; // for writing back original planepts
+	ProjectionType			projection;
+	idVec4					texValve[ 2 ]; // alternative texture coordinate mapping
+	idVec2					texScale;
+	idVec2i					texSize;
+
 };
 
 ID_INLINE idMapBrushSide::idMapBrushSide()
@@ -128,6 +159,14 @@ ID_INLINE idMapBrushSide::idMapBrushSide()
 	texMat[0].Zero();
 	texMat[1].Zero();
 	origin.Zero();
+
+	projection = PROJECTION_BP;
+	texValve[0].Zero();
+	texValve[1].Zero();
+	texScale[0] = 1.0f;
+	texScale[1] = 1.0f;
+	texSize[0] = 32;
+	texSize[1] = 32;
 }
 
 
@@ -145,7 +184,9 @@ public:
 	}
 	static idMapBrush* 		Parse( idLexer& src, const idVec3& origin, bool newFormat = true, float version = CURRENT_MAP_VERSION );
 	static idMapBrush* 		ParseQ3( idLexer& src, const idVec3& origin );
+	static idMapBrush* 		ParseValve220( idLexer& src, const idVec3& origin ); // RB
 	bool					Write( idFile* fp, int primitiveNum, const idVec3& origin ) const;
+	bool					WriteValve220( idFile* fp, int primitiveNum, const idVec3& origin ) const; // RB
 	int						GetNumSides() const
 	{
 		return sides.Num();
@@ -159,7 +200,9 @@ public:
 		return sides[i];
 	}
 	unsigned int			GetGeometryCRC() const;
-	
+
+	bool					IsOriginBrush() const;
+
 protected:
 	int						numSides;
 	idList<idMapBrushSide*, TAG_IDLIB_LIST_MAP> sides;
@@ -207,7 +250,7 @@ public:
 		explicitSubdivisions = b;
 	}
 	unsigned int			GetGeometryCRC() const;
-	
+
 protected:
 	idStr					material;
 	int						horzSubdivisions;
@@ -242,43 +285,43 @@ ID_INLINE idMapPatch::idMapPatch( int maxPatchWidth, int maxPatchHeight )
 class MapPolygon
 {
 	friend class MapPolygonMesh;
-	
+
 public:
 	MapPolygon();
 	MapPolygon( int numIndexes );
 	~MapPolygon() { }
-	
+
 	const char* 			GetMaterial() const
 	{
 		return material;
 	}
-	
+
 	void					SetMaterial( const char* p )
 	{
 		material = p;
 	}
-	
+
 	void					AddIndex( int index )
 	{
 		indexes.Append( index );
 	}
-	
+
 	void					SetIndexes( const idTempArray<int>& _indexes )
 	{
 		indexes.Resize( _indexes.Num() );
-		
+
 		for( unsigned int i = 0; i < _indexes.Num(); i++ )
 		{
 			indexes[i] = _indexes[i];
 		}
 	}
-	
+
 	const idList<int>&		GetIndexes() const
 	{
 		return indexes;
 	}
-	
-	
+
+
 protected:
 	idStr					material;
 	idList<int>				indexes;		// [3..n] references to vertices for each face
@@ -303,72 +346,76 @@ public:
 		//verts.DeleteContents();
 		//polygons.DeleteContents( true );
 	}
-	
+
 	void					ConvertFromBrush( const idMapBrush* brush, int entityNum, int primitiveNum );
 	void					ConvertFromPatch( const idMapPatch* patch, int entityNum, int primitiveNum );
-	
+	static MapPolygonMesh*	ConvertFromMeshGltf( const gltfMesh_Primitive* prim, gltfData* _data, const idMat4& transform );
 	static MapPolygonMesh*	Parse( idLexer& src, const idVec3& origin, float version = CURRENT_MAP_VERSION );
 	bool					Write( idFile* fp, int primitiveNum, const idVec3& origin ) const;
-	
+
 	static MapPolygonMesh*	ParseJSON( idLexer& src );
 	bool					WriteJSON( idFile* fp, int primitiveNum, const idVec3& origin ) const;
-	
-	
-	
+
+
+
 	int						GetNumVertices() const
 	{
 		return verts.Num();
 	}
-	
+
 	int						AddVertex( const idDrawVert& v )
 	{
 		return verts.Append( v );
 	}
-	
-	
+
+	int						AddVertices( const idList<idDrawVert>& v )
+	{
+		return verts.Append( v );
+	}
+
 	int						GetNumPolygons() const
 	{
 		return polygons.Num();
 	}
-	
+
 	//int						AddPolygon( MapPolygon* face )
 	//{
 	//	return polygons.Append( face );
 	//}
-	
+
 	const MapPolygon& 			GetFace( int i ) const
 	{
 		return polygons[i];
 	}
-	
+
 	unsigned int			GetGeometryCRC() const;
-	
+
 	const idList<idDrawVert>&	GetDrawVerts() const
 	{
 		return verts;
 	}
-	
+
 	bool					IsOpaque() const
 	{
 		return opaque;
 	}
-	
+
 	bool					IsAreaportal() const;
-	
+
 	void					GetBounds( idBounds& bounds ) const;
-	
+
 private:
 	void					SetContents();
-	
+
 	int						originalType;
-	
+
 protected:
 
 	idList<idDrawVert>		verts;			// vertices can be shared between polygons
 	idList<MapPolygon>		polygons;
-	
+
 	// derived data after parsing
-	
+
 	// material surface flags
 	int						contents;
 	bool					opaque;
@@ -381,10 +428,15 @@ protected:
 class idMapEntity
 {
 	friend class			idMapFile;
-	
+
 public:
+	typedef idList<idMapEntity*, TAG_IDLIB_LIST_MAP>  EntityList;
+	typedef idList<idMapEntity*, TAG_IDLIB_LIST_MAP>& EntityListRef;
+	typedef idList<idMapEntity*, TAG_IDLIB_LIST_MAP>* EntityListPtr;
+
 	idDict					epairs;
-	
+	idVec3					originOffset{ vec3_origin };
+
 public:
 	idMapEntity()
 	{
@@ -394,8 +446,12 @@ public:
 	{
 		primitives.DeleteContents( true );
 	}
+	// HVG check gltf scene for entities
+	static int				GetEntities( gltfData* data, EntityListRef entities, int scene = 0 );
 	static idMapEntity* 	Parse( idLexer& src, bool worldSpawn = false, float version = CURRENT_MAP_VERSION );
-	bool					Write( idFile* fp, int entityNum ) const;
+	bool					Write( idFile* fp, int entityNum, bool valve220 ) const;
+
+	// HVG NOTE: this is not compatible with gltf (extra) json!
 	// RB begin
 	static idMapEntity* 	ParseJSON( idLexer& src );
 	bool					WriteJSON( idFile* fp, int entityNum, int numEntities ) const;
@@ -414,8 +470,10 @@ public:
 	}
 	unsigned int			GetGeometryCRC() const;
 	void					RemovePrimitiveData();
-	
+
 protected:
+	void					CalculateBrushOrigin();
+
 	idList<idMapPrimitive*, TAG_IDLIB_LIST_MAP>	primitives;
 };
 
@@ -428,19 +486,23 @@ public:
 	{
 		entities.DeleteContents( true );
 	}
-	
+
 	// filename does not require an extension
 	// normally this will use a .reg file instead of a .map file if it exists,
 	// which is what the game and dmap want, but the editor will want to always
 	// load a .map file
 	bool					Parse( const char* filename, bool ignoreRegion = false, bool osPath = false );
 	bool					Write( const char* fileName, const char* ext, bool fromBasePath = true );
-	
+
 	// RB begin
 	bool					WriteJSON( const char* fileName, const char* ext, bool fromBasePath = true );
 	bool					ConvertToPolygonMeshFormat();
+	bool					ConvertToValve220Format();
+
+	// converts Wad texture names to valid Doom 3 materials and gives every entity a unique name
+	bool					ConvertQuakeToDoom();
 	// RB end
-	
+
 	// get the number of entities in the map
 	int						GetNumEntities() const
 	{
@@ -469,9 +531,10 @@ public:
 	}
 	// returns true if the file on disk changed
 	bool					NeedsReload();
-	
+
 	int						AddEntity( idMapEntity* mapentity );
-	idMapEntity* 			FindEntity( const char* name );
+	idMapEntity* 			FindEntity( const char* name ) const;
+	idMapEntity*			FindEntityAtOrigin( const idVec3& org ) const; // RB
 	void					RemoveEntity( idMapEntity* mapEnt );
 	void					RemoveEntities( const char* classname );
 	void					RemoveAllEntities();
@@ -480,17 +543,22 @@ public:
 	{
 		return hasPrimitiveData;
 	}
-	
+
+	static void				AddMaterialToCollection( const char* material, idStrList& textureCollections );
+	static void				WadTextureToMaterial( const char* material, idStr& matName );
+
 protected:
 	float					version;
 	ID_TIME_T					fileTime;
 	unsigned int			geometryCRC;
-	idList<idMapEntity*, TAG_IDLIB_LIST_MAP>	entities;
+	idMapEntity::EntityList	entities;
 	idStr					name;
 	bool					hasPrimitiveData;
-	
+	bool					valve220Format; // RB: for TrenchBroom support
+
 private:
 	void					SetGeometryCRC();
+	const char*				GetUniqueEntityName( const char* classname ) const; // RB
 };
 
 ID_INLINE idMapFile::idMapFile()
@@ -500,6 +568,7 @@ ID_INLINE idMapFile::idMapFile()
 	geometryCRC = 0;
 	entities.Resize( 1024, 256 );
 	hasPrimitiveData = false;
+	valve220Format = false;
 }
 
 #endif /* !__MAPFILE_H__ */

@@ -26,8 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 
 #include "../Game_local.h"
@@ -65,7 +65,7 @@ idForce::DeletePhysics
 void idForce::DeletePhysics( const idPhysics* phys )
 {
 	int i;
-	
+
 	for( i = 0; i < forceList.Num(); i++ )
 	{
 		forceList[i]->RemovePhysics( phys );

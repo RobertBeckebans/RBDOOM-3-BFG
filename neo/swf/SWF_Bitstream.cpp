@@ -25,8 +25,8 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 #define NBM( x ) (int32)( ( 1LL << x ) - 1 )
 int maskForNumBits[33] = {	NBM( 0x00 ), NBM( 0x01 ), NBM( 0x02 ), NBM( 0x03 ),
@@ -39,7 +39,7 @@ int maskForNumBits[33] = {	NBM( 0x00 ), NBM( 0x01 ), NBM( 0x02 ), NBM( 0x03 ),
 							NBM( 0x1C ), NBM( 0x1D ), NBM( 0x1E ), NBM( 0x1F ), -1
 						 };
 
-#define NBS( x ) (int32)( (-1) << ( x - 1 ) )
+#define NBS( x ) (int32)( (unsigned long)(-1L) << ( x - 1 ) )                             // SRS - Cast to unsigned long
 int signForNumBits[33] = {	NBS( 0x01 ), NBS( 0x01 ), NBS( 0x02 ), NBS( 0x03 ),
 							NBS( 0x04 ), NBS( 0x05 ), NBS( 0x06 ), NBS( 0x07 ),
 							NBS( 0x08 ), NBS( 0x09 ), NBS( 0x0A ), NBS( 0x0B ),
@@ -86,6 +86,33 @@ idSWFBitStream& idSWFBitStream::operator=( idSWFBitStream& other )
 
 /*
 ========================
+idSWFBitStream::operator=
+========================
+*/
+idSWFBitStream& idSWFBitStream::operator=( idSWFBitStream&& other )
+{
+	Free();
+	free = other.free;
+	startp = other.startp;
+	readp = other.readp;
+	endp = other.endp;
+	currentBit = other.currentBit;
+	currentByte = other.currentByte;
+	if( other.free )
+	{
+		// this is actually quite dangerous, but we need to do this
+		// because these things are copied around inside idList
+		other.free = false;
+	}
+	other.readp = NULL;
+	other.endp = NULL;
+	other.currentBit = 0;
+	other.currentByte = 0;
+	return *this;
+}
+
+/*
+========================
 idSWFBitStream::Free
 ========================
 */
@@ -110,7 +137,7 @@ idSWFBitStream::Load
 void idSWFBitStream::Load( const byte* data, uint32 len, bool copy )
 {
 	Free();
-	
+
 	if( copy )
 	{
 		free = true;
@@ -124,7 +151,7 @@ void idSWFBitStream::Load( const byte* data, uint32 len, bool copy )
 	}
 	endp = startp + len;
 	readp = startp;
-	
+
 	ResetBits();
 }
 
@@ -178,7 +205,7 @@ idSWFBitStream::ReadInternalU
 ID_FORCE_INLINE unsigned int idSWFBitStream::ReadInternalU( uint64& regCurrentBit, uint64& regCurrentByte, unsigned int numBits )
 {
 	assert( numBits <= 32 );
-	
+
 	// read bits with only one microcoded shift instruction (shift with variable) on the consoles
 	// this routine never reads more than 7 bits beyond the requested number of bits from the stream
 	// such that calling ResetBits() never discards more than 7 bits and aligns with the next byte
@@ -200,7 +227,7 @@ idSWFBitStream::ReadInternalS
 ID_FORCE_INLINE int idSWFBitStream::ReadInternalS( uint64& regCurrentBit, uint64& regCurrentByte, unsigned int numBits )
 {
 	int i = ( int )ReadInternalU( regCurrentBit, regCurrentByte, numBits );
-	
+
 	// sign extend without microcoded shift instrunction (shift with variable) on the consoles
 	int s = signForNumBits[numBits];
 	return ( ( i + s ) ^ s );
@@ -235,19 +262,19 @@ void idSWFBitStream::ReadRect( swfRect_t& rect )
 {
 	uint64 regCurrentBit = 0;
 	uint64 regCurrentByte = 0;
-	
+
 	int nBits = ReadInternalU( regCurrentBit, regCurrentByte, 5 );
-	
+
 	int tl_x = ReadInternalS( regCurrentBit, regCurrentByte, nBits );
 	int br_x = ReadInternalS( regCurrentBit, regCurrentByte, nBits );
 	int tl_y = ReadInternalS( regCurrentBit, regCurrentByte, nBits );
 	int br_y = ReadInternalS( regCurrentBit, regCurrentByte, nBits );
-	
+
 	rect.tl.x = SWFTWIP( tl_x );
 	rect.br.x = SWFTWIP( br_x );
 	rect.tl.y = SWFTWIP( tl_y );
 	rect.br.y = SWFTWIP( br_y );
-	
+
 	currentBit = regCurrentBit;
 	currentByte = regCurrentByte;
 }
@@ -261,10 +288,10 @@ void idSWFBitStream::ReadMatrix( swfMatrix_t& matrix )
 {
 	uint64 regCurrentBit = 0;
 	uint64 regCurrentByte = 0;
-	
-	
+
+
 	unsigned int hasScale = ReadInternalU( regCurrentBit, regCurrentByte, 1 );
-	
+
 	int xx;
 	int yy;
 	if( !hasScale )
@@ -278,9 +305,9 @@ void idSWFBitStream::ReadMatrix( swfMatrix_t& matrix )
 		xx = ReadInternalS( regCurrentBit, regCurrentByte, nBits );
 		yy = ReadInternalS( regCurrentBit, regCurrentByte, nBits );
 	}
-	
+
 	unsigned int hasRotate = ReadInternalU( regCurrentBit, regCurrentByte, 1 );
-	
+
 	int yx;
 	int xy;
 	if( !hasRotate )
@@ -294,21 +321,21 @@ void idSWFBitStream::ReadMatrix( swfMatrix_t& matrix )
 		yx = ReadInternalS( regCurrentBit, regCurrentByte, nBits );
 		xy = ReadInternalS( regCurrentBit, regCurrentByte, nBits );
 	}
-	
+
 	int nBits = ReadInternalU( regCurrentBit, regCurrentByte, 5 );
 	int tx = ReadInternalS( regCurrentBit, regCurrentByte, nBits );
 	int ty = ReadInternalS( regCurrentBit, regCurrentByte, nBits );
-	
+
 	currentBit = regCurrentBit;
 	currentByte = regCurrentByte;
-	
+
 	matrix.xx = SWFFIXED16( xx );
 	matrix.yy = SWFFIXED16( yy );
 	matrix.yx = SWFFIXED16( yx );
 	matrix.xy = SWFFIXED16( xy );
 	matrix.tx = SWFTWIP( tx );
 	matrix.ty = SWFTWIP( ty );
-	
+
 }
 
 /*
@@ -320,11 +347,11 @@ void idSWFBitStream::ReadColorXFormRGBA( swfColorXform_t& cxf )
 {
 	uint64 regCurrentBit = 0;
 	uint64 regCurrentByte = 0;
-	
+
 	unsigned int hasAddTerms = ReadInternalU( regCurrentBit, regCurrentByte, 1 );
 	unsigned int hasMulTerms = ReadInternalU( regCurrentBit, regCurrentByte, 1 );
 	int nBits = ReadInternalU( regCurrentBit, regCurrentByte, 4 );
-	
+
 	union
 	{
 		int i[4];
@@ -333,7 +360,7 @@ void idSWFBitStream::ReadColorXFormRGBA( swfColorXform_t& cxf )
 	{
 		int i[4];
 	} a;
-	
+
 	if( !hasMulTerms )
 	{
 		m.i[0] = 256;
@@ -348,7 +375,7 @@ void idSWFBitStream::ReadColorXFormRGBA( swfColorXform_t& cxf )
 		m.i[2] = ReadInternalS( regCurrentBit, regCurrentByte, nBits );
 		m.i[3] = ReadInternalS( regCurrentBit, regCurrentByte, nBits );
 	}
-	
+
 	if( !hasAddTerms )
 	{
 		a.i[0] = 0;
@@ -363,10 +390,10 @@ void idSWFBitStream::ReadColorXFormRGBA( swfColorXform_t& cxf )
 		a.i[2] = ReadInternalS( regCurrentBit, regCurrentByte, nBits );
 		a.i[3] = ReadInternalS( regCurrentBit, regCurrentByte, nBits );
 	}
-	
+
 	currentBit = regCurrentBit;
 	currentByte = regCurrentByte;
-	
+
 	for( int i = 0; i < 4; i++ )
 	{
 		cxf.mul[i] = SWFFIXED8( m.i[i] );

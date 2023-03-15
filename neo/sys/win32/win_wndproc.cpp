@@ -27,13 +27,14 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 
 #include "win_local.h"
-#include "../../renderer/tr_local.h"
+#include "../../renderer/RenderCommon.h"
 
 #include <windowsx.h>
+#include <sys/DeviceManager.h>
 
 LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam );
 
@@ -57,7 +58,7 @@ static void WIN_DisableAltTab()
 	else
 	{
 		BOOL old;
-		
+
 		// RB begin
 #if defined(__MINGW32__)
 		SystemParametersInfo( SPI_GETSCREENSAVEACTIVE, 1, &old, 0 );
@@ -82,7 +83,7 @@ static void WIN_EnableAltTab()
 	else
 	{
 		BOOL old;
-		
+
 		// RB begin
 #if defined(__MINGW32__)
 		SystemParametersInfo( SPI_GETSCREENSAVEACTIVE, 1, &old, 0 );
@@ -91,30 +92,30 @@ static void WIN_EnableAltTab()
 #endif
 		// RB end
 	}
-	
+
 	s_alttab_disabled = false;
 }
 
 void WIN_Sizing( WORD side, RECT* rect )
 {
-	if( !R_IsInitialized() || renderSystem->GetWidth() <= 0 || renderSystem->GetHeight() <= 0 )
+	if( !renderSystem->IsInitialized() || renderSystem->GetWidth() <= 0 || renderSystem->GetHeight() <= 0 )
 	{
 		return;
 	}
-	
+
 	// restrict to a standard aspect ratio
 	int width = rect->right - rect->left;
 	int height = rect->bottom - rect->top;
-	
+
 	// Adjust width/height for window decoration
 	RECT decoRect = { 0, 0, 0, 0 };
 	AdjustWindowRect( &decoRect, WINDOW_STYLE | WS_SYSMENU, FALSE );
 	int decoWidth = decoRect.right - decoRect.left;
 	int decoHeight = decoRect.bottom - decoRect.top;
-	
+
 	width -= decoWidth;
 	height -= decoHeight;
-	
+
 	// Clamp to a minimum size
 	if( width < SCREEN_WIDTH / 4 )
 	{
@@ -124,13 +125,13 @@ void WIN_Sizing( WORD side, RECT* rect )
 	{
 		height = SCREEN_HEIGHT / 4;
 	}
-	
+
 	const int minWidth = height * 4 / 3;
 	const int maxHeight = width * 3 / 4;
-	
+
 	const int maxWidth = height * 16 / 9;
 	const int minHeight = width * 9 / 16;
-	
+
 	// Set the new size
 	switch( side )
 	{
@@ -163,6 +164,8 @@ void WIN_Sizing( WORD side, RECT* rect )
 	}
 }
 
+extern DeviceManager* deviceManager;
+
 /*
 ====================
 MainWndProc
@@ -176,24 +179,29 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 	switch( uMsg )
 	{
 		case WM_WINDOWPOSCHANGED:
-			if( R_IsInitialized() )
+			// SRS - Needed by ResizeImages() to resize before the start of a frame
+			// SRS - Aspect ratio constraints are controlled by WIN_Sizing() above
+			if( renderSystem->IsInitialized() && win32.hDC != NULL )
 			{
 				RECT rect;
 				if( ::GetClientRect( win32.hWnd, &rect ) )
 				{
-				
 					if( rect.right > rect.left && rect.bottom > rect.top )
 					{
 						glConfig.nativeScreenWidth = rect.right - rect.left;
 						glConfig.nativeScreenHeight = rect.bottom - rect.top;
-						
+
 						// save the window size in cvars if we aren't fullscreen
+						// SRS - also check renderSystem state to make sure WM doesn't fool us when exiting fullscreen
 						int style = GetWindowLong( hWnd, GWL_STYLE );
-						if( ( style & WS_POPUP ) == 0 )
+						if( ( style & WS_POPUP ) == 0 && !renderSystem->IsFullScreen() )
 						{
 							r_windowWidth.SetInteger( glConfig.nativeScreenWidth );
 							r_windowHeight.SetInteger( glConfig.nativeScreenHeight );
 						}
+
+						// SRS - Inform ImGui that the window size has changed
+						ImGuiHook::NotifyDisplaySizeChanged( glConfig.nativeScreenWidth, glConfig.nativeScreenHeight );
 					}
 				}
 			}
@@ -202,30 +210,31 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 		{
 			int		xPos, yPos;
 			RECT r;
-			
+
 			// save the window origin in cvars if we aren't fullscreen
+			// SRS - also check renderSystem state to make sure WM doesn't fool us when exiting fullscreen
 			int style = GetWindowLong( hWnd, GWL_STYLE );
-			if( ( style & WS_POPUP ) == 0 )
+			if( ( style & WS_POPUP ) == 0 && !renderSystem->IsFullScreen() )
 			{
 				xPos = ( short ) LOWORD( lParam ); // horizontal position
 				yPos = ( short ) HIWORD( lParam ); // vertical position
-				
+
 				r.left   = 0;
 				r.top    = 0;
 				r.right  = 1;
 				r.bottom = 1;
-				
+
 				AdjustWindowRect( &r, style, FALSE );
-				
+
 				r_windowX.SetInteger( xPos + r.left );
 				r_windowY.SetInteger( yPos + r.top );
 			}
 			break;
 		}
 		case WM_CREATE:
-		
+
 			win32.hWnd = hWnd;
-			
+
 			if( win32.cdsFullscreen )
 			{
 				WIN_DisableAltTab();
@@ -234,13 +243,9 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 			{
 				WIN_EnableAltTab();
 			}
-			
-			// do the OpenGL setup
-			void GLW_WM_CREATE( HWND hWnd );
-			GLW_WM_CREATE( hWnd );
-			
+
 			break;
-			
+
 		case WM_DESTROY:
 			// let sound and input know about this?
 			win32.hWnd = NULL;
@@ -249,12 +254,12 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 				WIN_EnableAltTab();
 			}
 			break;
-			
+
 		case WM_CLOSE:
 			soundSystem->SetMute( true );
 			cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "quit\n" );
 			break;
-			
+
 		case WM_ACTIVATE:
 			// if we got here because of an alt-tab or maximize,
 			// we should activate immediately.  If we are here because
@@ -262,10 +267,10 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 			// don't activate until the mouse button is released
 		{
 			int	fActive, fMinimized;
-			
+
 			fActive = LOWORD( wParam );
 			fMinimized = ( BOOL ) HIWORD( wParam );
-			
+
 			win32.activeApp = ( fActive != WA_INACTIVE );
 			if( win32.activeApp )
 			{
@@ -276,7 +281,7 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 					SetCursor( NULL );
 				}
 			}
-			
+
 			if( fActive == WA_INACTIVE )
 			{
 				win32.movingWindow = false;
@@ -285,14 +290,14 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 					SetCursor( LoadCursor( 0, IDC_ARROW ) );
 				}
 			}
-			
+
 			// start playing the game sound world
 			soundSystem->SetMute( !win32.activeApp );
 			// DG: set com_pause so game pauses when focus is lost
 			// and continues when focus is regained
 			cvarSystem->SetCVarBool( "com_pause", !win32.activeApp );
 			// DG end
-			
+
 			// we do not actually grab or release the mouse here,
 			// that will be done next time through the main loop
 		}
@@ -311,7 +316,7 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 				return 0;
 			}
 			break;
-			
+
 		case WM_SYSKEYDOWN:
 			if( wParam == 13 )  	// alt-enter toggles full-screen
 			{
@@ -338,9 +343,9 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 				key = K_NUMLOCK;
 			}
 			Sys_QueEvent( SE_KEY, key, true, 0, NULL, 0 );
-			
+
 			break;
-			
+
 		case WM_SYSKEYUP:
 		case WM_KEYUP:
 			key = ( ( lParam >> 16 ) & 0xFF ) | ( ( ( lParam >> 24 ) & 1 ) << 7 );
@@ -358,7 +363,7 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 			}
 			Sys_QueEvent( SE_KEY, key, false, 0, NULL, 0 );
 			break;
-			
+
 		case WM_CHAR:
 			// DG: make sure it's an utf-16 non-surrogate character (and thus a valid utf-32 character as well)
 			// TODO: will there ever be two messages with surrogate characters that should be combined?
@@ -368,25 +373,25 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 				Sys_QueEvent( SE_CHAR, wParam, 0, 0, NULL, 0 );
 			}
 			break;
-			
+
 		// DG: support utf-32 input via WM_UNICHAR
 		case WM_UNICHAR:
 			Sys_QueEvent( SE_CHAR, wParam, 0, 0, NULL, 0 );
 			break;
 		// DG end
-		
+
 		case WM_NCLBUTTONDOWN:
 //			win32.movingWindow = true;
 			break;
-			
+
 		case WM_ENTERSIZEMOVE:
 			win32.movingWindow = true;
 			break;
-			
+
 		case WM_EXITSIZEMOVE:
 			win32.movingWindow = false;
 			break;
-			
+
 		case WM_SIZING:
 			WIN_Sizing( wParam, ( RECT* )lParam );
 			break;
@@ -396,10 +401,10 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 			{
 				break;
 			}
-			
+
 			const bool isShellActive = ( game && ( game->Shell_IsActive() || game->IsPDAOpen() ) );
 			const bool isConsoleActive = console->Active();
-			
+
 			if( win32.activeApp )
 			{
 				if( isShellActive )
@@ -432,13 +437,13 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 					SetCursor( NULL );
 				}
 			}
-			
+
 			const int x = GET_X_LPARAM( lParam );
 			const int y = GET_Y_LPARAM( lParam );
-			
+
 			// Generate an event
 			Sys_QueEvent( SE_MOUSE_ABSOLUTE, x, y, 0, NULL, 0 );
-			
+
 			// Get a mouse leave message
 			TRACKMOUSEEVENT tme =
 			{
@@ -447,9 +452,9 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 				hWnd,
 				0
 			};
-			
+
 			TrackMouseEvent( &tme );
-			
+
 			return 0;
 		}
 		case WM_MOUSELEAVE:
@@ -538,6 +543,6 @@ LONG WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam )
 			break;
 		}
 	}
-	
+
 	return DefWindowProc( hWnd, uMsg, wParam, lParam );
 }

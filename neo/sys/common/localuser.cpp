@@ -26,8 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#pragma hdrstop
 #include "precompiled.h"
+#pragma hdrstop
 #include "localuser.h"
 
 extern idCVar win_userPersistent;
@@ -54,7 +54,7 @@ void idLocalUserWin::Init( int inputDevice_, const char* gamertag_, int numLocal
 		// number so that it is always consistently "username (2)" for the second player.
 		gamertag.Format( "%s (%i)", gamertag_, numLocalUsers );
 	}
-	
+
 	inputDevice = inputDevice_;
 }
 

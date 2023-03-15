@@ -2,9 +2,9 @@
 ===========================================================================
 
 Doom 3 BFG Edition GPL Source Code
-Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company. 
+Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
 
-This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").  
+This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
 Doom 3 BFG Edition Source Code is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -45,29 +45,29 @@ If you have questions concerning this license or the applicable additional terms
 #define PRESSKEY 	"press any button."
 #define PRESSYN 	"press y or n."
 #define QUITMSG	"are you sure you want to\nquit this great game?"
-#define LOADNET 	"you can't do load while in a net game!\n\n"PRESSKEY
-#define QLOADNET	"you can't quickload during a netgame!\n\n"PRESSKEY
-#define QSAVESPOT	"you haven't picked a quicksave slot yet!\n\n"PRESSKEY
-#define SAVEDEAD 	"you can't save if you aren't playing!\n\n"PRESSKEY
-#define QSPROMPT 	"quicksave over your game named\n\n'%s'?\n\n"PRESSYN
-#define QLPROMPT	"do you want to quickload the game named\n\n'%s'?\n\n"PRESSYN
+#define LOADNET 	"you can't do load while in a net game!\n\n" PRESSKEY
+#define QLOADNET	"you can't quickload during a netgame!\n\n" PRESSKEY
+#define QSAVESPOT	"you haven't picked a quicksave slot yet!\n\n" PRESSKEY
+#define SAVEDEAD 	"you can't save if you aren't playing!\n\n" PRESSKEY
+#define QSPROMPT 	"quicksave over your game named\n\n'%s'?\n\n" PRESSYN
+#define QLPROMPT	"do you want to quickload the game named\n\n'%s'?\n\n" PRESSYN
 
 #define NEWGAME	\
 "you can't start a new game\n"\
-"while in a network game.\n\n"PRESSKEY
+"while in a network game.\n\n" PRESSKEY
 
 #define NIGHTMARE	\
 "are you sure? this skill level\n"\
-"isn't even remotely fair.\n\n"PRESSYN
+"isn't even remotely fair.\n\n" PRESSYN
 
 #define SWSTRING	\
 "this is the shareware version of doom.\n\n"\
-"you need to order the entire trilogy.\n\n"PRESSKEY
+"you need to order the entire trilogy.\n\n" PRESSKEY
 
 #define MSGOFF	"Messages OFF"
 #define MSGON		"Messages ON"
-#define NETEND	"you can't end a netgame!\n\n"PRESSKEY
-#define ENDGAME	"are you sure you want to end the game?\n\n"PRESSYN
+#define NETEND	"you can't end a netgame!\n\n" PRESSKEY
+#define ENDGAME	"are you sure you want to end the game?\n\n" PRESSYN
 
 #define DOSY		"(press A to quit)"
 
@@ -552,7 +552,7 @@ If you have questions concerning this license or the applicable additional terms
 "CONGRATULATIONS YOU HAVE FINISHED... \n\n"\
 "THE MASTER LEVELS\n"
 
-// after map 06	
+// after map 06
 
 #define P1TEXT  \
 "You gloat over the steaming carcass of the\n"\

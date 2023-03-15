@@ -41,26 +41,59 @@ extern const idEventDef EV_Light_GetLightParm;
 extern const idEventDef EV_Light_SetLightParm;
 extern const idEventDef EV_Light_SetLightParms;
 
+// jmarshall
+struct rvmLightStyleState_t
+{
+	rvmLightStyleState_t();
+
+	int				dl_frame;
+	float			dl_framef;
+	int				dl_oldframe;
+	int				dl_time;
+	float			dl_backlerp;
+
+	void			Reset();
+};
+
+ID_INLINE rvmLightStyleState_t::rvmLightStyleState_t()
+{
+	Reset();
+}
+
+ID_INLINE void rvmLightStyleState_t::Reset()
+{
+	dl_frame = 0;
+	dl_framef = 0;
+	dl_oldframe = 0;
+	dl_time = 0;
+	dl_backlerp = 0;
+}
+// jmarshall end
+
+
+
 class idLight : public idEntity
 {
 public:
 	CLASS_PROTOTYPE( idLight );
-	
+
 	idLight();
 	~idLight();
-	
+
 	void			Spawn();
-	
+
 	void			Save( idSaveGame* savefile ) const;					// archives object for save game file
 	void			Restore( idRestoreGame* savefile );					// unarchives object from save game file
-	
+
 	virtual void	UpdateChangeableSpawnArgs( const idDict* source );
 	virtual void	Think();
 	virtual void	ClientThink( const int curTime, const float fraction, const bool predict );
 	virtual void	FreeLightDef();
 	virtual bool	GetPhysicsToSoundTransform( idVec3& origin, idMat3& axis );
 	void			Present();
-	
+// jmarshall
+	virtual void	SharedThink();
+// jmarshall end
 	void			SaveState( idDict* args );
 	virtual void	SetColor( float red, float green, float blue );
 	virtual void	SetColor( const idVec4& color );
@@ -92,20 +125,25 @@ public:
 		lightParent = lparent;
 	}
 	void			SetLightLevel();
-	
+
 	virtual void	ShowEditingDialog();
-	
+
+	const renderLight_t& GetRenderLight() const
+	{
+		return renderLight;
+	}
+
 	enum
 	{
 		EVENT_BECOMEBROKEN = idEntity::EVENT_MAXEVENTS,
 		EVENT_MAXEVENTS
 	};
-	
+
 	virtual void	ClientPredictionThink();
 	virtual void	WriteToSnapshot( idBitMsg& msg ) const;
 	virtual void	ReadFromSnapshot( const idBitMsg& msg );
 	virtual bool	ClientReceiveEvent( int event, int time, const idBitMsg& msg );
-	
+
 private:
 	renderLight_t	renderLight;				// light presented to the renderer
 	idVec3			localLightOrigin;			// light origin relative to the physics origin
@@ -115,13 +153,18 @@ private:
 	int				levels;
 	int				currentLevel;
 	idVec3			baseColor;
-	
+
 	// Colors used for client-side interpolation.
 	idVec3			previousBaseColor;
 	idVec3			nextBaseColor;
-	
+
 	bool			breakOnTrigger;
 	int				count;
+// jmarshall
+	int				lightStyle;
+	int				lightStyleFrameTime;
+	idVec3			lightStyleBase;
+// jmarshall end
 	int				triggercount;
 	idEntity* 		lightParent;
 	idVec4			fadeFrom;
@@ -129,11 +172,11 @@ private:
 	int				fadeStart;
 	int				fadeEnd;
 	bool			soundWasPlaying;
-	
+
 private:
 	void			PresentLightDefChange();
 	void			PresentModelDefChange();
-	
+
 	void			Event_SetShader( const char* shadername );
 	void			Event_GetLightParm( int parmnum );
 	void			Event_SetLightParm( int parmnum, float value );
@@ -148,6 +191,11 @@ private:
 	void			Event_SetSoundHandles();
 	void			Event_FadeOut( float time );
 	void			Event_FadeIn( float time );
+
+// jmarshall
+	idList<idStr>	light_styles;
+	rvmLightStyleState_t lightStyleState;
+// jmarshall end
 };
 
 #endif /* !__GAME_LIGHT_H__ */
