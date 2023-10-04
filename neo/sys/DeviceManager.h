@@ -109,6 +109,9 @@ struct DeviceCreationParameters
 
 	// SRS - Used by idImage::AllocImage() to determine if format D24S8 is supported by device (default = true)
 	bool enableImageFormatD24S8 = true;
+
+	// SRS - Used by RenderProgs to determine maximum push constant size (set default for DX12, override for Vulkan)
+	int maxPushConstantSize = 256;
 };
 
 struct DefaultMessageCallback : public nvrhi::IMessageCallback
@@ -149,6 +152,8 @@ public:
 protected:
 	friend class idRenderBackend;
 	friend class idImage;
+	friend class idRenderProgManager;
+	friend class idMaterial;
 
 	void* windowInstance;
 	void* windowHandle;

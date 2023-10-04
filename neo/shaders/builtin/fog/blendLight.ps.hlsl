@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet4.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -50,7 +51,7 @@ struct PS_OUT
 
 void main( PS_IN fragment, out PS_OUT result )
 {
-	float4 c = idtex2Dproj( s_LinearClamp, t_Light1, fragment.texcoord0 ) * t_Light2.Sample( s_LinearClamp, fragment.texcoord1 ) * rpColor;
+	float4 c = idtex2Dproj( s_LinearClamp, t_Light1, fragment.texcoord0 ) * t_Light2.Sample( s_LinearClamp, fragment.texcoord1 ) * pc.rpColor;
 
 	result.color = sRGBAToLinearRGBA( c );
 }

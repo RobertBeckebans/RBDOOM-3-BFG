@@ -924,6 +924,11 @@ bool DeviceManager_VK::createDevice()
 	enablePModeImmediate = find( surfacePModes.begin(), surfacePModes.end(), vk::PresentModeKHR::eImmediate ) != surfacePModes.end();
 	enablePModeFifoRelaxed = find( surfacePModes.begin(), surfacePModes.end(), vk::PresentModeKHR::eFifoRelaxed ) != surfacePModes.end();
 
+	// SRS - Determine maxPushConstantSize for Vulkan device
+	vk::PhysicalDeviceProperties deviceProperties;
+	m_VulkanPhysicalDevice.getProperties( &deviceProperties );
+	m_DeviceParams.maxPushConstantSize = deviceProperties.limits.maxPushConstantsSize;
+
 	// stash the renderer string
 	auto prop = m_VulkanPhysicalDevice.getProperties();
 	m_RendererString = std::string( prop.deviceName.data() );

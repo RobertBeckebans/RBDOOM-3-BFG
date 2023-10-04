@@ -27,6 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet3.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -48,20 +49,20 @@ struct VS_OUT {
 
 void main( VS_IN vertex, out VS_OUT result )
 {
-	result.position.x = dot4( vertex.position, rpMVPmatrixX );
-	result.position.y = dot4( vertex.position, rpMVPmatrixY );
-	result.position.z = dot4( vertex.position, rpMVPmatrixZ );
-	result.position.w = dot4( vertex.position, rpMVPmatrixW );
+	result.position.x = dot4( vertex.position, pc.rpMVPmatrixX );
+	result.position.y = dot4( vertex.position, pc.rpMVPmatrixY );
+	result.position.z = dot4( vertex.position, pc.rpMVPmatrixZ );
+	result.position.w = dot4( vertex.position, pc.rpMVPmatrixW );
 
 	// compute oldschool texgen or multiply by texture matrix
-	BRANCH if( rpTexGen0Enabled.x > 0.0 )
-	{
-		result.texcoord0.x = dot4( vertex.position, rpTexGen0S );
-		result.texcoord0.y = dot4( vertex.position, rpTexGen0T );
-	}
-	else
-	{
-		result.texcoord0.x = dot4( vertex.texcoord.xy, rpTextureMatrixS );
-		result.texcoord0.y = dot4( vertex.texcoord.xy, rpTextureMatrixT );
-	}
+	//BRANCH if( pc.rpTexGen0Enabled.x > 0.0 )
+	//{
+	//	result.texcoord0.x = dot4( vertex.position, rpTexGen0S );
+	//	result.texcoord0.y = dot4( vertex.position, rpTexGen0T );
+	//}
+	//else
+	//{
+		result.texcoord0.x = dot4( vertex.texcoord.xy, pc.rpTextureMatrixS );
+		result.texcoord0.y = dot4( vertex.texcoord.xy, pc.rpTextureMatrixT );
+	//}
 }

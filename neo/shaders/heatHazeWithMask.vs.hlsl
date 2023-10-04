@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet7.inc.hlsl"
 
 
 // User Renderparms start at 128 as per renderprogs.h
@@ -66,19 +67,19 @@ void main( VS_IN vertex, out VS_OUT result )
 	result.texcoord0 = float4( vertex.texcoord.xy, 0, 0 );
 
 	// texture 1 takes the texture coordinates and adds a scroll
-	const float4 textureScroll = rpUser0;
+	const float4 textureScroll = pc.rpUser0;
 	result.texcoord1 = float4( vertex.texcoord.xy, 0, 0 ) + textureScroll;
 
 	// texture 2 takes the deform magnitude and scales it by the projection distance
 	float4 vec = float4( 0, 1, 0, 1 );
-	vec.z  = dot4( modelPosition, rpModelViewMatrixZ );
+	vec.z  = dot4( modelPosition, pc.rpModelViewMatrixZ );
 
 	// magicProjectionAdjust is a magic scalar that scales the projection since we changed from
 	// using the X axis to the Y axis to calculate R1.  It is an approximation to closely match
 	// what the original game did
 	const float magicProjectionAdjust = 0.43f;
-	float x = dot4( vec, rpProjectionMatrixY ) * magicProjectionAdjust;
-	float w = dot4( vec, rpProjectionMatrixW );
+	float x = dot4( vec, pc.rpProjectionMatrixY ) * magicProjectionAdjust;
+	float w = dot4( vec, pc.rpProjectionMatrixW );
 
 	// don't let the recip get near zero for polygons that cross the view plane
 	w = max( w, 1.0 );
@@ -88,6 +89,6 @@ void main( VS_IN vertex, out VS_OUT result )
 	// clamp the distance so the the deformations don't get too wacky near the view
 	x = min( x, 0.02 );
 
-	const float4 deformMagnitude = rpUser1;
+	const float4 deformMagnitude = pc.rpUser1;
 	result.texcoord2 = x * deformMagnitude;
 }

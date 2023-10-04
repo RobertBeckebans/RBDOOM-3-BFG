@@ -1,4 +1,4 @@
-﻿/*
+/*
 ===========================================================================
 
 Doom 3 BFG Edition GPL Source Code
@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet8.inc.hlsl"
 
 #include "BRDF.inc.hlsl"
 
@@ -150,7 +151,7 @@ void main( PS_IN fragment, out PS_OUT result )
 
 	float3 globalPosition = fragment.texcoord7.xyz;
 
-	float3 globalView = normalize( rpGlobalEyePos.xyz - globalPosition );
+	float3 globalView = normalize( pc.rpGlobalEyePos.xyz - globalPosition );
 
 	float3 reflectionVector = globalNormal * dot3( globalView, globalNormal );
 	reflectionVector = normalize( ( reflectionVector * 2.0f ) - globalView );
@@ -159,13 +160,13 @@ void main( PS_IN fragment, out PS_OUT result )
 	// parallax box correction using portal area bounds
 	float hitScale = 0.0;
 	float3 bounds[2];
-	bounds[0].x = rpWobbleSkyX.x;
-	bounds[0].y = rpWobbleSkyX.y;
-	bounds[0].z = rpWobbleSkyX.z;
+	bounds[0].x = pc.rpWobbleSkyX.x;
+	bounds[0].y = pc.rpWobbleSkyX.y;
+	bounds[0].z = pc.rpWobbleSkyX.z;
 
-	bounds[1].x = rpWobbleSkyY.x;
-	bounds[1].y = rpWobbleSkyY.y;
-	bounds[1].z = rpWobbleSkyY.z;
+	bounds[1].x = pc.rpWobbleSkyY.x;
+	bounds[1].y = pc.rpWobbleSkyY.y;
+	bounds[1].z = pc.rpWobbleSkyY.z;
 
 	// global fragment position
 	float3 rayStart = fragment.texcoord7.xyz;
@@ -174,12 +175,12 @@ void main( PS_IN fragment, out PS_OUT result )
 	rayStart += reflectionVector * 10000.0;
 
 	// only do a box <-> ray intersection test if we use a local cubemap
-	if( ( rpWobbleSkyX.w > 0.0 ) && AABBRayIntersection( bounds, rayStart, -reflectionVector, hitScale ) )
+	if( ( pc.rpWobbleSkyX.w > 0.0 ) && AABBRayIntersection( bounds, rayStart, -reflectionVector, hitScale ) )
 	{
 		float3 hitPoint = rayStart - reflectionVector * hitScale;
 
-		// rpWobbleSkyZ is cubemap center
-		reflectionVector = hitPoint - rpWobbleSkyZ.xyz;
+		// pc.rpWobbleSkyZ is cubemap center
+		reflectionVector = hitPoint - pc.rpWobbleSkyZ.xyz;
 	}
 #endif
 
@@ -233,7 +234,7 @@ void main( PS_IN fragment, out PS_OUT result )
 
 	// calculate the screen texcoord in the 0.0 to 1.0 range
 	//float2 screenTexCoord = vposToScreenPosTexCoord( fragment.position.xy );
-	float2 screenTexCoord = fragment.position.xy * rpWindowCoord.xy;
+	float2 screenTexCoord = fragment.position.xy * pc.rpWindowCoord.xy;
 
 	float ao = 1.0;
 	ao = t_Ssao.Sample( s_LinearClamp, screenTexCoord ).r;
@@ -251,9 +252,9 @@ void main( PS_IN fragment, out PS_OUT result )
 	//float3 lightGridSize = float3( 64.0, 64.0, 128.0 );
 	//int3 lightGridBounds = int3( 7, 7, 3 );
 
-	float3 lightGridOrigin = rpGlobalLightOrigin.xyz;
-	float3 lightGridSize = rpJitterTexScale.xyz;
-	int3 lightGridBounds = int3( rpJitterTexOffset.x, rpJitterTexOffset.y, rpJitterTexOffset.z );
+	float3 lightGridOrigin = pc.rpGlobalLightOrigin.xyz;
+	float3 lightGridSize = pc.rpJitterTexScale.xyz;
+	int3 lightGridBounds = int3( pc.rpJitterTexOffset.x, pc.rpJitterTexOffset.y, pc.rpJitterTexOffset.z );
 
 	float invXZ = ( 1.0 / ( lightGridBounds[0] * lightGridBounds[2] ) );
 	float invY = ( 1.0 / lightGridBounds[1] );
@@ -348,16 +349,16 @@ void main( PS_IN fragment, out PS_OUT result )
 
 		// offset by one pixel border bleed size for linear filtering
 #if 1
-		// rpScreenCorrectionFactor.w = probeSize factor accounting account offset border, e.g = ( 16 / 18 ) = 0.8888
-		float2 octCoordNormalizedToTextureDimensions = ( normalizedOctCoordZeroOne + atlasOffset ) * rpScreenCorrectionFactor.w;
+		// pc.rpScreenCorrectionFactor.w = probeSize factor accounting account offset border, e.g = ( 16 / 18 ) = 0.8888
+		float2 octCoordNormalizedToTextureDimensions = ( normalizedOctCoordZeroOne + atlasOffset ) * pc.rpScreenCorrectionFactor.w;
 
 		// skip by default 2 pixels for each grid cell and offset the start position by (1,1)
-		// rpScreenCorrectionFactor.z = borderSize e.g = 2
+		// pc.rpScreenCorrectionFactor.z = borderSize e.g = 2
 		float2 probeTopLeftPosition;
-		probeTopLeftPosition.x = ( gridCoord2[0] * gridStep[0] + gridCoord2[2] * gridStep[1] ) * rpScreenCorrectionFactor.z + rpScreenCorrectionFactor.z * 0.5;
-		probeTopLeftPosition.y = ( gridCoord2[1] ) * rpScreenCorrectionFactor.z + rpScreenCorrectionFactor.z * 0.5;
+		probeTopLeftPosition.x = ( gridCoord2[0] * gridStep[0] + gridCoord2[2] * gridStep[1] ) * pc.rpScreenCorrectionFactor.z + pc.rpScreenCorrectionFactor.z * 0.5;
+		probeTopLeftPosition.y = ( gridCoord2[1] ) * pc.rpScreenCorrectionFactor.z + pc.rpScreenCorrectionFactor.z * 0.5;
 
-		float2 normalizedProbeTopLeftPosition = probeTopLeftPosition * rpCascadeDistances.zw;
+		float2 normalizedProbeTopLeftPosition = probeTopLeftPosition * pc.rpCascadeDistances.zw;
 
 		float2 atlasCoord = normalizedProbeTopLeftPosition + octCoordNormalizedToTextureDimensions;
 #else
@@ -386,7 +387,7 @@ void main( PS_IN fragment, out PS_OUT result )
 // lightgrid atlas
 
 
-	float3 diffuseLight = ( kD * irradiance * diffuseColor ) * ao * ( rpDiffuseModifier.xyz * 1.0 );
+	float3 diffuseLight = ( kD * irradiance * diffuseColor ) * ao * ( pc.rpDiffuseModifier.xyz * 1.0 );
 
 	// evaluate specular IBL
 
@@ -400,9 +401,9 @@ void main( PS_IN fragment, out PS_OUT result )
 	normalizedOctCoord = octEncode( reflectionVector );
 	normalizedOctCoordZeroOne = ( normalizedOctCoord + float2( 1.0, 1.0 ) ) * 0.5;
 
-	float3 radiance = t_RadianceCubeMap1.SampleLevel( s_LinearClamp, normalizedOctCoordZeroOne, mip ).rgb * rpLocalLightOrigin.x;
-	radiance += t_RadianceCubeMap2.SampleLevel( s_LinearClamp, normalizedOctCoordZeroOne, mip ).rgb * rpLocalLightOrigin.y;
-	radiance += t_RadianceCubeMap3.SampleLevel( s_LinearClamp, normalizedOctCoordZeroOne, mip ).rgb * rpLocalLightOrigin.z;
+	float3 radiance = t_RadianceCubeMap1.SampleLevel( s_LinearClamp, normalizedOctCoordZeroOne, mip ).rgb * pc.rpLocalLightOrigin.x;
+	radiance += t_RadianceCubeMap2.SampleLevel( s_LinearClamp, normalizedOctCoordZeroOne, mip ).rgb * pc.rpLocalLightOrigin.y;
+	radiance += t_RadianceCubeMap3.SampleLevel( s_LinearClamp, normalizedOctCoordZeroOne, mip ).rgb * pc.rpLocalLightOrigin.z;
 	//radiance = float3( 0.0 );
 
 	float2 envBRDF  = t_BrdfLut.Sample( s_LinearClamp, float2( max( vDotN, 0.0 ), roughness ) ).rg;
@@ -414,7 +415,7 @@ void main( PS_IN fragment, out PS_OUT result )
 #endif
 
 	float specAO = ComputeSpecularAO( vDotN, ao, roughness );
-	float3 specularLight = radiance * ( kS * envBRDF.x + envBRDF.y ) * specAO * ( rpSpecularModifier.xyz * 1.0 );
+	float3 specularLight = radiance * ( kS * envBRDF.x + envBRDF.y ) * specAO * ( pc.rpSpecularModifier.xyz * 1.0 );
 
 #if 1
 	// Marmoset Horizon Fade trick
@@ -424,8 +425,8 @@ void main( PS_IN fragment, out PS_OUT result )
 	//horiz = clamp( horiz, 0.0, 1.0 );
 #endif
 
-	//half3 lightColor = sRGBToLinearRGB( rpAmbientColor.rgb );
-	half3 lightColor = ( rpAmbientColor.rgb );
+	//half3 lightColor = sRGBToLinearRGB( pc.rpAmbientColor.rgb );
+	half3 lightColor = ( pc.rpAmbientColor.rgb );
 
 	//result.color.rgb = diffuseLight;
 	//result.color.rgb = diffuseLight * lightColor;

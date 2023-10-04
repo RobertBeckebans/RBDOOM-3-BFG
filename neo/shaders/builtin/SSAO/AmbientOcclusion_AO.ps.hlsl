@@ -30,6 +30,8 @@
   */
 
 #include "global_inc.hlsl"
+#include "renderParmSet2.inc.hlsl"
+
 
 #define DIFFERENT_DEPTH_RESOLUTIONS 0
 #define USE_DEPTH_PEEL 0
@@ -114,10 +116,10 @@ struct PS_OUT
 
 float BlueNoise( float2 n, float x )
 {
-	float noise = t_BlueNoise.Sample( blueNoiseSampler, n.xy * rpJitterTexOffset.xy ).r;
+	float noise = t_BlueNoise.Sample( blueNoiseSampler, n.xy * pc.rpJitterTexOffset.xy ).r;
 
 #if TEMPORALLY_VARY_TAPS
-	noise = frac( noise + c_goldenRatioConjugate * rpJitterTexOffset.z * x );
+	noise = frac( noise + c_goldenRatioConjugate * pc.rpJitterTexOffset.z * x );
 #else
 	noise = frac( noise );
 #endif
@@ -164,14 +166,14 @@ float3 reconstructCSPosition( float2 S, float z )
 {
 	float4 P;
 	P.z = z;// * 2.0 - 1.0;
-	P.xy = ( S * rpWindowCoord.xy ) * 2.0 - 1.0;
+	P.xy = ( S * pc.rpWindowCoord.xy ) * 2.0 - 1.0;
 	P.w = 1.0;
 
 	float4 csP;
-	csP.x = dot4( P, rpModelMatrixX );
-	csP.y = dot4( P, rpModelMatrixY );
-	csP.z = dot4( P, rpModelMatrixZ );
-	csP.w = dot4( P, rpModelMatrixW );
+	csP.x = dot4( P, pc.rpModelMatrixX );
+	csP.y = dot4( P, pc.rpModelMatrixY );
+	csP.z = dot4( P, pc.rpModelMatrixZ );
+	csP.w = dot4( P, pc.rpModelMatrixW );
 
 	csP.xyz /= csP.w;
 
@@ -347,8 +349,8 @@ void main( PS_IN fragment, out PS_OUT result )
 	visibility = 1.0;
 
 	// Pixel being shaded
-	float2 ssC = fragment.texcoord0 * rpScreenCorrectionFactor.xy;
-	int2 ssP = int2( ssC.x * rpWindowCoord.z, ssC.y * rpWindowCoord.w );
+	float2 ssC = fragment.texcoord0 * pc.rpScreenCorrectionFactor.xy;
+	int2 ssP = int2( ssC.x * pc.rpWindowCoord.z, ssC.y * pc.rpWindowCoord.w );
 
 	//int2 ssP = int2( gl_FragCoord.xy );
 
@@ -396,7 +398,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	// Hash function used in the HPG12 AlchemyAO paper
 	float randomPatternRotationAngle = float( ( ( 3 * ssP.x ) ^ ( ssP.y + ssP.x * ssP.y ) )
 #if TEMPORALLY_VARY_TAPS
-									   + rpJitterTexOffset.z
+									   + pc.rpJitterTexOffset.z
 #endif
 											) * 10.0;
 

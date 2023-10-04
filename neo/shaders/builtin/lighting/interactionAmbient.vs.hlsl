@@ -27,6 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet9.inc.hlsl"
 
 // *INDENT-OFF*
 #if USE_GPU_SKINNING
@@ -127,40 +128,40 @@ void main( VS_IN vertex, out VS_OUT result )
 	float3 bitangent = vBitangent.xyz;
 #endif
 
-	result.position.x = dot4( modelPosition, rpMVPmatrixX );
-	result.position.y = dot4( modelPosition, rpMVPmatrixY );
-	result.position.z = dot4( modelPosition, rpMVPmatrixZ );
-	result.position.w = dot4( modelPosition, rpMVPmatrixW );
+	result.position.x = dot4( modelPosition, pc.rpMVPmatrixX );
+	result.position.y = dot4( modelPosition, pc.rpMVPmatrixY );
+	result.position.z = dot4( modelPosition, pc.rpMVPmatrixZ );
+	result.position.w = dot4( modelPosition, pc.rpMVPmatrixW );
 
 	float4 defaultTexCoord = float4( 0.0f, 0.5f, 0.0f, 1.0f );
 
 	//calculate vector to light
-	float4 toLight = rpLocalLightOrigin - modelPosition;
+	float4 toLight = pc.rpLocalLightOrigin - modelPosition;
 
 	//textures 1 takes the base coordinates by the texture matrix
 	result.texcoord1 = defaultTexCoord;
-	result.texcoord1.x = dot4( vertex.texcoord.xy, rpBumpMatrixS );
-	result.texcoord1.y = dot4( vertex.texcoord.xy, rpBumpMatrixT );
+	result.texcoord1.x = dot4( vertex.texcoord.xy, pc.rpBumpMatrixS );
+	result.texcoord1.y = dot4( vertex.texcoord.xy, pc.rpBumpMatrixT );
 
 	//# texture 2 has one texgen
 	result.texcoord2 = defaultTexCoord;
-	result.texcoord2.x = dot4( modelPosition, rpLightFalloffS );
+	result.texcoord2.x = dot4( modelPosition, pc.rpLightFalloffS );
 
 	//# texture 3 has three texgens
-	result.texcoord3.x = dot4( modelPosition, rpLightProjectionS );
-	result.texcoord3.y = dot4( modelPosition, rpLightProjectionT );
+	result.texcoord3.x = dot4( modelPosition, pc.rpLightProjectionS );
+	result.texcoord3.y = dot4( modelPosition, pc.rpLightProjectionT );
 	result.texcoord3.z = 0.0f;
-	result.texcoord3.w = dot4( modelPosition, rpLightProjectionQ );
+	result.texcoord3.w = dot4( modelPosition, pc.rpLightProjectionQ );
 
 	//# textures 4 takes the base coordinates by the texture matrix
 	result.texcoord4 = defaultTexCoord;
-	result.texcoord4.x = dot4( vertex.texcoord.xy, rpDiffuseMatrixS );
-	result.texcoord4.y = dot4( vertex.texcoord.xy, rpDiffuseMatrixT );
+	result.texcoord4.x = dot4( vertex.texcoord.xy, pc.rpDiffuseMatrixS );
+	result.texcoord4.y = dot4( vertex.texcoord.xy, pc.rpDiffuseMatrixT );
 
 	//# textures 5 takes the base coordinates by the texture matrix
 	result.texcoord5 = defaultTexCoord;
-	result.texcoord5.x = dot4( vertex.texcoord.xy, rpSpecularMatrixS );
-	result.texcoord5.y = dot4( vertex.texcoord.xy, rpSpecularMatrixT );
+	result.texcoord5.x = dot4( vertex.texcoord.xy, pc.rpSpecularMatrixS );
+	result.texcoord5.y = dot4( vertex.texcoord.xy, pc.rpSpecularMatrixT );
 
 	//# texture 6's texcoords will be the halfangle in texture space
 
@@ -168,7 +169,7 @@ void main( VS_IN vertex, out VS_OUT result )
 	toLight = normalize( toLight );
 
 	//# calculate normalized vector to viewer in R1
-	float4 toView = normalize( rpLocalViewOrigin - modelPosition );
+	float4 toView = normalize( pc.rpLocalViewOrigin - modelPosition );
 
 	//# add together to become the half angle vector in object space (non-normalized)
 	float4 halfAngleVector = toLight + toView;
@@ -189,6 +190,6 @@ void main( VS_IN vertex, out VS_OUT result )
 	//# for 1.0 : env[16] = 0, env[17] = 1
 	//# for color : env[16] = 1, env[17] = 0
 	//# for 1.0-color : env[16] = -1, env[17] = 1
-	result.color = ( swizzleColor( vertex.color ) * rpVertexColorModulate ) + rpVertexColorAdd;
+	result.color = ( swizzleColor( vertex.color ) * pc.rpVertexColorModulate ) + pc.rpVertexColorAdd;
 #endif
 }

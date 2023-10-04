@@ -30,6 +30,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet2.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -164,7 +165,7 @@ void ChromaticAberrationPass( inout float4 color, PS_IN fragment )
 	float3 sum = _float3( 0.0 );
 	float3 sumColor = _float3( 0.0 );
 
-	//float samples = rpOverbright.x;
+	//float samples = pc.rpOverbright.x;
 	float samples = 12.0; // * 2;
 
 	for( float i = 0.0; i < samples; i = i + 1.0 )
@@ -189,7 +190,7 @@ void ChromaticAberrationPass2( inout float4 color, PS_IN fragment )
 
 	float2 uv = fragment.texcoord0;
 
-	//float2 texel = 1.0 / rpWindowCoord.zw;
+	//float2 texel = 1.0 / pc.rpWindowCoord.zw;
 	float2 texel = 1.0 / float2( 1920.0, 1080.0 );
 
 	float2 coords = ( uv - 0.5 ) * 2.0;
@@ -253,9 +254,9 @@ void ChromaticAberrationPass2( inout float4 color, PS_IN fragment )
 
 float BlueNoise( float2 n, float x )
 {
-	float noise = t_BlueNoise.Sample( samp1, ( n.xy * rpJitterTexOffset.xy ) * 1.0 ).r;
+	float noise = t_BlueNoise.Sample( samp1, ( n.xy * pc.rpJitterTexOffset.xy ) * 1.0 ).r;
 
-	noise = frac( noise + 0.61803398875 * rpJitterTexOffset.z * x );
+	noise = frac( noise + 0.61803398875 * pc.rpJitterTexOffset.z * x );
 
 	//noise = InterleavedGradientNoise( n );
 
@@ -268,11 +269,11 @@ float BlueNoise( float2 n, float x )
 
 float3 BlueNoise3( float2 n, float x )
 {
-	float2 uv = n.xy * rpJitterTexOffset.xy;
+	float2 uv = n.xy * pc.rpJitterTexOffset.xy;
 
 	float3 noise = t_BlueNoise.Sample( samp1, uv ).rgb;
 
-	noise = frac( noise + c_goldenRatioConjugate * rpJitterTexOffset.w * x );
+	noise = frac( noise + c_goldenRatioConjugate * pc.rpJitterTexOffset.w * x );
 
 	//noise.x = RemapNoiseTriErp( noise.x );
 	//noise.y = RemapNoiseTriErp( noise.y );
@@ -366,9 +367,9 @@ float3 Step3( float2 uv )
 float3 Step3T( float2 uv )
 {
 #if DITHER_GENERATE_NOISE
-	float a = Step2( uv, 0.07 * fract( rpJitterTexOffset.z ) );
-	float b = Step2( uv, 0.11 * fract( rpJitterTexOffset.z ) );
-	float c = Step2( uv, 0.13 * fract( rpJitterTexOffset.z ) );
+	float a = Step2( uv, 0.07 * fract( pc.rpJitterTexOffset.z ) );
+	float b = Step2( uv, 0.11 * fract( pc.rpJitterTexOffset.z ) );
+	float c = Step2( uv, 0.13 * fract( pc.rpJitterTexOffset.z ) );
 
 	return float3( a, b, c );
 #else

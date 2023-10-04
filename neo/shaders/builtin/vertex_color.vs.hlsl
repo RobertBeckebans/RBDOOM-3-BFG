@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet0.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -50,10 +51,10 @@ struct VS_OUT
 
 void main( VS_IN vertex, out VS_OUT result )
 {
-	result.position.x = dot4( vertex.position, rpMVPmatrixX );
-	result.position.y = dot4( vertex.position, rpMVPmatrixY );
-	result.position.z = dot4( vertex.position, rpMVPmatrixZ );
-	result.position.w = dot4( vertex.position, rpMVPmatrixW );
+	result.position.x = dot4( vertex.position, pc.rpMVPmatrixX );
+	result.position.y = dot4( vertex.position, pc.rpMVPmatrixY );
+	result.position.z = dot4( vertex.position, pc.rpMVPmatrixZ );
+	result.position.w = dot4( vertex.position, pc.rpMVPmatrixW );
 
 	result.color =  swizzleColor( vertex.color );
 }

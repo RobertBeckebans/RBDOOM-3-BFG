@@ -1,4 +1,4 @@
-﻿/*
+/*
 ===========================================================================
 
 Doom 3 BFG Edition GPL Source Code
@@ -29,6 +29,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet10.inc.hlsl"
 #include "BRDF.inc.hlsl"
 
 
@@ -75,11 +76,11 @@ struct PS_OUT
 
 float BlueNoise( float2 n, float x )
 {
-	float2 uv = n.xy * rpJitterTexOffset.xy;
+	float2 uv = n.xy * pc.rpJitterTexOffset.xy;
 
 	float noise = t_Jitter.Sample( s_Jitter, uv ).r;
 
-	noise = frac( noise + c_goldenRatioConjugate * rpJitterTexOffset.w * x );
+	noise = frac( noise + c_goldenRatioConjugate * pc.rpJitterTexOffset.w * x );
 
 	//noise = RemapNoiseTriErp( noise );
 	//noise = noise * 2.0 - 0.5;
@@ -172,7 +173,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	shadowIndex = 4;
 	for( int ci = 0; ci < 4; ci++ )
 	{
-		if( viewZ < rpCascadeDistances[ci] )
+		if( viewZ < pc.rpCascadeDistances[ci] )
 		{
 			shadowIndex = ci;
 			break;
@@ -210,11 +211,11 @@ void main( PS_IN fragment, out PS_OUT result )
 	return;
 #endif
 
-	// rpShadowMatrices contain model -> world -> shadow transformation for evaluation
-	float4 shadowMatrixX = rpShadowMatrices[ int ( shadowIndex * 4 + 0 ) ];
-	float4 shadowMatrixY = rpShadowMatrices[ int ( shadowIndex * 4 + 1 ) ];
-	float4 shadowMatrixZ = rpShadowMatrices[ int ( shadowIndex * 4 + 2 ) ];
-	float4 shadowMatrixW = rpShadowMatrices[ int ( shadowIndex * 4 + 3 ) ];
+	// pc.rpShadowMatrices contain model -> world -> shadow transformation for evaluation
+	float4 shadowMatrixX = pc.rpShadowMatrices[ int ( shadowIndex * 4 + 0 ) ];
+	float4 shadowMatrixY = pc.rpShadowMatrices[ int ( shadowIndex * 4 + 1 ) ];
+	float4 shadowMatrixZ = pc.rpShadowMatrices[ int ( shadowIndex * 4 + 2 ) ];
+	float4 shadowMatrixW = pc.rpShadowMatrices[ int ( shadowIndex * 4 + 3 ) ];
 
 	float4 modelPosition = float4( fragment.texcoord7.xyz, 1.0 );
 
@@ -231,7 +232,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	shadowTexcoord.xyz /= shadowTexcoord.w;
 
 	// receiver / occluder terminology like in ESM
-	float receiver = shadowTexcoord.z * rpScreenCorrectionFactor.w;
+	float receiver = shadowTexcoord.z * pc.rpScreenCorrectionFactor.w;
 	//shadowTexcoord.z = shadowTexcoord.z * 0.999991;
 	//shadowTexcoord.z = shadowTexcoord.z - bias;
 	shadowTexcoord.w = float( shadowIndex );
@@ -241,7 +242,7 @@ void main( PS_IN fragment, out PS_OUT result )
 #if 0
 	float4 base = shadowTexcoord;
 
-	base.xy += rpJitterTexScale.xy * -0.5;
+	base.xy += pc.rpJitterTexScale.xy * -0.5;
 
 	float shadow = 0.0;
 
@@ -249,10 +250,10 @@ void main( PS_IN fragment, out PS_OUT result )
 	float numSamples = 16;
 	float stepSize = 1.0 / numSamples;
 
-	float2 jitterTC = ( fragment.position.xy * rpScreenCorrectionFactor.xy ) + rpJitterTexOffset.ww;
+	float2 jitterTC = ( fragment.position.xy * pc.rpScreenCorrectionFactor.xy ) + pc.rpJitterTexOffset.ww;
 	for( float n = 0.0; n < numSamples; n += 1.0 )
 	{
-		float4 jitter = base + t_Jitter.Sample( samp1, jitterTC.xy ) * rpJitterTexScale;
+		float4 jitter = base + t_Jitter.Sample( samp1, jitterTC.xy ) * pc.rpJitterTexScale;
 		jitter.zw = shadowTexcoord.zw;
 
 		shadow += t_Jitter.Sample( samp1, jitter.xy / jitter.z ).r;
@@ -285,10 +286,10 @@ void main( PS_IN fragment, out PS_OUT result )
 	float shadow = 0.0;
 
 	// RB: casting a float to int and using it as index can really kill the performance ...
-	float numSamples = 12.0; //int(rpScreenCorrectionFactor.w);
+	float numSamples = 12.0; //int(pc.rpScreenCorrectionFactor.w);
 	float stepSize = 1.0 / numSamples;
 
-	float4 jitterTC = ( fragment.position * rpScreenCorrectionFactor ) + rpJitterTexOffset;
+	float4 jitterTC = ( fragment.position * pc.rpScreenCorrectionFactor ) + pc.rpJitterTexOffset;
 	float4 random = t_Jitter.Sample( s_Jitter, jitterTC.xy ) * PI;
 	//float4 random = fragment.position;
 
@@ -296,7 +297,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	rot.x = cos( random.x );
 	rot.y = sin( random.x );
 
-	float shadowTexelSize = rpScreenCorrectionFactor.z * rpJitterTexScale.x;
+	float shadowTexelSize = pc.rpScreenCorrectionFactor.z * pc.rpJitterTexScale.x;
 	for( int i = 0; i < 12; i++ )
 	{
 		float2 jitter = poissonDisk[i];
@@ -340,7 +341,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	float stepSize = 1.0 / numSamples;
 
 	float random = BlueNoise( fragment.position.xy, 1.0 );
-	//float random = InterleavedGradientNoiseAnim( fragment.position.xy, rpJitterTexOffset.w );
+	//float random = InterleavedGradientNoiseAnim( fragment.position.xy, pc.rpJitterTexOffset.w );
 
 	random *= PI;
 
@@ -348,7 +349,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	rot.x = cos( random );
 	rot.y = sin( random );
 
-	float shadowTexelSize = rpScreenCorrectionFactor.z * rpJitterTexScale.x;
+	float shadowTexelSize = pc.rpScreenCorrectionFactor.z * pc.rpJitterTexScale.x;
 	for( int si = 0; si < 12; si++ )
 	{
 		float2 jitter = poissonDisk[si];
@@ -357,7 +358,7 @@ void main( PS_IN fragment, out PS_OUT result )
 		jitterRotated.y = jitter.x * rot.y + jitter.y * rot.x;
 
 		// [0 .. 1] -> rectangle in atlas transform
-		float2 shadowTexcoordAtlas = shadowTexcoord.xy * rpJitterTexScale.y + rpShadowAtlasOffsets[ shadowIndex ].xy;
+		float2 shadowTexcoordAtlas = shadowTexcoord.xy * pc.rpJitterTexScale.y + pc.rpShadowAtlasOffsets[ shadowIndex ].xy;
 
 		float2 shadowTexcoordJittered = shadowTexcoordAtlas.xy + jitterRotated * shadowTexelSize;
 
@@ -376,20 +377,20 @@ void main( PS_IN fragment, out PS_OUT result )
 
 	float shadow = 0.0;
 
-	float numSamples = rpJitterTexScale.w;
+	float numSamples = pc.rpJitterTexScale.w;
 	float stepSize = 1.0 / numSamples;
 
 	float vogelPhi = BlueNoise( fragment.position.xy, 1.0 );
-	//float vogelPhi = InterleavedGradientNoiseAnim( fragment.position.xy, rpJitterTexOffset.w );
+	//float vogelPhi = InterleavedGradientNoiseAnim( fragment.position.xy, pc.rpJitterTexOffset.w );
 
-	float shadowTexelSize = rpScreenCorrectionFactor.z * rpJitterTexScale.x;
+	float shadowTexelSize = pc.rpScreenCorrectionFactor.z * pc.rpJitterTexScale.x;
 	for( float si = 0.0; si < numSamples; si += 1.0 )
 	{
 		float2 jitter = VogelDiskSample( si, numSamples, vogelPhi );
 
 #if USE_SHADOW_ATLAS
 		// [0 .. 1] -> rectangle in atlas transform
-		float2 shadowTexcoordAtlas = shadowTexcoord.xy * rpJitterTexScale.y + rpShadowAtlasOffsets[ shadowIndex ].xy;
+		float2 shadowTexcoordAtlas = shadowTexcoord.xy * pc.rpJitterTexScale.y + pc.rpShadowAtlasOffsets[ shadowIndex ].xy;
 
 		float2 shadowTexcoordJittered = shadowTexcoordAtlas + jitter * shadowTexelSize;
 
@@ -412,7 +413,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	uvShadow.y = shadowTexcoord.y;
 
 	// [0 .. 1] -> rectangle in atlas transform
-	uvShadow = uvShadow * rpJitterTexScale.y + rpShadowAtlasOffsets[ shadowIndex ].xy;
+	uvShadow = uvShadow * pc.rpJitterTexScale.y + pc.rpShadowAtlasOffsets[ shadowIndex ].xy;
 
 	float shadow = t_ShadowAtlas.SampleCmpLevelZero( s_Shadow, uvShadow.xy, receiver );
 #else
@@ -456,7 +457,7 @@ void main( PS_IN fragment, out PS_OUT result )
 #endif
 
 	// allow shadows to fade out
-	shadow = saturate( max( shadow, rpJitterTexScale.z ) );
+	shadow = saturate( max( shadow, pc.rpJitterTexScale.z ) );
 
 	float3 halfAngleVector = normalize( lightVector + viewVector );
 	float hdotN = clamp( dot3( halfAngleVector, localNormal ), 0.0, 1.0 );
@@ -488,7 +489,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	// RB: compensate r_lightScale 3 and the division of Pi
 	//lambert *= 1.3;
 
-	// rpDiffuseModifier contains light color multiplier
+	// pc.rpDiffuseModifier contains light color multiplier
 	float3 lightColor = sRGBToLinearRGB( lightProj.xyz * lightFalloff.xyz );
 
 	float vdotN = clamp( dot3( viewVector, localNormal ), 0.0, 1.0 );
@@ -496,7 +497,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	float ldotH = clamp( dot3( lightVector, halfAngleVector ), 0.0, 1.0 );
 
 	// compensate r_lightScale 3 * 2
-	float3 reflectColor = specularColor * rpSpecularModifier.rgb * 1.0;// * 0.5;
+	float3 reflectColor = specularColor * pc.rpSpecularModifier.rgb * 1.0;// * 0.5;
 
 	// cheap approximation by ARM with only one division
 	// http://community.arm.com/servlet/JiveServlet/download/96891546-19496/siggraph2015-mmg-renaldas-slides.pdf
@@ -519,8 +520,8 @@ void main( PS_IN fragment, out PS_OUT result )
 	// see http://seblagarde.wordpress.com/2012/01/08/pi-or-not-to-pi-in-game-lighting-equation/
 	//lambert /= PI;
 
-	//float3 diffuseColor = mix( diffuseMap, F0, metal ) * rpDiffuseModifier.xyz;
-	float3 diffuseLight = diffuseColor * lambert * ( rpDiffuseModifier.xyz );
+	//float3 diffuseColor = mix( diffuseMap, F0, metal ) * pc.rpDiffuseModifier.xyz;
+	float3 diffuseLight = diffuseColor * lambert * ( pc.rpDiffuseModifier.xyz );
 
 	float3 color = ( diffuseLight + specularLight ) * lightColor * fragment.color.rgb * shadow;
 

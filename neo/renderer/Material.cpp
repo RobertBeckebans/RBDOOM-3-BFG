@@ -34,6 +34,8 @@ If you have questions concerning this license or the applicable additional terms
 
 
 #include "RenderCommon.h"
+#include <sys/DeviceManager.h>
+extern DeviceManager* deviceManager;
 
 /*
 
@@ -2144,11 +2146,14 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 			ss->conditionRegister = ParseExpression( src );
 			continue;
 		}
+
+		auto usePushConstants = deviceManager->m_DeviceParams.maxPushConstantSize >= renderProgManager.layoutAttributes[BINDING_LAYOUT_POST_PROCESS_INGAME].rpBufSize ? "1" : "0";
+
 		if( !token.Icmp( "program" ) )
 		{
 			if( src.ReadTokenOnLine( &token ) )
 			{
-				idList<shaderMacro_t> macros = { { "USE_GPU_SKINNING", "0" } };
+				idList<shaderMacro_t> macros = { { "USE_GPU_SKINNING", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants } };
 				newStage.vertexProgram = renderProgManager.FindShader( token.c_str(), SHADER_STAGE_VERTEX, "", macros, false );
 				newStage.fragmentProgram = renderProgManager.FindShader( token.c_str(), SHADER_STAGE_FRAGMENT, "", macros, false );
 			}
@@ -2158,7 +2163,7 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 		{
 			if( src.ReadTokenOnLine( &token ) )
 			{
-				idList<shaderMacro_t> macros = { { "USE_GPU_SKINNING", "0" } };
+				idList<shaderMacro_t> macros = { { "USE_GPU_SKINNING", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants } };
 				newStage.fragmentProgram = renderProgManager.FindShader( token.c_str(), SHADER_STAGE_FRAGMENT, "", macros, false );
 			}
 			continue;
@@ -2167,7 +2172,7 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 		{
 			if( src.ReadTokenOnLine( &token ) )
 			{
-				idList<shaderMacro_t> macros = { { "USE_GPU_SKINNING", "0" } };
+				idList<shaderMacro_t> macros = { { "USE_GPU_SKINNING", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants } };
 				newStage.vertexProgram = renderProgManager.FindShader( token.c_str(), SHADER_STAGE_VERTEX, "", macros, false );
 			}
 			continue;

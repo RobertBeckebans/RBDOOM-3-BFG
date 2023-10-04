@@ -88,8 +88,9 @@ void TemporalAntiAliasingPass::Init(
 	//MotionVectorMacros.push_back( ShaderMacro( "USE_STENCIL", useStencil ? "1" : "0" ) );
 	//m_MotionVectorPS = shaderFactory->CreateShader( "donut/passes/motion_vectors_ps.hlsl", "main", &MotionVectorMacros, nvrhi::ShaderType::Pixel );
 
-	auto taaMotionVectorsShaderInfo = renderProgManager.GetProgramInfo( BUILTIN_TAA_MOTION_VECTORS );
-	m_MotionVectorPS = taaMotionVectorsShaderInfo.ps;
+	// SRS - Motion Vectors are generated using motionBlur shader in graphics pipeline
+	//auto taaMotionVectorsShaderInfo = renderProgManager.GetProgramInfo( BUILTIN_TAA_MOTION_VECTORS );
+	//m_MotionVectorPS = taaMotionVectorsShaderInfo.ps;
 
 	//std::vector<ShaderMacro> ResolveMacros;
 	//ResolveMacros.push_back( ShaderMacro( "SAMPLE_COUNT", std::to_string( unresolvedColorDesc.sampleCount ) ) );
@@ -141,6 +142,7 @@ void TemporalAntiAliasingPass::Init(
 	constantBufferDesc.maxVersions = params.numConstantBufferVersions;
 	m_TemporalAntiAliasingCB = device->createBuffer( constantBufferDesc );
 
+/*	SRS - Motion Vectors are generated using motionBlur shader in graphics pipeline
 	if( params.sourceDepth )
 	{
 		nvrhi::BindingLayoutDesc layoutDesc;
@@ -170,7 +172,7 @@ void TemporalAntiAliasingPass::Init(
 		}
 		m_MotionVectorsBindingSet = device->createBindingSet( bindingSetDesc, m_MotionVectorsBindingLayout );
 	}
-
+*/
 	{
 		nvrhi::BindingSetDesc bindingSetDesc;
 		bindingSetDesc.bindings =

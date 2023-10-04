@@ -71,6 +71,42 @@ static void R_ReloadShaders( const idCmdArgs& args )
 
 /*
 ================================================================================================
+uniformsLayout
+================================================================================================
+*/
+nvrhi::BindingLayoutHandle idRenderProgManager::uniformsLayout( bindingLayoutType_t layout, bool skinning )
+{
+	// SRS - Create initial layout item based on choice of static vs. volatile constant buffer
+	auto rpLayoutItem = layoutAttributes[layout].cbStatic ? nvrhi::BindingLayoutItem::ConstantBuffer( 0 ) : nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 );
+
+	// SRS - Optionally override based on renderparm subset size and push constant enablement
+	if( deviceManager->m_DeviceParams.maxPushConstantSize >= layoutAttributes[layout].rpBufSize )
+	{
+		rpLayoutItem = nvrhi::BindingLayoutItem::PushConstants( 0, layoutAttributes[layout].rpBufSize );
+	}
+
+	// SRS - Create and return uniforms layout based on above choices and skinning enablement
+	if( skinning )
+	{
+		auto skinningLayoutDesc = nvrhi::BindingLayoutDesc()
+									.setVisibility( nvrhi::ShaderType::All )
+									.addItem( rpLayoutItem )
+									.addItem( nvrhi::BindingLayoutItem::StructuredBuffer_SRV( 11 ) ); // joint buffer;
+
+		return device->createBindingLayout( skinningLayoutDesc );
+	}
+	else
+	{
+		auto uniformsLayoutDesc = nvrhi::BindingLayoutDesc()
+									.setVisibility( nvrhi::ShaderType::All )
+									.addItem( rpLayoutItem );
+
+		return device->createBindingLayout( uniformsLayoutDesc );
+	}
+}
+
+/*
+================================================================================================
 idRenderProgManager::Init()
 ================================================================================================
 */
@@ -85,14 +121,7 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 
 	this->device = device;
 
-	uniforms.SetNum( RENDERPARM_TOTAL, vec4_zero );
-	uniformsChanged = false;
-
-	for( int i = 0; i < NUM_BINDING_LAYOUTS; i++ )
-	{
-		auto constantBufferDesc = nvrhi::utils::CreateVolatileConstantBufferDesc( uniforms.Allocated(), va( "RenderParams_%d", i ), 16384 );
-		constantBuffer[i] = device->createBuffer( constantBufferDesc );
-	}
+	ZeroUniforms();
 
 	// === Main draw vertex layout ===
 	vertexLayoutDescs.SetNum( NUM_VERTEX_LAYOUTS, {} );
@@ -163,37 +192,196 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 
 	bindingLayouts.SetNum( NUM_BINDING_LAYOUTS );
 
-	auto renderParmLayoutItem = nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 );
+	// SRS - Check to make sure renderparm subsets are within push constant size limits
+	if( rpMinimalSet0.Num() * sizeof( idVec4 )  > sizeof( rpMinimalSet ) ||
+		rpMinimalSet1.Num() * sizeof( idVec4 )  > sizeof( rpMinimalSet ) ||
+	    rpMinimalSet2.Num() * sizeof( idVec4 )  > sizeof( rpMinimalSet ) ||
+	    rpNominalSet3.Num() * sizeof( idVec4 )  > sizeof( rpNominalSet ) ||
+	    rpNominalSet4.Num() * sizeof( idVec4 )  > sizeof( rpNominalSet ) ||
+	    rpNominalSet5.Num() * sizeof( idVec4 )  > sizeof( rpNominalSet ) ||
+	    rpNominalSet6.Num() * sizeof( idVec4 )  > sizeof( rpNominalSet ) ||
+		rpNominalSet7.Num() * sizeof( idVec4 )  > sizeof( rpNominalSet ) ||
+		rpMaximalSet8.Num() * sizeof( idVec4 )  > sizeof( rpMaximalSet ) ||
+		rpMaximalSet9.Num() * sizeof( idVec4 )  > sizeof( rpMaximalSet ) ||
+		rpMaximalSet10.Num() * sizeof( idVec4 ) > sizeof( rpMaximalSet ) )
+	{
+		common->FatalError( "Renderparm subset sizes exceed push constant buffer sizes" );
+	}
 
-	auto uniformsLayoutDesc = nvrhi::BindingLayoutDesc()
-							  .setVisibility( nvrhi::ShaderType::All )
-							  .addItem( renderParmLayoutItem );
+	for( int layout = 0; layout < NUM_BINDING_LAYOUTS; layout++ )
+	{
+		// SRS - Define renderparm subset attributes for each binding layout type
+		if( rpMinimalSet0Layouts.Find( ( bindingLayoutType_t )layout ) )
+		{
+			layoutAttributes[layout].rpSubSet  = renderParmSet0;
+			layoutAttributes[layout].rpBufSize = rpMinimalSet0.Num() * sizeof( idVec4 );
+			layoutAttributes[layout].cbStatic  = false;
 
-	auto uniformsLayout = device->createBindingLayout( uniformsLayoutDesc );
+			// SRS - create renderparm to binding layouts mapping for efficient render-time lookups
+			for( int i = 0; i < rpMinimalSet0.Num(); i++ )
+			{
+				renderParmLayouts[rpMinimalSet0[i]].Append( ( bindingLayoutType_t )layout );
+			}
+		}
+		else if( rpMinimalSet1Layouts.Find( ( bindingLayoutType_t )layout ) )
+		{
+			layoutAttributes[layout].rpSubSet  = renderParmSet1;
+			layoutAttributes[layout].rpBufSize = rpMinimalSet1.Num() * sizeof( idVec4 );
+			layoutAttributes[layout].cbStatic  = true;
 
-	auto skinningLayoutDesc = nvrhi::BindingLayoutDesc()
-							  .setVisibility( nvrhi::ShaderType::All )
-							  .addItem( renderParmLayoutItem )
-							  .addItem( nvrhi::BindingLayoutItem::StructuredBuffer_SRV( 11 ) ); // joint buffer;
+			// SRS - create renderparm to binding layouts mapping for efficient render-time lookups
+			for( int i = 0; i < rpMinimalSet1.Num(); i++ )
+			{
+				renderParmLayouts[rpMinimalSet1[i]].Append( ( bindingLayoutType_t )layout );
+			}
+		}
+		else if( rpMinimalSet2Layouts.Find( ( bindingLayoutType_t )layout ) )
+		{
+			layoutAttributes[layout].rpSubSet  = renderParmSet2;
+			layoutAttributes[layout].rpBufSize = rpMinimalSet2.Num() * sizeof( idVec4 );
+			layoutAttributes[layout].cbStatic  = true;
 
-	auto skinningLayout = device->createBindingLayout( skinningLayoutDesc );
+			// SRS - create renderparm to binding layouts mapping for efficient render-time lookups
+			for( int i = 0; i < rpMinimalSet2.Num(); i++ )
+			{
+				renderParmLayouts[rpMinimalSet2[i]].Append( ( bindingLayoutType_t )layout );
+			}
+		}
+		else if( rpNominalSet3Layouts.Find( ( bindingLayoutType_t )layout ) )
+		{
+			layoutAttributes[layout].rpSubSet  = renderParmSet3;
+			layoutAttributes[layout].rpBufSize = rpNominalSet3.Num() * sizeof( idVec4 );
+			layoutAttributes[layout].cbStatic  = false;
+
+			// SRS - create renderparm to binding layouts mapping for efficient render-time lookups
+			for( int i = 0; i < rpNominalSet3.Num(); i++ )
+			{
+				renderParmLayouts[rpNominalSet3[i]].Append( ( bindingLayoutType_t )layout );
+			}
+		}
+		else if( rpNominalSet4Layouts.Find( ( bindingLayoutType_t )layout ) )
+		{
+			layoutAttributes[layout].rpSubSet  = renderParmSet4;
+			layoutAttributes[layout].rpBufSize = rpNominalSet4.Num() * sizeof( idVec4 );
+			layoutAttributes[layout].cbStatic  = false;
+
+			// SRS - create renderparm to binding layouts mapping for efficient render-time lookups
+			for( int i = 0; i < rpNominalSet4.Num(); i++ )
+			{
+				renderParmLayouts[rpNominalSet4[i]].Append( ( bindingLayoutType_t )layout );
+			}
+		}
+		else if( rpNominalSet5Layouts.Find( ( bindingLayoutType_t )layout ) )
+		{
+			layoutAttributes[layout].rpSubSet  = renderParmSet5;
+			layoutAttributes[layout].rpBufSize = rpNominalSet5.Num() * sizeof( idVec4 );
+			layoutAttributes[layout].cbStatic  = false;
+
+			// SRS - create renderparm to binding layouts mapping for efficient render-time lookups
+			for( int i = 0; i < rpNominalSet5.Num(); i++ )
+			{
+				renderParmLayouts[rpNominalSet5[i]].Append( ( bindingLayoutType_t )layout );
+			}
+		}
+		else if( rpNominalSet6Layouts.Find( ( bindingLayoutType_t )layout ) )
+		{
+			layoutAttributes[layout].rpSubSet  = renderParmSet6;
+			layoutAttributes[layout].rpBufSize = rpNominalSet6.Num() * sizeof( idVec4 );
+			layoutAttributes[layout].cbStatic  = false;
+
+			// SRS - create renderparm to binding layouts mapping for efficient render-time lookups
+			for( int i = 0; i < rpNominalSet6.Num(); i++ )
+			{
+				renderParmLayouts[rpNominalSet6[i]].Append( ( bindingLayoutType_t )layout );
+			}
+		}
+		else if( rpNominalSet7Layouts.Find( ( bindingLayoutType_t )layout ) )
+		{
+			layoutAttributes[layout].rpSubSet  = renderParmSet7;
+			layoutAttributes[layout].rpBufSize = rpNominalSet7.Num() * sizeof( idVec4 );
+			layoutAttributes[layout].cbStatic  = false;
+
+			// SRS - create renderparm to binding layouts mapping for efficient render-time lookups
+			for( int i = 0; i < rpNominalSet7.Num(); i++ )
+			{
+				renderParmLayouts[rpNominalSet7[i]].Append( ( bindingLayoutType_t )layout );
+			}
+		}
+		else if( rpMaximalSet8Layouts.Find( ( bindingLayoutType_t )layout ) )
+		{
+			layoutAttributes[layout].rpSubSet  = renderParmSet8;
+			layoutAttributes[layout].rpBufSize = rpMaximalSet8.Num() * sizeof( idVec4 );
+			layoutAttributes[layout].cbStatic  = true;
+
+			// SRS - create renderparm to binding layouts mapping for efficient render-time lookups
+			for( int i = 0; i < rpMaximalSet8.Num(); i++ )
+			{
+				renderParmLayouts[rpMaximalSet8[i]].Append( ( bindingLayoutType_t )layout );
+			}
+		}
+		else if( rpMaximalSet9Layouts.Find( ( bindingLayoutType_t )layout ) )
+		{
+			layoutAttributes[layout].rpSubSet  = renderParmSet9;
+			layoutAttributes[layout].rpBufSize = rpMaximalSet9.Num() * sizeof( idVec4 );
+			layoutAttributes[layout].cbStatic  = true;
+
+			// SRS - create renderparm to binding layouts mapping for efficient render-time lookups
+			for( int i = 0; i < rpMaximalSet9.Num(); i++ )
+			{
+				renderParmLayouts[rpMaximalSet9[i]].Append( ( bindingLayoutType_t )layout );
+			}
+		}
+		else if( rpMaximalSet10Layouts.Find( ( bindingLayoutType_t )layout ) )
+		{
+			layoutAttributes[layout].rpSubSet  = renderParmSet10;
+			layoutAttributes[layout].rpBufSize = rpMaximalSet10.Num() * sizeof( idVec4 );
+			layoutAttributes[layout].cbStatic  = true;
+
+			// SRS - create renderparm to binding layouts mapping for efficient render-time lookups
+			for( int i = 0; i < rpMaximalSet10.Num(); i++ )
+			{
+				renderParmLayouts[rpMaximalSet10[i]].Append( ( bindingLayoutType_t )layout );
+			}
+		}
+		else
+		{
+			layoutAttributes[layout].rpSubSet  = renderParmNullSet;
+			layoutAttributes[layout].rpBufSize = 0;
+			layoutAttributes[layout].cbStatic  = false;
+		}
+
+		layoutAttributes[layout].pcEnabled = deviceManager->m_DeviceParams.maxPushConstantSize >= layoutAttributes[layout].rpBufSize;
+	}
 
 	auto defaultLayoutDesc = nvrhi::BindingLayoutDesc()
 							 .setVisibility( nvrhi::ShaderType::Pixel )
 							 .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 0 ) );
+
+	auto defaultLayout = device->createBindingLayout( defaultLayoutDesc );
 
 	auto samplerOneLayoutDesc = nvrhi::BindingLayoutDesc()
 								.setVisibility( nvrhi::ShaderType::Pixel )
 								.addItem( nvrhi::BindingLayoutItem::Sampler( 0 ) );
 	auto samplerOneBindingLayout = device->createBindingLayout( samplerOneLayoutDesc );
 
-	auto defaultLayout = device->createBindingLayout( defaultLayoutDesc );
+	bindingLayouts[BINDING_LAYOUT_DEFAULT] = { uniformsLayout( BINDING_LAYOUT_DEFAULT, false ), defaultLayout, samplerOneBindingLayout };
+	bindingLayouts[BINDING_LAYOUT_DEFAULT_SKINNED] = { uniformsLayout( BINDING_LAYOUT_DEFAULT_SKINNED, true ), defaultLayout, samplerOneBindingLayout };
 
-	bindingLayouts[BINDING_LAYOUT_DEFAULT] = { uniformsLayout, defaultLayout, samplerOneBindingLayout };
-	bindingLayouts[BINDING_LAYOUT_DEFAULT_SKINNED] = { skinningLayout, defaultLayout, samplerOneBindingLayout };
+	bindingLayouts[BINDING_LAYOUT_GBUFFER] = { uniformsLayout( BINDING_LAYOUT_GBUFFER, false ), defaultLayout, samplerOneBindingLayout };
+	bindingLayouts[BINDING_LAYOUT_GBUFFER_SKINNED] = { uniformsLayout( BINDING_LAYOUT_GBUFFER_SKINNED, true ), defaultLayout, samplerOneBindingLayout };
 
-	bindingLayouts[BINDING_LAYOUT_CONSTANT_BUFFER_ONLY] = { uniformsLayout };
-	bindingLayouts[BINDING_LAYOUT_CONSTANT_BUFFER_ONLY_SKINNED] = { skinningLayout };
+	bindingLayouts[BINDING_LAYOUT_TEXTURE] = { uniformsLayout( BINDING_LAYOUT_TEXTURE, false ), defaultLayout, samplerOneBindingLayout };
+	bindingLayouts[BINDING_LAYOUT_TEXTURE_SKINNED] = { uniformsLayout( BINDING_LAYOUT_TEXTURE_SKINNED, true ), defaultLayout, samplerOneBindingLayout };
+
+	bindingLayouts[BINDING_LAYOUT_WOBBLESKY] = { uniformsLayout( BINDING_LAYOUT_WOBBLESKY, false ), defaultLayout, samplerOneBindingLayout };
+
+	bindingLayouts[BINDING_LAYOUT_SSGI] = { uniformsLayout( BINDING_LAYOUT_SSGI, false ), defaultLayout, samplerOneBindingLayout };
+	bindingLayouts[BINDING_LAYOUT_SSGI_SKINNED] = { uniformsLayout( BINDING_LAYOUT_SSGI_SKINNED, true ), defaultLayout, samplerOneBindingLayout };
+
+	bindingLayouts[BINDING_LAYOUT_POST_PROCESS] = { uniformsLayout( BINDING_LAYOUT_POST_PROCESS, false ), defaultLayout, samplerOneBindingLayout };
+
+	bindingLayouts[BINDING_LAYOUT_CONSTANT_BUFFER_ONLY] = { uniformsLayout( BINDING_LAYOUT_CONSTANT_BUFFER_ONLY, false ) };
+	bindingLayouts[BINDING_LAYOUT_CONSTANT_BUFFER_ONLY_SKINNED] = { uniformsLayout( BINDING_LAYOUT_CONSTANT_BUFFER_ONLY_SKINNED, true ) };
 
 	auto defaultMaterialLayoutDesc = nvrhi::BindingLayoutDesc()
 									 .setVisibility( nvrhi::ShaderType::Pixel )
@@ -220,13 +408,13 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 									   .addItem( nvrhi::BindingLayoutItem::Sampler( 1 ) );	// (Clamp) Linear sampler: brdf lut sampler & ssao sampler
 	auto samplerTwoBindingLayout = device->createBindingLayout( samplerTwoBindingLayoutDesc );
 
-	bindingLayouts[ BINDING_LAYOUT_AMBIENT_LIGHTING_IBL ] =
+	bindingLayouts[BINDING_LAYOUT_AMBIENT_LIGHTING_IBL] =
 	{
-		uniformsLayout, defaultMaterialLayout, ambientIblLayout, samplerTwoBindingLayout
+		uniformsLayout( BINDING_LAYOUT_AMBIENT_LIGHTING_IBL, false ), defaultMaterialLayout, ambientIblLayout, samplerTwoBindingLayout
 	};
-	bindingLayouts[ BINDING_LAYOUT_AMBIENT_LIGHTING_IBL_SKINNED ] =
+	bindingLayouts[BINDING_LAYOUT_AMBIENT_LIGHTING_IBL_SKINNED] =
 	{
-		skinningLayout, defaultMaterialLayout, ambientIblLayout, samplerTwoBindingLayout
+		uniformsLayout( BINDING_LAYOUT_AMBIENT_LIGHTING_IBL_SKINNED, true ), defaultMaterialLayout, ambientIblLayout, samplerTwoBindingLayout
 	};
 
 	auto blitLayoutDesc = nvrhi::BindingLayoutDesc()
@@ -235,9 +423,16 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 
 	bindingLayouts[BINDING_LAYOUT_BLIT] = { device->createBindingLayout( blitLayoutDesc ) };
 
+	auto aoLayoutItem = layoutAttributes[BINDING_LAYOUT_DRAW_AO].cbStatic ? nvrhi::BindingLayoutItem::ConstantBuffer( 0 ) : nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 );
+
+	if( deviceManager->m_DeviceParams.maxPushConstantSize >= layoutAttributes[BINDING_LAYOUT_DRAW_AO].rpBufSize )
+	{
+		aoLayoutItem = nvrhi::BindingLayoutItem::PushConstants( 0, layoutAttributes[BINDING_LAYOUT_DRAW_AO].rpBufSize );
+	}
+
 	auto aoLayoutDesc = nvrhi::BindingLayoutDesc()
 						.setVisibility( nvrhi::ShaderType::All )
-						.addItem( renderParmLayoutItem )
+						.addItem( aoLayoutItem )
 						.addItem( nvrhi::BindingLayoutItem::Texture_SRV( 0 ) )
 						.addItem( nvrhi::BindingLayoutItem::Texture_SRV( 1 ) )
 						.addItem( nvrhi::BindingLayoutItem::Texture_SRV( 2 ) );
@@ -246,7 +441,7 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 
 	auto aoLayoutDesc2 = nvrhi::BindingLayoutDesc()
 						 .setVisibility( nvrhi::ShaderType::All )
-						 .addItem( renderParmLayoutItem )
+						 .addItem( aoLayoutItem )
 						 .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 0 ) );
 
 	bindingLayouts[BINDING_LAYOUT_DRAW_AO1] = { device->createBindingLayout( aoLayoutDesc2 ), samplerOneBindingLayout };
@@ -257,13 +452,14 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 										.addItem( nvrhi::BindingLayoutItem::Texture_SRV( 4 ) );	// light projection
 
 	auto interactionBindingLayout = device->createBindingLayout( interactionBindingLayoutDesc );
+
 	bindingLayouts[BINDING_LAYOUT_DRAW_INTERACTION] =
 	{
-		uniformsLayout, defaultMaterialLayout, interactionBindingLayout, samplerTwoBindingLayout
+		uniformsLayout( BINDING_LAYOUT_DRAW_INTERACTION, false ), defaultMaterialLayout, interactionBindingLayout, samplerTwoBindingLayout
 	};
 	bindingLayouts[BINDING_LAYOUT_DRAW_INTERACTION_SKINNED] =
 	{
-		skinningLayout, defaultMaterialLayout, interactionBindingLayout, samplerTwoBindingLayout
+		uniformsLayout( BINDING_LAYOUT_DRAW_INTERACTION_SKINNED, true ), defaultMaterialLayout, interactionBindingLayout, samplerTwoBindingLayout
 	};
 
 	auto interactionSmBindingLayoutDesc = nvrhi::BindingLayoutDesc()
@@ -285,11 +481,11 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 
 	bindingLayouts[BINDING_LAYOUT_DRAW_INTERACTION_SM] =
 	{
-		uniformsLayout, defaultMaterialLayout, interactionSmBindingLayout, samplerFourBindingLayout
+		uniformsLayout( BINDING_LAYOUT_DRAW_INTERACTION_SM, false ), defaultMaterialLayout, interactionSmBindingLayout, samplerFourBindingLayout
 	};
 	bindingLayouts[BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED] =
 	{
-		skinningLayout, defaultMaterialLayout, interactionSmBindingLayout, samplerFourBindingLayout
+		uniformsLayout( BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED, true ), defaultMaterialLayout, interactionSmBindingLayout, samplerFourBindingLayout
 	};
 
 	auto fogBindingLayoutDesc = nvrhi::BindingLayoutDesc()
@@ -301,11 +497,11 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 
 	bindingLayouts[BINDING_LAYOUT_FOG] =
 	{
-		uniformsLayout, fogBindingLayout, samplerTwoBindingLayout
+		uniformsLayout( BINDING_LAYOUT_FOG, false ), fogBindingLayout, samplerTwoBindingLayout
 	};
 	bindingLayouts[BINDING_LAYOUT_FOG_SKINNED] =
 	{
-		skinningLayout, fogBindingLayout, samplerTwoBindingLayout
+		uniformsLayout( BINDING_LAYOUT_FOG_SKINNED, true ), fogBindingLayout, samplerTwoBindingLayout
 	};
 
 	auto blendLightBindingLayoutDesc = nvrhi::BindingLayoutDesc()
@@ -317,25 +513,39 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 
 	bindingLayouts[BINDING_LAYOUT_BLENDLIGHT] =
 	{
-		uniformsLayout, blendLightBindingLayout, samplerOneBindingLayout
+		uniformsLayout( BINDING_LAYOUT_BLENDLIGHT, false ), blendLightBindingLayout, samplerOneBindingLayout
 	};
 	bindingLayouts[BINDING_LAYOUT_BLENDLIGHT_SKINNED] =
 	{
-		uniformsLayout, blendLightBindingLayout, samplerOneBindingLayout
+		uniformsLayout( BINDING_LAYOUT_BLENDLIGHT_SKINNED, true ), blendLightBindingLayout, samplerOneBindingLayout
 	};
+
+	auto pp3DLayoutItem = layoutAttributes[BINDING_LAYOUT_POST_PROCESS_INGAME].cbStatic ? nvrhi::BindingLayoutItem::ConstantBuffer( 0 ) : nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 );
+
+	if( deviceManager->m_DeviceParams.maxPushConstantSize >= layoutAttributes[BINDING_LAYOUT_POST_PROCESS_INGAME].rpBufSize )
+	{
+		pp3DLayoutItem = nvrhi::BindingLayoutItem::PushConstants( 0, layoutAttributes[BINDING_LAYOUT_POST_PROCESS_INGAME].rpBufSize );
+	}
 
 	auto pp3DBindingLayout = nvrhi::BindingLayoutDesc()
 							 .setVisibility( nvrhi::ShaderType::All )
-							 .addItem( renderParmLayoutItem )
+							 .addItem( pp3DLayoutItem )
 							 .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 0 ) )	// current render
 							 .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 1 ) )	// normal map
 							 .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 2 ) );	// mask
 
 	bindingLayouts[BINDING_LAYOUT_POST_PROCESS_INGAME] = { device->createBindingLayout( pp3DBindingLayout ), samplerOneBindingLayout };
 
+	auto ppFxLayoutItem = layoutAttributes[BINDING_LAYOUT_POST_PROCESS_FINAL].cbStatic ? nvrhi::BindingLayoutItem::ConstantBuffer( 0 ) : nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 );
+
+	if( deviceManager->m_DeviceParams.maxPushConstantSize >= layoutAttributes[BINDING_LAYOUT_POST_PROCESS_FINAL].rpBufSize )
+	{
+		ppFxLayoutItem = nvrhi::BindingLayoutItem::PushConstants( 0, layoutAttributes[BINDING_LAYOUT_POST_PROCESS_FINAL].rpBufSize );
+	}
+
 	auto ppFxBindingLayout = nvrhi::BindingLayoutDesc()
 							 .setVisibility( nvrhi::ShaderType::All )
-							 .addItem( renderParmLayoutItem )
+							 .addItem( ppFxLayoutItem )
 							 .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 0 ) )
 							 .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 1 ) );
 
@@ -350,29 +560,45 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 
 	bindingLayouts[BINDING_LAYOUT_NORMAL_CUBE] =
 	{
-		uniformsLayout, normalCubeBindingLayout, samplerOneBindingLayout
+		uniformsLayout( BINDING_LAYOUT_NORMAL_CUBE, false ), normalCubeBindingLayout, samplerOneBindingLayout
 	};
 	bindingLayouts[BINDING_LAYOUT_NORMAL_CUBE_SKINNED] =
 	{
-		skinningLayout, normalCubeBindingLayout, samplerOneBindingLayout
+		uniformsLayout( BINDING_LAYOUT_NORMAL_CUBE_SKINNED, true ), normalCubeBindingLayout, samplerOneBindingLayout
 	};
+
+	auto binkVideoLayoutItem = layoutAttributes[BINDING_LAYOUT_BINK_VIDEO].cbStatic ? nvrhi::BindingLayoutItem::ConstantBuffer( 0 ) : nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 );
+
+	if( deviceManager->m_DeviceParams.maxPushConstantSize >= layoutAttributes[BINDING_LAYOUT_BINK_VIDEO].rpBufSize )
+	{
+		binkVideoLayoutItem = nvrhi::BindingLayoutItem::PushConstants( 0, layoutAttributes[BINDING_LAYOUT_BINK_VIDEO].rpBufSize );
+	}
 
 	auto binkVideoBindingLayout = nvrhi::BindingLayoutDesc()
 								  .setVisibility( nvrhi::ShaderType::All )
-								  .addItem( renderParmLayoutItem )
+								  .addItem( binkVideoLayoutItem )
 								  .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 0 ) )	// cube map
 								  .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 1 ) )	// cube map
 								  .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 2 ) );	// normal map
 
 	bindingLayouts[BINDING_LAYOUT_BINK_VIDEO] = { device->createBindingLayout( binkVideoBindingLayout ), samplerOneBindingLayout };
 
+	auto motionVectorsLayoutItem = layoutAttributes[BINDING_LAYOUT_TAA_MOTION_VECTORS].cbStatic ? nvrhi::BindingLayoutItem::ConstantBuffer( 0 ) : nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 );
+
+	if( deviceManager->m_DeviceParams.maxPushConstantSize >= layoutAttributes[BINDING_LAYOUT_TAA_MOTION_VECTORS].rpBufSize )
+	{
+		motionVectorsLayoutItem = nvrhi::BindingLayoutItem::PushConstants( 0, layoutAttributes[BINDING_LAYOUT_TAA_MOTION_VECTORS].rpBufSize );
+	}
+
 	auto motionVectorsBindingLayout = nvrhi::BindingLayoutDesc()
 									  .setVisibility( nvrhi::ShaderType::All )
-									  .addItem( renderParmLayoutItem )
+									  .addItem( motionVectorsLayoutItem )
 									  .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 0 ) )	// cube map
 									  .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 1 ) );	// normal map
 
 	bindingLayouts[BINDING_LAYOUT_TAA_MOTION_VECTORS] = { device->createBindingLayout( motionVectorsBindingLayout ), samplerOneBindingLayout };
+
+	bindingLayouts[BINDING_LAYOUT_TAA_RESOLVE] = { };
 
 	nvrhi::BindingLayoutDesc tonemapLayout;
 	tonemapLayout.visibility = nvrhi::ShaderType::Pixel;
@@ -384,6 +610,7 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 		nvrhi::BindingLayoutItem::Texture_SRV( 2 ),
 		nvrhi::BindingLayoutItem::Sampler( 0 )
 	};
+
 	bindingLayouts[BINDING_LAYOUT_TONEMAP] = { device->createBindingLayout( tonemapLayout ) };
 
 	nvrhi::BindingLayoutDesc histogramLayout;
@@ -394,6 +621,7 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 		nvrhi::BindingLayoutItem::Texture_SRV( 0 ),
 		nvrhi::BindingLayoutItem::TypedBuffer_UAV( 0 )
 	};
+
 	bindingLayouts[BINDING_LAYOUT_HISTOGRAM] = { device->createBindingLayout( histogramLayout ) };
 
 	nvrhi::BindingLayoutDesc exposureLayout;
@@ -404,7 +632,31 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 		nvrhi::BindingLayoutItem::TypedBuffer_SRV( 0 ),
 		nvrhi::BindingLayoutItem::TypedBuffer_UAV( 0 )
 	};
+
 	bindingLayouts[BINDING_LAYOUT_EXPOSURE] = { device->createBindingLayout( exposureLayout ) };
+
+	// SRS - allocate static/volatile constant buffers after binding layout sizes are defined
+	for( int i = 0; i < NUM_BINDING_LAYOUTS; i++ )
+	{
+		nvrhi::BufferDesc constantBufferDesc;
+
+		// SRS - allocate static constant buffer for specific binding layouts, otherwise volatile
+		if( layoutAttributes[i].cbStatic )
+		{
+			constantBufferDesc = nvrhi::utils::CreateStaticConstantBufferDesc( layoutAttributes[i].rpBufSize, va( "RenderParams_%d", i ) );
+			constantBufferDesc.initialState = nvrhi::ResourceStates::ConstantBuffer;
+			constantBufferDesc.keepInitialState = true;
+		}
+		else
+		{
+			constantBufferDesc = nvrhi::utils::CreateVolatileConstantBufferDesc( layoutAttributes[i].rpBufSize, va( "RenderParams_%d", i ), 8192 );
+		}
+
+		constantBuffer[i] = device->createBuffer( constantBufferDesc );
+	}
+
+	// SRS - added support for runtime configuration of push constants
+	#define usePushConstants(layout) (deviceManager->m_DeviceParams.maxPushConstantSize >= layoutAttributes[layout].rpBufSize ? "1" : "0")
 
 	// RB: added checks for GPU skinning
 	struct builtinShaders_t
@@ -420,141 +672,141 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 		//bindingLayoutType_t		bindingLayout2;
 	} builtins[] =
 	{
-		{ BUILTIN_GUI, "builtin/gui", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
-		{ BUILTIN_COLOR, "builtin/color", "", { {"USE_GPU_SKINNING", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_CONSTANT_BUFFER_ONLY },
+		{ BUILTIN_GUI, "builtin/gui", "", { { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DEFAULT ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
+		{ BUILTIN_COLOR, "builtin/color", "", { { "USE_GPU_SKINNING", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_CONSTANT_BUFFER_ONLY ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_CONSTANT_BUFFER_ONLY },
 
-		{ BUILTIN_COLOR_SKINNED, "builtin/color", "_skinned", { {"USE_GPU_SKINNING", "1" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_CONSTANT_BUFFER_ONLY_SKINNED },
-		{ BUILTIN_VERTEX_COLOR, "builtin/vertex_color", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_CONSTANT_BUFFER_ONLY },
+		{ BUILTIN_COLOR_SKINNED, "builtin/color", "_skinned", { { "USE_GPU_SKINNING", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_CONSTANT_BUFFER_ONLY_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_CONSTANT_BUFFER_ONLY_SKINNED },
+		{ BUILTIN_VERTEX_COLOR, "builtin/vertex_color", "", { { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_CONSTANT_BUFFER_ONLY ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_CONSTANT_BUFFER_ONLY },
 
-		{ BUILTIN_AMBIENT_LIGHTING_IBL, "builtin/lighting/ambient_lighting_IBL", "", { { "USE_GPU_SKINNING", "0" }, { "USE_PBR", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_AMBIENT_LIGHTING_IBL },
-		{ BUILTIN_AMBIENT_LIGHTING_IBL_SKINNED, "builtin/lighting/ambient_lighting_IBL", "_skinned", { { "USE_GPU_SKINNING", "1" }, { "USE_PBR", "0" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_AMBIENT_LIGHTING_IBL_SKINNED },
-		{ BUILTIN_AMBIENT_LIGHTING_IBL_PBR, "builtin/lighting/ambient_lighting_IBL", "_PBR", { { "USE_GPU_SKINNING", "0" }, { "USE_PBR", "1" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_AMBIENT_LIGHTING_IBL },
-		{ BUILTIN_AMBIENT_LIGHTING_IBL_PBR_SKINNED, "builtin/lighting/ambient_lighting_IBL", "_PBR_skinned", { { "USE_GPU_SKINNING", "1" }, { "USE_PBR", "1" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_AMBIENT_LIGHTING_IBL_SKINNED },
+		{ BUILTIN_AMBIENT_LIGHTING_IBL, "builtin/lighting/ambient_lighting_IBL", "", { { "USE_GPU_SKINNING", "0" }, { "USE_PBR", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_AMBIENT_LIGHTING_IBL ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_AMBIENT_LIGHTING_IBL },
+		{ BUILTIN_AMBIENT_LIGHTING_IBL_SKINNED, "builtin/lighting/ambient_lighting_IBL", "_skinned", { { "USE_GPU_SKINNING", "1" }, { "USE_PBR", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_AMBIENT_LIGHTING_IBL_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_AMBIENT_LIGHTING_IBL_SKINNED },
+		{ BUILTIN_AMBIENT_LIGHTING_IBL_PBR, "builtin/lighting/ambient_lighting_IBL", "_PBR", { { "USE_GPU_SKINNING", "0" }, { "USE_PBR", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_AMBIENT_LIGHTING_IBL ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_AMBIENT_LIGHTING_IBL },
+		{ BUILTIN_AMBIENT_LIGHTING_IBL_PBR_SKINNED, "builtin/lighting/ambient_lighting_IBL", "_PBR_skinned", { { "USE_GPU_SKINNING", "1" }, { "USE_PBR", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_AMBIENT_LIGHTING_IBL_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_AMBIENT_LIGHTING_IBL_SKINNED },
 
-		{ BUILTIN_AMBIENT_LIGHTGRID_IBL, "builtin/lighting/ambient_lightgrid_IBL", "", { { "USE_GPU_SKINNING", "0" }, { "USE_PBR", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_AMBIENT_LIGHTING_IBL },
-		{ BUILTIN_AMBIENT_LIGHTGRID_IBL_SKINNED, "builtin/lighting/ambient_lightgrid_IBL", "_skinned", { { "USE_GPU_SKINNING", "1" }, { "USE_PBR", "0" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_AMBIENT_LIGHTING_IBL_SKINNED },
-		{ BUILTIN_AMBIENT_LIGHTGRID_IBL_PBR, "builtin/lighting/ambient_lightgrid_IBL", "_PBR", { { "USE_GPU_SKINNING", "0" }, { "USE_PBR", "1" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_AMBIENT_LIGHTING_IBL },
-		{ BUILTIN_AMBIENT_LIGHTGRID_IBL_PBR_SKINNED, "builtin/lighting/ambient_lightgrid_IBL", "_PBR_skinned", { { "USE_GPU_SKINNING", "1" }, { "USE_PBR", "1" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_AMBIENT_LIGHTING_IBL_SKINNED },
+		{ BUILTIN_AMBIENT_LIGHTGRID_IBL, "builtin/lighting/ambient_lightgrid_IBL", "", { { "USE_GPU_SKINNING", "0" }, { "USE_PBR", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_AMBIENT_LIGHTING_IBL ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_AMBIENT_LIGHTING_IBL },
+		{ BUILTIN_AMBIENT_LIGHTGRID_IBL_SKINNED, "builtin/lighting/ambient_lightgrid_IBL", "_skinned", { { "USE_GPU_SKINNING", "1" }, { "USE_PBR", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_AMBIENT_LIGHTING_IBL_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_AMBIENT_LIGHTING_IBL_SKINNED },
+		{ BUILTIN_AMBIENT_LIGHTGRID_IBL_PBR, "builtin/lighting/ambient_lightgrid_IBL", "_PBR", { { "USE_GPU_SKINNING", "0" }, { "USE_PBR", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_AMBIENT_LIGHTING_IBL ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_AMBIENT_LIGHTING_IBL },
+		{ BUILTIN_AMBIENT_LIGHTGRID_IBL_PBR_SKINNED, "builtin/lighting/ambient_lightgrid_IBL", "_PBR_skinned", { { "USE_GPU_SKINNING", "1" }, { "USE_PBR", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_AMBIENT_LIGHTING_IBL_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_AMBIENT_LIGHTING_IBL_SKINNED },
 
-		{ BUILTIN_SMALL_GEOMETRY_BUFFER, "builtin/gbuffer", "", { {"USE_GPU_SKINNING", "0" }, { "USE_NORMAL_FMT_RGB8", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
-		{ BUILTIN_SMALL_GEOMETRY_BUFFER_SKINNED, "builtin/gbuffer", "_skinned", { {"USE_GPU_SKINNING", "1" }, { "USE_NORMAL_FMT_RGB8", "0" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT_SKINNED },
+		{ BUILTIN_SMALL_GEOMETRY_BUFFER, "builtin/gbuffer", "", { { "USE_GPU_SKINNING", "0" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_GBUFFER ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_GBUFFER },
+		{ BUILTIN_SMALL_GEOMETRY_BUFFER_SKINNED, "builtin/gbuffer", "_skinned", { { "USE_GPU_SKINNING", "1" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_GBUFFER_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_GBUFFER_SKINNED },
 
-		{ BUILTIN_TEXTURED, "builtin/texture", "", { }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
-		{ BUILTIN_TEXTURE_VERTEXCOLOR, "builtin/texture_color", "", { {"USE_GPU_SKINNING", "0" }, {"USE_SRGB", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
-		{ BUILTIN_TEXTURE_VERTEXCOLOR_SRGB, "builtin/texture_color", "_sRGB", { {"USE_GPU_SKINNING", "0" }, {"USE_SRGB", "1" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
-		{ BUILTIN_TEXTURE_VERTEXCOLOR_SKINNED, "builtin/texture_color", "_skinned", { {"USE_GPU_SKINNING", "1" }, {"USE_SRGB", "0" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT_SKINNED },
-		{ BUILTIN_TEXTURE_TEXGEN_VERTEXCOLOR, "builtin/texture_color_texgen", "",  {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
+		{ BUILTIN_TEXTURED, "builtin/texture", "", { { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_TEXTURE ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_TEXTURE },
+		{ BUILTIN_TEXTURE_VERTEXCOLOR, "builtin/texture_color", "", { { "USE_GPU_SKINNING", "0" }, {"USE_SRGB", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_TEXTURE ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_TEXTURE },
+		{ BUILTIN_TEXTURE_VERTEXCOLOR_SRGB, "builtin/texture_color", "_sRGB", { { "USE_GPU_SKINNING", "0" }, {"USE_SRGB", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_TEXTURE ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_TEXTURE },
+		{ BUILTIN_TEXTURE_VERTEXCOLOR_SKINNED, "builtin/texture_color", "_skinned", { { "USE_GPU_SKINNING", "1" }, {"USE_SRGB", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_TEXTURE_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_TEXTURE_SKINNED },
+		{ BUILTIN_TEXTURE_TEXGEN_VERTEXCOLOR, "builtin/texture_color_texgen", "", { { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_TEXTURE ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_TEXTURE },
 
+		{ BUILTIN_INTERACTION, "builtin/lighting/interaction", "", { { "USE_GPU_SKINNING", "0" }, { "USE_PBR", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION },
+		{ BUILTIN_INTERACTION_SKINNED, "builtin/lighting/interaction", "_skinned", { { "USE_GPU_SKINNING", "1" }, { "USE_PBR", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SKINNED },
 
-		{ BUILTIN_INTERACTION, "builtin/lighting/interaction", "", { {"USE_GPU_SKINNING", "0" }, { "USE_PBR", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION },
-		{ BUILTIN_INTERACTION_SKINNED, "builtin/lighting/interaction", "_skinned", { {"USE_GPU_SKINNING", "1" }, { "USE_PBR", "0" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SKINNED },
-
-		{ BUILTIN_INTERACTION_AMBIENT, "builtin/lighting/interactionAmbient", "", { {"USE_GPU_SKINNING", "0" }, { "USE_PBR", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION },
-		{ BUILTIN_INTERACTION_AMBIENT_SKINNED, "builtin/lighting/interactionAmbient", "_skinned", { {"USE_GPU_SKINNING", "1" }, { "USE_PBR", "0" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SKINNED },
+		{ BUILTIN_INTERACTION_AMBIENT, "builtin/lighting/interactionAmbient", "", { { "USE_GPU_SKINNING", "0" }, { "USE_PBR", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION },
+		{ BUILTIN_INTERACTION_AMBIENT_SKINNED, "builtin/lighting/interactionAmbient", "_skinned", { { "USE_GPU_SKINNING", "1" }, { "USE_PBR", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SKINNED },
 
 		// PBR variants
-		{ BUILTIN_PBR_INTERACTION, "builtin/lighting/interaction", "_PBR", { {"USE_GPU_SKINNING", "0" }, { "USE_PBR", "1" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION },
-		{ BUILTIN_PBR_INTERACTION_SKINNED, "builtin/lighting/interaction", "_skinned_PBR", { {"USE_GPU_SKINNING", "1" }, { "USE_PBR", "1" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SKINNED },
+		{ BUILTIN_PBR_INTERACTION, "builtin/lighting/interaction", "_PBR", { { "USE_GPU_SKINNING", "0" }, { "USE_PBR", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION },
+		{ BUILTIN_PBR_INTERACTION_SKINNED, "builtin/lighting/interaction", "_skinned_PBR", { { "USE_GPU_SKINNING", "1" }, { "USE_PBR", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SKINNED },
 
-		{ BUILTIN_PBR_INTERACTION_AMBIENT, "builtin/lighting/interactionAmbient", "_PBR", { {"USE_GPU_SKINNING", "0" }, { "USE_PBR", "1" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION },
-		{ BUILTIN_PBR_INTERACTION_AMBIENT_SKINNED, "builtin/lighting/interactionAmbient", "_skinned_PBR", { {"USE_GPU_SKINNING", "1" }, { "USE_PBR", "1" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SKINNED },
+		{ BUILTIN_PBR_INTERACTION_AMBIENT, "builtin/lighting/interactionAmbient", "_PBR", { { "USE_GPU_SKINNING", "0" }, { "USE_PBR", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION },
+		{ BUILTIN_PBR_INTERACTION_AMBIENT_SKINNED, "builtin/lighting/interactionAmbient", "_skinned_PBR", { { "USE_GPU_SKINNING", "1" }, { "USE_PBR", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SKINNED },
 
 		// regular shadow mapping
-		{ BUILTIN_INTERACTION_SHADOW_MAPPING_SPOT, "builtin/lighting/interactionSM", "_spot", { {"USE_GPU_SKINNING", "0" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "0" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM },
-		{ BUILTIN_INTERACTION_SHADOW_MAPPING_SPOT_SKINNED, "builtin/lighting/interactionSM", "_spot_skinned", { {"USE_GPU_SKINNING", "1" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "0" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "0" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED },
+		{ BUILTIN_INTERACTION_SHADOW_MAPPING_SPOT, "builtin/lighting/interactionSM", "_spot", { { "USE_GPU_SKINNING", "0" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "0" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SM ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM },
+		{ BUILTIN_INTERACTION_SHADOW_MAPPING_SPOT_SKINNED, "builtin/lighting/interactionSM", "_spot_skinned", { { "USE_GPU_SKINNING", "1" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "0" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED },
 
-		{ BUILTIN_INTERACTION_SHADOW_MAPPING_POINT, "builtin/lighting/interactionSM", "_point", { {"USE_GPU_SKINNING", "0" }, { "LIGHT_POINT", "1" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "0" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM },
-		{ BUILTIN_INTERACTION_SHADOW_MAPPING_POINT_SKINNED, "builtin/lighting/interactionSM", "_point_skinned", { {"USE_GPU_SKINNING", "1" }, { "LIGHT_POINT", "1" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "0" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "0" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED },
+		{ BUILTIN_INTERACTION_SHADOW_MAPPING_POINT, "builtin/lighting/interactionSM", "_point", { { "USE_GPU_SKINNING", "0" }, { "LIGHT_POINT", "1" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "0" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SM ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM },
+		{ BUILTIN_INTERACTION_SHADOW_MAPPING_POINT_SKINNED, "builtin/lighting/interactionSM", "_point_skinned", { { "USE_GPU_SKINNING", "1" }, { "LIGHT_POINT", "1" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "0" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED },
 
-		{ BUILTIN_INTERACTION_SHADOW_MAPPING_PARALLEL, "builtin/lighting/interactionSM", "_parallel", { {"USE_GPU_SKINNING", "0" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "1" }, { "USE_PBR", "0" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM },
-		{ BUILTIN_INTERACTION_SHADOW_MAPPING_PARALLEL_SKINNED, "builtin/lighting/interactionSM", "_parallel_skinned", { {"USE_GPU_SKINNING", "1" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "1" }, { "USE_PBR", "0" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "0" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED },
+		{ BUILTIN_INTERACTION_SHADOW_MAPPING_PARALLEL, "builtin/lighting/interactionSM", "_parallel", { { "USE_GPU_SKINNING", "0" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "1" }, { "USE_PBR", "0" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SM ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM },
+		{ BUILTIN_INTERACTION_SHADOW_MAPPING_PARALLEL_SKINNED, "builtin/lighting/interactionSM", "_parallel_skinned", { { "USE_GPU_SKINNING", "1" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "1" }, { "USE_PBR", "0" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED },
 
-		{ BUILTIN_PBR_INTERACTION_SHADOW_MAPPING_SPOT, "builtin/lighting/interactionSM", "_spot_PBR", { {"USE_GPU_SKINNING", "0" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "1" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM },
-		{ BUILTIN_PBR_INTERACTION_SHADOW_MAPPING_SPOT_SKINNED, "builtin/lighting/interactionSM", "_spot_skinned_PBR", { {"USE_GPU_SKINNING", "1" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "1" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "0" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED },
+		{ BUILTIN_PBR_INTERACTION_SHADOW_MAPPING_SPOT, "builtin/lighting/interactionSM", "_spot_PBR", { { "USE_GPU_SKINNING", "0" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "1" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SM ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM },
+		{ BUILTIN_PBR_INTERACTION_SHADOW_MAPPING_SPOT_SKINNED, "builtin/lighting/interactionSM", "_spot_skinned_PBR", { { "USE_GPU_SKINNING", "1" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "1" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED },
 
-		{ BUILTIN_PBR_INTERACTION_SHADOW_MAPPING_POINT, "builtin/lighting/interactionSM", "_point_PBR", { {"USE_GPU_SKINNING", "0" }, { "LIGHT_POINT", "1" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "1" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM },
-		{ BUILTIN_PBR_INTERACTION_SHADOW_MAPPING_POINT_SKINNED, "builtin/lighting/interactionSM", "_point_skinned_PBR", { {"USE_GPU_SKINNING", "1" }, { "LIGHT_POINT", "1" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "1" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "0" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED },
+		{ BUILTIN_PBR_INTERACTION_SHADOW_MAPPING_POINT, "builtin/lighting/interactionSM", "_point_PBR", { { "USE_GPU_SKINNING", "0" }, { "LIGHT_POINT", "1" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "1" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SM ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM },
+		{ BUILTIN_PBR_INTERACTION_SHADOW_MAPPING_POINT_SKINNED, "builtin/lighting/interactionSM", "_point_skinned_PBR", { { "USE_GPU_SKINNING", "1" }, { "LIGHT_POINT", "1" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "1" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED },
 
-		{ BUILTIN_PBR_INTERACTION_SHADOW_MAPPING_PARALLEL, "builtin/lighting/interactionSM", "_parallel_PBR", { {"USE_GPU_SKINNING", "0" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "1" }, { "USE_PBR", "1" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM },
-		{ BUILTIN_PBR_INTERACTION_SHADOW_MAPPING_PARALLEL_SKINNED, "builtin/lighting/interactionSM", "_parallel_skinned_PBR", { {"USE_GPU_SKINNING", "1" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "1" }, { "USE_PBR", "1" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "0" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED },
+		{ BUILTIN_PBR_INTERACTION_SHADOW_MAPPING_PARALLEL, "builtin/lighting/interactionSM", "_parallel_PBR", { { "USE_GPU_SKINNING", "0" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "1" }, { "USE_PBR", "1" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SM ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM },
+		{ BUILTIN_PBR_INTERACTION_SHADOW_MAPPING_PARALLEL_SKINNED, "builtin/lighting/interactionSM", "_parallel_skinned_PBR", { { "USE_GPU_SKINNING", "1" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "1" }, { "USE_PBR", "1" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED },
 
 		// shadow mapping using a big atlas
-		{ BUILTIN_INTERACTION_SHADOW_ATLAS_SPOT, "builtin/lighting/interactionSM", "_atlas_spot", { {"USE_GPU_SKINNING", "0" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "0" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "1" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM },
-		{ BUILTIN_INTERACTION_SHADOW_ATLAS_SPOT_SKINNED, "builtin/lighting/interactionSM", "_atlas_spot_skinned", { {"USE_GPU_SKINNING", "1" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "0" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "1" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED },
+		{ BUILTIN_INTERACTION_SHADOW_ATLAS_SPOT, "builtin/lighting/interactionSM", "_atlas_spot", { { "USE_GPU_SKINNING", "0" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "0" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SM ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM },
+		{ BUILTIN_INTERACTION_SHADOW_ATLAS_SPOT_SKINNED, "builtin/lighting/interactionSM", "_atlas_spot_skinned", { { "USE_GPU_SKINNING", "1" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "0" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED },
 
-		{ BUILTIN_INTERACTION_SHADOW_ATLAS_POINT, "builtin/lighting/interactionSM", "_atlas_point", { {"USE_GPU_SKINNING", "0" }, { "LIGHT_POINT", "1" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "0" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "1" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM },
-		{ BUILTIN_INTERACTION_SHADOW_ATLAS_POINT_SKINNED, "builtin/lighting/interactionSM", "_atlas_point_skinned", { {"USE_GPU_SKINNING", "1" }, { "LIGHT_POINT", "1" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "0" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "1" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED },
+		{ BUILTIN_INTERACTION_SHADOW_ATLAS_POINT, "builtin/lighting/interactionSM", "_atlas_point", { { "USE_GPU_SKINNING", "0" }, { "LIGHT_POINT", "1" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "0" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SM ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM },
+		{ BUILTIN_INTERACTION_SHADOW_ATLAS_POINT_SKINNED, "builtin/lighting/interactionSM", "_atlas_point_skinned", { { "USE_GPU_SKINNING", "1" }, { "LIGHT_POINT", "1" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "0" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED },
 
-		{ BUILTIN_INTERACTION_SHADOW_ATLAS_PARALLEL, "builtin/lighting/interactionSM", "_atlas_parallel", { {"USE_GPU_SKINNING", "0" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "1" }, { "USE_PBR", "0" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "1" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM },
-		{ BUILTIN_INTERACTION_SHADOW_ATLAS_PARALLEL_SKINNED, "builtin/lighting/interactionSM", "_atlas_parallel_skinned", { {"USE_GPU_SKINNING", "1" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "1" }, { "USE_PBR", "0" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "1" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED },
+		{ BUILTIN_INTERACTION_SHADOW_ATLAS_PARALLEL, "builtin/lighting/interactionSM", "_atlas_parallel", { { "USE_GPU_SKINNING", "0" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "1" }, { "USE_PBR", "0" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SM ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM },
+		{ BUILTIN_INTERACTION_SHADOW_ATLAS_PARALLEL_SKINNED, "builtin/lighting/interactionSM", "_atlas_parallel_skinned", { { "USE_GPU_SKINNING", "1" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "1" }, { "USE_PBR", "0" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED },
 
-		{ BUILTIN_PBR_INTERACTION_SHADOW_ATLAS_SPOT, "builtin/lighting/interactionSM", "_atlas_spot_PBR", { {"USE_GPU_SKINNING", "0" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "1" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "1" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM },
-		{ BUILTIN_PBR_INTERACTION_SHADOW_ATLAS_SPOT_SKINNED, "builtin/lighting/interactionSM", "_atlas_spot_skinned_PBR", { {"USE_GPU_SKINNING", "1" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "1" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "1" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED },
+		{ BUILTIN_PBR_INTERACTION_SHADOW_ATLAS_SPOT, "builtin/lighting/interactionSM", "_atlas_spot_PBR", { { "USE_GPU_SKINNING", "0" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "1" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SM ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM },
+		{ BUILTIN_PBR_INTERACTION_SHADOW_ATLAS_SPOT_SKINNED, "builtin/lighting/interactionSM", "_atlas_spot_skinned_PBR", { { "USE_GPU_SKINNING", "1" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "1" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED },
 
-		{ BUILTIN_PBR_INTERACTION_SHADOW_ATLAS_POINT, "builtin/lighting/interactionSM", "_atlas_point_PBR", { {"USE_GPU_SKINNING", "0" }, { "LIGHT_POINT", "1" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "1" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "1" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM },
-		{ BUILTIN_PBR_INTERACTION_SHADOW_ATLAS_POINT_SKINNED, "builtin/lighting/interactionSM", "_atlas_point_skinned_PBR", { {"USE_GPU_SKINNING", "1" }, { "LIGHT_POINT", "1" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "1" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "1" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED },
+		{ BUILTIN_PBR_INTERACTION_SHADOW_ATLAS_POINT, "builtin/lighting/interactionSM", "_atlas_point_PBR", { { "USE_GPU_SKINNING", "0" }, { "LIGHT_POINT", "1" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "1" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SM ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM },
+		{ BUILTIN_PBR_INTERACTION_SHADOW_ATLAS_POINT_SKINNED, "builtin/lighting/interactionSM", "_atlas_point_skinned_PBR", { { "USE_GPU_SKINNING", "1" }, { "LIGHT_POINT", "1" }, { "LIGHT_PARALLEL", "0" }, { "USE_PBR", "1" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED },
 
-		{ BUILTIN_PBR_INTERACTION_SHADOW_ATLAS_PARALLEL, "builtin/lighting/interactionSM", "_atlas_parallel_PBR", { {"USE_GPU_SKINNING", "0" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "1" }, { "USE_PBR", "1" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "1" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM },
-		{ BUILTIN_PBR_INTERACTION_SHADOW_ATLAS_PARALLEL_SKINNED, "builtin/lighting/interactionSM", "_atlas_parallel_skinned_PBR", { {"USE_GPU_SKINNING", "1" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "1" }, { "USE_PBR", "1" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "1" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED },
-
+		{ BUILTIN_PBR_INTERACTION_SHADOW_ATLAS_PARALLEL, "builtin/lighting/interactionSM", "_atlas_parallel_PBR", { { "USE_GPU_SKINNING", "0" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "1" }, { "USE_PBR", "1" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SM ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM },
+		{ BUILTIN_PBR_INTERACTION_SHADOW_ATLAS_PARALLEL_SKINNED, "builtin/lighting/interactionSM", "_atlas_parallel_skinned_PBR", { { "USE_GPU_SKINNING", "1" }, { "LIGHT_POINT", "0" }, { "LIGHT_PARALLEL", "1" }, { "USE_PBR", "1" }, { "USE_NORMAL_FMT_RGB8", "0" }, { "USE_SHADOW_ATLAS", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_INTERACTION_SM_SKINNED },
 
 		// debug stuff
-		{ BUILTIN_DEBUG_LIGHTGRID, "builtin/debug/lightgrid", "", { {"USE_GPU_SKINNING", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
-		{ BUILTIN_DEBUG_LIGHTGRID_SKINNED, "builtin/debug/lightgrid", "_skinned", { {"USE_GPU_SKINNING", "1" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT_SKINNED },
+		{ BUILTIN_DEBUG_LIGHTGRID, "builtin/debug/lightgrid", "", { { "USE_GPU_SKINNING", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_SSGI ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_SSGI },
+		{ BUILTIN_DEBUG_LIGHTGRID_SKINNED, "builtin/debug/lightgrid", "_skinned", { { "USE_GPU_SKINNING", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_SSGI_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_SSGI_SKINNED },
 
-		{ BUILTIN_DEBUG_OCTAHEDRON, "builtin/debug/octahedron", "", { {"USE_GPU_SKINNING", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
-		{ BUILTIN_DEBUG_OCTAHEDRON_SKINNED, "builtin/debug/octahedron", "_skinned", { {"USE_GPU_SKINNING", "1" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT_SKINNED },
+		{ BUILTIN_DEBUG_OCTAHEDRON, "builtin/debug/octahedron", "", { { "USE_GPU_SKINNING", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DEFAULT ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
+		{ BUILTIN_DEBUG_OCTAHEDRON_SKINNED, "builtin/debug/octahedron", "_skinned", { { "USE_GPU_SKINNING", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DEFAULT_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT_SKINNED },
 
+		{ BUILTIN_ENVIRONMENT, "builtin/legacy/environment", "", { { "USE_GPU_SKINNING", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DEFAULT ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
+		{ BUILTIN_ENVIRONMENT_SKINNED, "builtin/legacy/environment", "_skinned",  { { "USE_GPU_SKINNING", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DEFAULT_SKINNED ) } }, true , SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT_SKINNED },
+		{ BUILTIN_BUMPY_ENVIRONMENT, "builtin/legacy/bumpyenvironment", "", { { "USE_GPU_SKINNING", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_NORMAL_CUBE ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_NORMAL_CUBE },
+		{ BUILTIN_BUMPY_ENVIRONMENT_SKINNED, "builtin/legacy/bumpyenvironment", "_skinned", { { "USE_GPU_SKINNING", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_NORMAL_CUBE_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_NORMAL_CUBE_SKINNED },
 
-		{ BUILTIN_ENVIRONMENT, "builtin/legacy/environment", "", { {"USE_GPU_SKINNING", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
-		{ BUILTIN_ENVIRONMENT_SKINNED, "builtin/legacy/environment", "_skinned",  { {"USE_GPU_SKINNING", "1" } }, true , SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT_SKINNED },
-		{ BUILTIN_BUMPY_ENVIRONMENT, "builtin/legacy/bumpyenvironment", "", { {"USE_GPU_SKINNING", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_NORMAL_CUBE },
-		{ BUILTIN_BUMPY_ENVIRONMENT_SKINNED, "builtin/legacy/bumpyenvironment", "_skinned", { {"USE_GPU_SKINNING", "1" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_NORMAL_CUBE_SKINNED },
+		{ BUILTIN_DEPTH, "builtin/depth", "", { { "USE_GPU_SKINNING", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_CONSTANT_BUFFER_ONLY ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_CONSTANT_BUFFER_ONLY },
+		{ BUILTIN_DEPTH_SKINNED, "builtin/depth", "_skinned", { { "USE_GPU_SKINNING", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_CONSTANT_BUFFER_ONLY_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_CONSTANT_BUFFER_ONLY_SKINNED },
 
-		{ BUILTIN_DEPTH, "builtin/depth", "", { {"USE_GPU_SKINNING", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_CONSTANT_BUFFER_ONLY },
-		{ BUILTIN_DEPTH_SKINNED, "builtin/depth", "_skinned", { {"USE_GPU_SKINNING", "1" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_CONSTANT_BUFFER_ONLY_SKINNED },
+		{ BUILTIN_BLENDLIGHT, "builtin/fog/blendlight", "",  { { "USE_GPU_SKINNING", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_BLENDLIGHT ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_BLENDLIGHT },
+		{ BUILTIN_BLENDLIGHT_SKINNED, "builtin/fog/blendlight", "_skinned",  { { "USE_GPU_SKINNING", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_BLENDLIGHT_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_BLENDLIGHT_SKINNED },
+		{ BUILTIN_FOG, "builtin/fog/fog", "", { { "USE_GPU_SKINNING", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_FOG ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_FOG },
+		{ BUILTIN_FOG_SKINNED, "builtin/fog/fog", "_skinned", { { "USE_GPU_SKINNING", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_FOG_SKINNED ) } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_FOG_SKINNED },
+		{ BUILTIN_SKYBOX, "builtin/legacy/skybox", "", { { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DEFAULT ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
+		{ BUILTIN_WOBBLESKY, "builtin/legacy/wobblesky", "", { { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_WOBBLESKY ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_WOBBLESKY },
+		{ BUILTIN_POSTPROCESS, "builtin/post/postprocess", "", { { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_POST_PROCESS_FINAL ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_POST_PROCESS_FINAL },
 
-		{ BUILTIN_BLENDLIGHT, "builtin/fog/blendlight", "",  { {"USE_GPU_SKINNING", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_BLENDLIGHT },
-		{ BUILTIN_BLENDLIGHT_SKINNED, "builtin/fog/blendlight", "_skinned",  { {"USE_GPU_SKINNING", "1" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_BLENDLIGHT_SKINNED },
-		{ BUILTIN_FOG, "builtin/fog/fog", "", { {"USE_GPU_SKINNING", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_FOG },
-		{ BUILTIN_FOG_SKINNED, "builtin/fog/fog", "_skinned", { {"USE_GPU_SKINNING", "1" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_FOG_SKINNED },
-		{ BUILTIN_SKYBOX, "builtin/legacy/skybox", "",  {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
-		{ BUILTIN_WOBBLESKY, "builtin/legacy/wobblesky", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
-		{ BUILTIN_POSTPROCESS, "builtin/post/postprocess", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_POST_PROCESS_FINAL },
+		{ BUILTIN_SCREEN, "builtin/post/screen", "", { { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_POST_PROCESS ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_POST_PROCESS },
+		{ BUILTIN_TONEMAP, "builtin/post/tonemap", "", { { "BRIGHTPASS", "0" }, { "HDR_DEBUG", "0"}, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_POST_PROCESS ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_POST_PROCESS },
+		{ BUILTIN_BRIGHTPASS, "builtin/post/tonemap", "_brightpass", { { "BRIGHTPASS", "1" }, { "HDR_DEBUG", "0"}, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_POST_PROCESS ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_POST_PROCESS },
+		{ BUILTIN_HDR_GLARE_CHROMATIC, "builtin/post/hdr_glare_chromatic", "", { { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_POST_PROCESS ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_POST_PROCESS },
+		{ BUILTIN_HDR_DEBUG, "builtin/post/tonemap", "_debug", { { "BRIGHTPASS", "0" }, { "HDR_DEBUG", "1"}, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_POST_PROCESS ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_POST_PROCESS },
 
-		{ BUILTIN_SCREEN, "builtin/post/screen", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
-		{ BUILTIN_TONEMAP, "builtin/post/tonemap", "", { { "BRIGHTPASS", "0" }, { "HDR_DEBUG", "0"} }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
-		{ BUILTIN_BRIGHTPASS, "builtin/post/tonemap", "_brightpass", { { "BRIGHTPASS", "1" }, { "HDR_DEBUG", "0"} }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
-		{ BUILTIN_HDR_GLARE_CHROMATIC, "builtin/post/hdr_glare_chromatic", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
-		{ BUILTIN_HDR_DEBUG, "builtin/post/tonemap", "_debug", { { "BRIGHTPASS", "0" }, { "HDR_DEBUG", "1"} }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
+		{ BUILTIN_SMAA_EDGE_DETECTION, "builtin/post/SMAA_edge_detection", "", { { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_POST_PROCESS ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_POST_PROCESS },
+		{ BUILTIN_SMAA_BLENDING_WEIGHT_CALCULATION, "builtin/post/SMAA_blending_weight_calc", "", { { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_POST_PROCESS ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_POST_PROCESS },
+		{ BUILTIN_SMAA_NEIGHBORHOOD_BLENDING, "builtin/post/SMAA_final", "", { { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_POST_PROCESS ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_POST_PROCESS },
 
-		{ BUILTIN_SMAA_EDGE_DETECTION, "builtin/post/SMAA_edge_detection", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
-		{ BUILTIN_SMAA_BLENDING_WEIGHT_CALCULATION, "builtin/post/SMAA_blending_weight_calc", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
-		{ BUILTIN_SMAA_NEIGHBORHOOD_BLENDING, "builtin/post/SMAA_final", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
-
-		{ BUILTIN_MOTION_BLUR, "builtin/post/motionBlur", "_vectors", { { "VECTORS_ONLY", "1" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_TAA_MOTION_VECTORS },
+		// SRS - changed from BUILTIN_MOTION_BLUR to BUILTIN_TAA_MOTION_VECTORS
+		{ BUILTIN_TAA_MOTION_VECTORS, "builtin/post/motionBlur", "_vectors", { { "VECTORS_ONLY", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_TAA_MOTION_VECTORS ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_TAA_MOTION_VECTORS },
 		{ BUILTIN_TAA_RESOLVE, "builtin/post/taa", "", { { "SAMPLE_COUNT", "1" }, { "USE_CATMULL_ROM_FILTER", "1" } }, false, SHADER_STAGE_COMPUTE, LAYOUT_UNKNOWN, BINDING_LAYOUT_TAA_RESOLVE },
 		{ BUILTIN_TAA_RESOLVE_MSAA_2X, "builtin/post/taa", "_msaa2x", { { "SAMPLE_COUNT", "2" }, { "USE_CATMULL_ROM_FILTER", "1" } }, false, SHADER_STAGE_COMPUTE, LAYOUT_UNKNOWN, BINDING_LAYOUT_TAA_RESOLVE },
 		{ BUILTIN_TAA_RESOLVE_MSAA_4X, "builtin/post/taa", "_msaa4x", { { "SAMPLE_COUNT", "4" }, { "USE_CATMULL_ROM_FILTER", "1" } }, false, SHADER_STAGE_COMPUTE, LAYOUT_UNKNOWN, BINDING_LAYOUT_TAA_RESOLVE },
 		{ BUILTIN_TAA_RESOLVE_MSAA_8X, "builtin/post/taa", "_msaa8x", { { "SAMPLE_COUNT", "8" }, { "USE_CATMULL_ROM_FILTER", "1" } }, false, SHADER_STAGE_COMPUTE, LAYOUT_UNKNOWN, BINDING_LAYOUT_TAA_RESOLVE },
 
-		{ BUILTIN_AMBIENT_OCCLUSION, "builtin/SSAO/AmbientOcclusion_AO", "", { { "BRIGHTPASS", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_AO },
-		{ BUILTIN_AMBIENT_OCCLUSION_AND_OUTPUT, "builtin/SSAO/AmbientOcclusion_AO", "_write", { { "BRIGHTPASS", "1" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_AO },
-		{ BUILTIN_AMBIENT_OCCLUSION_BLUR, "builtin/SSAO/AmbientOcclusion_blur", "", { { "BRIGHTPASS", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_AO },
-		{ BUILTIN_AMBIENT_OCCLUSION_BLUR_AND_OUTPUT, "builtin/SSAO/AmbientOcclusion_blur", "_write", { { "BRIGHTPASS", "1" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_AO },
-		{ BUILTIN_DEEP_GBUFFER_RADIOSITY_SSGI, "builtin/SSGI/DeepGBufferRadiosity_radiosity", "", { }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
-		{ BUILTIN_DEEP_GBUFFER_RADIOSITY_BLUR, "builtin/SSGI/DeepGBufferRadiosity_blur", "", { }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
-		{ BUILTIN_DEEP_GBUFFER_RADIOSITY_BLUR_AND_OUTPUT, "builtin/SSGI/DeepGBufferRadiosity_blur", "_write", { }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
+		{ BUILTIN_AMBIENT_OCCLUSION, "builtin/SSAO/AmbientOcclusion_AO", "", { { "BRIGHTPASS", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_AO ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_AO },
+		{ BUILTIN_AMBIENT_OCCLUSION_AND_OUTPUT, "builtin/SSAO/AmbientOcclusion_AO", "_write", { { "BRIGHTPASS", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_AO ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_AO },
+		{ BUILTIN_AMBIENT_OCCLUSION_BLUR, "builtin/SSAO/AmbientOcclusion_blur", "", { { "BRIGHTPASS", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_AO ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_AO },
+		{ BUILTIN_AMBIENT_OCCLUSION_BLUR_AND_OUTPUT, "builtin/SSAO/AmbientOcclusion_blur", "_write", { { "BRIGHTPASS", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_AO ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_AO },
+		{ BUILTIN_DEEP_GBUFFER_RADIOSITY_SSGI, "builtin/SSGI/DeepGBufferRadiosity_radiosity", "", { { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_SSGI ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_SSGI },
+		{ BUILTIN_DEEP_GBUFFER_RADIOSITY_BLUR, "builtin/SSGI/DeepGBufferRadiosity_blur", "", { { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_SSGI ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_SSGI },
+		{ BUILTIN_DEEP_GBUFFER_RADIOSITY_BLUR_AND_OUTPUT, "builtin/SSGI/DeepGBufferRadiosity_blur", "_write", { { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_SSGI ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_SSGI },
 
-		{ BUILTIN_STEREO_DEGHOST, "builtin/VR/stereoDeGhost", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
-		{ BUILTIN_STEREO_WARP, "builtin/VR/stereoWarp", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
-		{ BUILTIN_BINK, "builtin/video/bink", "",  { {"USE_SRGB", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_BINK_VIDEO },
-		{ BUILTIN_BINK_SRGB, "builtin/video/bink", "_srgb", { {"USE_SRGB", "1" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_BINK_VIDEO },
-		{ BUILTIN_BINK_GUI, "builtin/video/bink_gui", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_BINK_VIDEO },
-		{ BUILTIN_STEREO_INTERLACE, "builtin/VR/stereoInterlace", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
-		{ BUILTIN_MOTION_BLUR, "builtin/post/motionBlur", "", { { "VECTORS_ONLY", "1" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
+		{ BUILTIN_STEREO_DEGHOST, "builtin/VR/stereoDeGhost", "", { { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DEFAULT ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
+		{ BUILTIN_STEREO_WARP, "builtin/VR/stereoWarp", "", { { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DEFAULT ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
+		{ BUILTIN_BINK, "builtin/video/bink", "",  { {"USE_SRGB", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_BINK_VIDEO ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_BINK_VIDEO },
+		{ BUILTIN_BINK_SRGB, "builtin/video/bink", "_sRGB", { {"USE_SRGB", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_BINK_VIDEO ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_BINK_VIDEO },
+		{ BUILTIN_BINK_GUI, "builtin/video/bink_gui", "", { { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_BINK_VIDEO ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_BINK_VIDEO },
+		{ BUILTIN_STEREO_INTERLACE, "builtin/VR/stereoInterlace", "", { { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DEFAULT ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
 
-		{ BUILTIN_DEBUG_SHADOWMAP, "builtin/debug/debug_shadowmap", "", {}, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT },
+		// SRS - disabled VECTORS_ONLY now that BUILTIN_TAA_MOTION_VECTORS is properly defined
+		{ BUILTIN_MOTION_BLUR, "builtin/post/motionBlur", "", { { "VECTORS_ONLY", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_TAA_MOTION_VECTORS ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_TAA_MOTION_VECTORS },
+
+		{ BUILTIN_DEBUG_SHADOWMAP, "builtin/debug/debug_shadowmap", "", { { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_GBUFFER ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_GBUFFER },
 
 		// SP begin
 		{ BUILTIN_BLIT, "builtin/blit", "", { { "TEXTURE_ARRAY", "0" } }, false, SHADER_STAGE_FRAGMENT, LAYOUT_UNKNOWN, BINDING_LAYOUT_BLIT },
@@ -624,12 +876,14 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 	uniforms.SetNum( RENDERPARM_TOTAL, vec4_zero );
 
 	{
+		renderProgs[builtinShaders[BUILTIN_COLOR_SKINNED]].usesJoints = true;
 		renderProgs[builtinShaders[BUILTIN_TEXTURE_VERTEXCOLOR_SKINNED]].usesJoints = true;
 		renderProgs[builtinShaders[BUILTIN_INTERACTION_SKINNED]].usesJoints = true;
 		renderProgs[builtinShaders[BUILTIN_INTERACTION_AMBIENT_SKINNED]].usesJoints = true;
 		renderProgs[builtinShaders[BUILTIN_ENVIRONMENT_SKINNED]].usesJoints = true;
 		renderProgs[builtinShaders[BUILTIN_BUMPY_ENVIRONMENT_SKINNED]].usesJoints = true;
 		renderProgs[builtinShaders[BUILTIN_DEPTH_SKINNED]].usesJoints = true;
+		renderProgs[builtinShaders[BUILTIN_BLENDLIGHT_SKINNED]].usesJoints = true;
 		renderProgs[builtinShaders[BUILTIN_FOG_SKINNED]].usesJoints = true;
 
 		renderProgs[builtinShaders[BUILTIN_DEBUG_LIGHTGRID_SKINNED]].usesJoints = true;

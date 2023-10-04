@@ -104,7 +104,7 @@ static const float g_RandomValues[16] =
 // over the diagonals in the octahedral map
 float2 octWrap( float2 v )
 {
-	return ( 1.f - abs( v.yx ) ) * ( v.xy >= 0.f ? 1.f : -1.f );
+	return ( 1.f - abs( v.yx ) ) * select( v.xy >= 0.f, 1.f, -1.f );
 }
 
 /**********************/
@@ -127,7 +127,7 @@ float3 octToNdirSigned( float2 p )
 	// https://twitter.com/Stubbesaurus/status/937994790553227264
 	float3 n = float3( p.x, p.y, 1.0 - abs( p.x ) - abs( p.y ) );
 	float t = max( 0, -n.z );
-	n.xy += n.xy >= 0.0 ? -t : t;
+	n.xy += select( n.xy >= 0.0, -t, t );
 	return normalize( n );
 }
 

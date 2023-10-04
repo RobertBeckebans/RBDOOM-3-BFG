@@ -27,6 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet7.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -51,16 +52,16 @@ struct VS_OUT
 
 void main( VS_IN vertex, out VS_OUT result )
 {
-	result.position.x = dot4( vertex.position, rpMVPmatrixX );
-	result.position.y = dot4( vertex.position, rpMVPmatrixY );
-	result.position.z = dot4( vertex.position, rpMVPmatrixZ );
-	result.position.w = dot4( vertex.position, rpMVPmatrixW );
+	result.position.x = dot4( vertex.position, pc.rpMVPmatrixX );
+	result.position.y = dot4( vertex.position, pc.rpMVPmatrixY );
+	result.position.z = dot4( vertex.position, pc.rpMVPmatrixZ );
+	result.position.w = dot4( vertex.position, pc.rpMVPmatrixW );
 
-	result.color = rpUser1; // targetHue
+	result.color = pc.rpUser1; // targetHue
 
 	result.texcoord0.x = vertex.texcoord.x;
 	result.texcoord0.y = 1.0f - vertex.texcoord.y;
 
-	result.texcoord0.z = rpUser0.x; // fraction
+	result.texcoord0.z = pc.rpUser0.x; // fraction
 }
 

@@ -30,6 +30,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "vulkan.hlsli"
 
 // *INDENT-OFF*
+/* SRS - Disable global renderparms and use reduced-size constant buffer / push constant subsets
 cbuffer globals : register( b0 VK_DESCRIPTOR_SET( 0 ) )
 {
 	float4 rpScreenCorrectionFactor;
@@ -122,7 +123,7 @@ cbuffer globals : register( b0 VK_DESCRIPTOR_SET( 0 ) )
 	float4 rpUser6;
 	float4 rpUser7;
 };
-
+*/
 // *INDENT-ON*
 
 static float dot2( float2 a, float2 b )
@@ -448,10 +449,11 @@ static int2 textureSize( Texture2D<float> buffer, int mipLevel )
 	return int2( width, height );
 }
 
-static float2 vposToScreenPosTexCoord( float2 vpos )
-{
-	return vpos.xy * rpWindowCoord.xy;
-}
+// SRS - moved to renderParmSet7.inc.hlsl and renderParmSet8.inc.hlsl
+//static float2 vposToScreenPosTexCoord( float2 vpos )
+//{
+//	return vpos.xy * rpWindowCoord.xy;
+//}
 
 #define BRANCH
 #define IFANY

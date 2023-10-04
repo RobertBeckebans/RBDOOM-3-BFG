@@ -21,6 +21,8 @@
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet7.inc.hlsl"
+
 
 #pragma pack_matrix(row_major)
 
@@ -46,10 +48,10 @@ PS_INPUT main_vs( VS_INPUT input )
 
 	PS_INPUT output;
 
-	output.pos.x = dot4( pos, rpMVPmatrixX );
-	output.pos.y = dot4( pos, rpMVPmatrixY );
-	output.pos.z = dot4( pos, rpMVPmatrixZ );
-	output.pos.w = dot4( pos, rpMVPmatrixW );
+	output.pos.x = dot4( pos, pc.rpMVPmatrixX );
+	output.pos.y = dot4( pos, pc.rpMVPmatrixY );
+	output.pos.z = dot4( pos, pc.rpMVPmatrixZ );
+	output.pos.w = dot4( pos, pc.rpMVPmatrixW );
 
 	output.color = swizzleColor( input.color );
 	output.uv = input.uv;
@@ -66,7 +68,7 @@ float4 main_ps( PS_INPUT input ) : SV_Target
 {
 	float4 color = t_Texture.Sample( s_Sampler, input.uv ) * input.color;
 
-	clip( color.a - rpAlphaTest.x );
+	clip( color.a - pc.rpAlphaTest.x );
 
 	return sRGBAToLinearRGBA( color );
 }

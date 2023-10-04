@@ -27,6 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet4.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -94,30 +95,30 @@ void main( VS_IN vertex, out VS_OUT result )
 	// end of skinning
 
 	// start of fog portion
-	result.position.x = dot4( modelPosition, rpMVPmatrixX );
-	result.position.y = dot4( modelPosition, rpMVPmatrixY );
-	result.position.z = dot4( modelPosition, rpMVPmatrixZ );
-	result.position.w = dot4( modelPosition, rpMVPmatrixW );
+	result.position.x = dot4( modelPosition, pc.rpMVPmatrixX );
+	result.position.y = dot4( modelPosition, pc.rpMVPmatrixY );
+	result.position.z = dot4( modelPosition, pc.rpMVPmatrixZ );
+	result.position.w = dot4( modelPosition, pc.rpMVPmatrixW );
 
-	result.texcoord0.x = dot4( modelPosition, rpTexGen0S );
-	result.texcoord0.y = dot4( modelPosition, rpTexGen0T );
+	result.texcoord0.x = dot4( modelPosition, pc.rpTexGen0S );
+	result.texcoord0.y = dot4( modelPosition, pc.rpTexGen0T );
 	result.texcoord0.z = 0.0;
-	result.texcoord0.w = dot4( modelPosition, rpTexGen0Q );
+	result.texcoord0.w = dot4( modelPosition, pc.rpTexGen0Q );
 
-	result.texcoord1.x = dot4( modelPosition, rpTexGen1S );
+	result.texcoord1.x = dot4( modelPosition, pc.rpTexGen1S );
 	result.texcoord1.y = 0.5;
 #else
-	result.position.x = dot4( vertex.position, rpMVPmatrixX );
-	result.position.y = dot4( vertex.position, rpMVPmatrixY );
-	result.position.z = dot4( vertex.position, rpMVPmatrixZ );
-	result.position.w = dot4( vertex.position, rpMVPmatrixW );
+	result.position.x = dot4( vertex.position, pc.rpMVPmatrixX );
+	result.position.y = dot4( vertex.position, pc.rpMVPmatrixY );
+	result.position.z = dot4( vertex.position, pc.rpMVPmatrixZ );
+	result.position.w = dot4( vertex.position, pc.rpMVPmatrixW );
 
-	result.texcoord0.x = dot4( vertex.position, rpTexGen0S );
-	result.texcoord0.y = dot4( vertex.position, rpTexGen0T );
+	result.texcoord0.x = dot4( vertex.position, pc.rpTexGen0S );
+	result.texcoord0.y = dot4( vertex.position, pc.rpTexGen0T );
 	result.texcoord0.z = 0.0;
-	result.texcoord0.w = dot4( vertex.position, rpTexGen0Q );
+	result.texcoord0.w = dot4( vertex.position, pc.rpTexGen0Q );
 
-	result.texcoord1.x = dot4( vertex.position, rpTexGen1S );
+	result.texcoord1.x = dot4( vertex.position, pc.rpTexGen1S );
 	result.texcoord1.y = 0.5;
 #endif
 }

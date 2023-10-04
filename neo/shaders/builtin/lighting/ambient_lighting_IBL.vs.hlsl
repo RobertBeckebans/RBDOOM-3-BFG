@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet8.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -130,15 +131,15 @@ void main( VS_IN vertex, out VS_OUT result )
 	float3 bitangent = vBitangent.xyz;
 #endif
 
-	result.position.x = dot4( modelPosition, rpMVPmatrixX );
-	result.position.y = dot4( modelPosition, rpMVPmatrixY );
-	result.position.z = dot4( modelPosition, rpMVPmatrixZ );
-	result.position.w = dot4( modelPosition, rpMVPmatrixW );
+	result.position.x = dot4( modelPosition, pc.rpMVPmatrixX );
+	result.position.y = dot4( modelPosition, pc.rpMVPmatrixY );
+	result.position.z = dot4( modelPosition, pc.rpMVPmatrixZ );
+	result.position.w = dot4( modelPosition, pc.rpMVPmatrixW );
 
 	float4 defaultTexCoord = float4( 0.0f, 0.5f, 0.0f, 1.0f );
 
 	//calculate vector to light
-	//float4 toLight = rpLocalLightOrigin;
+	//float4 toLight = pc.rpLocalLightOrigin;
 	float4 toLight = normalize( float4( 0.0f, 0.5f, 1.0f, 1.0f ) );
 
 	//--------------------------------------------------------------
@@ -146,45 +147,45 @@ void main( VS_IN vertex, out VS_OUT result )
 
 	//# textures 0 takes the base coordinates by the texture matrix
 	result.texcoord0 = defaultTexCoord;
-	result.texcoord0.x = dot4( vertex.texcoord.xy, rpBumpMatrixS );
-	result.texcoord0.y = dot4( vertex.texcoord.xy, rpBumpMatrixT );
+	result.texcoord0.x = dot4( vertex.texcoord.xy, pc.rpBumpMatrixS );
+	result.texcoord0.y = dot4( vertex.texcoord.xy, pc.rpBumpMatrixT );
 
 	//# textures 1 takes the base coordinates by the texture matrix
 	result.texcoord1 = defaultTexCoord;
-	result.texcoord1.x = dot4( vertex.texcoord.xy, rpDiffuseMatrixS );
-	result.texcoord1.y = dot4( vertex.texcoord.xy, rpDiffuseMatrixT );
+	result.texcoord1.x = dot4( vertex.texcoord.xy, pc.rpDiffuseMatrixS );
+	result.texcoord1.y = dot4( vertex.texcoord.xy, pc.rpDiffuseMatrixT );
 
 	//# textures 2 takes the base coordinates by the texture matrix
 	result.texcoord2 = defaultTexCoord;
-	result.texcoord2.x = dot4( vertex.texcoord.xy, rpSpecularMatrixS );
-	result.texcoord2.y = dot4( vertex.texcoord.xy, rpSpecularMatrixT );
+	result.texcoord2.x = dot4( vertex.texcoord.xy, pc.rpSpecularMatrixS );
+	result.texcoord2.y = dot4( vertex.texcoord.xy, pc.rpSpecularMatrixT );
 
 	//# calculate normalized vector to viewer in R1
 	//result.texcoord3 = modelPosition;
 
-	float4 toEye = normalize( rpLocalViewOrigin - modelPosition );
+	float4 toEye = normalize( pc.rpLocalViewOrigin - modelPosition );
 
-	result.texcoord3.x = dot3( toEye, rpModelMatrixX );
-	result.texcoord3.y = dot3( toEye, rpModelMatrixY );
-	result.texcoord3.z = dot3( toEye, rpModelMatrixZ );
+	result.texcoord3.x = dot3( toEye, pc.rpModelMatrixX );
+	result.texcoord3.y = dot3( toEye, pc.rpModelMatrixY );
+	result.texcoord3.z = dot3( toEye, pc.rpModelMatrixZ );
 
-	result.texcoord4.x = dot3( tangent, rpModelMatrixX );
-	result.texcoord5.x = dot3( tangent, rpModelMatrixY );
-	result.texcoord6.x = dot3( tangent, rpModelMatrixZ );
+	result.texcoord4.x = dot3( tangent, pc.rpModelMatrixX );
+	result.texcoord5.x = dot3( tangent, pc.rpModelMatrixY );
+	result.texcoord6.x = dot3( tangent, pc.rpModelMatrixZ );
 
-	result.texcoord4.y = dot3( bitangent, rpModelMatrixX );
-	result.texcoord5.y = dot3( bitangent, rpModelMatrixY );
-	result.texcoord6.y = dot3( bitangent, rpModelMatrixZ );
+	result.texcoord4.y = dot3( bitangent, pc.rpModelMatrixX );
+	result.texcoord5.y = dot3( bitangent, pc.rpModelMatrixY );
+	result.texcoord6.y = dot3( bitangent, pc.rpModelMatrixZ );
 
-	result.texcoord4.z = dot3( normal, rpModelMatrixX );
-	result.texcoord5.z = dot3( normal, rpModelMatrixY );
-	result.texcoord6.z = dot3( normal, rpModelMatrixZ );
+	result.texcoord4.z = dot3( normal, pc.rpModelMatrixX );
+	result.texcoord5.z = dot3( normal, pc.rpModelMatrixY );
+	result.texcoord6.z = dot3( normal, pc.rpModelMatrixZ );
 
 	float4 worldPosition;
-	worldPosition.x = dot4( modelPosition, rpModelMatrixX );
-	worldPosition.y = dot4( modelPosition, rpModelMatrixY );
-	worldPosition.z = dot4( modelPosition, rpModelMatrixZ );
-	worldPosition.w = dot4( modelPosition, rpModelMatrixW );
+	worldPosition.x = dot4( modelPosition, pc.rpModelMatrixX );
+	worldPosition.y = dot4( modelPosition, pc.rpModelMatrixY );
+	worldPosition.z = dot4( modelPosition, pc.rpModelMatrixZ );
+	worldPosition.w = dot4( modelPosition, pc.rpModelMatrixW );
 	result.texcoord7 = worldPosition;
 
 #if USE_GPU_SKINNING
@@ -197,6 +198,6 @@ void main( VS_IN vertex, out VS_OUT result )
 	//# for 1.0 : env[16] = 0, env[17] = 1
 	//# for color : env[16] = 1, env[17] = 0
 	//# for 1.0-color : env[16] = -1, env[17] = 1
-	result.color = ( swizzleColor( vertex.color ) * rpVertexColorModulate ) + rpVertexColorAdd;
+	result.color = ( swizzleColor( vertex.color ) * pc.rpVertexColorModulate ) + pc.rpVertexColorAdd;
 #endif
 }

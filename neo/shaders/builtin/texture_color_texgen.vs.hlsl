@@ -27,6 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet4.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -50,24 +51,24 @@ struct VS_OUT
 
 void main( VS_IN vertex, out VS_OUT result )
 {
-	result.position.x = dot4( vertex.position, rpMVPmatrixX );
-	result.position.y = dot4( vertex.position, rpMVPmatrixY );
-	result.position.z = dot4( vertex.position, rpMVPmatrixZ );
-	result.position.w = dot4( vertex.position, rpMVPmatrixW );
+	result.position.x = dot4( vertex.position, pc.rpMVPmatrixX );
+	result.position.y = dot4( vertex.position, pc.rpMVPmatrixY );
+	result.position.z = dot4( vertex.position, pc.rpMVPmatrixZ );
+	result.position.w = dot4( vertex.position, pc.rpMVPmatrixW );
 
 	float4 tc0;
-	tc0.x = dot4( vertex.position, rpTexGen0S );
-	tc0.y = dot4( vertex.position, rpTexGen0T );
+	tc0.x = dot4( vertex.position, pc.rpTexGen0S );
+	tc0.y = dot4( vertex.position, pc.rpTexGen0T );
 
 	tc0.z = 0.0f;
-	tc0.w = dot4( vertex.position, rpTexGen0Q );
+	tc0.w = dot4( vertex.position, pc.rpTexGen0Q );
 
 	// multiply the texture matrix in
-	result.texcoord0.x = dot4( tc0, rpTextureMatrixS );
-	result.texcoord0.y = dot4( tc0, rpTextureMatrixT );
+	result.texcoord0.x = dot4( tc0, pc.rpTextureMatrixS );
+	result.texcoord0.y = dot4( tc0, pc.rpTextureMatrixT );
 	result.texcoord0.zw = tc0.zw;
 
 	// compute vertex modulation
-	float4 vertexColor = ( swizzleColor( vertex.color ) * rpVertexColorModulate ) + rpVertexColorAdd;
-	result.color =  vertexColor * rpColor;
+	float4 vertexColor = ( swizzleColor( vertex.color ) * pc.rpVertexColorModulate ) + pc.rpVertexColorAdd;
+	result.color =  vertexColor * pc.rpColor;
 }

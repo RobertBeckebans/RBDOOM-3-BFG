@@ -27,6 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet7.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -50,14 +51,14 @@ struct VS_OUT {
 
 void main( VS_IN vertex, out VS_OUT result )
 {
-	result.position.x = dot4( vertex.position, rpMVPmatrixX );
-	result.position.y = dot4( vertex.position, rpMVPmatrixY );
-	result.position.z = dot4( vertex.position, rpMVPmatrixZ );
-	result.position.w = dot4( vertex.position, rpMVPmatrixW );
+	result.position.x = dot4( vertex.position, pc.rpMVPmatrixX );
+	result.position.y = dot4( vertex.position, pc.rpMVPmatrixY );
+	result.position.z = dot4( vertex.position, pc.rpMVPmatrixZ );
+	result.position.w = dot4( vertex.position, pc.rpMVPmatrixW );
 
-	const float4 centerScaleTex0 = rpUser0;
-	const float4 rotateTex0 = rpUser1;
-	const float4 centerScaleTex1 = rpUser2;
+	const float4 centerScaleTex0 = pc.rpUser0;
+	const float4 rotateTex0 = pc.rpUser1;
+	const float4 centerScaleTex1 = pc.rpUser2;
 
 	//center scale and rotate for _accum
 	float2 tc0 = CenterScale( vertex.texcoord, centerScaleTex0.xy );

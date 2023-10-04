@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet9.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -101,8 +102,8 @@ void main( PS_IN fragment, out PS_OUT result )
 	// RB: added abs
 	float3 specularContribution = _float3( pow( abs( hDotN ), specularPower ) );
 
-	float3 diffuseColor = diffuseMap * ( rpDiffuseModifier.xyz );
-	float3 specularColor = specMap.xyz * specularContribution * ( rpSpecularModifier.xyz );
+	float3 diffuseColor = diffuseMap * ( pc.rpDiffuseModifier.xyz );
+	float3 specularColor = specMap.xyz * specularContribution * ( pc.rpSpecularModifier.xyz );
 	float3 lightColor = sRGBToLinearRGB( lightProj.xyz * lightFalloff.xyz );
 
 	result.color.xyz = ( diffuseColor + specularColor ) * lightColor * fragment.color.xyz;

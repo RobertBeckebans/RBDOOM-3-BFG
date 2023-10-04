@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet7.inc.hlsl"
+
 
 // *INDENT-OFF*
 #if USE_GPU_SKINNING
@@ -54,13 +56,13 @@ struct VS_OUT
 void main( VS_IN vertex, out VS_OUT result )
 {
 #include "skinning.inc.hlsl"
-	//result.position.x = dot4( vertex.position, rpMVPmatrixX );
-	//result.position.y = dot4( vertex.position, rpMVPmatrixY );
-	//result.position.z = dot4( vertex.position, rpMVPmatrixZ );
-	//result.position.w = dot4( vertex.position, rpMVPmatrixW );
+	//result.position.x = dot4( vertex.position, pc.rpMVPmatrixX );
+	//result.position.y = dot4( vertex.position, pc.rpMVPmatrixY );
+	//result.position.z = dot4( vertex.position, pc.rpMVPmatrixZ );
+	//result.position.w = dot4( vertex.position, pc.rpMVPmatrixW );
 
 	// pass through texcoords
 	result.texcoord0 = float4( vertex.texcoord.xy, 0, 0 );
 
-	result.texcoord1 = rpUser0;
+	result.texcoord1 = pc.rpUser0;
 }

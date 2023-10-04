@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet7.inc.hlsl"
+
 
 // *INDENT-OFF*
 #if USE_GPU_SKINNING
@@ -59,5 +61,5 @@ void main( VS_IN vertex, out VS_OUT result )
 	result.texcoord0.xy = vertex.texcoord;
 
 	// user parameters from material
-	result.texcoord1 = rpUser0;
+	result.texcoord1 = pc.rpUser0;
 }

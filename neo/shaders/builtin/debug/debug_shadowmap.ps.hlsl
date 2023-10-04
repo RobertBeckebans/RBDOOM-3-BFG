@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet3.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -52,7 +53,7 @@ void main( PS_IN fragment, out PS_OUT result )
 {
 	float3 tc;
 	tc.xy = fragment.texcoord0.xy;
-	tc.z = rpScreenCorrectionFactor.x; // layer
+	tc.z = pc.rpScreenCorrectionFactor.x; // layer
 
-	result.color = t_t1.SampleLevel( LinearSampler, tc.xy, tc.z );// * rpColor;
+	result.color = t_t1.SampleLevel( LinearSampler, tc.xy, tc.z );// * pc.rpColor;
 }

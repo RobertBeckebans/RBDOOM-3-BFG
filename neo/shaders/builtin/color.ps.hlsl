@@ -27,6 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet0.inc.hlsl"
 
 // *INDENT-OFF*
 //sampler samp0 : register( s0 VK_DESCRIPTOR_SET( 1 ) );
@@ -39,5 +40,5 @@ struct PS_OUT
 
 void main( out PS_OUT result )
 {
-	result.color = rpColor;
+	result.color = pc.rpColor;
 }
