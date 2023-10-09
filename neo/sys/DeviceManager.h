@@ -110,8 +110,9 @@ struct DeviceCreationParameters
 	// SRS - Used by idImage::AllocImage() to determine if format D24S8 is supported by device (default = true)
 	bool enableImageFormatD24S8 = true;
 
-	// SRS - Used by RenderProgs to determine maximum push constant size (set default for DX12, override for Vulkan)
-	int maxPushConstantSize = 256;
+	// SRS - Used by RenderProgs to determine maximum push constant size for renderer (set default for DX12, override for Vulkan)
+	//     - D3D12 root constant max < 256 bytes due to layout root parameters (i.e. 256 - sizeof(DWORD) * 4 layouts max = 240 bytes)
+	int maxPushConstantSize = 240;	// sufficient to support D3D12 push constants for rpMinimalSets & rpNominalSets
 };
 
 struct DefaultMessageCallback : public nvrhi::IMessageCallback
@@ -153,7 +154,6 @@ protected:
 	friend class idRenderBackend;
 	friend class idImage;
 	friend class idRenderProgManager;
-	friend class idMaterial;
 
 	void* windowInstance;
 	void* windowHandle;

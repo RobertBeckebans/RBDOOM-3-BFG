@@ -29,7 +29,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
-#include "renderParmSet10.inc.hlsl"
+#include "renderParmSet11.inc.hlsl"
 #include "BRDF.inc.hlsl"
 
 

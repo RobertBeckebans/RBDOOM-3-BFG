@@ -21,7 +21,7 @@
 */
 
 #include "global_inc.hlsl"
-#include "renderParmSet7.inc.hlsl"
+#include "renderParmSet8.inc.hlsl"
 
 
 #pragma pack_matrix(row_major)

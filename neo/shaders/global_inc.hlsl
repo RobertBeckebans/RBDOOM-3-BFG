@@ -449,7 +449,7 @@ static int2 textureSize( Texture2D<float> buffer, int mipLevel )
 	return int2( width, height );
 }
 
-// SRS - moved to renderParmSet7.inc.hlsl and renderParmSet8.inc.hlsl
+// SRS - moved to renderParmSet8.inc.hlsl and renderParmSet9.inc.hlsl
 //static float2 vposToScreenPosTexCoord( float2 vpos )
 //{
 //	return vpos.xy * rpWindowCoord.xy;

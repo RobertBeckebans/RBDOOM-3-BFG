@@ -31,27 +31,19 @@ If you have questions concerning this license or the applicable additional terms
 
 struct renderParmSet7_t
 {
-	float4 rpWindowCoord;
+	float4 rpColor;
 
 	float4 rpMVPmatrixX;
 	float4 rpMVPmatrixY;
 	float4 rpMVPmatrixZ;
 	float4 rpMVPmatrixW;
 
-	float4 rpProjectionMatrixY;
-	float4 rpProjectionMatrixW;
+	float4 rpTexGen0S;
+	float4 rpTexGen0T;
+	float4 rpTexGen0Q;
 
-	float4 rpModelViewMatrixZ;
-
-	float4 rpEnableSkinning;
-	float4 rpAlphaTest;
-
-	float4 rpUser0;
-	float4 rpUser1;
-	float4 rpUser2;
-	float4 rpUser3;
-	float4 rpUser4;
-	float4 rpUser5;
+	float4 rpTexGen1S;
+	float4 rpTexGen1T;
 };
 
 #if USE_PUSH_CONSTANTS
@@ -66,8 +58,3 @@ cbuffer pc : register( b0 VK_DESCRIPTOR_SET( 0 ) )
 }
 
 #endif
-
-static float2 vposToScreenPosTexCoord( float2 vpos )
-{
-	return vpos.xy * pc.rpWindowCoord.xy;
-}

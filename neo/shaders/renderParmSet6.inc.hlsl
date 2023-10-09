@@ -32,7 +32,6 @@ If you have questions concerning this license or the applicable additional terms
 struct renderParmSet6_t
 {
 	float4 rpScreenCorrectionFactor;
-	float4 rpWindowCoord;
 
 	float4 rpColor;
 
@@ -45,8 +44,6 @@ struct renderParmSet6_t
 	float4 rpModelMatrixY;
 	float4 rpModelMatrixZ;
 	float4 rpModelMatrixW;
-
-	float4 rpOverbright;
 
 	float4 rpGlobalLightOrigin;
 	float4 rpJitterTexScale;

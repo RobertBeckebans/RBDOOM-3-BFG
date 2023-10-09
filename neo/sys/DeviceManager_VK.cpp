@@ -946,7 +946,7 @@ bool DeviceManager_VK::createDevice()
 	allocatorCreateInfo.instance = m_VulkanInstance;
 	allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
 	allocatorCreateInfo.flags = bufferAddressSupported ? VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT : 0;
-	allocatorCreateInfo.preferredLargeHeapBlockSize = r_vmaDeviceLocalMemoryMB.GetInteger() * 1024 * 1024;
+	allocatorCreateInfo.preferredLargeHeapBlockSize = ( VkDeviceSize )r_vmaDeviceLocalMemoryMB.GetInteger() * 1024 * 1024;
 	vmaCreateAllocator( &allocatorCreateInfo, &m_VmaAllocator );
 #endif
 

@@ -27,7 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
-#include "renderParmSet3.inc.hlsl"
+#include "renderParmSet4.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -55,14 +55,14 @@ void main( VS_IN vertex, out VS_OUT result )
 	result.position.w = dot4( vertex.position, pc.rpMVPmatrixW );
 
 	// compute oldschool texgen or multiply by texture matrix
-	//BRANCH if( pc.rpTexGen0Enabled.x > 0.0 )
-	//{
-	//	result.texcoord0.x = dot4( vertex.position, rpTexGen0S );
-	//	result.texcoord0.y = dot4( vertex.position, rpTexGen0T );
-	//}
-	//else
-	//{
+	BRANCH if( pc.rpTexGen0Enabled.x > 0.0 )
+	{
+		result.texcoord0.x = dot4( vertex.position, pc.rpTexGen0S );
+		result.texcoord0.y = dot4( vertex.position, pc.rpTexGen0T );
+	}
+	else
+	{
 		result.texcoord0.x = dot4( vertex.texcoord.xy, pc.rpTextureMatrixS );
 		result.texcoord0.y = dot4( vertex.texcoord.xy, pc.rpTextureMatrixT );
-	//}
+	}
 }

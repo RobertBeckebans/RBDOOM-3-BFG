@@ -463,16 +463,17 @@ void idRenderBackend::DrawElementsWithCounters( const drawSurf_t* surf, bool sha
 	{
 		if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
 		{
-			// Reset the graphics state if push constants are enabled or
+			// Reset the graphics state if the uniforms or binding layout type
+			// have changed for Vulkan - either push constants are enabled or
 			// the constant buffer is written to and the render pass is
 			// ended for vulkan. setGraphicsState will reinstate the
 			// render pass or set up for push constants.
 			changeState = true;
 		}
-		else if( renderProgManager.layoutAttributes[bindingLayoutType].pcEnabled )
+		else if( renderProgManager.layoutTypeAttributes[bindingLayoutType].pcEnabled )
 		{
 			// Reset the graphics state if push constants are enabled and
-			// the uniforms or binding layout have changed for DX12.
+			// the uniforms or binding layout type have changed for DX12.
 			// setGraphicsState will set up for push constants.
 			changeState = true;
 		}
@@ -558,9 +559,9 @@ void idRenderBackend::GetCurrentBindingLayout( int type )
 	auto range = nvrhi::EntireBuffer;
 
 	auto uniformsBindingSetItem = nvrhi::BindingSetItem::ConstantBuffer( 0, paramCb, range );
-	if( deviceManager->m_DeviceParams.maxPushConstantSize >= renderProgManager.layoutAttributes[type].rpBufSize )
+	if( renderProgManager.layoutTypeAttributes[type].pcEnabled )
 	{
-		uniformsBindingSetItem = nvrhi::BindingSetItem::PushConstants( 0, renderProgManager.layoutAttributes[type].rpBufSize );
+		uniformsBindingSetItem = nvrhi::BindingSetItem::PushConstants( 0, renderProgManager.layoutTypeAttributes[type].rpBufSize );
 	}
 
 	if( type == BINDING_LAYOUT_DEFAULT || type == BINDING_LAYOUT_GBUFFER || type == BINDING_LAYOUT_TEXTURE || type == BINDING_LAYOUT_WOBBLESKY || type == BINDING_LAYOUT_SSGI || type == BINDING_LAYOUT_POST_PROCESS )

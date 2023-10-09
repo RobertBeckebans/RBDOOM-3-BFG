@@ -34,8 +34,6 @@ If you have questions concerning this license or the applicable additional terms
 
 
 #include "RenderCommon.h"
-#include <sys/DeviceManager.h>
-extern DeviceManager* deviceManager;
 
 /*
 
@@ -2147,7 +2145,7 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 			continue;
 		}
 
-		auto usePushConstants = deviceManager->m_DeviceParams.maxPushConstantSize >= renderProgManager.layoutAttributes[BINDING_LAYOUT_POST_PROCESS_INGAME].rpBufSize ? "1" : "0";
+		auto usePushConstants = renderProgManager.layoutTypeAttributes[BINDING_LAYOUT_POST_PROCESS_INGAME].pcEnabled ? "1" : "0";
 
 		if( !token.Icmp( "program" ) )
 		{

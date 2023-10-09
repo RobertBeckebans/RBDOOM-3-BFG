@@ -31,15 +31,11 @@ If you have questions concerning this license or the applicable additional terms
 
 struct renderParmSet3_t
 {
-	float4 rpScreenCorrectionFactor;
-
 	float4 rpBumpMatrixS;
 	float4 rpBumpMatrixT;
 
 	float4 rpVertexColorModulate;
 	float4 rpVertexColorAdd;
-
-	float4 rpColor;
 
 	float4 rpMVPmatrixX;
 	float4 rpMVPmatrixY;
@@ -49,11 +45,6 @@ struct renderParmSet3_t
 	float4 rpModelViewMatrixX;
 	float4 rpModelViewMatrixY;
 	float4 rpModelViewMatrixZ;
-
-	float4 rpTextureMatrixS;
-	float4 rpTextureMatrixT;
-
-	float4 rpTexGen0Enabled;
 };
 
 #if USE_PUSH_CONSTANTS

@@ -74,15 +74,15 @@ static void R_ReloadShaders( const idCmdArgs& args )
 uniformsLayout
 ================================================================================================
 */
-nvrhi::BindingLayoutHandle idRenderProgManager::uniformsLayout( bindingLayoutType_t layout, bool skinning )
+nvrhi::BindingLayoutHandle idRenderProgManager::uniformsLayout( bindingLayoutType_t layoutType, bool skinning )
 {
 	// SRS - Create initial layout item based on choice of static vs. volatile constant buffer
-	auto rpLayoutItem = layoutAttributes[layout].cbStatic ? nvrhi::BindingLayoutItem::ConstantBuffer( 0 ) : nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 );
+	auto rpLayoutItem = layoutTypeAttributes[layoutType].cbStatic ? nvrhi::BindingLayoutItem::ConstantBuffer( 0 ) : nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 );
 
-	// SRS - Optionally override based on renderparm subset size and push constant enablement
-	if( deviceManager->m_DeviceParams.maxPushConstantSize >= layoutAttributes[layout].rpBufSize )
+	// SRS - Optionally override based on push constant enablement for binding layout type
+	if( layoutTypeAttributes[layoutType].pcEnabled )
 	{
-		rpLayoutItem = nvrhi::BindingLayoutItem::PushConstants( 0, layoutAttributes[layout].rpBufSize );
+		rpLayoutItem = nvrhi::BindingLayoutItem::PushConstants( 0, layoutTypeAttributes[layoutType].rpBufSize );
 	}
 
 	// SRS - Create and return uniforms layout based on above choices and skinning enablement
@@ -201,156 +201,158 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 	    rpNominalSet5.Num() * sizeof( idVec4 )  > sizeof( rpNominalSet ) ||
 	    rpNominalSet6.Num() * sizeof( idVec4 )  > sizeof( rpNominalSet ) ||
 		rpNominalSet7.Num() * sizeof( idVec4 )  > sizeof( rpNominalSet ) ||
-		rpMaximalSet8.Num() * sizeof( idVec4 )  > sizeof( rpMaximalSet ) ||
+		rpNominalSet8.Num() * sizeof( idVec4 )  > sizeof( rpNominalSet ) ||
 		rpMaximalSet9.Num() * sizeof( idVec4 )  > sizeof( rpMaximalSet ) ||
-		rpMaximalSet10.Num() * sizeof( idVec4 ) > sizeof( rpMaximalSet ) )
+		rpMaximalSet10.Num() * sizeof( idVec4 ) > sizeof( rpMaximalSet ) ||
+		rpMaximalSet11.Num() * sizeof( idVec4 ) > sizeof( rpMaximalSet ) )
 	{
 		common->FatalError( "Renderparm subset sizes exceed push constant buffer sizes" );
 	}
 
-	for( int layout = 0; layout < NUM_BINDING_LAYOUTS; layout++ )
+	for( int layoutType = 0; layoutType < NUM_BINDING_LAYOUTS; layoutType++ )
 	{
 		// SRS - Define renderparm subset attributes for each binding layout type
-		if( rpMinimalSet0Layouts.Find( ( bindingLayoutType_t )layout ) )
+		if( rpMinimalSet0LayoutTypes.Find( ( bindingLayoutType_t )layoutType ) )
 		{
-			layoutAttributes[layout].rpSubSet  = renderParmSet0;
-			layoutAttributes[layout].rpBufSize = rpMinimalSet0.Num() * sizeof( idVec4 );
-			layoutAttributes[layout].cbStatic  = false;
+			layoutTypeAttributes[layoutType].rpSubSet  = renderParmSet0;
+			layoutTypeAttributes[layoutType].rpBufSize = rpMinimalSet0.Num() * sizeof( idVec4 );
+			layoutTypeAttributes[layoutType].cbStatic  = false;
 
-			// SRS - create renderparm to binding layouts mapping for efficient render-time lookups
+			// SRS - create renderparm to binding layout types mapping for efficient render-time lookups
 			for( int i = 0; i < rpMinimalSet0.Num(); i++ )
 			{
-				renderParmLayouts[rpMinimalSet0[i]].Append( ( bindingLayoutType_t )layout );
+				renderParmLayoutTypes[rpMinimalSet0[i]].Append( ( bindingLayoutType_t )layoutType );
 			}
 		}
-		else if( rpMinimalSet1Layouts.Find( ( bindingLayoutType_t )layout ) )
+		else if( rpMinimalSet1LayoutTypes.Find( ( bindingLayoutType_t )layoutType ) )
 		{
-			layoutAttributes[layout].rpSubSet  = renderParmSet1;
-			layoutAttributes[layout].rpBufSize = rpMinimalSet1.Num() * sizeof( idVec4 );
-			layoutAttributes[layout].cbStatic  = true;
+			layoutTypeAttributes[layoutType].rpSubSet  = renderParmSet1;
+			layoutTypeAttributes[layoutType].rpBufSize = rpMinimalSet1.Num() * sizeof( idVec4 );
+			layoutTypeAttributes[layoutType].cbStatic  = false;
 
-			// SRS - create renderparm to binding layouts mapping for efficient render-time lookups
 			for( int i = 0; i < rpMinimalSet1.Num(); i++ )
 			{
-				renderParmLayouts[rpMinimalSet1[i]].Append( ( bindingLayoutType_t )layout );
+				renderParmLayoutTypes[rpMinimalSet1[i]].Append( ( bindingLayoutType_t )layoutType );
 			}
 		}
-		else if( rpMinimalSet2Layouts.Find( ( bindingLayoutType_t )layout ) )
+		else if( rpMinimalSet2LayoutTypes.Find( ( bindingLayoutType_t )layoutType ) )
 		{
-			layoutAttributes[layout].rpSubSet  = renderParmSet2;
-			layoutAttributes[layout].rpBufSize = rpMinimalSet2.Num() * sizeof( idVec4 );
-			layoutAttributes[layout].cbStatic  = true;
+			layoutTypeAttributes[layoutType].rpSubSet  = renderParmSet2;
+			layoutTypeAttributes[layoutType].rpBufSize = rpMinimalSet2.Num() * sizeof( idVec4 );
+			layoutTypeAttributes[layoutType].cbStatic  = false;
 
-			// SRS - create renderparm to binding layouts mapping for efficient render-time lookups
 			for( int i = 0; i < rpMinimalSet2.Num(); i++ )
 			{
-				renderParmLayouts[rpMinimalSet2[i]].Append( ( bindingLayoutType_t )layout );
+				renderParmLayoutTypes[rpMinimalSet2[i]].Append( ( bindingLayoutType_t )layoutType );
 			}
 		}
-		else if( rpNominalSet3Layouts.Find( ( bindingLayoutType_t )layout ) )
+		else if( rpNominalSet3LayoutTypes.Find( ( bindingLayoutType_t )layoutType ) )
 		{
-			layoutAttributes[layout].rpSubSet  = renderParmSet3;
-			layoutAttributes[layout].rpBufSize = rpNominalSet3.Num() * sizeof( idVec4 );
-			layoutAttributes[layout].cbStatic  = false;
+			layoutTypeAttributes[layoutType].rpSubSet  = renderParmSet3;
+			layoutTypeAttributes[layoutType].rpBufSize = rpNominalSet3.Num() * sizeof( idVec4 );
+			layoutTypeAttributes[layoutType].cbStatic  = false;
 
-			// SRS - create renderparm to binding layouts mapping for efficient render-time lookups
 			for( int i = 0; i < rpNominalSet3.Num(); i++ )
 			{
-				renderParmLayouts[rpNominalSet3[i]].Append( ( bindingLayoutType_t )layout );
+				renderParmLayoutTypes[rpNominalSet3[i]].Append( ( bindingLayoutType_t )layoutType );
 			}
 		}
-		else if( rpNominalSet4Layouts.Find( ( bindingLayoutType_t )layout ) )
+		else if( rpNominalSet4LayoutTypes.Find( ( bindingLayoutType_t )layoutType ) )
 		{
-			layoutAttributes[layout].rpSubSet  = renderParmSet4;
-			layoutAttributes[layout].rpBufSize = rpNominalSet4.Num() * sizeof( idVec4 );
-			layoutAttributes[layout].cbStatic  = false;
+			layoutTypeAttributes[layoutType].rpSubSet  = renderParmSet4;
+			layoutTypeAttributes[layoutType].rpBufSize = rpNominalSet4.Num() * sizeof( idVec4 );
+			layoutTypeAttributes[layoutType].cbStatic  = false;
 
-			// SRS - create renderparm to binding layouts mapping for efficient render-time lookups
 			for( int i = 0; i < rpNominalSet4.Num(); i++ )
 			{
-				renderParmLayouts[rpNominalSet4[i]].Append( ( bindingLayoutType_t )layout );
+				renderParmLayoutTypes[rpNominalSet4[i]].Append( ( bindingLayoutType_t )layoutType );
 			}
 		}
-		else if( rpNominalSet5Layouts.Find( ( bindingLayoutType_t )layout ) )
+		else if( rpNominalSet5LayoutTypes.Find( ( bindingLayoutType_t )layoutType ) )
 		{
-			layoutAttributes[layout].rpSubSet  = renderParmSet5;
-			layoutAttributes[layout].rpBufSize = rpNominalSet5.Num() * sizeof( idVec4 );
-			layoutAttributes[layout].cbStatic  = false;
+			layoutTypeAttributes[layoutType].rpSubSet  = renderParmSet5;
+			layoutTypeAttributes[layoutType].rpBufSize = rpNominalSet5.Num() * sizeof( idVec4 );
+			layoutTypeAttributes[layoutType].cbStatic  = false;
 
-			// SRS - create renderparm to binding layouts mapping for efficient render-time lookups
 			for( int i = 0; i < rpNominalSet5.Num(); i++ )
 			{
-				renderParmLayouts[rpNominalSet5[i]].Append( ( bindingLayoutType_t )layout );
+				renderParmLayoutTypes[rpNominalSet5[i]].Append( ( bindingLayoutType_t )layoutType );
 			}
 		}
-		else if( rpNominalSet6Layouts.Find( ( bindingLayoutType_t )layout ) )
+		else if( rpNominalSet6LayoutTypes.Find( ( bindingLayoutType_t )layoutType ) )
 		{
-			layoutAttributes[layout].rpSubSet  = renderParmSet6;
-			layoutAttributes[layout].rpBufSize = rpNominalSet6.Num() * sizeof( idVec4 );
-			layoutAttributes[layout].cbStatic  = false;
+			layoutTypeAttributes[layoutType].rpSubSet  = renderParmSet6;
+			layoutTypeAttributes[layoutType].rpBufSize = rpNominalSet6.Num() * sizeof( idVec4 );
+			layoutTypeAttributes[layoutType].cbStatic  = false;
 
-			// SRS - create renderparm to binding layouts mapping for efficient render-time lookups
 			for( int i = 0; i < rpNominalSet6.Num(); i++ )
 			{
-				renderParmLayouts[rpNominalSet6[i]].Append( ( bindingLayoutType_t )layout );
+				renderParmLayoutTypes[rpNominalSet6[i]].Append( ( bindingLayoutType_t )layoutType );
 			}
 		}
-		else if( rpNominalSet7Layouts.Find( ( bindingLayoutType_t )layout ) )
+		else if( rpNominalSet7LayoutTypes.Find( ( bindingLayoutType_t )layoutType ) )
 		{
-			layoutAttributes[layout].rpSubSet  = renderParmSet7;
-			layoutAttributes[layout].rpBufSize = rpNominalSet7.Num() * sizeof( idVec4 );
-			layoutAttributes[layout].cbStatic  = false;
+			layoutTypeAttributes[layoutType].rpSubSet  = renderParmSet7;
+			layoutTypeAttributes[layoutType].rpBufSize = rpNominalSet7.Num() * sizeof( idVec4 );
+			layoutTypeAttributes[layoutType].cbStatic  = false;
 
-			// SRS - create renderparm to binding layouts mapping for efficient render-time lookups
 			for( int i = 0; i < rpNominalSet7.Num(); i++ )
 			{
-				renderParmLayouts[rpNominalSet7[i]].Append( ( bindingLayoutType_t )layout );
+				renderParmLayoutTypes[rpNominalSet7[i]].Append( ( bindingLayoutType_t )layoutType );
 			}
 		}
-		else if( rpMaximalSet8Layouts.Find( ( bindingLayoutType_t )layout ) )
+		else if( rpNominalSet8LayoutTypes.Find( ( bindingLayoutType_t )layoutType ) )
 		{
-			layoutAttributes[layout].rpSubSet  = renderParmSet8;
-			layoutAttributes[layout].rpBufSize = rpMaximalSet8.Num() * sizeof( idVec4 );
-			layoutAttributes[layout].cbStatic  = true;
+			layoutTypeAttributes[layoutType].rpSubSet  = renderParmSet8;
+			layoutTypeAttributes[layoutType].rpBufSize = rpNominalSet8.Num() * sizeof( idVec4 );
+			layoutTypeAttributes[layoutType].cbStatic  = false;
 
-			// SRS - create renderparm to binding layouts mapping for efficient render-time lookups
-			for( int i = 0; i < rpMaximalSet8.Num(); i++ )
+			for( int i = 0; i < rpNominalSet8.Num(); i++ )
 			{
-				renderParmLayouts[rpMaximalSet8[i]].Append( ( bindingLayoutType_t )layout );
+				renderParmLayoutTypes[rpNominalSet8[i]].Append( ( bindingLayoutType_t )layoutType );
 			}
 		}
-		else if( rpMaximalSet9Layouts.Find( ( bindingLayoutType_t )layout ) )
+		else if( rpMaximalSet9LayoutTypes.Find( ( bindingLayoutType_t )layoutType ) )
 		{
-			layoutAttributes[layout].rpSubSet  = renderParmSet9;
-			layoutAttributes[layout].rpBufSize = rpMaximalSet9.Num() * sizeof( idVec4 );
-			layoutAttributes[layout].cbStatic  = true;
+			layoutTypeAttributes[layoutType].rpSubSet  = renderParmSet9;
+			layoutTypeAttributes[layoutType].rpBufSize = rpMaximalSet9.Num() * sizeof( idVec4 );
+			layoutTypeAttributes[layoutType].cbStatic  = false;
 
-			// SRS - create renderparm to binding layouts mapping for efficient render-time lookups
 			for( int i = 0; i < rpMaximalSet9.Num(); i++ )
 			{
-				renderParmLayouts[rpMaximalSet9[i]].Append( ( bindingLayoutType_t )layout );
+				renderParmLayoutTypes[rpMaximalSet9[i]].Append( ( bindingLayoutType_t )layoutType );
 			}
 		}
-		else if( rpMaximalSet10Layouts.Find( ( bindingLayoutType_t )layout ) )
+		else if( rpMaximalSet10LayoutTypes.Find( ( bindingLayoutType_t )layoutType ) )
 		{
-			layoutAttributes[layout].rpSubSet  = renderParmSet10;
-			layoutAttributes[layout].rpBufSize = rpMaximalSet10.Num() * sizeof( idVec4 );
-			layoutAttributes[layout].cbStatic  = true;
+			layoutTypeAttributes[layoutType].rpSubSet  = renderParmSet10;
+			layoutTypeAttributes[layoutType].rpBufSize = rpMaximalSet10.Num() * sizeof( idVec4 );
+			layoutTypeAttributes[layoutType].cbStatic  = false;
 
-			// SRS - create renderparm to binding layouts mapping for efficient render-time lookups
 			for( int i = 0; i < rpMaximalSet10.Num(); i++ )
 			{
-				renderParmLayouts[rpMaximalSet10[i]].Append( ( bindingLayoutType_t )layout );
+				renderParmLayoutTypes[rpMaximalSet10[i]].Append( ( bindingLayoutType_t )layoutType );
+			}
+		}
+		else if( rpMaximalSet11LayoutTypes.Find( ( bindingLayoutType_t )layoutType ) )
+		{
+			layoutTypeAttributes[layoutType].rpSubSet  = renderParmSet11;
+			layoutTypeAttributes[layoutType].rpBufSize = rpMaximalSet11.Num() * sizeof( idVec4 );
+			layoutTypeAttributes[layoutType].cbStatic  = false;
+
+			for( int i = 0; i < rpMaximalSet11.Num(); i++ )
+			{
+				renderParmLayoutTypes[rpMaximalSet11[i]].Append( ( bindingLayoutType_t )layoutType );
 			}
 		}
 		else
 		{
-			layoutAttributes[layout].rpSubSet  = renderParmNullSet;
-			layoutAttributes[layout].rpBufSize = 0;
-			layoutAttributes[layout].cbStatic  = false;
+			layoutTypeAttributes[layoutType].rpSubSet  = renderParmNullSet;
+			layoutTypeAttributes[layoutType].rpBufSize = 0;
+			layoutTypeAttributes[layoutType].cbStatic  = false;
 		}
 
-		layoutAttributes[layout].pcEnabled = deviceManager->m_DeviceParams.maxPushConstantSize >= layoutAttributes[layout].rpBufSize;
+		layoutTypeAttributes[layoutType].pcEnabled = deviceManager->m_DeviceParams.maxPushConstantSize >= layoutTypeAttributes[layoutType].rpBufSize;
 	}
 
 	auto defaultLayoutDesc = nvrhi::BindingLayoutDesc()
@@ -423,11 +425,11 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 
 	bindingLayouts[BINDING_LAYOUT_BLIT] = { device->createBindingLayout( blitLayoutDesc ) };
 
-	auto aoLayoutItem = layoutAttributes[BINDING_LAYOUT_DRAW_AO].cbStatic ? nvrhi::BindingLayoutItem::ConstantBuffer( 0 ) : nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 );
+	auto aoLayoutItem = layoutTypeAttributes[BINDING_LAYOUT_DRAW_AO].cbStatic ? nvrhi::BindingLayoutItem::ConstantBuffer( 0 ) : nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 );
 
-	if( deviceManager->m_DeviceParams.maxPushConstantSize >= layoutAttributes[BINDING_LAYOUT_DRAW_AO].rpBufSize )
+	if( layoutTypeAttributes[BINDING_LAYOUT_DRAW_AO].pcEnabled )
 	{
-		aoLayoutItem = nvrhi::BindingLayoutItem::PushConstants( 0, layoutAttributes[BINDING_LAYOUT_DRAW_AO].rpBufSize );
+		aoLayoutItem = nvrhi::BindingLayoutItem::PushConstants( 0, layoutTypeAttributes[BINDING_LAYOUT_DRAW_AO].rpBufSize );
 	}
 
 	auto aoLayoutDesc = nvrhi::BindingLayoutDesc()
@@ -520,11 +522,11 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 		uniformsLayout( BINDING_LAYOUT_BLENDLIGHT_SKINNED, true ), blendLightBindingLayout, samplerOneBindingLayout
 	};
 
-	auto pp3DLayoutItem = layoutAttributes[BINDING_LAYOUT_POST_PROCESS_INGAME].cbStatic ? nvrhi::BindingLayoutItem::ConstantBuffer( 0 ) : nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 );
+	auto pp3DLayoutItem = layoutTypeAttributes[BINDING_LAYOUT_POST_PROCESS_INGAME].cbStatic ? nvrhi::BindingLayoutItem::ConstantBuffer( 0 ) : nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 );
 
-	if( deviceManager->m_DeviceParams.maxPushConstantSize >= layoutAttributes[BINDING_LAYOUT_POST_PROCESS_INGAME].rpBufSize )
+	if( layoutTypeAttributes[BINDING_LAYOUT_POST_PROCESS_INGAME].pcEnabled )
 	{
-		pp3DLayoutItem = nvrhi::BindingLayoutItem::PushConstants( 0, layoutAttributes[BINDING_LAYOUT_POST_PROCESS_INGAME].rpBufSize );
+		pp3DLayoutItem = nvrhi::BindingLayoutItem::PushConstants( 0, layoutTypeAttributes[BINDING_LAYOUT_POST_PROCESS_INGAME].rpBufSize );
 	}
 
 	auto pp3DBindingLayout = nvrhi::BindingLayoutDesc()
@@ -536,11 +538,11 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 
 	bindingLayouts[BINDING_LAYOUT_POST_PROCESS_INGAME] = { device->createBindingLayout( pp3DBindingLayout ), samplerOneBindingLayout };
 
-	auto ppFxLayoutItem = layoutAttributes[BINDING_LAYOUT_POST_PROCESS_FINAL].cbStatic ? nvrhi::BindingLayoutItem::ConstantBuffer( 0 ) : nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 );
+	auto ppFxLayoutItem = layoutTypeAttributes[BINDING_LAYOUT_POST_PROCESS_FINAL].cbStatic ? nvrhi::BindingLayoutItem::ConstantBuffer( 0 ) : nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 );
 
-	if( deviceManager->m_DeviceParams.maxPushConstantSize >= layoutAttributes[BINDING_LAYOUT_POST_PROCESS_FINAL].rpBufSize )
+	if( layoutTypeAttributes[BINDING_LAYOUT_POST_PROCESS_FINAL].pcEnabled )
 	{
-		ppFxLayoutItem = nvrhi::BindingLayoutItem::PushConstants( 0, layoutAttributes[BINDING_LAYOUT_POST_PROCESS_FINAL].rpBufSize );
+		ppFxLayoutItem = nvrhi::BindingLayoutItem::PushConstants( 0, layoutTypeAttributes[BINDING_LAYOUT_POST_PROCESS_FINAL].rpBufSize );
 	}
 
 	auto ppFxBindingLayout = nvrhi::BindingLayoutDesc()
@@ -567,11 +569,11 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 		uniformsLayout( BINDING_LAYOUT_NORMAL_CUBE_SKINNED, true ), normalCubeBindingLayout, samplerOneBindingLayout
 	};
 
-	auto binkVideoLayoutItem = layoutAttributes[BINDING_LAYOUT_BINK_VIDEO].cbStatic ? nvrhi::BindingLayoutItem::ConstantBuffer( 0 ) : nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 );
+	auto binkVideoLayoutItem = layoutTypeAttributes[BINDING_LAYOUT_BINK_VIDEO].cbStatic ? nvrhi::BindingLayoutItem::ConstantBuffer( 0 ) : nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 );
 
-	if( deviceManager->m_DeviceParams.maxPushConstantSize >= layoutAttributes[BINDING_LAYOUT_BINK_VIDEO].rpBufSize )
+	if( layoutTypeAttributes[BINDING_LAYOUT_BINK_VIDEO].pcEnabled )
 	{
-		binkVideoLayoutItem = nvrhi::BindingLayoutItem::PushConstants( 0, layoutAttributes[BINDING_LAYOUT_BINK_VIDEO].rpBufSize );
+		binkVideoLayoutItem = nvrhi::BindingLayoutItem::PushConstants( 0, layoutTypeAttributes[BINDING_LAYOUT_BINK_VIDEO].rpBufSize );
 	}
 
 	auto binkVideoBindingLayout = nvrhi::BindingLayoutDesc()
@@ -583,11 +585,11 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 
 	bindingLayouts[BINDING_LAYOUT_BINK_VIDEO] = { device->createBindingLayout( binkVideoBindingLayout ), samplerOneBindingLayout };
 
-	auto motionVectorsLayoutItem = layoutAttributes[BINDING_LAYOUT_TAA_MOTION_VECTORS].cbStatic ? nvrhi::BindingLayoutItem::ConstantBuffer( 0 ) : nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 );
+	auto motionVectorsLayoutItem = layoutTypeAttributes[BINDING_LAYOUT_TAA_MOTION_VECTORS].cbStatic ? nvrhi::BindingLayoutItem::ConstantBuffer( 0 ) : nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 );
 
-	if( deviceManager->m_DeviceParams.maxPushConstantSize >= layoutAttributes[BINDING_LAYOUT_TAA_MOTION_VECTORS].rpBufSize )
+	if( layoutTypeAttributes[BINDING_LAYOUT_TAA_MOTION_VECTORS].pcEnabled )
 	{
-		motionVectorsLayoutItem = nvrhi::BindingLayoutItem::PushConstants( 0, layoutAttributes[BINDING_LAYOUT_TAA_MOTION_VECTORS].rpBufSize );
+		motionVectorsLayoutItem = nvrhi::BindingLayoutItem::PushConstants( 0, layoutTypeAttributes[BINDING_LAYOUT_TAA_MOTION_VECTORS].rpBufSize );
 	}
 
 	auto motionVectorsBindingLayout = nvrhi::BindingLayoutDesc()
@@ -635,28 +637,28 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 
 	bindingLayouts[BINDING_LAYOUT_EXPOSURE] = { device->createBindingLayout( exposureLayout ) };
 
-	// SRS - allocate static/volatile constant buffers after binding layout sizes are defined
+	// SRS - allocate static/volatile constant buffers after renderparm buffer sizes are defined for each binding layout type
 	for( int i = 0; i < NUM_BINDING_LAYOUTS; i++ )
 	{
 		nvrhi::BufferDesc constantBufferDesc;
 
 		// SRS - allocate static constant buffer for specific binding layouts, otherwise volatile
-		if( layoutAttributes[i].cbStatic )
+		if( layoutTypeAttributes[i].cbStatic )
 		{
-			constantBufferDesc = nvrhi::utils::CreateStaticConstantBufferDesc( layoutAttributes[i].rpBufSize, va( "RenderParams_%d", i ) );
+			constantBufferDesc = nvrhi::utils::CreateStaticConstantBufferDesc( layoutTypeAttributes[i].rpBufSize, va( "RenderParams_%d", i ) );
 			constantBufferDesc.initialState = nvrhi::ResourceStates::ConstantBuffer;
 			constantBufferDesc.keepInitialState = true;
 		}
 		else
 		{
-			constantBufferDesc = nvrhi::utils::CreateVolatileConstantBufferDesc( layoutAttributes[i].rpBufSize, va( "RenderParams_%d", i ), 8192 );
+			constantBufferDesc = nvrhi::utils::CreateVolatileConstantBufferDesc( layoutTypeAttributes[i].rpBufSize, va( "RenderParams_%d", i ), 8192 );
 		}
 
 		constantBuffer[i] = device->createBuffer( constantBufferDesc );
 	}
 
 	// SRS - added support for runtime configuration of push constants
-	#define usePushConstants(layout) (deviceManager->m_DeviceParams.maxPushConstantSize >= layoutAttributes[layout].rpBufSize ? "1" : "0")
+	#define usePushConstants( layoutType ) ( layoutTypeAttributes[layoutType].pcEnabled ? "1" : "0" )
 
 	// RB: added checks for GPU skinning
 	struct builtinShaders_t
@@ -806,7 +808,7 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 		// SRS - disabled VECTORS_ONLY now that BUILTIN_TAA_MOTION_VECTORS is properly defined
 		{ BUILTIN_MOTION_BLUR, "builtin/post/motionBlur", "", { { "VECTORS_ONLY", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_TAA_MOTION_VECTORS ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_TAA_MOTION_VECTORS },
 
-		{ BUILTIN_DEBUG_SHADOWMAP, "builtin/debug/debug_shadowmap", "", { { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_GBUFFER ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_GBUFFER },
+		{ BUILTIN_DEBUG_SHADOWMAP, "builtin/debug/debug_shadowmap", "", { { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_TEXTURE ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_TEXTURE },
 
 		// SP begin
 		{ BUILTIN_BLIT, "builtin/blit", "", { { "TEXTURE_ARRAY", "0" } }, false, SHADER_STAGE_FRAGMENT, LAYOUT_UNKNOWN, BINDING_LAYOUT_BLIT },

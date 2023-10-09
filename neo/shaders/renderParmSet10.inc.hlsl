@@ -27,9 +27,10 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "vulkan.hlsli"
+
 struct renderParmSet10_t
 {
-	float4 rpScreenCorrectionFactor;
 	float4 rpDiffuseModifier;
 	float4 rpSpecularModifier;
 
@@ -40,7 +41,7 @@ struct renderParmSet10_t
 	float4 rpLightProjectionT;
 	float4 rpLightProjectionQ;
 	float4 rpLightFalloffS;
-	
+
 	float4 rpBumpMatrixS;
 	float4 rpBumpMatrixT;
 	
@@ -52,29 +53,11 @@ struct renderParmSet10_t
 	
 	float4 rpVertexColorModulate;
 	float4 rpVertexColorAdd;
-
+	
 	float4 rpMVPmatrixX;
 	float4 rpMVPmatrixY;
 	float4 rpMVPmatrixZ;
 	float4 rpMVPmatrixW;
-	
-	float4 rpModelMatrixX;
-	float4 rpModelMatrixY;
-	float4 rpModelMatrixZ;
-	float4 rpModelMatrixW;
-	
-	float4 rpModelViewMatrixX;
-	float4 rpModelViewMatrixY;
-	float4 rpModelViewMatrixZ;
-	float4 rpModelViewMatrixW;
-
-	float4 rpGlobalLightOrigin;
-	float4 rpJitterTexScale;
-	float4 rpJitterTexOffset;
-	float4 rpCascadeDistances;
-	
-	float4 rpShadowMatrices[6 * 4];
-	float4 rpShadowAtlasOffsets[6];
 };
 
 #if USE_PUSH_CONSTANTS

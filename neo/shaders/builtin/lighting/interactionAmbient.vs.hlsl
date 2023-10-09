@@ -27,7 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
-#include "renderParmSet9.inc.hlsl"
+#include "renderParmSet10.inc.hlsl"
 
 // *INDENT-OFF*
 #if USE_GPU_SKINNING

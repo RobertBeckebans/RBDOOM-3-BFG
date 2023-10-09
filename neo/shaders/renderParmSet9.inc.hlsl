@@ -31,17 +31,14 @@ If you have questions concerning this license or the applicable additional terms
 
 struct renderParmSet9_t
 {
+	float4 rpScreenCorrectionFactor;
+	float4 rpWindowCoord;
 	float4 rpDiffuseModifier;
 	float4 rpSpecularModifier;
 
 	float4 rpLocalLightOrigin;
 	float4 rpLocalViewOrigin;
 	
-	float4 rpLightProjectionS;
-	float4 rpLightProjectionT;
-	float4 rpLightProjectionQ;
-	float4 rpLightFalloffS;
-
 	float4 rpBumpMatrixS;
 	float4 rpBumpMatrixT;
 	
@@ -54,10 +51,23 @@ struct renderParmSet9_t
 	float4 rpVertexColorModulate;
 	float4 rpVertexColorAdd;
 	
+	float4 rpGlobalEyePos;
+
 	float4 rpMVPmatrixX;
 	float4 rpMVPmatrixY;
 	float4 rpMVPmatrixZ;
 	float4 rpMVPmatrixW;
+	
+	float4 rpModelMatrixX;
+	float4 rpModelMatrixY;
+	float4 rpModelMatrixZ;
+	float4 rpModelMatrixW;
+
+	float4 rpAmbientColor;
+	float4 rpGlobalLightOrigin;
+	float4 rpJitterTexScale;
+	float4 rpJitterTexOffset;
+	float4 rpCascadeDistances;
 };
 
 #if USE_PUSH_CONSTANTS
@@ -72,3 +82,8 @@ cbuffer pc : register( b0 VK_DESCRIPTOR_SET( 0 ) )
 }
 
 #endif
+
+static float2 vposToScreenPosTexCoord( float2 vpos )
+{
+	return vpos.xy * pc.rpWindowCoord.xy;
+}

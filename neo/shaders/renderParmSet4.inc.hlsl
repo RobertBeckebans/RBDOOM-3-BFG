@@ -31,6 +31,8 @@ If you have questions concerning this license or the applicable additional terms
 
 struct renderParmSet4_t
 {
+	float4 rpScreenCorrectionFactor;
+
 	float4 rpVertexColorModulate;
 	float4 rpVertexColorAdd;
 
@@ -48,9 +50,6 @@ struct renderParmSet4_t
 	float4 rpTexGen0T;
 	float4 rpTexGen0Q;
 	float4 rpTexGen0Enabled;
-
-	float4 rpTexGen1S;
-	float4 rpTexGen1T;
 
 	float4 rpAlphaTest;
 };

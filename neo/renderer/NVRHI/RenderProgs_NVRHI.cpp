@@ -297,13 +297,13 @@ void idRenderProgManager::SetUniformValue( const renderParm_t rp, const float* v
 		}
 	}
 
-	for( int i = 0; i < renderParmLayouts[rp].Num(); i++ )
+	for( int i = 0; i < renderParmLayoutTypes[rp].Num(); i++ )
 	{
-		// SRS - set flag if uniforms changed or volatile constant buffer enabled for layout
-		int layout = renderParmLayouts[rp][i];
-		if( rpChanged || !layoutAttributes[layout].cbStatic )
+		// SRS - set flag if uniforms changed or constant buffer is volatile and push constants disabled for layout type
+		int layoutType = renderParmLayoutTypes[rp][i];
+		if( rpChanged || ( !layoutTypeAttributes[layoutType].cbStatic && !layoutTypeAttributes[layoutType].pcEnabled ) )
 		{
-			uniformsChanged[layout] = true;
+			uniformsChanged[layoutType] = true;
 		}
 	}
 }
@@ -330,7 +330,7 @@ idRenderProgManager::SelectUniforms
 */
 void idRenderProgManager::SelectUniforms( renderParmSet_t* renderParmSet, int bindingLayoutType )
 {
-	switch ( layoutAttributes[bindingLayoutType].rpSubSet )
+	switch ( layoutTypeAttributes[bindingLayoutType].rpSubSet )
 	{
 		case renderParmSet0:
 		{
@@ -406,9 +406,9 @@ void idRenderProgManager::SelectUniforms( renderParmSet_t* renderParmSet, int bi
 
 		case renderParmSet8:
 		{
-			for( int i = 0; i < rpMaximalSet8.Num(); i++ )
+			for( int i = 0; i < rpNominalSet8.Num(); i++ )
 			{
-				memcpy( &renderParmSet->maximalSet[i], &uniforms[rpMaximalSet8[i]], sizeof( idVec4 ) );
+				memcpy( &renderParmSet->nominalSet[i], &uniforms[rpNominalSet8[i]], sizeof( idVec4 ) );
 			}
 			break;
 		}
@@ -431,10 +431,19 @@ void idRenderProgManager::SelectUniforms( renderParmSet_t* renderParmSet, int bi
 			break;
 		}
 
+		case renderParmSet11:
+		{
+			for( int i = 0; i < rpMaximalSet11.Num(); i++ )
+			{
+				memcpy( &renderParmSet->maximalSet[i], &uniforms[rpMaximalSet11[i]], sizeof( idVec4 ) );
+			}
+			break;
+		}
+
 		case renderParmNullSet:
 		default:
 		{
-			common->FatalError( "No layout subset found for binding layout set %d\n", bindingLayoutType );
+			common->FatalError( "No renderparm subset found for binding layout type %d\n", bindingLayoutType );
 		}
 	}
 
@@ -447,29 +456,20 @@ bool idRenderProgManager::CommitConstantBuffer( nvrhi::ICommandList* commandList
 	const int bindingLayoutType = BindingLayoutType();
 
 	// SRS - If push constants enabled, skip writing the constant buffer but return state change indicator
-	if( layoutAttributes[bindingLayoutType].pcEnabled )
+	if( layoutTypeAttributes[bindingLayoutType].pcEnabled )
 	{
-		if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
-		{
-			// SRS - always return true to force writing of Vulkan push constants
-			return true;
-		}
-		else // DX12
-		{
-			// SRS - return uniforms change status to control writing of DX12 root constants
 			return uniformsChanged[bindingLayoutType] || bindingLayoutTypeChanged;
-		}
 	}
 	// RB: It would be better to NUM_BINDING_LAYOUTS uniformsChanged entrys but we don't know the current binding layout type when we set the uniforms.
 	// The vkDoom3 backend even didn't bother with this and always fired the uniforms for each draw call.
-	// SRS - Implemented uniformsChanged detection at per-layout granularity
+	// SRS - Implemented uniformsChanged detection at per-binding layout type granularity
 	else if( uniformsChanged[bindingLayoutType] || bindingLayoutTypeChanged )
 	{
 		renderParmSet_t renderParmSet;
 
 		SelectUniforms( &renderParmSet, bindingLayoutType );
 
-		commandList->writeBuffer( constantBuffer[bindingLayoutType], &renderParmSet, layoutAttributes[bindingLayoutType].rpBufSize );
+		commandList->writeBuffer( constantBuffer[bindingLayoutType], &renderParmSet, layoutTypeAttributes[bindingLayoutType].rpBufSize );
 
 		for( int i = 0; i < NUM_BINDING_LAYOUTS; i++ )
 		{
@@ -484,13 +484,13 @@ bool idRenderProgManager::CommitConstantBuffer( nvrhi::ICommandList* commandList
 
 void idRenderProgManager::CommitPushConstants( nvrhi::ICommandList* commandList, int bindingLayoutType )
 {
-	if( layoutAttributes[bindingLayoutType].pcEnabled )
+	if( layoutTypeAttributes[bindingLayoutType].pcEnabled )
 	{
 		renderParmSet_t renderParmSet;
 
 		SelectUniforms( &renderParmSet, bindingLayoutType );
 
-		commandList->setPushConstants( &renderParmSet, layoutAttributes[bindingLayoutType].rpBufSize );
+		commandList->setPushConstants( &renderParmSet, layoutTypeAttributes[bindingLayoutType].rpBufSize );
 
 		for( int i = 0; i < NUM_BINDING_LAYOUTS; i++ )
 		{
