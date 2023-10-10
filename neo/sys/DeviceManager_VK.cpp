@@ -927,7 +927,7 @@ bool DeviceManager_VK::createDevice()
 	// SRS - Determine maxPushConstantSize for Vulkan device
 	vk::PhysicalDeviceProperties deviceProperties;
 	m_VulkanPhysicalDevice.getProperties( &deviceProperties );
-	m_DeviceParams.maxPushConstantSize = deviceProperties.limits.maxPushConstantsSize;
+	m_DeviceParams.maxPushConstantSize = Min( deviceProperties.limits.maxPushConstantsSize, nvrhi::c_MaxPushConstantSize );
 
 	// stash the renderer string
 	auto prop = m_VulkanPhysicalDevice.getProperties();

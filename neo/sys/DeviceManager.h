@@ -112,7 +112,7 @@ struct DeviceCreationParameters
 
 	// SRS - Used by RenderProgs to determine maximum push constant size for renderer (set default for DX12, override for Vulkan)
 	//     - D3D12 root constant max < 256 bytes due to layout root parameters (i.e. 256 - sizeof(DWORD) * 4 layouts max = 240 bytes)
-	int maxPushConstantSize = 240;	// sufficient to support D3D12 push constants for rpMinimalSets & rpNominalSets
+	uint32_t maxPushConstantSize = Min( ( uint32_t )240, nvrhi::c_MaxPushConstantSize );
 };
 
 struct DefaultMessageCallback : public nvrhi::IMessageCallback

@@ -1152,7 +1152,7 @@ private:
 	struct layoutTypeAttributes_t
 	{
 		renderParmSubSet_t	rpSubSet;
-		int					rpBufSize;
+		uint32_t			rpBufSize;
 		bool				cbStatic;
 		bool				pcEnabled;
 	};
