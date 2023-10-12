@@ -120,7 +120,11 @@ float2 ndirToOctSigned( float3 n )
 {
 	// Project the sphere onto the octahedron (|x|+|y|+|z| = 1) and then onto the xy-plane
 	float2 p = n.xy * ( 1.f / ( abs( n.x ) + abs( n.y ) + abs( n.z ) ) );
+#if __HLSL_VERSION >= 2021
+	return select( n.z < 0.f, octWrap( p ), p );
+#else
 	return ( n.z < 0.f ) ? octWrap( p ) : p;
+#endif
 }
 
 // Converts a point in the octahedral map to a normalized direction (non-equal area, signed)
