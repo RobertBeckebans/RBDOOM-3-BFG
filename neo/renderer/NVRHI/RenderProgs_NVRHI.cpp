@@ -297,13 +297,12 @@ void idRenderProgManager::SetUniformValue( const renderParm_t rp, const float* v
 		}
 	}
 
-	for( int i = 0; i < renderParmLayoutTypes[rp].Num(); i++ )
+	if( rpChanged )
 	{
-		// SRS - set flag if uniforms changed or constant buffer is volatile and push constants disabled for layout type
-		int layoutType = renderParmLayoutTypes[rp][i];
-		if( rpChanged || ( !layoutTypeAttributes[layoutType].cbStatic && !layoutTypeAttributes[layoutType].pcEnabled ) )
+		for( int i = 0; i < renderParmLayoutTypes[rp].Num(); i++ )
 		{
-			uniformsChanged[layoutType] = true;
+			// SRS - set flag if uniforms changed for associated binding layout types
+			uniformsChanged[renderParmLayoutTypes[rp][i]] = true;
 		}
 	}
 }

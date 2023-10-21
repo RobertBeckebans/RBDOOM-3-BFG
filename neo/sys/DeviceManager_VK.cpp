@@ -55,6 +55,7 @@
 #endif
 
 idCVar r_preferFastSync( "r_preferFastSync", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "Prefer Fast Sync/no-tearing in place of VSync off/tearing (Vulkan only)" );
+idCVar r_useVulkanPushConstants( "r_useVulkanPushConstants", "1", CVAR_RENDERER | CVAR_BOOL | CVAR_INIT, "Use push constants for Vulkan renderer" );
 
 // Define the Vulkan dynamic dispatcher - this needs to occur in exactly one cpp file in the program.
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
@@ -935,9 +936,12 @@ bool DeviceManager_VK::createDevice()
 	enablePModeFifoRelaxed = find( surfacePModes.begin(), surfacePModes.end(), vk::PresentModeKHR::eFifoRelaxed ) != surfacePModes.end();
 
 	// SRS - Determine maxPushConstantSize for Vulkan device
-	vk::PhysicalDeviceProperties deviceProperties;
-	m_VulkanPhysicalDevice.getProperties( &deviceProperties );
-	m_DeviceParams.maxPushConstantSize = Min( deviceProperties.limits.maxPushConstantsSize, nvrhi::c_MaxPushConstantSize );
+	if( r_useVulkanPushConstants.GetBool() )
+	{
+		vk::PhysicalDeviceProperties deviceProperties;
+		m_VulkanPhysicalDevice.getProperties( &deviceProperties );
+		m_DeviceParams.maxPushConstantSize = Min( deviceProperties.limits.maxPushConstantsSize, nvrhi::c_MaxPushConstantSize );
+	}
 
 	// stash the renderer string
 	auto prop = m_VulkanPhysicalDevice.getProperties();

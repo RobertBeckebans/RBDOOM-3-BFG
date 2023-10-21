@@ -5447,6 +5447,9 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	currentIndexOffset = 0;
 	currentJointOffset = 0;
 
+	// SRS - clear renderparms and initialize/set change status for all binding layout types
+	renderProgManager.ZeroUniforms();
+
 	//-------------------------------------------------
 	// RB_BeginDrawingView
 	//

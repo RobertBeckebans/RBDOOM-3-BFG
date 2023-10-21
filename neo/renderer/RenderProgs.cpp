@@ -221,7 +221,7 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 			// SRS - create renderparm to binding layout types mapping for efficient render-time lookups
 			for( int i = 0; i < rpMinimalSet0.Num(); i++ )
 			{
-				renderParmLayoutTypes[rpMinimalSet0[i]].Append( ( bindingLayoutType_t )layoutType );
+				renderParmLayoutTypes[rpMinimalSet0[i]].AddUnique( ( bindingLayoutType_t )layoutType );
 			}
 		}
 		else if( rpMinimalSet1LayoutTypes.Find( ( bindingLayoutType_t )layoutType ) )
@@ -232,7 +232,7 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 
 			for( int i = 0; i < rpMinimalSet1.Num(); i++ )
 			{
-				renderParmLayoutTypes[rpMinimalSet1[i]].Append( ( bindingLayoutType_t )layoutType );
+				renderParmLayoutTypes[rpMinimalSet1[i]].AddUnique( ( bindingLayoutType_t )layoutType );
 			}
 		}
 		else if( rpMinimalSet2LayoutTypes.Find( ( bindingLayoutType_t )layoutType ) )
@@ -243,7 +243,7 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 
 			for( int i = 0; i < rpMinimalSet2.Num(); i++ )
 			{
-				renderParmLayoutTypes[rpMinimalSet2[i]].Append( ( bindingLayoutType_t )layoutType );
+				renderParmLayoutTypes[rpMinimalSet2[i]].AddUnique( ( bindingLayoutType_t )layoutType );
 			}
 		}
 		else if( rpNominalSet3LayoutTypes.Find( ( bindingLayoutType_t )layoutType ) )
@@ -254,7 +254,7 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 
 			for( int i = 0; i < rpNominalSet3.Num(); i++ )
 			{
-				renderParmLayoutTypes[rpNominalSet3[i]].Append( ( bindingLayoutType_t )layoutType );
+				renderParmLayoutTypes[rpNominalSet3[i]].AddUnique( ( bindingLayoutType_t )layoutType );
 			}
 		}
 		else if( rpNominalSet4LayoutTypes.Find( ( bindingLayoutType_t )layoutType ) )
@@ -265,7 +265,7 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 
 			for( int i = 0; i < rpNominalSet4.Num(); i++ )
 			{
-				renderParmLayoutTypes[rpNominalSet4[i]].Append( ( bindingLayoutType_t )layoutType );
+				renderParmLayoutTypes[rpNominalSet4[i]].AddUnique( ( bindingLayoutType_t )layoutType );
 			}
 		}
 		else if( rpNominalSet5LayoutTypes.Find( ( bindingLayoutType_t )layoutType ) )
@@ -276,7 +276,7 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 
 			for( int i = 0; i < rpNominalSet5.Num(); i++ )
 			{
-				renderParmLayoutTypes[rpNominalSet5[i]].Append( ( bindingLayoutType_t )layoutType );
+				renderParmLayoutTypes[rpNominalSet5[i]].AddUnique( ( bindingLayoutType_t )layoutType );
 			}
 		}
 		else if( rpNominalSet6LayoutTypes.Find( ( bindingLayoutType_t )layoutType ) )
@@ -287,7 +287,7 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 
 			for( int i = 0; i < rpNominalSet6.Num(); i++ )
 			{
-				renderParmLayoutTypes[rpNominalSet6[i]].Append( ( bindingLayoutType_t )layoutType );
+				renderParmLayoutTypes[rpNominalSet6[i]].AddUnique( ( bindingLayoutType_t )layoutType );
 			}
 		}
 		else if( rpNominalSet7LayoutTypes.Find( ( bindingLayoutType_t )layoutType ) )
@@ -298,7 +298,7 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 
 			for( int i = 0; i < rpNominalSet7.Num(); i++ )
 			{
-				renderParmLayoutTypes[rpNominalSet7[i]].Append( ( bindingLayoutType_t )layoutType );
+				renderParmLayoutTypes[rpNominalSet7[i]].AddUnique( ( bindingLayoutType_t )layoutType );
 			}
 		}
 		else if( rpNominalSet8LayoutTypes.Find( ( bindingLayoutType_t )layoutType ) )
@@ -309,7 +309,7 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 
 			for( int i = 0; i < rpNominalSet8.Num(); i++ )
 			{
-				renderParmLayoutTypes[rpNominalSet8[i]].Append( ( bindingLayoutType_t )layoutType );
+				renderParmLayoutTypes[rpNominalSet8[i]].AddUnique( ( bindingLayoutType_t )layoutType );
 			}
 		}
 		else if( rpMaximalSet9LayoutTypes.Find( ( bindingLayoutType_t )layoutType ) )
@@ -320,7 +320,7 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 
 			for( int i = 0; i < rpMaximalSet9.Num(); i++ )
 			{
-				renderParmLayoutTypes[rpMaximalSet9[i]].Append( ( bindingLayoutType_t )layoutType );
+				renderParmLayoutTypes[rpMaximalSet9[i]].AddUnique( ( bindingLayoutType_t )layoutType );
 			}
 		}
 		else if( rpMaximalSet10LayoutTypes.Find( ( bindingLayoutType_t )layoutType ) )
@@ -331,7 +331,7 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 
 			for( int i = 0; i < rpMaximalSet10.Num(); i++ )
 			{
-				renderParmLayoutTypes[rpMaximalSet10[i]].Append( ( bindingLayoutType_t )layoutType );
+				renderParmLayoutTypes[rpMaximalSet10[i]].AddUnique( ( bindingLayoutType_t )layoutType );
 			}
 		}
 		else if( rpMaximalSet11LayoutTypes.Find( ( bindingLayoutType_t )layoutType ) )
@@ -342,7 +342,7 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 
 			for( int i = 0; i < rpMaximalSet11.Num(); i++ )
 			{
-				renderParmLayoutTypes[rpMaximalSet11[i]].Append( ( bindingLayoutType_t )layoutType );
+				renderParmLayoutTypes[rpMaximalSet11[i]].AddUnique( ( bindingLayoutType_t )layoutType );
 			}
 		}
 		else
@@ -352,7 +352,7 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 			layoutTypeAttributes[layoutType].cbStatic  = false;
 		}
 
-		layoutTypeAttributes[layoutType].pcEnabled = deviceManager->m_DeviceParams.maxPushConstantSize >= layoutTypeAttributes[layoutType].rpBufSize;
+		layoutTypeAttributes[layoutType].pcEnabled = layoutTypeAttributes[layoutType].rpBufSize <= deviceManager->m_DeviceParams.maxPushConstantSize;
 	}
 
 	auto defaultLayoutDesc = nvrhi::BindingLayoutDesc()
