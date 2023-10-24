@@ -459,7 +459,9 @@ void idRenderBackend::DrawElementsWithCounters( const drawSurf_t* surf, bool sha
 		stateScissor = context.scissor;
 	}
 
-	if( renderProgManager.CommitConstantBuffer( commandList, bindingLayoutType != prevBindingLayoutType ) )
+	// SRS - don't check if binding layout type changed since it is already handled above and renderparm change detection
+	//		 logic is sufficient to control writing of the constant buffer / push constants for each binding layout type
+	if( renderProgManager.CommitConstantBuffer( commandList, false /*bindingLayoutType != prevBindingLayoutType*/ ) )
 	{
 		if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
 		{

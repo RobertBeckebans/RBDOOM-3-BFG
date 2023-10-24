@@ -470,10 +470,7 @@ bool idRenderProgManager::CommitConstantBuffer( nvrhi::ICommandList* commandList
 
 		commandList->writeBuffer( constantBuffer[bindingLayoutType], &renderParmSet, layoutTypeAttributes[bindingLayoutType].rpBufSize );
 
-		for( int i = 0; i < NUM_BINDING_LAYOUTS; i++ )
-		{
-			uniformsChanged[i] = false;
-		}
+		uniformsChanged[bindingLayoutType] = false;
 
 		return true;
 	}
@@ -491,9 +488,6 @@ void idRenderProgManager::CommitPushConstants( nvrhi::ICommandList* commandList,
 
 		commandList->setPushConstants( &renderParmSet, layoutTypeAttributes[bindingLayoutType].rpBufSize );
 
-		for( int i = 0; i < NUM_BINDING_LAYOUTS; i++ )
-		{
-			uniformsChanged[i] = false;
-		}
+		uniformsChanged[bindingLayoutType] = false;
 	}
 }
