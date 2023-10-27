@@ -1580,6 +1580,7 @@ void idRenderBackend::GL_EndFrame()
 	// required for Vulkan: transition our swap image to present
 	deviceManager->EndFrame();
 
+	// SRS - execute after EndFrame() to avoid need for barrier command list on Vulkan
 	deviceManager->GetDevice()->executeCommandList( commandList );
 
 	// update jitter for perspective matrix
