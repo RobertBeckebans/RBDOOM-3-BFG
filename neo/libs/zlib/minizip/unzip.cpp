@@ -1,5 +1,6 @@
 /*
-   this is from zlib-1.2.7/contrib/minizip/
+   this is from zlib-1.3/contrib/minizip/
+
    unzip.c -- IO for uncompress .zip files using zlib
    Version 1.1, February 14h, 2010
    part of the MiniZip project - ( http://www.winimage.com/zLibDll/minizip.html )
