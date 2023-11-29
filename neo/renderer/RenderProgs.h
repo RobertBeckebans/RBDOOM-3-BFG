@@ -227,6 +227,7 @@ enum renderParmSubSet_t
 //	   - rpNominalSets **must** be <= sizeof( rpNominalSet ) -> currently 16 entries or 256 bytes
 //	   - rpMaximalSets **must** be <= sizeof( rpMaximalSet ) -> currently 64 entries or 1024 bytes
 //	   - The order/contents of all subsets must match the renderParmSet*.inc.hlsl include files
+//	   - Each and every Binding Layout type must be a member of one and only one renderparm subset
 
 const idList<renderParm_t, TAG_RENDER> rpMinimalSet0 = { RENDERPARM_LOCALVIEWORIGIN, RENDERPARM_VERTEXCOLOR_MODULATE, RENDERPARM_VERTEXCOLOR_ADD, RENDERPARM_COLOR, RENDERPARM_MVPMATRIX_X, RENDERPARM_MVPMATRIX_Y, RENDERPARM_MVPMATRIX_Z, RENDERPARM_MVPMATRIX_W };
 

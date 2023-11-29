@@ -638,23 +638,27 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 	bindingLayouts[BINDING_LAYOUT_EXPOSURE] = { device->createBindingLayout( exposureLayout ) };
 
 	// SRS - allocate static/volatile constant buffers after renderparm buffer sizes are defined for each binding layout type
+	//	   - allocate constant buffers only when needed, i.e. when push constants are not enabled for binding layout type
 	for( int i = 0; i < NUM_BINDING_LAYOUTS; i++ )
 	{
-		nvrhi::BufferDesc constantBufferDesc;
-
-		// SRS - allocate static constant buffer for specific binding layouts, otherwise volatile
-		if( layoutTypeAttributes[i].cbStatic )
+		if( !renderProgManager.layoutTypeAttributes[i].pcEnabled )
 		{
-			constantBufferDesc = nvrhi::utils::CreateStaticConstantBufferDesc( layoutTypeAttributes[i].rpBufSize, va( "RenderParams_%d", i ) );
-			constantBufferDesc.initialState = nvrhi::ResourceStates::ConstantBuffer;
-			constantBufferDesc.keepInitialState = true;
-		}
-		else
-		{
-			constantBufferDesc = nvrhi::utils::CreateVolatileConstantBufferDesc( layoutTypeAttributes[i].rpBufSize, va( "RenderParams_%d", i ), 8192 );
-		}
+			nvrhi::BufferDesc constantBufferDesc;
 
-		constantBuffer[i] = device->createBuffer( constantBufferDesc );
+			// SRS - allocate static constant buffer for specific binding layouts, otherwise volatile
+			if( layoutTypeAttributes[i].cbStatic )
+			{
+				constantBufferDesc = nvrhi::utils::CreateStaticConstantBufferDesc( layoutTypeAttributes[i].rpBufSize, va( "RenderParams_%d", i ) );
+				constantBufferDesc.initialState = nvrhi::ResourceStates::ConstantBuffer;
+				constantBufferDesc.keepInitialState = true;
+			}
+			else
+			{
+				constantBufferDesc = nvrhi::utils::CreateVolatileConstantBufferDesc( layoutTypeAttributes[i].rpBufSize, va( "RenderParams_%d", i ), 8192 );
+			}
+
+			constantBuffer[i] = device->createBuffer( constantBufferDesc );
+		}
 	}
 
 	// SRS - added support for runtime configuration of push constants
