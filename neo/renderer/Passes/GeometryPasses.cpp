@@ -35,20 +35,20 @@ If you have questions concerning this license or the applicable additional terms
 #include "nvrhi/utils.h"
 
 #if 0
-static ID_INLINE void SetVertexParm( renderParm_t rp, const float* value )
+static ID_INLINE void SetVertexParm( renderParm_t rp, const float value[4] )
 {
 	renderProgManager.SetUniformValue( rp, value );
 }
 
-static ID_INLINE void SetVertexParms( renderParm_t rp, const float* value, int num )
+static ID_INLINE void SetVertexParms( renderParm_t rp, const float values[], int num )
 {
 	for( int i = 0; i < num; i++ )
 	{
-		renderProgManager.SetUniformValue( ( renderParm_t )( rp + i ), value + ( i * 4 ) );
+		renderProgManager.SetUniformValue( ( renderParm_t )( rp + i ), values + ( i * 4 ) );
 	}
 }
 
-static ID_INLINE void SetFragmentParm( renderParm_t rp, const float* value )
+static ID_INLINE void SetFragmentParm( renderParm_t rp, const float value[4] )
 {
 	renderProgManager.SetUniformValue( rp, value );
 }
