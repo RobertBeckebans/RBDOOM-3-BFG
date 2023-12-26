@@ -711,7 +711,7 @@ void idEditEntities::DisplayEntities()
 			// RB: use renderer backend to display light properties
 			if( ent->fl.selected )
 			{
-				drawArrows = true;
+				//drawArrows = true;
 
 				idLight* light = static_cast<idLight*>( ent );
 
@@ -738,7 +738,7 @@ void idEditEntities::DisplayEntities()
 					globalLightOrigin = renderLight.origin + renderLight.axis * renderLight.lightCenter;
 				}
 
-				idVec3 start = ent->GetPhysics()->GetOrigin();
+				idVec3 start = ent->GetEditOrigin();
 				idVec3 end = globalLightOrigin;
 				gameRenderWorld->DebugArrow( colorYellow, start, end, 2 );
 
@@ -749,12 +749,12 @@ void idEditEntities::DisplayEntities()
 			}
 		}
 
-		if( !viewBounds.ContainsPoint( ent->GetPhysics()->GetOrigin() ) )
+		if( !viewBounds.ContainsPoint( ent->GetEditOrigin() ) )
 		{
 			continue;
 		}
 
-		gameRenderWorld->DebugBounds( color, idBounds( ent->GetPhysics()->GetOrigin() ).Expand( 8 ) );
+		gameRenderWorld->DebugBounds( color, idBounds( ent->GetEditOrigin() ).Expand( 8 ) );
 		if( drawArrows )
 		{
 			idVec3 start = ent->GetPhysics()->GetOrigin();
@@ -781,9 +781,9 @@ void idEditEntities::DisplayEntities()
 		if( textKey.Length() )
 		{
 			const char* text = ent->spawnArgs.GetString( textKey );
-			if( viewTextBounds.ContainsPoint( ent->GetPhysics()->GetOrigin() ) )
+			if( viewTextBounds.ContainsPoint( ent->GetEditOrigin() ) )
 			{
-				gameRenderWorld->DrawText( text, ent->GetPhysics()->GetOrigin() + idVec3( 0, 0, 12 ), 0.25, colorWhite, axis, 1 );
+				gameRenderWorld->DrawText( text, ent->GetEditOrigin() + idVec3( 0, 0, 12 ), 0.25, colorWhite, axis, 1 );
 			}
 		}
 	}
@@ -1159,6 +1159,18 @@ void idGameEdit::PlayerGetEyePosition( idVec3& org ) const
 	org = gameLocal.GetLocalPlayer()->GetEyePosition();
 }
 
+// RB
+bool idGameEdit::PlayerGetRenderView( renderView_t& rv ) const
+{
+	renderView_t* view = gameLocal.GetLocalPlayer()->GetRenderView();
+	if( view )
+	{
+		rv = *view;
+		return true;
+	}
+
+	return false;
+}
 
 /*
 ================

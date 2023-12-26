@@ -64,7 +64,7 @@ bool drawView3D;
 SetVertexParm
 ================
 */
-static ID_INLINE void SetVertexParm( renderParm_t rp, const float* value )
+static ID_INLINE void SetVertexParm( renderParm_t rp, const float value[4] )
 {
 	renderProgManager.SetUniformValue( rp, value );
 }
@@ -74,11 +74,11 @@ static ID_INLINE void SetVertexParm( renderParm_t rp, const float* value )
 SetVertexParms
 ================
 */
-static ID_INLINE void SetVertexParms( renderParm_t rp, const float* value, int num )
+static ID_INLINE void SetVertexParms( renderParm_t rp, const float values[], int num )
 {
 	for( int i = 0; i < num; i++ )
 	{
-		renderProgManager.SetUniformValue( ( renderParm_t )( rp + i ), value + ( i * 4 ) );
+		renderProgManager.SetUniformValue( ( renderParm_t )( rp + i ), values + ( i * 4 ) );
 	}
 }
 
@@ -87,7 +87,7 @@ static ID_INLINE void SetVertexParms( renderParm_t rp, const float* value, int n
 SetFragmentParm
 ================
 */
-static ID_INLINE void SetFragmentParm( renderParm_t rp, const float* value )
+static ID_INLINE void SetFragmentParm( renderParm_t rp, const float value[4] )
 {
 	renderProgManager.SetUniformValue( rp, value );
 }
@@ -545,8 +545,11 @@ void idRenderBackend::ResetViewportAndScissorToDefaultCamera( const viewDef_t* _
 				 _viewDef->viewport.y2 + 1 - _viewDef->viewport.y1 );
 
 	// the scissor may be smaller than the viewport for subviews
+
+	// RB: (0, 0) starts in the upper left corner compared to OpenGL!
+	// convert light scissor to from GL coordinates to DX
 	GL_Scissor( viewDef->viewport.x1 + _viewDef->scissor.x1,
-				viewDef->viewport.y1 + _viewDef->scissor.y1,
+				viewDef->viewport.y2 - _viewDef->scissor.y2,
 				_viewDef->scissor.x2 + 1 - _viewDef->scissor.x1,
 				_viewDef->scissor.y2 + 1 - _viewDef->scissor.y1 );
 
@@ -1532,8 +1535,10 @@ void idRenderBackend::RenderInteractions( const drawSurf_t* surfList, const view
 	// change the scissor if needed, it will be constant across all the surfaces lit by the light
 	if( !currentScissor.Equals( vLight->scissorRect ) && r_useScissor.GetBool() )
 	{
+		// RB: (0, 0) starts in the upper left corner compared to OpenGL!
+		// convert light scissor to from GL coordinates to DX
 		GL_Scissor( viewDef->viewport.x1 + vLight->scissorRect.x1,
-					viewDef->viewport.y1 + vLight->scissorRect.y1,
+					viewDef->viewport.y2 - vLight->scissorRect.y2,
 					vLight->scissorRect.x2 + 1 - vLight->scissorRect.x1,
 					vLight->scissorRect.y2 + 1 - vLight->scissorRect.y1 );
 
@@ -1659,6 +1664,8 @@ void idRenderBackend::RenderInteractions( const drawSurf_t* surfList, const view
 			{
 				shadowOffsets[ i ].x = vLight->imageAtlasOffset[ i ].x * ( 1.0f / r_shadowMapAtlasSize.GetInteger() );
 				shadowOffsets[ i ].y = vLight->imageAtlasOffset[ i ].y * ( 1.0f / r_shadowMapAtlasSize.GetInteger() );
+				shadowOffsets[ i ].z = 0.0f;
+				shadowOffsets[ i ].w = 0.0f;
 			}
 
 			SetVertexParms( RENDERPARM_SHADOW_ATLAS_OFFSET_0, &shadowOffsets[0][0], 6 );
@@ -3978,8 +3985,9 @@ int idRenderBackend::DrawShaderPasses( const drawSurf_t* const* const drawSurfs,
 		// change the scissor if needed
 		if( !currentScissor.Equals( surf->scissorRect ) && r_useScissor.GetBool() )
 		{
+			// RB: (0, 0) starts in the upper left corner compared to OpenGL!
 			GL_Scissor( viewDef->viewport.x1 + surf->scissorRect.x1,
-						viewDef->viewport.y1 + surf->scissorRect.y1,
+						viewDef->viewport.y2 - surf->scissorRect.y2,
 						surf->scissorRect.x2 + 1 - surf->scissorRect.x1,
 						surf->scissorRect.y2 + 1 - surf->scissorRect.y1 );
 
@@ -4335,9 +4343,10 @@ void idRenderBackend::T_BlendLight( const drawSurf_t* drawSurfs, const viewLight
 
 		if( !currentScissor.Equals( drawSurf->scissorRect ) && r_useScissor.GetBool() )
 		{
-			// change the scissor
+			// RB: (0, 0) starts in the upper left corner compared to OpenGL!
+			// convert light scissor to from GL coordinates to DX
 			GL_Scissor( viewDef->viewport.x1 + drawSurf->scissorRect.x1,
-						viewDef->viewport.y1 + drawSurf->scissorRect.y1,
+						viewDef->viewport.y2 - drawSurf->scissorRect.y2,
 						drawSurf->scissorRect.x2 + 1 - drawSurf->scissorRect.x1,
 						drawSurf->scissorRect.y2 + 1 - drawSurf->scissorRect.y1 );
 
@@ -4471,9 +4480,10 @@ void idRenderBackend::T_BasicFog( const drawSurf_t* drawSurfs, const idPlane fog
 
 		if( !currentScissor.Equals( drawSurf->scissorRect ) && r_useScissor.GetBool() )
 		{
-			// change the scissor
+			// RB: (0, 0) starts in the upper left corner compared to OpenGL!
+			// convert light scissor to from GL coordinates to DX
 			GL_Scissor( viewDef->viewport.x1 + drawSurf->scissorRect.x1,
-						viewDef->viewport.y1 + drawSurf->scissorRect.y1,
+						viewDef->viewport.y2 - drawSurf->scissorRect.y2,
 						drawSurf->scissorRect.x2 + 1 - drawSurf->scissorRect.x1,
 						drawSurf->scissorRect.y2 + 1 - drawSurf->scissorRect.y1 );
 
@@ -5944,12 +5954,32 @@ void idRenderBackend::CopyRender( const void* data )
 
 	if( cmd->image )
 	{
+		renderLog.OpenBlock( cmd->image->GetName() );
+
+		BlitParameters blitParms;
+		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
+		nvrhi::IFramebuffer* framebuffer = globalFramebuffers.postProcFBO->GetApiObject();
+		if( cmd->image == globalImages->accumImage )
+		{
+			framebuffer = globalFramebuffers.accumFBO->GetApiObject();
+		}
+		blitParms.targetFramebuffer = framebuffer;
+		blitParms.targetViewport = nvrhi::Viewport( cmd->imageWidth, cmd->imageHeight );
+		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
+
 		cmd->image->CopyFramebuffer( cmd->x, cmd->y, cmd->imageWidth, cmd->imageHeight );
+
+		renderLog.CloseBlock();
 	}
 
 	if( cmd->clearColorAfterCopy )
 	{
-		GL_Clear( true, false, false, STENCIL_SHADOW_TEST_VALUE, 0, 0, 0, 0 );
+		nvrhi::IFramebuffer* framebuffer = globalFramebuffers.postProcFBO->GetApiObject();
+		if( cmd->image == globalImages->accumImage )
+		{
+			framebuffer = globalFramebuffers.accumFBO->GetApiObject();
+		}
+		nvrhi::utils::ClearColorAttachment( commandList, framebuffer, 0, nvrhi::Color( 0.f ) );
 	}
 
 	renderLog.CloseBlock();
@@ -6092,7 +6122,6 @@ void idRenderBackend::PostProcess( const void* data )
 
 	if( r_useFilmicPostProcessing.GetBool() )
 	{
-#if defined( USE_NVRHI )
 		BlitParameters blitParms;
 		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
 		blitParms.targetFramebuffer = globalFramebuffers.smaaBlendFBO->GetApiObject();
@@ -6102,13 +6131,6 @@ void idRenderBackend::PostProcess( const void* data )
 
 		GL_SelectTexture( 0 );
 		globalImages->smaaBlendImage->Bind();
-#else
-		globalImages->currentRenderImage->CopyFramebuffer( viewport.x1, viewport.y1, viewport.GetWidth(), viewport.GetHeight() );
-
-		GL_SelectTexture( 0 );
-		globalImages->currentRenderImage->Bind();
-#endif
-
 
 		globalFramebuffers.ldrFBO->Bind();
 
@@ -6141,21 +6163,21 @@ void idRenderBackend::PostProcess( const void* data )
 	GL_SelectTexture( 0 );
 	renderProgManager.Unbind();
 
-#if defined( USE_NVRHI )
+	// copy LDR result to DX12 / Vulkan swapchain image
 	BlitParameters blitParms;
 	blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
 	blitParms.targetFramebuffer = deviceManager->GetCurrentFramebuffer();
 	blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
 	commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
 
-	GL_SelectTexture( 0 );
-	globalImages->currentRenderImage->Bind();
-#else
-	globalImages->currentRenderImage->CopyFramebuffer( viewport.x1, viewport.y1, viewport.GetWidth(), viewport.GetHeight() );
+	// copy LDR result to postProcFBO which is HDR but also used by postFX
+	blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
+	blitParms.targetFramebuffer = globalFramebuffers.postProcFBO->GetApiObject();
+	blitParms.targetViewport = nvrhi::Viewport( viewport.x1, viewport.x2, viewport.y1, viewport.y2, viewport.zmin, viewport.zmax );
+	commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
 
 	GL_SelectTexture( 0 );
 	globalImages->currentRenderImage->Bind();
-#endif
 
 	renderLog.CloseBlock();
 	renderLog.CloseMainBlock();

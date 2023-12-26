@@ -120,7 +120,7 @@ GetRowBytes
 Returns the row bytes for the given image.
 =========================
 */
-static int GetRowPitch( const textureFormat_t& format, int width )
+int GetRowPitch( const textureFormat_t& format, int width )
 {
 	bool bc = ( format == FMT_DXT1 || format == FMT_DXT5 );
 
@@ -576,6 +576,8 @@ void idImage::FinalizeImage( bool fromBackEnd, nvrhi::ICommandList* commandList 
 				opts.numLevels = 1;
 				DeriveOpts();
 
+				defaulted = true; // RB
+
 				if( !commandList )
 				{
 					return;
@@ -603,7 +605,6 @@ void idImage::FinalizeImage( bool fromBackEnd, nvrhi::ICommandList* commandList 
 					SubImageUpload( level, 0, 0, 0, opts.width >> level, opts.height >> level, clear.Ptr() );
 				}
 #endif
-				defaulted = true; // RB
 				isLoaded = true;
 				return;
 			}

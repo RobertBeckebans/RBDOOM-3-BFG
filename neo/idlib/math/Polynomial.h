@@ -48,6 +48,12 @@ public:
 	explicit idPolynomial( float a, float b, float c, float d );
 	explicit idPolynomial( float a, float b, float c, float d, float e );
 
+	// SRS - Added destructor, otherwise idPolynomial() will leak memory
+	~idPolynomial()
+	{
+		Mem_Free16( coefficient );
+	};
+
 	float			operator[]( int index ) const;
 	float& 			operator[]( int index );
 

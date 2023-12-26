@@ -275,6 +275,7 @@ bool VKimp_Init( glimpParms_t parms )
 	if( !deviceManager->CreateWindowDeviceAndSwapChain( createParms, GAME_NAME ) )
 	{
 		common->Warning( "Couldn't initialize Vulkan subsystem for r_fullscreen = %i", parms.fullScreen );
+		VKimp_Shutdown( false );
 		return false;
 	}
 
@@ -543,7 +544,7 @@ void DeviceManager::Shutdown()
 VKimp_Shutdown
 ===================
 */
-void VKimp_Shutdown()
+void VKimp_Shutdown( bool shutdownSDL )
 {
 	common->Printf( "Shutting down Vulkan subsystem\n" );
 
@@ -558,6 +559,10 @@ void VKimp_Shutdown()
 		window = nullptr;
 	}
 
+	if( shutdownSDL && SDL_WasInit( 0 ) )
+	{
+		SDL_Quit();
+	}
 }
 
 /* Eric: Is this needed/used for Vulkan?

@@ -160,6 +160,9 @@ void idRenderProgManager::LoadShader( shader_t& shader )
 									   ( constants.Num() > 0 ) ? &constants[0] : shaderConstant, uint32_t( constants.Num() ) );
 
 	shader.handle = shaderHandle;
+
+	// SRS - Free the shader blob data, otherwise a leak will occur
+	Mem_Free( shaderBlob.data );
 }
 
 /*
@@ -284,7 +287,7 @@ void idRenderProgManager::KillAllShaders()
 idRenderProgManager::SetUniformValue
 ================================================================================================
 */
-void idRenderProgManager::SetUniformValue( const renderParm_t rp, const float* value )
+void idRenderProgManager::SetUniformValue( const renderParm_t rp, const float value[4] )
 {
 	bool rpChanged = false;
 

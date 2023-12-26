@@ -41,6 +41,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "nvrhi/utils.h"
 #include <sys/DeviceManager.h>
 extern DeviceManager* deviceManager;
+extern idCVar r_graphicsAPI;
 
 idCVar r_drawFlickerBox( "r_drawFlickerBox", "0", CVAR_RENDERER | CVAR_BOOL, "visual test for dropping frames" );
 idCVar stereoRender_warp( "stereoRender_warp", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "use the optical warping renderprog instead of stereoDeGhost" );
@@ -57,9 +58,8 @@ idCVar r_syncEveryFrame( "r_syncEveryFrame", "1", CVAR_BOOL, "Don't let the GPU 
 
 idCVar r_uploadBufferSizeMB( "r_uploadBufferSizeMB", "64", CVAR_INTEGER | CVAR_INIT, "Size of gpu upload buffer (Vulkan only)" );
 
-// SRS - What is GLimp_SwapBuffers() used for?  Disable for now
-//void GLimp_SwapBuffers();
-void RB_SetMVP( const idRenderMatrix& mvp );
+
+constexpr std::size_t MAX_IMAGE_PARMS = 16;
 
 class NvrhiContext
 {
@@ -160,6 +160,18 @@ void idRenderBackend::Init()
 	{
 		common->FatalError( "R_InitOpenGL called while active" );
 	}
+
+	// SRS - create deviceManager here to prevent allocation loop via R_SetNewMode( true )
+	nvrhi::GraphicsAPI api = nvrhi::GraphicsAPI::D3D12;
+	if( !idStr::Icmp( r_graphicsAPI.GetString(), "vulkan" ) )
+	{
+		api = nvrhi::GraphicsAPI::VULKAN;
+	}
+	else if( !idStr::Icmp( r_graphicsAPI.GetString(), "dx12" ) )
+	{
+		api = nvrhi::GraphicsAPI::D3D12;
+	}
+	deviceManager = DeviceManager::Create( api );
 
 	// DG: make sure SDL has setup video so getting supported modes in R_SetNewMode() works
 #if defined( VULKAN_USE_PLATFORM_SDL )
@@ -282,10 +294,17 @@ void idRenderBackend::Shutdown()
 	fhImmediateMode::Shutdown();
 
 #if defined( VULKAN_USE_PLATFORM_SDL )
-	VKimp_Shutdown();
+	VKimp_Shutdown( true );		// SRS - shutdown SDL on quit
 #else
 	GLimp_Shutdown();
 #endif
+
+	// SRS - delete deviceManager instance on backend shutdown
+	if( deviceManager )
+	{
+		delete deviceManager;
+		deviceManager = NULL;
+	}
 }
 
 /*
@@ -506,13 +525,11 @@ void idRenderBackend::DrawElementsWithCounters( const drawSurf_t* surf, bool sha
 								  1.0f };
 		state.viewport.addViewport( viewport );
 
-#if 0
 		if( !context.scissor.IsEmpty() )
 		{
 			state.viewport.addScissorRect( nvrhi::Rect( context.scissor.x1, context.scissor.x2, context.scissor.y1, context.scissor.y2 ) );
 		}
 		else
-#endif
 		{
 			state.viewport.addScissorRect( nvrhi::Rect( viewport ) );
 		}
@@ -1679,7 +1696,6 @@ idRenderBackend::GL_Scissor
 */
 void idRenderBackend::GL_Scissor( int x /* left*/, int y /* bottom */, int w, int h )
 {
-	// TODO Check if this is right.
 	context.scissor.Clear();
 	context.scissor.AddPoint( x, y );
 	context.scissor.AddPoint( x + w, y + h );
@@ -2061,9 +2077,7 @@ void idRenderBackend::ImGui_RenderDrawLists( ImDrawData* draw_data )
 		return;
 	}
 
-#if IMGUI_BFGUI
 	tr.guiModel->EmitImGui( draw_data );
-#endif
 }
 
 /*

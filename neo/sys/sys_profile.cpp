@@ -360,7 +360,7 @@ bool idSaveGameProcessorSaveProfile::InitSaveProfile( idPlayerProfile* profile_,
 
 	// Add data to the file and prepare for save
 	profileFile->Write( msg.GetReadData(), msg.GetSize() );
-	profileFile->MakeReadOnly();
+	profileFile->TakeDataOwnership();	// SRS - this makes the file read-only and enables data buffer release
 
 	saveFileEntryList_t files;
 	files.Append( profileFile );

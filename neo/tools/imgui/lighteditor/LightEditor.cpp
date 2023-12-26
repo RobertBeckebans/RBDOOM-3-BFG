@@ -4,7 +4,7 @@
 Doom 3 GPL Source Code
 Copyright (C) 1999-2011 id Software LLC, a ZeniMax Media company.
 Copyright (C) 2015 Daniel Gibson
-Copyright (C) 2020-2021 Robert Beckebans
+Copyright (C) 2020-2023 Robert Beckebans
 
 This file is part of the Doom 3 GPL Source Code ("Doom 3 Source Code").
 
@@ -43,8 +43,8 @@ namespace ImGuiTools
 
 void LightInfo::Defaults()
 {
-	pointLight = true;
-	fallOff = 1.0f;
+	lightType = LIGHT_POINT;
+
 	strTexture = "";
 	equalRadius = true;
 	explicitStartEnd = false;
@@ -56,47 +56,70 @@ void LightInfo::Defaults()
 	lightCenter.Zero();
 	color[0] = color[1] = color[2] = 1.0f;
 
-#if 0 // FIXME: unused, delete?
-	fog = false;
-	fogDensity.Zero();
-
-	strobe = false;
-	strobeSpeed = 0.0f;
-	rotate = false;
-	rotateSpeed = 0.0f;
-#endif // 0
-
 	lightRadius.Zero();
 	castShadows = true;
-	castSpecular = true;
+	skipSpecular = false;
 	hasCenter = false;
-	isParallel = false;
 	lightStyle = -1;
+
+	hasLightOrigin = false;
+	angles.Zero();
+	scale.Set( 1, 1, 1 );
 }
 
 
 void LightInfo::DefaultPoint()
 {
 	idVec3 oldColor = color;
+	bool oldHasLightOrigin = hasLightOrigin;
 	Defaults();
 	color = oldColor;
-	pointLight = true;
+	hasLightOrigin = oldHasLightOrigin;
+
+	lightType = LIGHT_POINT;
+	lightRadius[0] = lightRadius[1] = lightRadius[2] = 300;
+	equalRadius = true;
 }
 
 void LightInfo::DefaultProjected()
 {
 	idVec3 oldColor = color;
+	bool oldHasLightOrigin = hasLightOrigin;
 	Defaults();
 	color = oldColor;
-	pointLight = false;
+	hasLightOrigin = oldHasLightOrigin;
+
+	lightType = LIGHT_SPOT;
 	lightTarget[2] = -256;
 	lightUp[1] = -128;
 	lightRight[0] = -128;
 }
 
+void LightInfo::DefaultSun()
+{
+	idVec3 oldColor = color;
+	bool oldHasLightOrigin = hasLightOrigin;
+	Defaults();
+	color = oldColor;
+	hasLightOrigin = oldHasLightOrigin;
+
+	lightType = LIGHT_SUN;
+	lightCenter.Set( 4, 4, 32 );
+	lightRadius[0] = lightRadius[1] = 2048;
+	lightRadius[2] = 1024;
+	equalRadius = false;
+}
+
 void LightInfo::FromDict( const idDict* e )
 {
-	e->GetVector( "origin", "", origin );
+	if( e->GetVector( "light_origin", "", origin ) )
+	{
+		hasLightOrigin = true;
+	}
+	else
+	{
+		e->GetVector( "origin", "", origin );
+	}
 
 	lightRadius.Zero();
 	lightTarget.Zero();
@@ -107,34 +130,23 @@ void LightInfo::FromDict( const idDict* e )
 	lightCenter.Zero();
 
 	castShadows = !e->GetBool( "noshadows" );
-	castSpecular = !e->GetBool( "nospecular" );
-	fallOff = e->GetFloat( "falloff" );
+	skipSpecular = e->GetBool( "nospecular" );
+
 	strTexture = e->GetString( "texture" );
 
-	isParallel = e->GetBool( "parallel" );
+	bool isParallel = e->GetBool( "parallel" );
 
 	if( !e->GetVector( "_color", "", color ) )
 	{
-		color[0] = color[1] = color[2] = 1.0f;
 		// NOTE: like the game, imgui uses color values between 0.0 and 1.0
 		//       even though it displays them as 0 to 255
+		color[0] = color[1] = color[2] = 1.0f;
 	}
-
-#if 0 // FIXME: unused, delete?
-	if( e->GetVec4( "fog", "", fogDensity ) )
-	{
-		fog = true;
-	}
-	else
-	{
-		fog = false;
-	}
-#endif // 0
 
 	if( e->GetVector( "light_right", "", lightRight ) )
 	{
 		// projected light
-		pointLight = false;
+		lightType = LIGHT_SPOT;
 		e->GetVector( "light_target", "", lightTarget );
 		e->GetVector( "light_up", "", lightUp );
 		if( e->GetVector( "light_start", "", lightStart ) )
@@ -150,6 +162,7 @@ void LightInfo::FromDict( const idDict* e )
 		else
 		{
 			explicitStartEnd = false;
+
 			// create a start a quarter of the way to the target
 			lightStart = lightTarget * 0.25;
 			lightEnd = lightTarget;
@@ -157,7 +170,8 @@ void LightInfo::FromDict( const idDict* e )
 	}
 	else
 	{
-		pointLight = true;
+		lightType = isParallel ? LIGHT_SUN : LIGHT_POINT;
+
 		if( e->GetVector( "light_radius", "", lightRadius ) )
 		{
 			equalRadius = ( lightRadius.x == lightRadius.y && lightRadius.x == lightRadius.z );
@@ -172,6 +186,7 @@ void LightInfo::FromDict( const idDict* e )
 			lightRadius[0] = lightRadius[1] = lightRadius[2] = radius;
 			equalRadius = true;
 		}
+
 		if( e->GetVector( "light_center", "", lightCenter ) )
 		{
 			hasCenter = true;
@@ -180,13 +195,59 @@ void LightInfo::FromDict( const idDict* e )
 
 	// RB: Quake 1 light styles
 	lightStyle = e->GetInt( "style", -1 );
+
+	// get the rotation matrix in either full form, or single angle form
+	idMat3 axis;
+
+	if( !e->GetMatrix( "light_rotation", "1 0 0 0 1 0 0 0 1", axis ) )
+	{
+		if( !e->GetMatrix( "rotation", "1 0 0 0 1 0 0 0 1", axis ) )
+		{
+			// RB: TrenchBroom interop
+			// support "angles" like in Quake 3
+
+			if( e->GetAngles( "angles", "0 0 0", angles ) )
+			{
+				angles[ 0 ] = idMath::AngleNormalize360( angles[ 0 ] );
+				angles[ 1 ] = idMath::AngleNormalize360( angles[ 1 ] );
+				angles[ 2 ] = idMath::AngleNormalize360( angles[ 2 ] );
+
+				axis = angles.ToMat3();
+			}
+			else
+			{
+				e->GetFloat( "angle", "0", angles[ 1 ] );
+
+				angles[ 0 ] = 0;
+				angles[ 1 ] = idMath::AngleNormalize360( angles[ 1 ] );
+				angles[ 2 ] = 0;
+
+				axis = angles.ToMat3();
+			}
+		}
+	}
+
+	// fix degenerate identity matrices
+	axis[0].FixDegenerateNormal();
+	axis[1].FixDegenerateNormal();
+	axis[2].FixDegenerateNormal();
+
+	angles = axis.ToAngles();
+	scale.Set( 1, 1, 1 );
 }
 
 // the returned idDict is supposed to be used by idGameEdit::EntityChangeSpawnArgs()
 // and thus will contain pairs with value "" if the key should be removed from entity
 void LightInfo::ToDict( idDict* e )
 {
-	e->SetVector( "origin", origin );
+	if( hasLightOrigin )
+	{
+		e->SetVector( "light_origin", origin );
+	}
+	else
+	{
+		e->SetVector( "origin", origin );
+	}
 
 	// idGameEdit::EntityChangeSpawnArgs() will delete key/value from entity,
 	// if value is "" => use DELETE_VAL for readability
@@ -195,9 +256,7 @@ void LightInfo::ToDict( idDict* e )
 	e->Set( "light", DELETE_VAL ); // we always use "light_radius" instead
 
 	e->Set( "noshadows", ( !castShadows ) ? "1" : "0" );
-	e->Set( "nospecular", ( !castSpecular ) ? "1" : "0" );
-
-	e->SetFloat( "falloff", fallOff );
+	e->Set( "nospecular", ( skipSpecular ) ? "1" : "0" );
 
 	if( strTexture.Length() > 0 )
 	{
@@ -208,18 +267,10 @@ void LightInfo::ToDict( idDict* e )
 		e->Set( "texture", DELETE_VAL );
 	}
 
-	e->Set( "_color", color.ToString( 4 ) ); // NOTE: e->SetVector() uses precision of 2, not enough for color
+	// NOTE: e->SetVector() uses precision of 2, not enough for color
+	e->Set( "_color", color.ToString( 4 ) );
 
-#if 0 // DG: I think this isn't used
-	if( fog )
-	{
-		idVec4 tmp( fogDensity );
-		tmp *= 1.0f / 255.0f; // TODO: why not just make fogdensity values between 0 and 1 to start with?
-		e->SetVec4( "fog", tmp );
-	}
-#endif // 0
-
-	if( pointLight )
+	if( lightType == LIGHT_POINT || lightType == LIGHT_SUN )
 	{
 		if( !equalRadius )
 		{
@@ -240,7 +291,11 @@ void LightInfo::ToDict( idDict* e )
 			e->Set( "light_center", DELETE_VAL );
 		}
 
-		e->Set( "parallel", isParallel ? "1" : DELETE_VAL );
+		if( lightType == LIGHT_SUN )
+		{
+			e->Set( "parallel", "1" );
+			e->Set( "style", DELETE_VAL );
+		}
 
 		// get rid of all the projected light specific stuff
 		e->Set( "light_target", DELETE_VAL );
@@ -272,13 +327,26 @@ void LightInfo::ToDict( idDict* e )
 	}
 
 	// RB: Quake 1 light styles
-	if( lightStyle != -1 )
+	if( lightStyle != -1 && lightType != LIGHT_SUN )
 	{
 		e->SetInt( "style", lightStyle );
 	}
 	else
 	{
 		e->Set( "style", DELETE_VAL );
+	}
+
+	e->Set( "rotation", DELETE_VAL );
+	e->Set( "light_rotation", DELETE_VAL );
+
+	if( hasLightOrigin )
+	{
+		e->SetAngles( "light_angles", angles );
+	}
+	else
+		//if( angles.yaw != 0.0f || angles.pitch != 0.0f || angles.roll != 0.0f )
+	{
+		e->SetAngles( "angles", angles );
 	}
 }
 
@@ -290,23 +358,17 @@ LightInfo::LightInfo()
 
 // ########### LightEditor #############
 
-// static
-LightEditor LightEditor::TheLightEditor;
+LightEditor& LightEditor::Instance()
+{
+	static LightEditor instance;
+	return instance;
+}
 
-// static
-bool LightEditor::showIt = false;
 
 // static
 void LightEditor::ReInit( const idDict* dict, idEntity* light )
 {
-	// TODO: if the lighteditor is currently shown, show a warning first about saving current changes to the last light?
-	TheLightEditor.Init( dict, light );
-}
-
-// static
-void LightEditor::Draw()
-{
-	TheLightEditor.DrawWindow();
+	Instance().Init( dict, light );
 }
 
 void LightEditor::Init( const idDict* dict, idEntity* light )
@@ -334,14 +396,17 @@ void LightEditor::Init( const idDict* dict, idEntity* light )
 		if( name )
 		{
 			entityName = name;
-			title.Format( "Light Editor: %s at (%s)", name, entityPos.ToString() );
+			//title.Format( "Light Editor: %s at (%s)", name, entityPos.ToString() );
 		}
 		else
 		{
 			//idassert( 0 && "LightEditor::Init(): Given entity has no 'name' property?!" );
-			entityName = ""; // TODO: generate name or handle gracefully or something?
-			title.Format( "Light Editor: <unnamed> light at (%s)", entityPos.ToString() );
+			entityName = gameEdit->GetUniqueEntityName( "light" );
+
+			//title.Format( "Light Editor: <unnamed> light at (%s)", entityPos.ToString() );
 		}
+
+		title = "Light Editor";
 
 		currentTextureIndex = 0;
 		currentTexture = NULL;
@@ -384,6 +449,19 @@ void LightEditor::Reset()
 	currentTexture = NULL;
 	currentTextureMaterial = NULL;
 	currentStyleIndex = 0;
+
+	mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+	mCurrentGizmoMode = ImGuizmo::WORLD;
+
+	useSnap = false;
+	//snap = { 1.f, 1.f, 1.f };
+	//bounds[] = { -0.5f, -0.5f, -0.5f, 0.5f, 0.5f, 0.5f };
+	//boundsSnap[] = { 0.1f, 0.1f, 0.1f };
+	boundSizing = false;
+	boundSizingSnap = false;
+
+	shortcutSaveMapEnabled = true;
+	shortcutDuplicateLightEnabled = true;
 }
 
 namespace
@@ -410,7 +488,7 @@ void LightEditor::LoadLightTextures()
 		const idMaterial* mat = declManager->MaterialByIndex( i, false );
 
 		idStr matName = mat->GetName();
-		matName.ToLower(); // FIXME: why? (this is from old doom3 code)
+		matName.ToLower();
 
 		if( matName.Icmpn( "lights/", strlen( "lights/" ) ) == 0 || matName.Icmpn( "fogs/", strlen( "fogs/" ) ) == 0 )
 		{
@@ -550,7 +628,7 @@ void LightEditor::TempApplyChanges()
 	}
 }
 
-void LightEditor::SaveChanges()
+void LightEditor::SaveChanges( bool saveMap )
 {
 	idDict d;
 	cur.ToDict( &d );
@@ -567,7 +645,12 @@ void LightEditor::SaveChanges()
 		gameEdit->MapCopyDictToEntityAtOrigin( entityPos, &d );
 	}
 
-	gameEdit->MapSave();
+	original = cur;
+
+	if( saveMap )
+	{
+		gameEdit->MapSave();
+	}
 }
 
 void LightEditor::CancelChanges()
@@ -582,26 +665,85 @@ void LightEditor::CancelChanges()
 	}
 }
 
+void LightEditor::DuplicateLight()
+{
+	if( lightEntity != NULL )
+	{
+		// store current light properties to game idMapFile
+		SaveChanges( false );
+
+		// spawn the new light
+		idDict d;
+		cur.ToDict( &d );
+		d.DeleteEmptyKeys();
+
+		entityName = gameEdit->GetUniqueEntityName( "light" );
+		d.Set( "name", entityName );
+		d.Set( "classname", "light" );
+
+		idEntity* light = NULL;
+		gameEdit->SpawnEntityDef( d, &light );
+
+		if( light )
+		{
+			gameEdit->MapAddEntity( &d );
+			gameEdit->ClearEntitySelection();
+			gameEdit->AddSelectedEntity( light );
+
+			Init( &d, light );
+		}
+	}
+}
+
 // a kinda ugly hack to get a float* (as used by imgui) from idVec3
 static float* vecToArr( idVec3& v )
 {
 	return &v.x;
 }
 
-void LightEditor::DrawWindow()
-{
-	bool showWindow = showIt;
-	if( ImGui::Begin( title, &showWindow ) ) //, ImGuiWindowFlags_ShowBorders ) )
-	{
-		bool changes = false;
 
+
+void LightEditor::Draw()
+{
+	bool changes = false;
+	bool showTool = isShown;
+	bool isOpen;
+
+	if( ImGui::Begin( title, &isOpen ) )
+	{
 		// RB: handle arrow key inputs like in TrenchBroom
 		ImGuiIO& io = ImGui::GetIO();
 
-		// TODO use view direction like just global values
-		if( io.KeysDown[K_LALT] )
+		// FIXME, escape does not work
+		if( io.KeysDown[K_ESCAPE] )
 		{
-			if( io.KeysDown[K_UPARROW] )
+			CancelChanges();
+			showTool = false;
+		}
+
+		// TODO use view direction like just global values
+		if( io.KeyCtrl )
+		{
+			if( io.KeysDown[K_S] && shortcutSaveMapEnabled )
+			{
+				SaveChanges( true );
+				shortcutSaveMapEnabled = false;
+			}
+			else if( io.KeysDown[K_D] && shortcutDuplicateLightEnabled )
+			{
+				DuplicateLight();
+				shortcutDuplicateLightEnabled = false;
+			}
+		}
+		else if( io.KeyAlt )
+		{
+			if( io.KeysDown[K_R] )
+			{
+				// reset rotation like in Blender
+				cur.angles.Zero();
+				changes = true;
+			}
+			else if( io.KeysDown[K_UPARROW] )
 			{
 				cur.origin.z += 1;
 				changes = true;
@@ -633,32 +775,51 @@ void LightEditor::DrawWindow()
 			changes = true;
 		}
 
-		changes |= ImGui::Checkbox( "Cast Shadows", &cur.castShadows );
-		//ImGui::SameLine();
-		changes |= ImGui::Checkbox( "Cast Specular", &cur.castSpecular );
+		// reenable commands if keys were released
+		if( ( !io.KeyCtrl || !io.KeysDown[K_S] ) && !shortcutSaveMapEnabled )
+		{
+			shortcutSaveMapEnabled = true;
+		}
+
+		if( ( !io.KeyCtrl || !io.KeysDown[K_D] ) && !shortcutDuplicateLightEnabled )
+		{
+			shortcutDuplicateLightEnabled = true;
+		}
+
+		if( !entityName.IsEmpty() )
+		{
+			ImGui::SeparatorText( entityName.c_str() );
+		}
+
+		ImGui::SeparatorText( "Light Volume" );
 
 		ImGui::Spacing();
 
-		changes |= ImGui::ColorEdit3( "Color", vecToArr( cur.color ) );
-
-		// TODO: fog, fogDensity - probably unused!
-
-		ImGui::Spacing();
-
-		int lightSelectionRadioBtn = cur.pointLight ? 0 : 1;
+		int lightSelectionRadioBtn = cur.lightType;
 
 		changes |= ImGui::RadioButton( "Point Light", &lightSelectionRadioBtn, 0 );
 		ImGui::SameLine();
-		changes |= ImGui::RadioButton( "Projected Light", &lightSelectionRadioBtn, 1 );
-
-		cur.pointLight = ( lightSelectionRadioBtn == 0 );
+		changes |= ImGui::RadioButton( "Spot Light", &lightSelectionRadioBtn, 1 );
+		ImGui::SameLine();
+		changes |= ImGui::RadioButton( "Sun Light", &lightSelectionRadioBtn, 2 );
 
 		ImGui::Indent();
 
 		ImGui::Spacing();
 
-		if( lightSelectionRadioBtn == 0 )
+		if( lightSelectionRadioBtn == LIGHT_POINT || lightSelectionRadioBtn == LIGHT_SUN )
 		{
+			if( lightSelectionRadioBtn == LIGHT_POINT && lightSelectionRadioBtn != cur.lightType )
+			{
+				cur.DefaultPoint();
+				changes = true;
+			}
+			else if( lightSelectionRadioBtn == LIGHT_SUN && lightSelectionRadioBtn != cur.lightType )
+			{
+				cur.DefaultSun();
+				changes = true;
+			}
+
 			ImGui::PushItemWidth( -1.0f ); // align end of Drag* with right window border
 
 			changes |= ImGui::Checkbox( "Equilateral Radius", &cur.equalRadius );
@@ -680,26 +841,9 @@ void LightEditor::DrawWindow()
 
 			ImGui::Spacing();
 
-			// TODO: this could as well be a slider or something, if 0/0.5/1 is too restricting
+			//changes |= ImGui::Checkbox( "Parallel", &cur.isParallel );
 
-			ImGui::Text( "Fall-off:" );
-			ImGui::SameLine();
-#if 0
-			ImGui::RadioButton( "0.0", &fallOffRadio, 0 );
-			ImGui::SameLine();
-			ImGui::RadioButton( "0.5", &fallOffRadio, 1 );
-			ImGui::SameLine();
-			ImGui::RadioButton( "1.0", &fallOffRadio, 2 );
-#endif // 0
-
-			// a slider is easier than radiobuttons.. does it really have to be radiobuttons?
-			changes |= ImGui::SliderFloat( "##FallOff", &cur.fallOff, 0.0f, 1.0f, "%.1f" );
-
-			ImGui::Spacing();
-
-			changes |= ImGui::Checkbox( "Parallel", &cur.isParallel );
-
-			ImGui::Spacing();
+			//ImGui::Spacing();
 
 			changes |= ImGui::Checkbox( "Center", &cur.hasCenter );
 			if( cur.hasCenter )
@@ -710,8 +854,14 @@ void LightEditor::DrawWindow()
 			}
 			ImGui::PopItemWidth(); // back to default alignment on right side
 		}
-		else if( lightSelectionRadioBtn == 1 )
+		else if( lightSelectionRadioBtn == LIGHT_SPOT )
 		{
+			if( cur.lightType != lightSelectionRadioBtn )
+			{
+				cur.DefaultProjected();
+				changes = true;
+			}
+
 			changes |= ImGui::DragVec3( "Target", cur.lightTarget, 1.0f, 0.0f, 0.0f, "%.1f" );
 			changes |= ImGui::DragVec3( "Right", cur.lightRight, 1.0f, 0.0f, 0.0f, "%.1f" );
 			changes |= ImGui::DragVec3( "Up", cur.lightUp, 1.0f, 0.0f, 0.0f, "%.1f" );
@@ -728,15 +878,104 @@ void LightEditor::DrawWindow()
 			}
 		}
 
+		cur.lightType = ELightType( lightSelectionRadioBtn );
+
 		ImGui::Unindent();
 
-		if( ImGui::Combo( "Style", &currentStyleIndex, StyleItemsGetter, this, styleNames.Num() + 1 ) )
-		{
-			changes = true;
+		ImGui::SeparatorText( "Transform" );
 
-			// -1 because 0 is "<No Lightstyle>"
-			cur.lightStyle = ( currentStyleIndex > 0 ) ? currentStyleIndex - 1 : -1;
+		if( io.KeysDown[K_G] )
+		{
+			mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
 		}
+
+		if( io.KeysDown[K_R] )
+		{
+			mCurrentGizmoOperation = ImGuizmo::ROTATE;
+		}
+
+		//if( ImGui::IsKeyPressed( ImGuiKey_S ) )
+		if( io.KeysDown[K_S] )
+		{
+			mCurrentGizmoOperation = ImGuizmo::SCALE;
+		}
+
+		if( mCurrentGizmoOperation != ImGuizmo::SCALE )
+		{
+			if( ImGui::RadioButton( "Local", mCurrentGizmoMode == ImGuizmo::LOCAL ) )
+			{
+				mCurrentGizmoMode = ImGuizmo::LOCAL;
+			}
+			ImGui::SameLine();
+			if( ImGui::RadioButton( "World", mCurrentGizmoMode == ImGuizmo::WORLD ) )
+			{
+				mCurrentGizmoMode = ImGuizmo::WORLD;
+			}
+		}
+		else
+		{
+			mCurrentGizmoMode = ImGuizmo::LOCAL;
+		}
+
+		if( ImGui::RadioButton( "Translate", mCurrentGizmoOperation == ImGuizmo::TRANSLATE ) )
+		{
+			mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+		}
+		ImGui::SameLine();
+		if( ImGui::RadioButton( "Rotate", mCurrentGizmoOperation == ImGuizmo::ROTATE ) )
+		{
+			mCurrentGizmoOperation = ImGuizmo::ROTATE;
+		}
+		ImGui::SameLine();
+		if( ImGui::RadioButton( "Scale", mCurrentGizmoOperation == ImGuizmo::SCALE ) )
+		{
+			mCurrentGizmoOperation = ImGuizmo::SCALE;
+		}
+		//if( ImGui::RadioButton( "Universal", mCurrentGizmoOperation == ImGuizmo::UNIVERSAL ) )
+		//{
+		//	mCurrentGizmoOperation = ImGuizmo::UNIVERSAL;
+		//}
+
+		changes |= ImGui::DragVec3( "Origin", cur.origin, 1.0f, 0.0f, 0.0f, "%.1f" );
+		changes |= ImGui::InputFloat3( "Angles", cur.angles.ToFloatPtr() );
+		//changes |= ImGui::DragVec3( "Angles", cur.origin, 1.0f, 0.0f, 0.0f, "%.1f" );
+
+		ImGui::SeparatorText( "Snapping" );
+
+		ImGui::Checkbox( "Use Snapping", &useSnap );
+		//ImGui::SameLine();
+
+		if( useSnap )
+		{
+			switch( mCurrentGizmoOperation )
+			{
+				case ImGuizmo::TRANSLATE:
+					ImGui::InputFloat3( "Grid Snap", &gridSnap[0] );
+					break;
+				case ImGuizmo::ROTATE:
+					ImGui::InputFloat( "Angle Snap", &angleSnap );
+					break;
+				case ImGuizmo::SCALE:
+					ImGui::InputFloat( "Scale Snap", &scaleSnap );
+					break;
+			}
+		}
+
+#if 0
+		ImGui::Checkbox( "Bound Sizing", &boundSizing );
+		if( boundSizing )
+		{
+			ImGui::PushID( 3 );
+			ImGui::Checkbox( "##BoundSizing", &boundSizingSnap );
+			ImGui::SameLine();
+			ImGui::InputFloat3( "Snap", boundsSnap );
+			ImGui::PopID();
+		}
+#endif
+
+		ImGui::SeparatorText( "Color & Texturing" );
+
+		changes |= ImGui::ColorEdit3( "Color", vecToArr( cur.color ) );
 
 		ImGui::Spacing();
 
@@ -753,13 +992,24 @@ void LightEditor::DrawWindow()
 		{
 			ImVec2 size( currentTexture->GetUploadWidth(), currentTexture->GetUploadHeight() );
 
-#if !IMGUI_BFGUI
-			ImGui::Image( ( void* )currentTexture->GetImGuiTextureID(), size, ImVec2( 0, 0 ), ImVec2( 1, 1 ),
-#else
 			ImGui::Image( ( void* )currentTextureMaterial, size, ImVec2( 0, 0 ), ImVec2( 1, 1 ),
-#endif
 						  ImColor( 255, 255, 255, 255 ), ImColor( 255, 255, 255, 128 ) );
 		}
+
+		ImGui::SeparatorText( "Flicker Style" );
+
+		if( ImGui::Combo( "Style", &currentStyleIndex, StyleItemsGetter, this, styleNames.Num() + 1 ) )
+		{
+			changes = true;
+
+			// -1 because 0 is "<No Lightstyle>"
+			cur.lightStyle = ( currentStyleIndex > 0 ) ? currentStyleIndex - 1 : -1;
+		}
+
+		ImGui::SeparatorText( "Misc Options" );
+
+		changes |= ImGui::Checkbox( "Cast Shadows", &cur.castShadows );
+		changes |= ImGui::Checkbox( "Skip Specular", &cur.skipSpecular );
 
 		// TODO: allow multiple lights selected at the same time + "apply different" button?
 		//       then only the changed attribute (e.g. color) would be set to all lights,
@@ -769,25 +1019,216 @@ void LightEditor::DrawWindow()
 
 		if( ImGui::Button( "Save to .map" ) )
 		{
-			SaveChanges();
-			showWindow = false;
+			SaveChanges( true );
+			showTool = false;
 		}
 		else if( ImGui::SameLine(), ImGui::Button( "Cancel" ) )
 		{
 			CancelChanges();
-			showWindow = false;
+			showTool = false;
 		}
-		else if( changes )
+
+		viewDef_t viewDef;
+		if( gameEdit->PlayerGetRenderView( viewDef.renderView ) )
 		{
-			TempApplyChanges();
+			ImGui::Separator();
+
+			ImGui::Text( "X: %f Y: %f", io.MousePos.x, io.MousePos.y );
+			if( ImGuizmo::IsUsing() )
+			{
+				ImGui::Text( "Using gizmo" );
+			}
+			else
+			{
+				ImGui::Text( ImGuizmo::IsOver() ? "Over gizmo" : "" );
+				ImGui::SameLine();
+				ImGui::Text( ImGuizmo::IsOver( ImGuizmo::TRANSLATE ) ? "Over translate gizmo" : "" );
+				ImGui::SameLine();
+				ImGui::Text( ImGuizmo::IsOver( ImGuizmo::ROTATE ) ? "Over rotate gizmo" : "" );
+				ImGui::SameLine();
+				ImGui::Text( ImGuizmo::IsOver( ImGuizmo::SCALE ) ? "Over scale gizmo" : "" );
+			}
 		}
+
+		static bool use_work_area = true;
+		static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove
+										| ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs;// | ImGuiWindowFlags_MenuBar;
+
+		// We demonstrate using the full viewport area or the work area (without menu-bars, task-bars etc.)
+		// Based on your use case you may want one or the other.
+		const ImGuiViewport* viewport = ImGui::GetMainViewport();
+		ImGui::SetNextWindowPos( use_work_area ? viewport->WorkPos : viewport->Pos );
+		ImGui::SetNextWindowSize( use_work_area ? viewport->WorkSize : viewport->Size );
+
+		if( ImGui::Begin( "Example: Fullscreen window", &showTool, flags ) )
+		{
+			if( ImGui::BeginMainMenuBar() )
+			{
+				if( ImGui::BeginMenu( "File" ) )
+				{
+					//ShowExampleMenuFile();
+					if( ImGui::MenuItem( "Save Map", "Ctrl+S" ) )
+					{
+						SaveChanges( true );
+					}
+					ImGui::EndMenu();
+				}
+				if( ImGui::BeginMenu( "Edit" ) )
+				{
+					//if( ImGui::MenuItem( "Undo", "CTRL+Z" ) ) {}
+					//if( ImGui::MenuItem( "Redo", "CTRL+Y", false, false ) ) {} // Disabled item
+
+					//ImGui::Separator();
+
+					//if( ImGui::MenuItem( "Cut", "CTRL+X" ) ) {}
+					//if( ImGui::MenuItem( "Copy", "CTRL+C" ) ) {}
+					//if( ImGui::MenuItem( "Paste", "CTRL+V" ) ) {}
+
+					if( ImGui::MenuItem( "Duplicate", "CTRL+D" ) )
+					{
+						DuplicateLight();
+					}
+
+					//if( ImGui::MenuItem( "Delete", "Backspace" ) )
+					//{
+					// TODO
+					//	goto exitLightEditor;
+					//}
+					ImGui::EndMenu();
+				}
+				ImGui::EndMainMenuBar();
+			}
+
+			// backup state before moving the light
+			if( !ImGuizmo::IsUsing() )
+			{
+				curNotMoving = cur;
+			}
+
+			//
+			// GIZMO
+			//
+
+			//ImGuiIO& io = ImGui::GetIO();
+			ImGuizmo::SetRect( 0, 0, io.DisplaySize.x, io.DisplaySize.y );
+			ImGuizmo::SetOrthographic( false );
+			ImGuizmo::SetDrawlist();
+
+			ImGuizmo::SetID( 0 );
+
+
+			//viewDef_t viewDef;
+			//if( gameEdit->PlayerGetRenderView( viewDef.renderView ) )
+			{
+				R_SetupViewMatrix( &viewDef );
+				R_SetupProjectionMatrix( &viewDef, false );
+
+				float* cameraView = viewDef.worldSpace.modelViewMatrix;
+				float* cameraProjection = viewDef.unjitteredProjectionMatrix;
+
+				idMat3 rotateMatrix = cur.angles.ToMat3();
+				idMat3 scaleMatrix = mat3_identity;
+				scaleMatrix[0][0] = 16;
+				scaleMatrix[1][1] = 16;
+				scaleMatrix[2][2] = 16;
+
+				idMat4 objectMatrix( scaleMatrix * rotateMatrix,  cur.origin );
+				ImGuizmo::DrawCubes( cameraView, cameraProjection, objectMatrix.Transpose().ToFloatPtr(), 1 );
+
+				scaleMatrix[0][0] = 1;
+				scaleMatrix[1][1] = 1;
+				scaleMatrix[2][2] = 1;
+
+				idMat4 gizmoMatrix( scaleMatrix * rotateMatrix,  cur.origin );
+				idMat4 manipMatrix = gizmoMatrix.Transpose();
+
+				const float* snap = NULL;
+				if( useSnap )
+				{
+					switch( mCurrentGizmoOperation )
+					{
+						case ImGuizmo::TRANSLATE:
+							snap = &gridSnap[0];
+							break;
+						case ImGuizmo::ROTATE:
+							snap = &angleSnap;
+							break;
+						case ImGuizmo::SCALE:
+							snap = &scaleSnap;
+							break;
+					}
+				}
+
+				ImGuizmo::Manipulate( cameraView, cameraProjection, mCurrentGizmoOperation, mCurrentGizmoMode, manipMatrix.ToFloatPtr(), NULL, useSnap ? snap : NULL, boundSizing ? bounds : NULL, boundSizingSnap ? boundsSnap : NULL );
+
+				if( ImGuizmo::IsUsing() )
+				{
+					//if( mCurrentGizmoOperation == ImGuizmo::TRANSLATE )
+					{
+						gizmoMatrix = manipMatrix.Transpose();
+						cur.origin = gizmoMatrix.GetTranslation();
+
+						changes = true;
+					}
+
+					if( ( mCurrentGizmoOperation & ImGuizmo::SCALE ) == 0 )
+					{
+						idMat3 axis = gizmoMatrix.ToMat3();
+						cur.angles = axis.ToAngles();
+
+						changes = true;
+					}
+
+					if( mCurrentGizmoOperation == ImGuizmo::SCALE )
+					{
+						// Use DecomposeMatrixToComponents just for the scaling
+						float matrixTranslation[3], matrixRotation[3], matrixScale[3];
+						ImGuizmo::DecomposeMatrixToComponents( &manipMatrix[0][0], matrixTranslation, matrixRotation, matrixScale );
+
+						cur.scale.x = matrixScale[0];
+						cur.scale.y = matrixScale[1];
+						cur.scale.z = matrixScale[2];
+
+						if( matrixScale[0] != 1.0f || matrixScale[1] != 1.0f || matrixScale[2] != 1.0f )
+						{
+							if( cur.lightType == LIGHT_SPOT )
+							{
+								cur.lightRight = curNotMoving.lightRight * matrixScale[0];
+								cur.lightUp = curNotMoving.lightUp * matrixScale[1];
+								cur.lightTarget = curNotMoving.lightTarget * matrixScale[2];
+							}
+							else //if( cur.lightType == LIGHT_POINT )
+							{
+								cur.lightRadius.x = curNotMoving.lightRadius.x * matrixScale[0];
+								cur.lightRadius.y = curNotMoving.lightRadius.y * matrixScale[1];
+								cur.lightRadius.z = curNotMoving.lightRadius.z * matrixScale[2];
+
+								if( matrixScale[0] != matrixScale[1] || matrixScale[1] != matrixScale[2] )
+								{
+									cur.equalRadius = false;
+								}
+							}
+
+							changes = true;
+						}
+					}
+				}
+			}
+		}
+		ImGui::End();
 	}
 	ImGui::End();
 
-	if( showIt && !showWindow )
+	if( changes )
 	{
-		// TODO: do the same as when pressing cancel?
-		showIt = showWindow;
+		TempApplyChanges();
+	}
+
+//exitLightEditor:
+
+	if( isShown && !showTool )
+	{
+		isShown = showTool;
 		impl::SetReleaseToolMouse( false );
 	}
 }
