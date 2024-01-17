@@ -42,6 +42,8 @@ class idLobby : public idLobbyBase
 public:
 	idLobby();
 
+	void Free();
+
 	enum lobbyType_t
 	{
 		TYPE_PARTY				= 0,

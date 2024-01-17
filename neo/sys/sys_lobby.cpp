@@ -330,7 +330,12 @@ void idLobby::Shutdown( bool retainMigrationInfo, bool skipGoodbye )
 		}
 	}
 
-	// SRS - cleanup any allocations made for multiplayer networking support
+	state = STATE_IDLE;
+}
+
+void idLobby::Free()
+{
+    // SRS - cleanup any allocations made for multiplayer networking support
 	if( objMemory )
 	{
 		Mem_Free( objMemory );
@@ -338,8 +343,6 @@ void idLobby::Shutdown( bool retainMigrationInfo, bool skipGoodbye )
 		Mem_Free( lzwData );
 		lzwData = NULL;
 	}
-
-	state = STATE_IDLE;
 }
 
 /*
