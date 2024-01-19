@@ -346,6 +346,8 @@ idLobbyBase
 class idLobbyBase
 {
 public:
+	virtual ~idLobbyBase() {}
+
 	// General lobby functionality
 	virtual bool						IsHost() const = 0;
 	virtual bool						IsPeer() const = 0;

@@ -253,10 +253,6 @@ void idSessionLocalWin::Shutdown()
 		Pump();
 	}
 
-	GetPartyLobby().Free();
-	GetGameLobby().Free();
-	GetGameStateLobby().Free();
-
 	if( achievementSystem != NULL )
 	{
 		achievementSystem->Shutdown();
