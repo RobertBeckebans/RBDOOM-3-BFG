@@ -4,6 +4,7 @@
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
 Copyright (C) 2013-2015 Robert Beckebans
+Copyright (C) 2023 Harrie van Ginneken
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -32,11 +33,15 @@ If you have questions concerning this license or the applicable additional terms
 #include "../renderer/Image.h"
 //#include "../../libs/rapidjson/include/rapidjson/document.h"
 
-using namespace rapidjson;
+using namespace rapidjson;//bleh
 
 #pragma warning(disable: 4355) // 'this' : used in base member initializer list
 
-#define BSWF_VERSION 16		// bumped to 16 for storing atlas image dimensions for unbuffered loads
+
+idCVar swf_fatalVersionMismatch( "swf_fatalVersionMismatch", "0", CVAR_BOOL, "Version number mismatch results in fatal error" );
+// bumped to 16 for storing atlas image dimensions for unbuffered loads
+// should be bumped to 17 for storing ABC Tag
+#define BSWF_VERSION 16
 #define BSWF_MAGIC ( ( 'B' << 24 ) | ( 'S' << 16 ) | ( 'W' << 8 ) | BSWF_VERSION )
 
 // RB begin
@@ -68,11 +73,14 @@ bool idSWF::LoadSWF( const char* fullpath )
 		return false;
 	}
 
-	if( header.version > 9 )
+	if( header.version >= 9 )
 	{
 		idLib::Warning( "Unsupported version %d", header.version );
-		delete rawfile;
-		return false;
+		if( swf_fatalVersionMismatch.GetBool() )
+		{
+			delete rawfile;
+			return false;
+		}
 	}
 
 	bool compressed;
@@ -614,6 +622,25 @@ bool idSWF::LoadBinary( const char* bfilename, ID_TIME_T sourceTimeStamp )
 			}
 		}
 	}
+
+	if( f->Tell() < f->Length() )
+	{
+		abcFile.LoadBinary( f );
+
+		f->ReadBig( num );
+		symbolClasses.symbols.SetNum( num );
+		for( int i = 0; i < symbolClasses.symbols.Num(); i++ )
+		{
+			f->ReadBig( symbolClasses.symbols[i].tag );
+			f->ReadString( symbolClasses.symbols[i].name );
+		}
+
+		if( abcFile.AbcTagData.Length() )
+		{
+			DoABC( abcFile.AbcTagData );
+		}
+	}
+
 	delete f;
 
 	return true;
@@ -789,6 +816,14 @@ void idSWF::WriteBinary( const char* bfilename )
 				break;
 			}
 		}
+	}
+
+	abcFile.WriteBinary( file );
+	file->WriteBig( symbolClasses.symbols.Num() );
+	for( int i = 0; i < symbolClasses.symbols.Num(); i++ )
+	{
+		file->WriteBig( symbolClasses.symbols[i].tag );
+		file->WriteString( symbolClasses.symbols[i].name );
 	}
 }
 

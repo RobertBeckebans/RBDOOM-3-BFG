@@ -449,14 +449,26 @@ bool idUserInterfaceLocal::InitFromFile( const char* qpath, bool rebuild, bool c
 	else
 	{
 		desktop->SetFlag( WIN_DESKTOP );
-		desktop->name = "Desktop";
-		desktop->text = va( "Invalid GUI: %s", qpath );
-		desktop->rect = idRectangle( 0.0f, 0.0f, 640.0f, 480.0f );
-		desktop->drawRect = desktop->rect;
-		desktop->foreColor = idVec4( 1.0f, 1.0f, 1.0f, 1.0f );
-		desktop->backColor = idVec4( 0.0f, 0.0f, 0.0f, 1.0f );
+		desktop->swf = new( TAG_OLD_UI )idSWF( qpath );
+
+		if( !desktop->swf->IsLoaded() )
+		{
+			desktop->name = "Desktop";
+			desktop->text = va( "Invalid GUI: %s", qpath );
+			desktop->rect = idRectangle( 0.0f, 0.0f, 640.0f, 480.0f );
+			desktop->foreColor = idVec4( 1.0f, 1.0f, 1.0f, 1.0f );
+			desktop->backColor = idVec4( 0.0f, 0.0f, 0.0f, 1.0f );
+			common->Warning( "Couldn't load gui: '%s'", source.c_str() );
+		}
+		else
+		{
+			desktop->rect = idRectangle( 0.0f, 0.0f, desktop->swf->GetFrameWidth(), desktop->swf->GetFrameHeight() );
+			desktop->name = desktop->swf->GetName();
+			common->Warning( "loaded SWF gui: '%s'", source.c_str() );
+		}
+
 		desktop->SetupFromState();
-		common->Warning( "Couldn't load gui: '%s'", source.c_str() );
+
 	}
 	interactive = desktop->Interactive();
 	if( uiManagerLocal.guis.Find( this ) == NULL )
@@ -528,8 +540,9 @@ void idUserInterfaceLocal::DrawCursor()
 	{
 		dc->DrawCursor( &cursorX, &cursorY, 32.0f );
 	}
-	else
+	else if( !desktop->swf )
 	{
+
 		dc->DrawCursor( &cursorX, &cursorY, 56.0f );
 	}
 }

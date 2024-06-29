@@ -3,6 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2023 Harrie van Ginneken
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -68,40 +69,41 @@ these can be on the stack, in a script object, passed around as parameters, etc
 they can contain raw data (int, float), strings, functions, or objects
 ========================
 */
+struct swfTraits_info;
 class idSWFScriptVar
 {
 public:
-	idSWFScriptVar() : type( SWF_VAR_UNDEF ) { }
+	idSWFScriptVar() : traitsInfo( NULL ), type( SWF_VAR_UNDEF ) { }
 	idSWFScriptVar( const idSWFScriptVar& other );
-	idSWFScriptVar( idSWFScriptObject* o ) : type( SWF_VAR_UNDEF )
+	idSWFScriptVar( idSWFScriptObject* o ) :  traitsInfo( NULL ), type( SWF_VAR_UNDEF )
 	{
 		SetObject( o );
 	}
-	idSWFScriptVar( idStrId s ) : type( SWF_VAR_UNDEF )
+	idSWFScriptVar( idStrId s ) :  traitsInfo( NULL ), type( SWF_VAR_UNDEF )
 	{
 		SetString( s );
 	}
-	idSWFScriptVar( const idStr& s ) : type( SWF_VAR_UNDEF )
+	idSWFScriptVar( const idStr& s ) :  traitsInfo( NULL ), type( SWF_VAR_UNDEF )
 	{
 		SetString( s );
 	}
-	idSWFScriptVar( const char* s ) : type( SWF_VAR_UNDEF )
+	idSWFScriptVar( const char* s ) :  traitsInfo( NULL ), type( SWF_VAR_UNDEF )
 	{
 		SetString( idStr( s ) );
 	}
-	idSWFScriptVar( float f ) : type( SWF_VAR_UNDEF )
+	idSWFScriptVar( float f ) :  traitsInfo( NULL ), type( SWF_VAR_UNDEF )
 	{
 		SetFloat( f );
 	}
-	idSWFScriptVar( bool b ) : type( SWF_VAR_UNDEF )
+	idSWFScriptVar( bool b ) :  traitsInfo( NULL ), type( SWF_VAR_UNDEF )
 	{
 		SetBool( b );
 	}
-	idSWFScriptVar( int32 i ) : type( SWF_VAR_UNDEF )
+	idSWFScriptVar( int32 i ) :  traitsInfo( NULL ), type( SWF_VAR_UNDEF )
 	{
 		SetInteger( i );
 	}
-	idSWFScriptVar( idSWFScriptFunction* nf ) : type( SWF_VAR_UNDEF )
+	idSWFScriptVar( idSWFScriptFunction* nf ) :  traitsInfo( NULL ), type( SWF_VAR_UNDEF )
 	{
 		SetFunction( nf );
 	}
@@ -272,6 +274,7 @@ public:
 		return type;
 	}
 
+	const swfTraits_info* traitsInfo;
 private:
 	void Free();
 	swfScriptVarType type;
