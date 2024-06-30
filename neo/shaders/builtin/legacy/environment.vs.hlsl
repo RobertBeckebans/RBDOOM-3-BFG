@@ -27,6 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet0.inc.hlsl"
 
 // *INDENT-OFF*
 #if USE_GPU_SKINNING
@@ -100,26 +101,26 @@ void main( VS_IN vertex, out VS_OUT result )
 	modelPosition.z = dot4( matZ, vertex.position );
 	modelPosition.w = 1.0;
 
-	result.position.x = dot4( modelPosition, rpMVPmatrixX );
-	result.position.y = dot4( modelPosition, rpMVPmatrixY );
-	result.position.z = dot4( modelPosition, rpMVPmatrixZ );
-	result.position.w = dot4( modelPosition, rpMVPmatrixW );
+	result.position.x = dot4( modelPosition, pc.rpMVPmatrixX );
+	result.position.y = dot4( modelPosition, pc.rpMVPmatrixY );
+	result.position.z = dot4( modelPosition, pc.rpMVPmatrixZ );
+	result.position.w = dot4( modelPosition, pc.rpMVPmatrixW );
 
-	float4 toEye = rpLocalViewOrigin - modelPosition;
+	float4 toEye = pc.rpLocalViewOrigin - modelPosition;
 
 	result.texcoord0 = toEye.xyz;
 	result.texcoord1 = vNormalSkinned.xyz;
 #else
-	result.position.x = dot4( vertex.position, rpMVPmatrixX );
-	result.position.y = dot4( vertex.position, rpMVPmatrixY );
-	result.position.z = dot4( vertex.position, rpMVPmatrixZ );
-	result.position.w = dot4( vertex.position, rpMVPmatrixW );
+	result.position.x = dot4( vertex.position, pc.rpMVPmatrixX );
+	result.position.y = dot4( vertex.position, pc.rpMVPmatrixY );
+	result.position.z = dot4( vertex.position, pc.rpMVPmatrixZ );
+	result.position.w = dot4( vertex.position, pc.rpMVPmatrixW );
 
-	float4 toEye = rpLocalViewOrigin - vertex.position;
+	float4 toEye = pc.rpLocalViewOrigin - vertex.position;
 
 	result.texcoord0 = toEye.xyz;
 	result.texcoord1 = vNormal.xyz;
 #endif
 
-	result.color = sRGBAToLinearRGBA( rpColor );
+	result.color = sRGBAToLinearRGBA( pc.rpColor );
 }

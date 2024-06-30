@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet5.inc.hlsl"
+
 
 // *INDENT-OFF*
 #if USE_GPU_SKINNING
@@ -117,61 +119,61 @@ void main( VS_IN vertex, out VS_OUT result )
 	modelPosition.z = dot4( matZ, vertex.position );
 	modelPosition.w = 1.0;
 
-	result.position.x = dot4( modelPosition, rpMVPmatrixX );
-	result.position.y = dot4( modelPosition, rpMVPmatrixY );
-	result.position.z = dot4( modelPosition, rpMVPmatrixZ );
-	result.position.w = dot4( modelPosition, rpMVPmatrixW );
+	result.position.x = dot4( modelPosition, pc.rpMVPmatrixX );
+	result.position.y = dot4( modelPosition, pc.rpMVPmatrixY );
+	result.position.z = dot4( modelPosition, pc.rpMVPmatrixZ );
+	result.position.w = dot4( modelPosition, pc.rpMVPmatrixW );
 
 	result.texcoord0 = vertex.texcoord.xy;
 
-	float4 toEye = rpLocalViewOrigin - modelPosition;
+	float4 toEye = pc.rpLocalViewOrigin - modelPosition;
 
-	result.texcoord1.x = dot3( toEye, rpModelMatrixX );
-	result.texcoord1.y = dot3( toEye, rpModelMatrixY );
-	result.texcoord1.z = dot3( toEye, rpModelMatrixZ );
+	result.texcoord1.x = dot3( toEye, pc.rpModelMatrixX );
+	result.texcoord1.y = dot3( toEye, pc.rpModelMatrixY );
+	result.texcoord1.z = dot3( toEye, pc.rpModelMatrixZ );
 
-	result.texcoord2.x = dot3( tangent, rpModelMatrixX );
-	result.texcoord3.x = dot3( tangent, rpModelMatrixY );
-	result.texcoord4.x = dot3( tangent, rpModelMatrixZ );
+	result.texcoord2.x = dot3( tangent, pc.rpModelMatrixX );
+	result.texcoord3.x = dot3( tangent, pc.rpModelMatrixY );
+	result.texcoord4.x = dot3( tangent, pc.rpModelMatrixZ );
 
-	result.texcoord2.y = dot3( binormal, rpModelMatrixX );
-	result.texcoord3.y = dot3( binormal, rpModelMatrixY );
-	result.texcoord4.y = dot3( binormal, rpModelMatrixZ );
+	result.texcoord2.y = dot3( binormal, pc.rpModelMatrixX );
+	result.texcoord3.y = dot3( binormal, pc.rpModelMatrixY );
+	result.texcoord4.y = dot3( binormal, pc.rpModelMatrixZ );
 
-	result.texcoord2.z = dot3( normal, rpModelMatrixX );
-	result.texcoord3.z = dot3( normal, rpModelMatrixY );
-	result.texcoord4.z = dot3( normal, rpModelMatrixZ );
+	result.texcoord2.z = dot3( normal, pc.rpModelMatrixX );
+	result.texcoord3.z = dot3( normal, pc.rpModelMatrixY );
+	result.texcoord4.z = dot3( normal, pc.rpModelMatrixZ );
 #else
 	float4 normal = vertex.normal * 2.0 - 1.0;
 	float4 tangent = vertex.tangent * 2.0 - 1.0;
 	float3 binormal = cross( normal.xyz, tangent.xyz ) * tangent.w;
 
-	result.position.x = dot4( vertex.position, rpMVPmatrixX );
-	result.position.y = dot4( vertex.position, rpMVPmatrixY );
-	result.position.z = dot4( vertex.position, rpMVPmatrixZ );
-	result.position.w = dot4( vertex.position, rpMVPmatrixW );
+	result.position.x = dot4( vertex.position, pc.rpMVPmatrixX );
+	result.position.y = dot4( vertex.position, pc.rpMVPmatrixY );
+	result.position.z = dot4( vertex.position, pc.rpMVPmatrixZ );
+	result.position.w = dot4( vertex.position, pc.rpMVPmatrixW );
 
 	result.texcoord0 = vertex.texcoord.xy;
 
-	float4 toEye = rpLocalViewOrigin - vertex.position;
+	float4 toEye = pc.rpLocalViewOrigin - vertex.position;
 
-	result.texcoord1.x = dot3( toEye, rpModelMatrixX );
-	result.texcoord1.y = dot3( toEye, rpModelMatrixY );
-	result.texcoord1.z = dot3( toEye, rpModelMatrixZ );
+	result.texcoord1.x = dot3( toEye, pc.rpModelMatrixX );
+	result.texcoord1.y = dot3( toEye, pc.rpModelMatrixY );
+	result.texcoord1.z = dot3( toEye, pc.rpModelMatrixZ );
 
-	result.texcoord2.x = dot3( tangent, rpModelMatrixX );
-	result.texcoord3.x = dot3( tangent, rpModelMatrixY );
-	result.texcoord4.x = dot3( tangent, rpModelMatrixZ );
+	result.texcoord2.x = dot3( tangent, pc.rpModelMatrixX );
+	result.texcoord3.x = dot3( tangent, pc.rpModelMatrixY );
+	result.texcoord4.x = dot3( tangent, pc.rpModelMatrixZ );
 
-	result.texcoord2.y = dot3( binormal, rpModelMatrixX );
-	result.texcoord3.y = dot3( binormal, rpModelMatrixY );
-	result.texcoord4.y = dot3( binormal, rpModelMatrixZ );
+	result.texcoord2.y = dot3( binormal, pc.rpModelMatrixX );
+	result.texcoord3.y = dot3( binormal, pc.rpModelMatrixY );
+	result.texcoord4.y = dot3( binormal, pc.rpModelMatrixZ );
 
-	result.texcoord2.z = dot3( normal, rpModelMatrixX );
-	result.texcoord3.z = dot3( normal, rpModelMatrixY );
-	result.texcoord4.z = dot3( normal, rpModelMatrixZ );
+	result.texcoord2.z = dot3( normal, pc.rpModelMatrixX );
+	result.texcoord3.z = dot3( normal, pc.rpModelMatrixY );
+	result.texcoord4.z = dot3( normal, pc.rpModelMatrixZ );
 
 #endif
 
-	result.color = rpColor;
+	result.color = pc.rpColor;
 }
