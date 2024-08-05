@@ -28,6 +28,7 @@ SOFTWARE.
 */
 
 #include <global_inc.hlsl>
+#include "renderParmSet2.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -105,12 +106,12 @@ void main( PS_IN fragment, out PS_OUT result )
 	};
 
 	Params params;
-	params.curvature = rpWindowCoord.x;
+	params.curvature = pc.rpWindowCoord.x;
 	params.ghosting = 0.0;
 	params.scanroll = 1.0;
 	params.wiggle_toggle = 0.0;
-	params.vignette = rpWindowCoord.y;
-	params.FrameCount = int( rpJitterTexOffset.w );
+	params.vignette = pc.rpWindowCoord.y;
+	params.FrameCount = int( pc.rpJitterTexOffset.w );
 
 	// stop time variable so the screen doesn't wiggle
 	float time = params.FrameCount % 849 * 36.0;
@@ -133,7 +134,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	}
 	float2 scuv = curved_uv;
 
-	float2 resolution = rpWindowCoord.zw;
+	float2 resolution = pc.rpWindowCoord.zw;
 
 	/* Main color, Bleed */
 	float3 col;

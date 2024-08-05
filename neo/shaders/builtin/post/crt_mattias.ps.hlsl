@@ -28,6 +28,7 @@ SOFTWARE.
 */
 
 #include <global_inc.hlsl>
+#include "renderParmSet2.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -63,14 +64,14 @@ float2 curve( float2 uv, float curvature )
 
 void main( PS_IN fragment, out PS_OUT result )
 {
-	float2 iResolution = rpWindowCoord.zw;
-	float iTime = rpJitterTexOffset.x;
+	float2 iResolution = pc.rpWindowCoord.zw;
+	float iTime = pc.rpJitterTexOffset.x;
 
 	float2 q = fragment.texcoord0.xy;
 	q = saturate( q );
 
 	float2 uv = q;
-	if( rpWindowCoord.x > 0.0 )
+	if( pc.rpWindowCoord.x > 0.0 )
 	{
 		uv = curve( uv, 2.0 );
 	}

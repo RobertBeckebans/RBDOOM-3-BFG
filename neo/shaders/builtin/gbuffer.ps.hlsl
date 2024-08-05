@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet3.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -82,6 +83,6 @@ void main( PS_IN fragment, out PS_OUT result )
 #endif
 
 	// RB: rpColor is white and only used to generate the _fa_ uniform array
-	result.color.rgb = ( globalNormal.xyz * 0.5 + 0.5 ) * fragment.color.rgb;// * rpColor;
+	result.color.rgb = ( globalNormal.xyz * 0.5 + 0.5 ) * fragment.color.rgb;// * pc.rpColor;
 	result.color.a = 1.0;
 }

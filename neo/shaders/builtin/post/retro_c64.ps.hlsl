@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet2.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -228,12 +229,12 @@ void main( PS_IN fragment, out PS_OUT result )
 	float3 quantizationPeriod = _float3( 1.0 / NUM_COLORS );
 
 	// get pixellated base color
-	float3 color = t_BaseColor.Sample( samp0, uvPixelated * rpWindowCoord.xy ).rgb;
+	float3 color = t_BaseColor.Sample( samp0, uvPixelated * pc.rpWindowCoord.xy ).rgb;
 
 	float2 uvDither = uvPixelated;
-	//if( rpJitterTexScale.x > 1.0 )
+	//if( pc.rpJitterTexScale.x > 1.0 )
 	{
-		uvDither = fragment.position.xy / ( RESOLUTION_DIVISOR / rpJitterTexScale.x );
+		uvDither = fragment.position.xy / ( RESOLUTION_DIVISOR / pc.rpJitterTexScale.x );
 	}
 	float dither = DitherArray8x8( uvDither ) - 0.5;
 
@@ -273,7 +274,7 @@ void main( PS_IN fragment, out PS_OUT result )
 #endif
 
 	//color.rgb += float3( dither, dither, dither ) * quantizationPeriod;
-	color.rgb += float3( dither, dither, dither ) * Deviation( palette ) * rpJitterTexScale.y;
+	color.rgb += float3( dither, dither, dither ) * Deviation( palette ) * pc.rpJitterTexScale.y;
 
 	// find closest color match from C64 color palette
 	color = LinearSearch( color.rgb, palette );

@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet1.inc.hlsl"
 
 
 #define SMAA_INCLUDE_VS 0
