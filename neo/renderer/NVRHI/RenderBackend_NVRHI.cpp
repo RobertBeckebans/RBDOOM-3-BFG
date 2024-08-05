@@ -138,11 +138,11 @@ static NvrhiContext prevContext;
 
 /*
 ==================
-R_InitOpenGL
+idRenderBackend::Init
 
-This function is responsible for initializing a valid OpenGL subsystem
-for rendering.  This is done by calling the system specific GLimp_Init,
-which gives us a working OGL subsystem, then setting all necessary openGL
+This function is responsible for initializing a valid DX12/Vulkan subsystem
+for rendering.  This is done by calling the system specific GLimp_Init/VKimp_Init,
+which gives us a working subsystem, then setting all necessary renderer
 state, including images, vertex programs, and display lists.
 
 Changes to the vertex cache size or smp state require a vid_restart.
@@ -154,11 +154,11 @@ and model information functions.
 */
 void idRenderBackend::Init()
 {
-	common->Printf( "----- R_InitOpenGL -----\n" );
+	common->Printf( "----- idRenderBackend::Init -----\n" );
 
 	if( tr.IsInitialized() )
 	{
-		common->FatalError( "R_InitOpenGL called while active" );
+		common->FatalError( "idRenderBackend::Init called while active" );
 	}
 
 	// SRS - create deviceManager here to prevent allocation loop via R_SetNewMode( true )
