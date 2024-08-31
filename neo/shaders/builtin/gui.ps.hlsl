@@ -27,6 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet0.inc.hlsl"
 
 // *INDENT-OFF*
 Texture2D texGui : register( t0 VK_DESCRIPTOR_SET( 1 ) );

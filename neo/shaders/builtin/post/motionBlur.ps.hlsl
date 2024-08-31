@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet1.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -81,10 +82,10 @@ void main( PS_IN fragment, out PS_OUT result )
 
 	// convert from clip space this frame to clip space previous frame
 	float4 prevClipPos;
-	prevClipPos.x = dot( rpMVPmatrixX, clip );
-	prevClipPos.y = dot( rpMVPmatrixY, clip );
-	prevClipPos.z = dot( rpMVPmatrixZ, clip );
-	prevClipPos.w = dot( rpMVPmatrixW, clip );
+	prevClipPos.x = dot( pc.rpMVPmatrixX, clip );
+	prevClipPos.y = dot( pc.rpMVPmatrixY, clip );
+	prevClipPos.z = dot( pc.rpMVPmatrixZ, clip );
+	prevClipPos.w = dot( pc.rpMVPmatrixW, clip );
 
 	if( prevClipPos.w <= 0 )
 	{
@@ -101,7 +102,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	float2 delta = ( fragment.texcoord0 - prevTexCoord );
 
 #if VECTORS_ONLY
-	float2 prevWindowPos = prevTexCoord * rpWindowCoord.zw;
+	float2 prevWindowPos = prevTexCoord * pc.rpWindowCoord.zw;
 
 	float2 deltaPos = prevWindowPos - fragment.position.xy;
 	float2 deltaUV = prevTexCoord - fragment.texcoord0;
@@ -110,7 +111,7 @@ void main( PS_IN fragment, out PS_OUT result )
 #else
 	float3 sum = _float3( 0.0 );
 	float goodSamples = 0.0;
-	float samples = rpOverbright.x;
+	float samples = pc.rpOverbright.x;
 
 	for( float i = 0.0 ; i < samples ; i = i + 1.0 )
 	{
