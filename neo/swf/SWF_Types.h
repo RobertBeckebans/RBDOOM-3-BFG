@@ -4,6 +4,7 @@
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
 Copyright (C) 2013-2015 Robert Beckebans
+Copyright (C) 2023 Harrie van Ginneken
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -162,6 +163,12 @@ struct swfLineStyle_t
 	uint16 endWidth;
 	swfColorRGBA_t startColor;
 	swfColorRGBA_t endColor;
+
+	// HarrievG begin
+	uint8 startCapStyle;
+	uint8 endCapStyle;
+	enum capStyle { round = 0, none, square };
+	// HarrievG end
 };
 struct swfGradientRecord_t
 {
