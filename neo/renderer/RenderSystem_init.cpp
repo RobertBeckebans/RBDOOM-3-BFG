@@ -424,9 +424,8 @@ void R_SetNewMode( const bool fullInit )
 			idList<vidMode_t> modeList;
 			if( !R_GetModeListForDisplay( r_fullscreen.GetInteger() - 1, modeList ) )
 			{
-				idLib::Printf( "r_fullscreen reset from %i to 1 because mode list failed.\n", r_fullscreen.GetInteger() );
-				r_fullscreen.SetInteger( 1 );
-				R_GetModeListForDisplay( r_fullscreen.GetInteger() - 1, modeList );
+				idLib::Printf( "Going to safe mode because display not found.\n" );
+				goto safeMode;
 			}
 
 			if( modeList.Num() < 1 )
@@ -524,7 +523,7 @@ void R_SetNewMode( const bool fullInit )
 
 		if( i == 2 )
 		{
-			common->FatalError( "Unable to initialize OpenGL" );
+			common->FatalError( "Unable to initialize renderer" );
 		}
 
 		if( i == 0 )
@@ -536,8 +535,25 @@ void R_SetNewMode( const bool fullInit )
 safeMode:
 		// if we failed, set everything back to "safe mode"
 		// and try again
+
+		// SRS - get the first display with a non-zero mode list, or fail if not found
+		int safeDisplay = 0;
+		idList<vidMode_t> safeList;
+		for( ; ; safeDisplay++ )
+		{
+			if( !R_GetModeListForDisplay( safeDisplay, safeList ) )
+			{
+				common->FatalError( "Unable to find a valid display for renderer" );
+			}
+			else if( safeList.Num() > 0 )
+			{
+				break;
+			}
+		}
+		// SRS end
+
 		r_vidMode.SetInteger( 0 );
-		r_fullscreen.SetInteger( 1 );
+		r_fullscreen.SetInteger( safeDisplay + 1 );
 		r_displayRefresh.SetInteger( 0 );
 		r_antiAliasing.SetInteger( 0 );
 	}
