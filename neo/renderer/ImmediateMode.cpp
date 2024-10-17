@@ -138,7 +138,7 @@ void fhImmediateMode::End()
 	vertexBuffer.Update( drawVerts, drawVertsUsed * sizeof( idDrawVert ), 0, false, commandList );
 	indexBuffer.Update( lineIndices, drawVertsUsed * sizeof( triIndex_t ), 0, false, commandList );
 
-	renderProgManager.CommitConstantBuffer( commandList, true );
+	renderProgManager.CommitConstantBuffer( commandList, false );
 
 	int bindingLayoutType = renderProgManager.BindingLayoutType();
 
@@ -147,7 +147,7 @@ void fhImmediateMode::End()
 
 	for( int i = 0; i < layouts->Num(); i++ )
 	{
-		if( !tr.backend.currentBindingSets[i] || *tr.backend.currentBindingSets[i]->getDesc() != tr.backend.pendingBindingSetDescs[bindingLayoutType][i] )
+		if( !tr.backend.currentBindingSets[i] || *tr.backend.currentBindingSets[i]->getDesc() != tr.backend.pendingBindingSetDescs[bindingLayoutType][i] || bindingLayoutType != tr.backend.prevBindingLayoutType )
 		{
 			tr.backend.currentBindingSets[i] = tr.backend.bindingCache.GetOrCreateBindingSet( tr.backend.pendingBindingSetDescs[bindingLayoutType][i], ( *layouts )[i] );
 		}
@@ -182,6 +182,8 @@ void fhImmediateMode::End()
 		state.viewport.addScissorRect( nvrhi::Rect( viewport ) );
 
 		commandList->setGraphicsState( state );
+
+		renderProgManager.CommitPushConstants( commandList, bindingLayoutType );
 	}
 
 	nvrhi::DrawArguments args;

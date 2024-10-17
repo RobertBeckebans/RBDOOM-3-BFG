@@ -1,4 +1,4 @@
-﻿/*
+/*
 ===========================================================================
 
 Doom 3 BFG Edition GPL Source Code
@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet10.inc.hlsl"
 #include "BRDF.inc.hlsl"
 
 
@@ -68,7 +69,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	float2 specUV = fragment.texcoord5.xy;
 
 	// PSX affine texture mapping
-	if( rpPSXDistortions.z > 0.0 )
+	if( pc.rpPSXDistortions.z > 0.0 )
 	{
 		baseUV /= fragment.texcoord1.z;
 		bumpUV /= fragment.texcoord1.z;
@@ -142,7 +143,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	// RB: compensate r_lightScale 3 and the division of Pi
 	//lambert *= 1.3;
 
-	// rpDiffuseModifier contains light color multiplier
+	// pc.rpDiffuseModifier contains light color multiplier
 	float3 lightColor = sRGBToLinearRGB( lightProj.xyz * lightFalloff.xyz );
 
 	float vdotN = clamp( dot3( viewVector, localNormal ), 0.0, 1.0 );
@@ -150,7 +151,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	float ldotH = clamp( dot3( lightVector, halfAngleVector ), 0.0, 1.0 );
 
 	// compensate r_lightScale 3 * 2
-	float3 reflectColor = specularColor * rpSpecularModifier.rgb * 1.0;// * 0.5;
+	float3 reflectColor = specularColor * pc.rpSpecularModifier.rgb * 1.0;// * 0.5;
 
 	// cheap approximation by ARM with only one division
 	// http://community.arm.com/servlet/JiveServlet/download/96891546-19496/siggraph2015-mmg-renaldas-slides.pdf
@@ -173,8 +174,8 @@ void main( PS_IN fragment, out PS_OUT result )
 	// see http://seblagarde.wordpress.com/2012/01/08/pi-or-not-to-pi-in-game-lighting-equation/
 	//lambert /= PI;
 
-	//float3 diffuseColor = mix( diffuseMap, F0, metal ) * rpDiffuseModifier.xyz;
-	float3 diffuseLight = diffuseColor * lambert * ( rpDiffuseModifier.xyz );
+	//float3 diffuseColor = mix( diffuseMap, F0, metal ) * pc.rpDiffuseModifier.xyz;
+	float3 diffuseLight = diffuseColor * lambert * ( pc.rpDiffuseModifier.xyz );
 
 	float3 color = ( diffuseLight + specularLight ) * lightColor * fragment.color.rgb;
 

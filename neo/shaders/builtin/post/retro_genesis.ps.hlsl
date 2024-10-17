@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet2.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -63,11 +64,11 @@ float3 Quantize( float3 color, float3 period )
 
 float3 BlueNoise3( float2 n, float x )
 {
-	float2 uv = n.xy * rpJitterTexOffset.xy;
+	float2 uv = n.xy * pc.rpJitterTexOffset.xy;
 
 	float3 noise = t_BlueNoise.Sample( samp1, uv ).rgb;
 
-	noise = frac( noise + c_goldenRatioConjugate * rpJitterTexOffset.w * x );
+	noise = frac( noise + c_goldenRatioConjugate * pc.rpJitterTexOffset.w * x );
 
 	noise.x = RemapNoiseTriErp( noise.x );
 	noise.y = RemapNoiseTriErp( noise.y );
@@ -95,12 +96,12 @@ void main( PS_IN fragment, out PS_OUT result )
 	float3 quantizationPeriod = _float3( 1.0 / ( quantizationSteps - 1 ) );
 
 	// get pixellated base color
-	float3 color = t_BaseColor.Sample( samp0, uvPixelated * rpWindowCoord.xy ).rgb;
+	float3 color = t_BaseColor.Sample( samp0, uvPixelated * pc.rpWindowCoord.xy ).rgb;
 
 	float2 uvDither = uvPixelated;
-	//if( rpJitterTexScale.x > 1.0 )
+	//if( pc.rpJitterTexScale.x > 1.0 )
 	{
-		uvDither = fragment.position.xy / ( RESOLUTION_DIVISOR / rpJitterTexScale.x );
+		uvDither = fragment.position.xy / ( RESOLUTION_DIVISOR / pc.rpJitterTexScale.x );
 	}
 	float dither = DitherArray8x8( uvDither ) - 0.5;
 
@@ -139,7 +140,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	}
 #endif
 
-	color.rgb += float3( dither, dither, dither ) * quantizationPeriod;// * rpJitterTexScale.y;
+	color.rgb += float3( dither, dither, dither ) * quantizationPeriod;// * pc.rpJitterTexScale.y;
 
 	// find closest color match from Sega Mega Drive color palette
 	color = Quantize( color, quantizationPeriod );
