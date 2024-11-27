@@ -151,6 +151,8 @@ else()
 	endif()
 	
 endif()
+
+target_include_directories(idlib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 	
 if(OPTICK)
 	target_compile_definitions(idlib PUBLIC USE_OPTICK=1)
