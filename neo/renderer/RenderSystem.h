@@ -80,7 +80,14 @@ enum graphicsVendor_t
 	VENDOR_NVIDIA,
 	VENDOR_AMD,
 	VENDOR_INTEL,
-	VENDOR_APPLE                            // SRS - Added support for Apple GPUs
+	VENDOR_APPLE,					// SRS - Added support for Apple GPUs
+	VENDOR_OTHER
+};
+
+enum graphicsGpuType_t
+{
+	GPU_TYPE_DISCRETE,
+	GPU_TYPE_OTHER
 };
 
 #define ID_MSAA 0
@@ -181,6 +188,7 @@ struct backEndCounters_t
 struct glconfig_t
 {
 	graphicsVendor_t	vendor;
+	graphicsGpuType_t	gpuType;
 
 //	int					maxTextureSize;			// TODO
 //	int					maxTextureCoords;		// TODO

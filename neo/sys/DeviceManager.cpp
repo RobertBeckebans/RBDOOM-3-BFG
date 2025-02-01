@@ -59,6 +59,23 @@ void DeviceManager::GetWindowDimensions( int& width, int& height )
 	height = m_DeviceParams.backBufferHeight;
 }
 
+graphicsVendor_t DeviceManager::getGPUVendor( uint32_t vendorID ) const
+{
+	switch( vendorID )
+	{
+		case 0x10DE:
+			return VENDOR_NVIDIA;
+		case 0x1002:
+			return VENDOR_AMD;
+		case 0x8086:
+			return VENDOR_INTEL;
+		case 0x106B:
+			return VENDOR_APPLE;
+		default:
+			return VENDOR_OTHER;
+	}
+}
+
 void DeviceManager::BackBufferResizing()
 {
 	Framebuffer::Shutdown();

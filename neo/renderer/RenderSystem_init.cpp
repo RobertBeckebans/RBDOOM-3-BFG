@@ -364,6 +364,13 @@ bool R_UseTemporalAA()
 bool R_UseHiZ()
 {
 	// TODO check for driver problems here
+#if defined(__linux__)
+	if( glConfig.vendor == VENDOR_INTEL && glConfig.gpuType == GPU_TYPE_OTHER )
+	{
+		// SRS - Disable HiZ to work-around Linux driver issues on Intel iGPUs
+		return false;
+	}
+#endif
 	return r_useHierarchicalDepthBuffer.GetBool();
 }
 

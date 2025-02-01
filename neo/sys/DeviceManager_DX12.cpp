@@ -106,11 +106,6 @@ private:
 	void ReleaseRenderTargets();
 };
 
-static bool IsNvDeviceID( UINT id )
-{
-	return id == 0x10DE;
-}
-
 // Find an adapter whose name contains the given string.
 static RefCountPtr<IDXGIAdapter> FindAdapter( const std::wstring& targetName )
 {
@@ -277,7 +272,9 @@ bool DeviceManager_DX12::CreateDeviceAndSwapChain()
 		}
 		m_RendererString = ss.str();
 
-		isNvidia = IsNvDeviceID( aDesc.VendorId );
+		glConfig.vendor = getGPUVendor( aDesc.VendorId );
+		// SRS - Intel iGPUs typically allocate 128 MB for Dedicated UMA, set threshold at 512 MB to potentially handle other iGPUs (e.g. AMD APUs)
+		glConfig.gpuType = aDesc.DedicatedVideoMemory > 0x20000000 ? GPU_TYPE_DISCRETE : GPU_TYPE_OTHER;
 	}
 	/*
 		// SRS - Don't center window here for DX12 only, instead use portable initialization in CreateWindowDeviceAndSwapChain() within win_glimp.cpp
