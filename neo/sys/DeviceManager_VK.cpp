@@ -69,6 +69,7 @@
 #endif
 
 idCVar r_vkPreferFastSync( "r_vkPreferFastSync", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL | CVAR_NEW, "Prefer Fast Sync/no-tearing in place of VSync off/tearing" );
+idCVar r_vkUsePushConstants( "r_vkUsePushConstants", "1", CVAR_RENDERER | CVAR_BOOL | CVAR_INIT | CVAR_NEW, "Use push constants for Vulkan renderer" );
 
 // Define the Vulkan dynamic dispatcher - this needs to occur in exactly one cpp file in the program.
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
@@ -1089,7 +1090,7 @@ bool DeviceManager_VK::createDevice()
 	allocatorCreateInfo.instance = m_VulkanInstance;
 	allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
 	allocatorCreateInfo.flags = bufferAddressSupported ? VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT : 0;
-	allocatorCreateInfo.preferredLargeHeapBlockSize = r_vmaDeviceLocalMemoryMB.GetInteger() * 1024 * 1024;
+	allocatorCreateInfo.preferredLargeHeapBlockSize = ( VkDeviceSize )r_vmaDeviceLocalMemoryMB.GetInteger() * 1024 * 1024;
 	vmaCreateAllocator( &allocatorCreateInfo, &m_VmaAllocator );
 #endif
 
@@ -1418,6 +1419,13 @@ bool DeviceManager_VK::CreateDeviceAndSwapChain()
 	if( m_DeviceParams.enableNvrhiValidationLayer )
 	{
 		m_ValidationLayer = nvrhi::validation::createValidationLayer( m_NvrhiDevice );
+	}
+
+	// SRS - Determine maxPushConstantSize for Vulkan device
+	if( r_vkUsePushConstants.GetBool() )
+	{
+		auto deviceProperties = m_VulkanPhysicalDevice.getProperties();
+		m_DeviceParams.maxPushConstantSize = Min( deviceProperties.limits.maxPushConstantsSize, nvrhi::c_MaxPushConstantSize );
 	}
 
 	CHECK( createSwapChain() );

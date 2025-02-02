@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet14.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -66,20 +67,20 @@ float3 ReconstructPositionCS( int2 hitPixel )
 	// Load returns 0 for any value accessed out of bounds
 	float depth = texelFetch( t_Depth, hitPixel, 0 ).r;
 
-	float2 uv = hitPixel * rpWindowCoord.xy;
+	float2 uv = hitPixel * pc.rpWindowCoord.xy;
 
 	// derive clip space from the depth buffer and screen position
 	float3 ndc = float3( uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0, depth );
-	float clipW = -rpProjectionMatrixZ.w / ( -rpProjectionMatrixZ.z - ndc.z );
+	float clipW = -pc.rpProjectionMatrixZ.w / ( -pc.rpProjectionMatrixZ.z - ndc.z );
 
 	float4 clip = float4( ndc * clipW, clipW );
 
 	// camera space position
 	float4 csP;
-	csP.x = dot4( rpShadowMatrices[0], clip );
-	csP.y = dot4( rpShadowMatrices[1], clip );
-	csP.z = dot4( rpShadowMatrices[2], clip );
-	csP.w = dot4( rpShadowMatrices[3], clip );
+	csP.x = dot4( pc.rpShadowMatrices[0], clip );
+	csP.y = dot4( pc.rpShadowMatrices[1], clip );
+	csP.z = dot4( pc.rpShadowMatrices[2], clip );
+	csP.w = dot4( pc.rpShadowMatrices[3], clip );
 
 	csP.xyz /= csP.w;
 	//csP.z = abs( csP.z );	// this is still negative Z like for OpenGL
@@ -169,16 +170,16 @@ bool TraceScreenSpaceRay(
 	// Project into homogeneous clip space
 	float4 ray4D = float4( rayStart, 1.0 );
 	float4 H0;
-	H0.x = dot4( ray4D, rpShadowMatrices[4] );
-	H0.y = dot4( ray4D, rpShadowMatrices[5] );
-	H0.z = dot4( ray4D, rpShadowMatrices[6] );
-	H0.w = dot4( ray4D, rpShadowMatrices[7] );
+	H0.x = dot4( ray4D, pc.rpShadowMatrices[4] );
+	H0.y = dot4( ray4D, pc.rpShadowMatrices[5] );
+	H0.z = dot4( ray4D, pc.rpShadowMatrices[6] );
+	H0.w = dot4( ray4D, pc.rpShadowMatrices[7] );
 
 	float4 H1;
-	H1.x = dot4( rayEnd, rpShadowMatrices[4] );
-	H1.y = dot4( rayEnd, rpShadowMatrices[5] );
-	H1.z = dot4( rayEnd, rpShadowMatrices[6] );
-	H1.w = dot4( rayEnd, rpShadowMatrices[7] );
+	H1.x = dot4( rayEnd, pc.rpShadowMatrices[4] );
+	H1.y = dot4( rayEnd, pc.rpShadowMatrices[5] );
+	H1.z = dot4( rayEnd, pc.rpShadowMatrices[6] );
+	H1.w = dot4( rayEnd, pc.rpShadowMatrices[7] );
 
 	float k0 = 1.0f / H0.w;
 	float k1 = 1.0f / H1.w;
@@ -284,8 +285,8 @@ bool TraceScreenSpaceRay(
 
 		// You may need hitPixel.y = depthBufferSize.y - hitPixel.y; here if your vertical axis
 		// is different than ours in screen space
-		//hitPixel.x = rpWindowCoord.z - hitPixel.x;
-		//hitPixel.y = rpWindowCoord.w - hitPixel.y;
+		//hitPixel.x = pc.rpWindowCoord.z - hitPixel.x;
+		//hitPixel.y = pc.rpWindowCoord.w - hitPixel.y;
 
 		sceneZMax = ReconstructPositionCS( hitPixel ).z;
 	}
@@ -328,7 +329,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	globalNormal.y = dot3( localNormal, fragment.texcoord3 );
 	globalNormal.z = dot3( localNormal, fragment.texcoord4 );
 
-	float3 screenNormalWS = ( ( 2.0 * t_ScreenNormals.Sample( s_LinearClamp, fragment.position.xy * rpWindowCoord.xy ).rgb ) - 1.0 );
+	float3 screenNormalWS = ( ( 2.0 * t_ScreenNormals.Sample( s_LinearClamp, fragment.position.xy * pc.rpWindowCoord.xy ).rgb ) - 1.0 );
 
 	// https://blog.selfshadow.com/publications/blending-in-detail/
 
@@ -341,7 +342,7 @@ void main( PS_IN fragment, out PS_OUT result )
 
 	float3 globalPosition = fragment.texcoord5.xyz;
 
-	float3 globalView = normalize( globalPosition - rpGlobalEyePos.xyz );
+	float3 globalView = normalize( globalPosition - pc.rpGlobalEyePos.xyz );
 
 	float3 reflectionVector = reflect( globalView, globalNormal );
 	reflectionVector = normalize( reflectionVector );
@@ -356,39 +357,39 @@ void main( PS_IN fragment, out PS_OUT result )
 	// parallax box correction using portal area bounds
 	float hitScale = 0.0;
 	float3 bounds[2];
-	bounds[0].x = rpWobbleSkyX.x;
-	bounds[0].y = rpWobbleSkyX.y;
-	bounds[0].z = rpWobbleSkyX.z;
+	bounds[0].x = pc.rpWobbleSkyX.x;
+	bounds[0].y = pc.rpWobbleSkyX.y;
+	bounds[0].z = pc.rpWobbleSkyX.z;
 
-	bounds[1].x = rpWobbleSkyY.x;
-	bounds[1].y = rpWobbleSkyY.y;
-	bounds[1].z = rpWobbleSkyY.z;
+	bounds[1].x = pc.rpWobbleSkyY.x;
+	bounds[1].y = pc.rpWobbleSkyY.y;
+	bounds[1].z = pc.rpWobbleSkyY.z;
 
 	// we can't start inside the box so move this outside and use the reverse path
 	rayStart += reflectionVector * 10000.0;
 
 	// only do a box <-> ray intersection test if we use a local cubemap
-	if( ( rpWobbleSkyX.w > 0.0 ) && AABBRayIntersection( bounds, rayStart, -reflectionVector, hitScale ) )
+	if( ( pc.rpWobbleSkyX.w > 0.0 ) && AABBRayIntersection( bounds, rayStart, -reflectionVector, hitScale ) )
 	{
 		float3 hitPoint = rayStart - reflectionVector * hitScale;
 
-		// rpWobbleSkyZ is cubemap center
+		// pc.rpWobbleSkyZ is cubemap center
 #if 1
-		reflectionVector = hitPoint - rpWobbleSkyZ.xyz;
+		reflectionVector = hitPoint - pc.rpWobbleSkyZ.xyz;
 		octCoord0 = octCoord1 = octCoord2 = GetSampleVector( reflectionVector );
 #else
 		// this should look better but only works in the case all 3 probes are in this area bbox
-		octCoord0 = GetSampleVector( hitPoint - rpTexGen0S.xyz );
-		octCoord1 = GetSampleVector( hitPoint - rpTexGen0T.xyz );
-		octCoord2 = GetSampleVector( hitPoint - rpTexGen0Q.xyz );
+		octCoord0 = GetSampleVector( hitPoint - pc.rpTexGen0S.xyz );
+		octCoord1 = GetSampleVector( hitPoint - pc.rpTexGen0T.xyz );
+		octCoord2 = GetSampleVector( hitPoint - pc.rpTexGen0Q.xyz );
 #endif
 	}
 #endif
 
 	const float mip = 0;
-	float3 radiance = t_RadianceCubeMap1.SampleLevel( s_LinearClamp, octCoord0, mip ).rgb * rpLocalLightOrigin.x;
-	radiance += t_RadianceCubeMap2.SampleLevel( s_LinearClamp, octCoord1, mip ).rgb * rpLocalLightOrigin.y;
-	radiance += t_RadianceCubeMap3.SampleLevel( s_LinearClamp, octCoord2, mip ).rgb * rpLocalLightOrigin.z;
+	float3 radiance = t_RadianceCubeMap1.SampleLevel( s_LinearClamp, octCoord0, mip ).rgb * pc.rpLocalLightOrigin.x;
+	radiance += t_RadianceCubeMap2.SampleLevel( s_LinearClamp, octCoord1, mip ).rgb * pc.rpLocalLightOrigin.y;
+	radiance += t_RadianceCubeMap3.SampleLevel( s_LinearClamp, octCoord2, mip ).rgb * pc.rpLocalLightOrigin.z;
 
 #if 1
 	// Screen Space Reflections
@@ -397,10 +398,10 @@ void main( PS_IN fragment, out PS_OUT result )
 
 	float3 viewNormal;
 
-	// TODO this should be rpViewMatrixX
-	viewNormal.x = dot3( rpModelViewMatrixX, globalNormal );
-	viewNormal.y = dot3( rpModelViewMatrixY, globalNormal );
-	viewNormal.z = dot3( rpModelViewMatrixZ, globalNormal );
+	// TODO this should be pc.rpViewMatrixX
+	viewNormal.x = dot3( pc.rpModelViewMatrixX, globalNormal );
+	viewNormal.y = dot3( pc.rpModelViewMatrixY, globalNormal );
+	viewNormal.z = dot3( pc.rpModelViewMatrixZ, globalNormal );
 
 	rayStart = ReconstructPositionCS( fragment.position.xy );
 
@@ -412,7 +413,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	// use forward vector instead of V to avoid bending
 	float vDotR = ( dot3( float3( 0, 0, 1 ), reflectionVector ) );
 
-	const float maxSteps = rpJitterTexScale.x;
+	const float maxSteps = pc.rpJitterTexScale.x;
 
 	float2 hitPixel;
 	float3 hitPoint;
@@ -422,9 +423,9 @@ void main( PS_IN fragment, out PS_OUT result )
 	float jitter = 1.0;
 	//jitter = ( int( fragment.position.x + fragment.position.y) & 1 ) * 0.5; // like in the paper but sucks
 	jitter = InterleavedGradientNoise( fragment.position.xy );
-	//jitter = InterleavedGradientNoiseAnim( fragment.position.xy, rpJitterTexOffset.w );
+	//jitter = InterleavedGradientNoiseAnim( fragment.position.xy, pc.rpJitterTexOffset.w );
 
-	jitter = lerp( 1.0, jitter, rpGlobalLightOrigin.w );
+	jitter = lerp( 1.0, jitter, pc.rpGlobalLightOrigin.w );
 
 	// using the same jitter on probe fallback to make it seamless
 	// looks kinda bad because on close ups you don't want to see the noise
@@ -435,20 +436,20 @@ void main( PS_IN fragment, out PS_OUT result )
 		intersection = TraceScreenSpaceRay(
 						   rayStart,
 						   rayDir,
-						   rpGlobalLightOrigin.z,	// zThickness 0.5
-						   rpGlobalLightOrigin.x,	// stride
+						   pc.rpGlobalLightOrigin.z,	// zThickness 0.5
+						   pc.rpGlobalLightOrigin.x,	// stride
 						   jitter,					// jitter
 						   maxSteps,				// max steps
-						   rpGlobalLightOrigin.y * METERS_TO_DOOM,	// max Distance
+						   pc.rpGlobalLightOrigin.y * METERS_TO_DOOM,	// max Distance
 						   hitPixel,
 						   hitPoint,
 						   rayDebug );
 	}
 
-	float2 delta = ( hitPixel * rpWindowCoord.xy ) - ( fragment.position.xy * rpWindowCoord.xy );
+	float2 delta = ( hitPixel * pc.rpWindowCoord.xy ) - ( fragment.position.xy * pc.rpWindowCoord.xy );
 	float deltaLen = length( delta );
 
-	if( ( hitPixel.x > rpWindowCoord.z || hitPixel.x < 0.0 || hitPixel.y > rpWindowCoord.w || hitPixel.y < 0.0 ) )
+	if( ( hitPixel.x > pc.rpWindowCoord.z || hitPixel.x < 0.0 || hitPixel.y > pc.rpWindowCoord.w || hitPixel.y < 0.0 ) )
 	{
 		intersection = false;
 	}
@@ -456,13 +457,13 @@ void main( PS_IN fragment, out PS_OUT result )
 	if( intersection )
 	{
 		radiance = float3( 0, 1, 0 );
-		radiance = t_ScreenColor.Sample( s_LinearClamp, hitPixel * rpWindowCoord.xy ).rgb;
+		radiance = t_ScreenColor.Sample( s_LinearClamp, hitPixel * pc.rpWindowCoord.xy ).rgb;
 
 		//radiance = float3( delta, 0 );
 		//radiance = float3( 0, deltaLen, 0 );
 		//radiance = rayDebug / maxSteps;
 
-		//radiance = float3( hitPixel * rpWindowCoord.xy, 0 );
+		//radiance = float3( hitPixel * pc.rpWindowCoord.xy, 0 );
 	}
 	else
 	{

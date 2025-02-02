@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet1.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -116,9 +117,9 @@ void main( PS_IN fragment, out PS_OUT result )
 	}
 #endif
 
-	float hdrKey = rpScreenCorrectionFactor.x;
-	float hdrAverageLuminance = rpScreenCorrectionFactor.y;
-	float hdrMaxLuminance = rpScreenCorrectionFactor.z;
+	float hdrKey = pc.rpScreenCorrectionFactor.x;
+	float hdrAverageLuminance = pc.rpScreenCorrectionFactor.y;
+	float hdrMaxLuminance = pc.rpScreenCorrectionFactor.z;
 
 	// calculate the relative luminance
 	float Yr = ( hdrKey * Y ) / hdrAverageLuminance;
@@ -156,7 +157,7 @@ void main( PS_IN fragment, out PS_OUT result )
 #elif OPERATOR == 2
 
 	// can be in range [-4.0 .. 4.0]
-	//float exposureOffset = rpScreenCorrectionFactor.w;
+	//float exposureOffset = pc.rpScreenCorrectionFactor.w;
 
 	float avgLuminance = max( hdrAverageLuminance, 0.001 );
 	float linearExposure = ( hdrKey / avgLuminance );
@@ -170,7 +171,7 @@ void main( PS_IN fragment, out PS_OUT result )
 #elif OPERATOR == 3
 
 	// can be in range [-4.0 .. 4.0]
-	float exposure = rpScreenCorrectionFactor.w;
+	float exposure = pc.rpScreenCorrectionFactor.w;
 
 	// exposure curves ranges from 0.0625 to 16.0
 	float3 exposedColor = exp2( exposure ) * color.rgb;
@@ -186,7 +187,7 @@ void main( PS_IN fragment, out PS_OUT result )
 
 	//float exposure = ( hdrKey / hdrAverageLuminance ) * 0.2;
 	//float exposure = Yr * 1.0;
-	float exposure = rpScreenCorrectionFactor.w;
+	float exposure = pc.rpScreenCorrectionFactor.w;
 	float3 exposedColor = exposure * color.rgb;
 
 	float3 curr = Uncharted2Tonemap( exposedColor );
@@ -199,8 +200,8 @@ void main( PS_IN fragment, out PS_OUT result )
 	// adjust contrast
 	//L = pow( L, 1.32 );
 
-	const half hdrContrastThreshold = rpOverbright.x;
-	const half hdrContrastOffset = rpOverbright.y;
+	const half hdrContrastThreshold = pc.rpOverbright.x;
+	const half hdrContrastOffset = pc.rpOverbright.y;
 
 	//float T = max( ( Yr * ( 1.0 + Yr / ( Ymax * Ymax * 2.0 ) ) ) - hdrContrastThreshold, 0.0 );
 	//float T = max( 1.0 - exp( -Yr ) - hdrContrastThreshold, 0.0 );

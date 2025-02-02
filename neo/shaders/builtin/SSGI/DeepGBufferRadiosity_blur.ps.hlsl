@@ -17,6 +17,7 @@
   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "global_inc.hlsl"
+#include "renderParmSet6.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -129,14 +130,14 @@ float3 reconstructCSPosition( float2 S, float z )
 {
 	float4 P;
 	P.z = z * 2.0 - 1.0;
-	P.xy = ( S * rpScreenCorrectionFactor.xy ) * 2.0 - 1.0;
+	P.xy = ( S * pc.rpScreenCorrectionFactor.xy ) * 2.0 - 1.0;
 	P.w = 1.0;
 
 	float4 csP;
-	csP.x = dot4( P, rpModelMatrixX );
-	csP.y = dot4( P, rpModelMatrixY );
-	csP.z = dot4( P, rpModelMatrixZ );
-	csP.w = dot4( P, rpModelMatrixW );
+	csP.x = dot4( P, pc.rpModelMatrixX );
+	csP.y = dot4( P, pc.rpModelMatrixY );
+	csP.z = dot4( P, pc.rpModelMatrixZ );
+	csP.w = dot4( P, pc.rpModelMatrixW );
 
 	csP.xyz /= csP.w;
 
@@ -316,7 +317,7 @@ void main( PS_IN fragment, out PS_OUT result )
 		// so the IF statement has no runtime cost
 		if( r != 0 )
 		{
-			int2 tapLoc = ssC + int2( rpJitterTexScale.xy ) * ( r * SCALE );
+			int2 tapLoc = ssC + int2( pc.rpJitterTexScale.xy ) * ( r * SCALE );
 			temp = texelFetch( source, tapLoc, 0 );
 
 
@@ -338,7 +339,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	float lastBilateralWeight = 9999.0;
 	for( int r = -1; r >= -R; --r )
 	{
-		int2 tapLoc = ssC + int2( rpJitterTexScale.xy ) * ( r * SCALE );
+		int2 tapLoc = ssC + int2( pc.rpJitterTexScale.xy ) * ( r * SCALE );
 		temp = texelFetch( source, tapLoc, 0 );
 		float      tapKey = getKey( tapLoc );
 
@@ -359,7 +360,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	lastBilateralWeight = 9999.0;
 	for( int r = 1; r <= R; ++r )
 	{
-		int2 tapLoc = ssC + int2( rpJitterTexScale.xy ) * ( r * SCALE );
+		int2 tapLoc = ssC + int2( pc.rpJitterTexScale.xy ) * ( r * SCALE );
 		temp = texelFetch( source, tapLoc, 0 );
 		float      tapKey = getKey( tapLoc );
 		VALUE_TYPE value  = temp.VALUE_COMPONENTS;
