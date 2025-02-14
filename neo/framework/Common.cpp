@@ -1955,8 +1955,6 @@ void idCommonLocal::PerformGameSwitch()
 		return;
 	}
 
-	const int DOOM_CLASSIC_HZ = 35;
-
 	if( idealCurrentGame == DOOM_CLASSIC || idealCurrentGame == DOOM2_CLASSIC )
 	{
 		// Pause Doom 3 sound.

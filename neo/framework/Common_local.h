@@ -691,6 +691,7 @@ private:
 	static const int			DOOMCLASSIC_RENDERHEIGHT = 200 * 3;
 	static const int			DOOMCLASSIC_BYTES_PER_PIXEL = 4;
 	static const int			DOOMCLASSIC_IMAGE_SIZE_IN_BYTES = DOOMCLASSIC_RENDERWIDTH * DOOMCLASSIC_RENDERHEIGHT * DOOMCLASSIC_BYTES_PER_PIXEL;
+	static constexpr float		DOOM_CLASSIC_HZ = 35.0f;
 
 	idArray< byte, DOOMCLASSIC_IMAGE_SIZE_IN_BYTES >	doomClassicImageData;
 #endif

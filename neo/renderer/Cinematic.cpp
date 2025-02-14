@@ -257,6 +257,7 @@ static unsigned short* 	vq2 = NULL;
 static unsigned short* 	vq4 = NULL;
 static unsigned short* 	vq8 = NULL;
 
+extern idCVar s_noSound;
 
 
 //===========================================
@@ -1555,7 +1556,15 @@ cinData_t idCinematicLocal::ImageForTimeFFMPEG( int thisTime, nvrhi::ICommandLis
 							while( !lagBuffer.empty() )
 							{
 								// SRS - Note that PlayAudio() is responsible for releasing any audio buffers sent to it
-								cinematicAudio->PlayAudio( lagBuffer.front(), lagBufSize.front() );
+								if( !s_noSound.GetBool() )
+								{
+									cinematicAudio->PlayAudio( lagBuffer.front(), lagBufSize.front() );
+								}
+								else
+								{
+									av_freep( &lagBuffer.front() );
+								}
+
 								lagBuffer.pop();
 								lagBufSize.pop();
 							}
@@ -1729,7 +1738,7 @@ cinData_t idCinematicLocal::ImageForTimeBinkDec( int thisTime, nvrhi::ICommandLi
 		num_bytes = Bink_GetAudioData( binkHandle, trackIndex, audioBuffer );
 
 		// SRS - If we have cinematic audio data, start playing it now
-		if( num_bytes > 0 )
+		if( num_bytes > 0 && !s_noSound.GetBool() )
 		{
 			// SRS - Note that PlayAudio() is responsible for releasing any audio buffers sent to it
 			cinematicAudio->PlayAudio( ( uint8_t* )audioBuffer, num_bytes );
