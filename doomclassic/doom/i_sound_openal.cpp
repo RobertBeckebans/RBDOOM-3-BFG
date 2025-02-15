@@ -613,6 +613,9 @@ void I_ShutdownSound( void )
 			}
 
 			I_StopSound( sound->id, 0 );
+
+			// SRS - Detach buffers before freeing memory to allow reallocation in I_InitSound()
+			alSourcei( sound->alSourceVoice, AL_BUFFER, 0 );
 		}
 
 		// Free allocated sound memory
@@ -683,7 +686,7 @@ void I_ShutdownSoundHardware()
 			continue;
 		}
 
-		if( sound->alSourceVoice )
+		if( alIsSource( sound->alSourceVoice ) )
 		{
 			alSourceStop( sound->alSourceVoice );
 			alSourcei( sound->alSourceVoice, AL_BUFFER, 0 );
@@ -694,7 +697,10 @@ void I_ShutdownSoundHardware()
 	// Delete OpenAL buffers for all sounds
 	for( int i = 0; i < NUMSFX; i++ )
 	{
-		alDeleteBuffers( 1, &alBuffers[i] );
+		if( alIsBuffer( alBuffers[i] ) )
+		{
+			alDeleteBuffers( 1, &alBuffers[i] );
+		}
 	}
 }
 
@@ -710,7 +716,7 @@ void I_InitSoundChannel( int channel, int numOutputChannels_ )
 	alGenSources( ( ALuint )1, &soundchannel->alSourceVoice );
 
 	alSource3f( soundchannel->alSourceVoice, AL_VELOCITY, 0.f, 0.f, 0.f );
-	alSourcef( soundchannel->alSourceVoice, AL_LOOPING, AL_FALSE );
+	alSourcei( soundchannel->alSourceVoice, AL_LOOPING, AL_FALSE );
 	alSourcef( soundchannel->alSourceVoice, AL_MAX_DISTANCE, SFX_MAX_DISTANCE );
 	alSourcef( soundchannel->alSourceVoice, AL_REFERENCE_DISTANCE, SFX_REFERENCE_DISTANCE );
 	alSourcef( soundchannel->alSourceVoice, AL_ROLLOFF_FACTOR, SFX_ROLLOFF_FACTOR );
@@ -819,7 +825,7 @@ void I_InitMusic( void )
 		alGenSources( ( ALuint )1, &alMusicSourceVoice );
 
 		alSourcef( alMusicSourceVoice, AL_PITCH, 1.f );
-		alSourcef( alMusicSourceVoice, AL_LOOPING, AL_TRUE );
+		alSourcei( alMusicSourceVoice, AL_LOOPING, AL_TRUE );
 
 		alGenBuffers( ( ALuint )1, &alMusicBuffer );
 
@@ -836,14 +842,14 @@ void I_ShutdownMusic( void )
 {
 	if( Music_initialized )
 	{
-		if( alMusicSourceVoice )
+		if( alIsSource( alMusicSourceVoice ) )
 		{
 			I_StopSong( 0 );
 			alSourcei( alMusicSourceVoice, AL_BUFFER, 0 );
 			alDeleteSources( 1, &alMusicSourceVoice );
 		}
 
-		if( alMusicBuffer )
+		if( alIsBuffer( alMusicBuffer ) )
 		{
 			alDeleteBuffers( 1, &alMusicBuffer );
 		}

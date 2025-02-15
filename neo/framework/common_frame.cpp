@@ -649,6 +649,13 @@ void idCommonLocal::Frame()
 			com_engineHz_denominator = 100LL * backgroundEngineHz;
 			com_engineHz_latched = backgroundEngineHz;
 		}
+#if defined(USE_DOOMCLASSIC)
+		else if( IsPlayingDoomClassic() )
+		{
+			com_engineHz_denominator = 100LL * DOOM_CLASSIC_HZ;
+			com_engineHz_latched = DOOM_CLASSIC_HZ;
+		}
+#endif
 		else
 		{
 			// allow com_engineHz to be changed between map loads
