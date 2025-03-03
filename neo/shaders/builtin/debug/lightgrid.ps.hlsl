@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet6.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -51,9 +52,9 @@ struct PS_OUT
 
 int3 GetBaseGridCoord( float3 origin )
 {
-	float3 lightGridOrigin = rpGlobalLightOrigin.xyz;
-	float3 lightGridSize = rpJitterTexScale.xyz;
-	int3 lightGridBounds = int3( rpJitterTexOffset.x, rpJitterTexOffset.y, rpJitterTexOffset.z );
+	float3 lightGridOrigin = pc.rpGlobalLightOrigin.xyz;
+	float3 lightGridSize = pc.rpJitterTexScale.xyz;
+	int3 lightGridBounds = int3( pc.rpJitterTexOffset.x, pc.rpJitterTexOffset.y, pc.rpJitterTexOffset.z );
 
 	int3 pos;
 
@@ -88,9 +89,9 @@ void main( PS_IN fragment, out PS_OUT result )
 	float2 normalizedOctCoord = octEncode( globalNormal );
 	float2 normalizedOctCoordZeroOne = ( normalizedOctCoord + _float2( 1.0 ) ) * 0.5;
 
-	float3 lightGridOrigin = rpGlobalLightOrigin.xyz;
-	float3 lightGridSize = rpJitterTexScale.xyz;
-	int3 lightGridBounds = int3( rpJitterTexOffset.x, rpJitterTexOffset.y, rpJitterTexOffset.z );
+	float3 lightGridOrigin = pc.rpGlobalLightOrigin.xyz;
+	float3 lightGridSize = pc.rpJitterTexScale.xyz;
+	int3 lightGridBounds = int3( pc.rpJitterTexOffset.x, pc.rpJitterTexOffset.y, pc.rpJitterTexOffset.z );
 
 	float invXZ = ( 1.0 / ( lightGridBounds[0] * lightGridBounds[2] ) );
 	float invY = ( 1.0 / lightGridBounds[1] );
@@ -111,17 +112,17 @@ void main( PS_IN fragment, out PS_OUT result )
 
 	// offset by one pixel border bleed size for linear filtering
 #if 1
-	// rpScreenCorrectionFactor.x = probeSize - borderSize, e.g. ( 18 - 2 ) = 16
-	// rpScreenCorrectionFactor.y = probeSize including border, e.g = 18
-	// rpScreenCorrectionFactor.z = borderSize e.g = 2
-	// rpScreenCorrectionFactor.w = probeSize factor accounting account offset border, e.g = ( 16 / 18 ) = 0.8888
-	float2 octCoordNormalizedToTextureDimensions = normalizedOctCoordZeroOne * rpScreenCorrectionFactor.w;
+	// pc.rpScreenCorrectionFactor.x = probeSize - borderSize, e.g. ( 18 - 2 ) = 16
+	// pc.rpScreenCorrectionFactor.y = probeSize including border, e.g = 18
+	// pc.rpScreenCorrectionFactor.z = borderSize e.g = 2
+	// pc.rpScreenCorrectionFactor.w = probeSize factor accounting account offset border, e.g = ( 16 / 18 ) = 0.8888
+	float2 octCoordNormalizedToTextureDimensions = normalizedOctCoordZeroOne * pc.rpScreenCorrectionFactor.w;
 
 	float2 probeTopLeftPosition;
-	probeTopLeftPosition.x = ( gridCoord[0] * gridStep[0] + gridCoord[2] * gridStep[1] ) * rpScreenCorrectionFactor.z + rpScreenCorrectionFactor.z * 0.5;
-	probeTopLeftPosition.y = ( gridCoord[1] ) * rpScreenCorrectionFactor.z + rpScreenCorrectionFactor.z * 0.5;
+	probeTopLeftPosition.x = ( gridCoord[0] * gridStep[0] + gridCoord[2] * gridStep[1] ) * pc.rpScreenCorrectionFactor.z + pc.rpScreenCorrectionFactor.z * 0.5;
+	probeTopLeftPosition.y = ( gridCoord[1] ) * pc.rpScreenCorrectionFactor.z + pc.rpScreenCorrectionFactor.z * 0.5;
 
-	float2 normalizedProbeTopLeftPosition = probeTopLeftPosition * rpCascadeDistances.zw;
+	float2 normalizedProbeTopLeftPosition = probeTopLeftPosition * pc.rpCascadeDistances.zw;
 
 	normalizedOctCoordZeroOne.xy = normalizedProbeTopLeftPosition + octCoordNormalizedToTextureDimensions;
 #endif

@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet2.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -74,7 +75,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	float3 quantizationPeriod = _float3( 1.0 / ( quantizationSteps - 1 ) );
 
 	// get pixellated base color
-	float3 color = t_BaseColor.Sample( samp0, uvPixelated * rpWindowCoord.xy ).rgb;
+	float3 color = t_BaseColor.Sample( samp0, uvPixelated * pc.rpWindowCoord.xy ).rgb;
 
 	// add Bayer 8x8 dithering
 	float2 uvDither = fragment.position.xy / RESOLUTION_DIVISOR;
