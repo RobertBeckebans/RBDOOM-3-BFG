@@ -163,7 +163,7 @@ static RefCountPtr<IDXGIAdapter> FindAdapter( const std::wstring& targetName )
 
 	return targetAdapter;
 }
-
+/* SRS - No longer needed, window centering now done in CreateWindowDeviceAndSwapChain() within win_glimp.cpp
 // Adjust window rect so that it is centred on the given adapter.  Clamps to fit if it's too big.
 static bool MoveWindowOntoAdapter( IDXGIAdapter* targetAdapter, RECT& rect )
 {
@@ -201,7 +201,7 @@ static bool MoveWindowOntoAdapter( IDXGIAdapter* targetAdapter, RECT& rect )
 
 	return false;
 }
-
+*/
 void DeviceManager_DX12::ReportLiveObjects()
 {
 	nvrhi::RefCountPtr<IDXGIDebug> pDebug;
@@ -297,16 +297,11 @@ bool DeviceManager_DX12::CreateDeviceAndSwapChain()
 	*/
 	HRESULT hr = E_FAIL;
 
-	RECT clientRect;
-	GetClientRect( ( HWND )windowHandle, &clientRect );
-	UINT width = clientRect.right - clientRect.left;
-	UINT height = clientRect.bottom - clientRect.top;
-
 	ZeroMemory( &m_SwapChainDesc, sizeof( m_SwapChainDesc ) );
-	m_SwapChainDesc.Width = width;
-	m_SwapChainDesc.Height = height;
+	m_SwapChainDesc.Width = m_DeviceParams.backBufferWidth;
+	m_SwapChainDesc.Height = m_DeviceParams.backBufferHeight;
 	m_SwapChainDesc.SampleDesc.Count = m_DeviceParams.swapChainSampleCount;
-	m_SwapChainDesc.SampleDesc.Quality = 0;
+	m_SwapChainDesc.SampleDesc.Quality = m_DeviceParams.swapChainSampleQuality;
 	m_SwapChainDesc.BufferUsage = m_DeviceParams.swapChainUsage;
 	m_SwapChainDesc.BufferCount = m_DeviceParams.swapChainBufferCount;
 	m_SwapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
