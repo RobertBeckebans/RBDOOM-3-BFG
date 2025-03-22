@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet13.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -135,18 +136,18 @@ float3 healpix( float3 p )
 float3 ReconstructPosition( float2 S, float depth )
 {
 	// derive clip space from the depth buffer and screen position
-	float2 uv = S * rpWindowCoord.xy;
+	float2 uv = S * pc.rpWindowCoord.xy;
 	float3 ndc = float3( uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0, depth );
-	float clipW = -rpProjectionMatrixZ.w / ( -rpProjectionMatrixZ.z - ndc.z );
+	float clipW = -pc.rpProjectionMatrixZ.w / ( -pc.rpProjectionMatrixZ.z - ndc.z );
 
 	float4 clip = float4( ndc * clipW, clipW );
 
 	// camera space position
 	float4 csP;
-	csP.x = dot4( rpModelMatrixX, clip );
-	csP.y = dot4( rpModelMatrixY, clip );
-	csP.z = dot4( rpModelMatrixZ, clip );
-	csP.w = dot4( rpModelMatrixW, clip );
+	csP.x = dot4( pc.rpModelMatrixX, clip );
+	csP.y = dot4( pc.rpModelMatrixY, clip );
+	csP.z = dot4( pc.rpModelMatrixZ, clip );
+	csP.w = dot4( pc.rpModelMatrixW, clip );
 
 	csP.xyz /= csP.w;
 
@@ -165,9 +166,9 @@ float3 GetPosition( int2 ssP )
 
 float BlueNoise( float2 n, float x )
 {
-	float noise = t_BlueNoise.Sample( s_LinearWrap, n.xy * rpJitterTexOffset.xy ).r;
+	float noise = t_BlueNoise.Sample( s_LinearWrap, n.xy * pc.rpJitterTexOffset.xy ).r;
 
-	noise = frac( noise + c_goldenRatioConjugate * rpJitterTexOffset.z * x );
+	noise = frac( noise + c_goldenRatioConjugate * pc.rpJitterTexOffset.z * x );
 
 	noise = RemapNoiseTriErp( noise );
 	noise = noise * 2.0 - 0.5;
@@ -177,10 +178,10 @@ float BlueNoise( float2 n, float x )
 
 float3 ditherRGB( float2 fragPos, float3 quantDeviation )
 {
-	float2 uvDither = fragPos / ( RESOLUTION_DIVISOR / rpJitterTexScale.x );
+	float2 uvDither = fragPos / ( RESOLUTION_DIVISOR / pc.rpJitterTexScale.x );
 	float dither = DitherArray8x8( uvDither ) - 0.5;
 
-	return float3( dither, dither, dither ) * quantDeviation * rpJitterTexScale.y;
+	return float3( dither, dither, dither ) * quantDeviation * pc.rpJitterTexScale.y;
 }
 
 void main( PS_IN fragment, out PS_OUT result )
@@ -449,12 +450,12 @@ void main( PS_IN fragment, out PS_OUT result )
 	//quantDeviation = medianAbsoluteDeviation;
 
 	// get pixellated base color
-	float4 color = t_BaseColor.Sample( s_LinearClamp, uvPixelated * rpWindowCoord.xy );
+	float4 color = t_BaseColor.Sample( s_LinearClamp, uvPixelated * pc.rpWindowCoord.xy );
 
 	float2 uvDither = uvPixelated;
-	//if( rpJitterTexScale.x > 1.0 )
+	//if( pc.rpJitterTexScale.x > 1.0 )
 	{
-		uvDither = fragment.position.xy / ( RESOLUTION_DIVISOR / rpJitterTexScale.x );
+		uvDither = fragment.position.xy / ( RESOLUTION_DIVISOR / pc.rpJitterTexScale.x );
 	}
 	float dither = DitherArray8x8( uvDither ) - 0.5;
 
@@ -480,7 +481,7 @@ void main( PS_IN fragment, out PS_OUT result )
 		// dithered quantized
 		color.rgb = HSVToRGB( float3( uv.x, 1.0, ( uv.y - 0.125 ) * 16.0 ) );
 
-		color.rgb += float3( dither, dither, dither ) * quantDeviation * rpJitterTexScale.y;
+		color.rgb += float3( dither, dither, dither ) * quantDeviation * pc.rpJitterTexScale.y;
 		color.rgb = LinearSearch( color.rgb, palette );
 
 		result.color = float4( color.rgb, 1.0 );
@@ -491,7 +492,7 @@ void main( PS_IN fragment, out PS_OUT result )
 		color.rgb = _float3( uv.x );
 		color.rgb = floor( color.rgb * NUM_COLORS ) * ( 1.0 / ( NUM_COLORS - 1.0 ) );
 
-		color.rgb += float3( dither, dither, dither ) * quantDeviation * rpJitterTexScale.y;
+		color.rgb += float3( dither, dither, dither ) * quantDeviation * pc.rpJitterTexScale.y;
 		color.rgb = LinearSearch( color.rgb, palette );
 
 		result.color = float4( color.rgb, 1.0 );
@@ -500,7 +501,7 @@ void main( PS_IN fragment, out PS_OUT result )
 #endif
 
 	//color.rgb += float3( dither, dither, dither ) * quantizationPeriod;
-	color.rgb += float3( dither, dither, dither ) * quantDeviation * rpJitterTexScale.y;
+	color.rgb += float3( dither, dither, dither ) * quantDeviation * pc.rpJitterTexScale.y;
 
 	// find closest color match from CPC color palette
 	color.rgb = LinearSearch( color.rgb, palette );
@@ -605,7 +606,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	//
 	//float2 uvPixelated = floor( fragment.position.xy / RESOLUTION_DIVISOR ) * RESOLUTION_DIVISOR;
 
-	color.rgb = t_BaseColor.Sample( s_LinearClamp, uvPixelated * rpWindowCoord.xy ).rgb;
+	color.rgb = t_BaseColor.Sample( s_LinearClamp, uvPixelated * pc.rpWindowCoord.xy ).rgb;
 	//color = t_BaseColor.Sample( s_LinearClamp, uv ).rgb;
 
 	float3 colX = ditherRGB( uvX, quantDeviation ) * 1.0;
@@ -646,7 +647,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	color = dither3D;
 	color = floor( color * NUM_COLORS ) * ( 1.0 / ( NUM_COLORS - 1.0 ) );
 	color.rgb += dither3D;
-	//color.rgb += float3( dither, dither, dither ) * quantDeviation * rpJitterTexScale.y;
+	//color.rgb += float3( dither, dither, dither ) * quantDeviation * pc.rpJitterTexScale.y;
 	color = LinearSearch( color, palette );
 #endif
 
