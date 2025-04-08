@@ -27,6 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet4.inc.hlsl"
 
 // *INDENT-OFF*
 #if USE_GPU_SKINNING
@@ -97,35 +98,35 @@ void main( VS_IN vertex, out VS_OUT result )
 
 #endif
 
-	result.position.x = dot4( modelPosition, rpMVPmatrixX );
-	result.position.y = dot4( modelPosition, rpMVPmatrixY );
-	result.position.z = dot4( modelPosition, rpMVPmatrixZ );
-	result.position.w = dot4( modelPosition, rpMVPmatrixW );
+	result.position.x = dot4( modelPosition, pc.rpMVPmatrixX );
+	result.position.y = dot4( modelPosition, pc.rpMVPmatrixY );
+	result.position.z = dot4( modelPosition, pc.rpMVPmatrixZ );
+	result.position.w = dot4( modelPosition, pc.rpMVPmatrixW );
 
-	result.position.xyz = psxVertexJitter( result.position );
+	result.position.xyz = psxVertexJitter( pc.rpPSXDistortions, pc.rpProjectionMatrixW, result.position );
 
 	// compute oldschool texgen or multiply by texture matrix
-	BRANCH if( rpTexGen0Enabled.x > 0.0 )
+	BRANCH if( pc.rpTexGen0Enabled.x > 0.0 )
 	{
-		result.texcoord0.x = dot4( modelPosition, rpTexGen0S );
-		result.texcoord0.y = dot4( modelPosition, rpTexGen0T );
+		result.texcoord0.x = dot4( modelPosition, pc.rpTexGen0S );
+		result.texcoord0.y = dot4( modelPosition, pc.rpTexGen0T );
 	}
 	else
 	{
-		result.texcoord0.x = dot4( vertex.texcoord.xy, rpTextureMatrixS );
-		result.texcoord0.y = dot4( vertex.texcoord.xy, rpTextureMatrixT );
+		result.texcoord0.x = dot4( vertex.texcoord.xy, pc.rpTextureMatrixS );
+		result.texcoord0.y = dot4( vertex.texcoord.xy, pc.rpTextureMatrixT );
 	}
 
 	// PSX affine texture mapping
-	if( rpPSXDistortions.z > 0.0 )
+	if( pc.rpPSXDistortions.z > 0.0 )
 	{
-		float distance = length( rpLocalViewOrigin - modelPosition );
+		float distance = length( pc.rpLocalViewOrigin - modelPosition );
 		float warp =  psxAffineWarp( distance );
 
 		result.texcoord0.z = warp;
 		result.texcoord0.xy *= warp;
 	}
 
-	float4 vertexColor = ( swizzleColor( vertex.color ) * rpVertexColorModulate ) + rpVertexColorAdd;
-	result.color =  vertexColor * rpColor;
+	float4 vertexColor = ( swizzleColor( vertex.color ) * pc.rpVertexColorModulate ) + pc.rpVertexColorAdd;
+	result.color =  vertexColor * pc.rpColor;
 }

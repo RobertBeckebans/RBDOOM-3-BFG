@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet3.inc.hlsl"
 
 // *INDENT-OFF*
 #if USE_GPU_SKINNING
@@ -125,25 +126,25 @@ void main( VS_IN vertex, out VS_OUT result )
 	float3 bitangent = vBitangent.xyz;
 #endif
 
-	result.position.x = dot4( modelPosition, rpMVPmatrixX );
-	result.position.y = dot4( modelPosition, rpMVPmatrixY );
-	result.position.z = dot4( modelPosition, rpMVPmatrixZ );
-	result.position.w = dot4( modelPosition, rpMVPmatrixW );
+	result.position.x = dot4( modelPosition, pc.rpMVPmatrixX );
+	result.position.y = dot4( modelPosition, pc.rpMVPmatrixY );
+	result.position.z = dot4( modelPosition, pc.rpMVPmatrixZ );
+	result.position.w = dot4( modelPosition, pc.rpMVPmatrixW );
 
-	result.position.xyz = psxVertexJitter( result.position );
+	result.position.xyz = psxVertexJitter( pc.rpPSXDistortions, pc.rpProjectionMatrixW, result.position );
 
 	// textures 0 takes the base coordinates by the texture matrix
-	result.texcoord0.x = dot4( vertex.texcoord.xy, rpBumpMatrixS );
-	result.texcoord0.y = dot4( vertex.texcoord.xy, rpBumpMatrixT );
+	result.texcoord0.x = dot4( vertex.texcoord.xy, pc.rpBumpMatrixS );
+	result.texcoord0.y = dot4( vertex.texcoord.xy, pc.rpBumpMatrixT );
 
 	//# textures 1 takes the base coordinates by the texture matrix
-	result.texcoord1.x = dot4( vertex.texcoord.xy, rpSpecularMatrixS );
-	result.texcoord1.y = dot4( vertex.texcoord.xy, rpSpecularMatrixT );
+	result.texcoord1.x = dot4( vertex.texcoord.xy, pc.rpSpecularMatrixS );
+	result.texcoord1.y = dot4( vertex.texcoord.xy, pc.rpSpecularMatrixT );
 
 	// PSX affine texture mapping
-	if( rpPSXDistortions.z > 0.0 )
+	if( pc.rpPSXDistortions.z > 0.0 )
 	{
-		float distance = length( rpLocalViewOrigin - modelPosition );
+		float distance = length( pc.rpLocalViewOrigin - modelPosition );
 		float warp =  psxAffineWarp( distance );
 
 		result.texcoord0.z = warp;
@@ -151,38 +152,38 @@ void main( VS_IN vertex, out VS_OUT result )
 		result.texcoord1.xy *= warp;
 	}
 
-	//float4 toEye = rpLocalViewOrigin - modelPosition;
-	//result.texcoord1.x = dot3( toEye, rpModelMatrixX );
-	//result.texcoord1.y = dot3( toEye, rpModelMatrixY );
-	//result.texcoord1.z = dot3( toEye, rpModelMatrixZ );
+	//float4 toEye = pc.rpLocalViewOrigin - modelPosition;
+	//result.texcoord1.x = dot3( toEye, pc.rpModelMatrixX );
+	//result.texcoord1.y = dot3( toEye, pc.rpModelMatrixY );
+	//result.texcoord1.z = dot3( toEye, pc.rpModelMatrixZ );
 
 #if 1
 	// rotate from tangent space into world space
-	result.texcoord2.x = dot3( tangent, rpModelMatrixX );
-	result.texcoord3.x = dot3( tangent, rpModelMatrixY );
-	result.texcoord4.x = dot3( tangent, rpModelMatrixZ );
+	result.texcoord2.x = dot3( tangent, pc.rpModelMatrixX );
+	result.texcoord3.x = dot3( tangent, pc.rpModelMatrixY );
+	result.texcoord4.x = dot3( tangent, pc.rpModelMatrixZ );
 
-	result.texcoord2.y = dot3( bitangent, rpModelMatrixX );
-	result.texcoord3.y = dot3( bitangent, rpModelMatrixY );
-	result.texcoord4.y = dot3( bitangent, rpModelMatrixZ );
+	result.texcoord2.y = dot3( bitangent, pc.rpModelMatrixX );
+	result.texcoord3.y = dot3( bitangent, pc.rpModelMatrixY );
+	result.texcoord4.y = dot3( bitangent, pc.rpModelMatrixZ );
 
-	result.texcoord2.z = dot3( normal, rpModelMatrixX );
-	result.texcoord3.z = dot3( normal, rpModelMatrixY );
-	result.texcoord4.z = dot3( normal, rpModelMatrixZ );
+	result.texcoord2.z = dot3( normal, pc.rpModelMatrixX );
+	result.texcoord3.z = dot3( normal, pc.rpModelMatrixY );
+	result.texcoord4.z = dot3( normal, pc.rpModelMatrixZ );
 
 #else
 	// rotate from tangent space into view space
-	result.texcoord2.x = dot3( tangent, rpModelViewMatrixX );
-	result.texcoord3.x = dot3( tangent, rpModelViewMatrixY );
-	result.texcoord4.x = dot3( tangent, rpModelViewMatrixZ );
+	result.texcoord2.x = dot3( tangent, pc.rpModelViewMatrixX );
+	result.texcoord3.x = dot3( tangent, pc.rpModelViewMatrixY );
+	result.texcoord4.x = dot3( tangent, pc.rpModelViewMatrixZ );
 
-	result.texcoord2.y = dot3( bitangent, rpModelViewMatrixX );
-	result.texcoord3.y = dot3( bitangent, rpModelViewMatrixY );
-	result.texcoord4.y = dot3( bitangent, rpModelViewMatrixZ );
+	result.texcoord2.y = dot3( bitangent, pc.rpModelViewMatrixX );
+	result.texcoord3.y = dot3( bitangent, pc.rpModelViewMatrixY );
+	result.texcoord4.y = dot3( bitangent, pc.rpModelViewMatrixZ );
 
-	result.texcoord2.z = dot3( normal, rpModelViewMatrixX );
-	result.texcoord3.z = dot3( normal, rpModelViewMatrixY );
-	result.texcoord4.z = dot3( normal, rpModelViewMatrixZ );
+	result.texcoord2.z = dot3( normal, pc.rpModelViewMatrixX );
+	result.texcoord3.z = dot3( normal, pc.rpModelViewMatrixY );
+	result.texcoord4.z = dot3( normal, pc.rpModelViewMatrixZ );
 #endif
 
 #if USE_GPU_SKINNING
@@ -195,6 +196,6 @@ void main( VS_IN vertex, out VS_OUT result )
 	//# for 1.0 : env[16] = 0, env[17] = 1
 	//# for color : env[16] = 1, env[17] = 0
 	//# for 1.0-color : env[16] = -1, env[17] = 1
-	result.color = ( swizzleColor( vertex.color ) * rpVertexColorModulate ) + rpVertexColorAdd;
+	result.color = ( swizzleColor( vertex.color ) * pc.rpVertexColorModulate ) + pc.rpVertexColorAdd;
 #endif
 }
