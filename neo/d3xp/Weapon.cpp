@@ -980,7 +980,10 @@ void idWeapon::InitWorldModel( const idDeclEntityDef* def )
 		renderEntity_t* worldModelRenderEntity = ent->GetRenderEntity();
 		if( worldModelRenderEntity )
 		{
-			worldModelRenderEntity->suppressSurfaceInViewID = owner->entityNumber + 1;
+			if( !pm_fullBodyAwareness.GetBool() || pm_thirdPerson.GetBool() )
+			{
+				worldModelRenderEntity->suppressSurfaceInViewID = owner->entityNumber + 1;
+			}
 			worldModelRenderEntity->suppressShadowInViewID = owner->entityNumber + 1;
 			worldModelRenderEntity->suppressShadowInLightID = LIGHTID_VIEW_MUZZLE_FLASH + owner->entityNumber;
 		}
@@ -2595,6 +2598,17 @@ idWeapon::PresentWeapon
 */
 void idWeapon::PresentWeapon( bool showViewModel )
 {
+	renderEntity_t* worldModelRenderEntity = worldModel.GetEntity()->GetRenderEntity();
+
+	if( !pm_fullBodyAwareness.GetBool() || pm_thirdPerson.GetBool() )
+	{
+		worldModelRenderEntity->suppressSurfaceInViewID = owner->entityNumber + 1;
+	}
+	else
+	{
+		worldModelRenderEntity->suppressSurfaceInViewID = 0;
+	}
+
 	playerViewOrigin = owner->firstPersonViewOrigin;
 	playerViewAxis = owner->firstPersonViewAxis;
 
