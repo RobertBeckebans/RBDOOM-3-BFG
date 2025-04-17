@@ -3,6 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2023 Harrie van Ginneken
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -45,6 +46,7 @@ public:
 	idSWFBitStream& operator=( idSWFBitStream& other );
 	idSWFBitStream& operator=( idSWFBitStream&& other );
 
+	void			LoadFromFile( idFile* file, uint32 len );
 	void			Load( const byte* data, uint32 len, bool copy );
 	void			Free();
 	const byte* 	Ptr()
@@ -85,6 +87,23 @@ public:
 	uint32			ReadU32();
 	int16			ReadS16();
 	int32			ReadS32();
+	int32			ReadS24();
+	template< typename T >
+	T ReadEncoded()
+	{
+		T result = 0;
+		for( int i = 0; i < 5; i++ )
+		{
+			byte b = ReadU8();
+			result |= ( b & 0x7F ) << ( 7 * i );
+			if( ( b & 0x80 ) == 0 )
+			{
+				return result;
+			}
+		}
+		return result;
+	}
+
 	uint32			ReadEncodedU32();
 	float			ReadFixed8();
 	float			ReadFixed16();
@@ -169,6 +188,19 @@ ID_INLINE int16  idSWFBitStream::ReadS16()
 	readp += 2;
 	return ( readp[-2] | ( readp[-1] << 8 ) );
 }
+
+ID_INLINE int idSWFBitStream::ReadS24()
+{
+	ResetBits();
+	readp += 3;
+	int32 i = ( readp[-3] | ( readp[-2] << 8 ) | ( readp[-1] << 16 ) );
+	if( i & ( 0x80 << 16 ) )
+	{
+		i |= 0xff << ( 24 );
+	}
+	return ( int& )i;
+}
+
 ID_INLINE int32  idSWFBitStream::ReadS32()
 {
 	ResetBits();
@@ -211,5 +243,8 @@ ID_INLINE double idSWFBitStream::ReadDouble()
 	idSwap::Little( d );
 	return d;
 }
+
+
+
 
 #endif // !__SWF_BITSTREAM_H__

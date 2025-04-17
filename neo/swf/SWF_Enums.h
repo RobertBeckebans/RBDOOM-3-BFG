@@ -3,6 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2023 Harrie van Ginneken
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -27,6 +28,52 @@ If you have questions concerning this license or the applicable additional terms
 */
 #ifndef __SWF_ENUMS_H__
 #define __SWF_ENUMS_H__
+
+
+enum swfInstanceFlags_t
+{
+	ClassSealed =		0x01,	//The class is sealed: properties can not be dynamically added to instances of the class.
+	ClassFinal  =		0x02,	//The class is final : it cannot be a base class for any other class.
+	ClassInterface =	0x04,	//The class is an interface.
+	ClassProtectedNs =	0x08,	//The class uses its protected namespace andthe protectedNs
+};
+
+enum swfConstantKind_t
+{
+	unused_0x00        = 0x00,
+	Utf8               = 0x01,
+#ifdef SWF_FLOAT
+	Float              = 0x02,
+#endif
+	Int                = 0x03,
+	UInt               = 0x04,
+	PrivateNs          = 0x05, // non-shared namespace
+	Double             = 0x06,
+	Qname              = 0x07, // o.ns::name, ct ns, ct name
+	Namespace          = 0x08,
+	Multiname          = 0x09, // o.name, ct nsset, ct name
+	False              = 0x0A,
+	True               = 0x0B,
+	Null               = 0x0C,
+	QnameA             = 0x0D, // o.@ns::name, ct ns, ct attr-name
+	MultinameA         = 0x0E, // o.@name, ct attr-name
+	RTQname            = 0x0F, // o.ns::name, rt ns, ct name
+	RTQnameA           = 0x10, // o.@ns::name, rt ns, ct attr-name
+	RTQnameL           = 0x11, // o.ns::[name], rt ns, rt name
+	RTQnameLA          = 0x12, // o.@ns::[name], rt ns, rt attr-name
+	NamespaceSet       = 0x15,
+	PackageNamespace   = 0x16,
+	PackageInternalNs  = 0x17,
+	ProtectedNamespace = 0x18,
+	ExplicitNamespace  = 0x19,
+	StaticProtectedNs  = 0x1A,
+	MultinameL         = 0x1B,
+	MultinameLA        = 0x1C,
+	TypeName           = 0x1D,
+#ifdef SWF_FLOAT
+	Float4             = 0x1E,
+#endif
+};
 
 enum swfDictType_t
 {

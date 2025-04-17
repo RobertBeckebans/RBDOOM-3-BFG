@@ -1,0 +1,297 @@
+/*
+ *  This Source Code Form is subject to the terms of the Mozilla Public
+ *  License, v. 2.0. If a copy of the MPL was not distributed with this
+ *  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/*
+ * Includers must define an ABC_OP and ABC_UNUSED_OP macros of the following form:
+ *
+ *   #define ABC_OP(opCount, throw, stack, internal, name) ...          // defines regular op code
+ *   #define ABC_UNUSED_OP(opCount, throw, stack, internal, name) ...  // defines unused op code
+ *
+ * Selected arguments can then be used within the macro expansions.
+ * - opCount        Number of operands encoded in the instruction.  Uses -1 for "invalid", we can avoid that if necessary
+ * - throw          1 if the operation can throw, 0 otherwise
+ * - stack          Stack movement not taking into account run-time names or function arguments
+ * - internal       1 if the operation is internal to the VM, 0 otherwise
+ * - name           Unquoted name of operation.
+ *
+ * There MUST be exactly 256 entries in this table.
+ * The location of an opcode definition in this table determines its hex value, which is
+ * what must correspond to what is read out of the ABC file.
+ * Entries should never be added or removed from this table.  New abc instructions may be added
+ * by updating entries for unused op codes.  Unused op codes have a "name" that is a hex value.
+ *
+ */
+//--------------------------------------------------------------------------------------------------------
+#ifndef ABC_OP_F
+#   ifdef VMCFG_FLOAT
+#       define ABC_OP_F ABC_OP
+#    else
+#       define ABC_OP_F(o,t,s,i,n) ABC_UNUSED_OP(-1, 0, 0, 0, DISABLED_##n)
+#    endif
+#    define ABC_OP_F_DEFINED
+#endif
+
+//              opCount  throw  stack  internal  name                   hex      
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0x00)                  // 0x00  
+ABC_OP(         0,       0,     0,     0,        bkpt)                  // 0x01  
+ABC_OP(         0,       0,     0,     0,        nop)                   // 0x02  
+ABC_OP(         0,       1,     -1,    0,        throw)                 // 0x03  
+ABC_OP(         1,       1,     0,     0,        getsuper)              // 0x04  
+ABC_OP(         1,       1,     -2,    0,        setsuper)              // 0x05  
+ABC_OP(         1,       1,     0,     0,        dxns)                  // 0x06  
+ABC_OP(         0,       1,     -1,    0,        dxnslate)              // 0x07  
+ABC_OP(         1,       0,     0,     0,        kill)                  // 0x08  
+ABC_OP(         0,       0,     0,     0,        label)                 // 0x09  
+ABC_OP_F(       0,       1,     0,     0,        lf32x4)                // 0x0A  
+ABC_OP_F(       0,       1,     -2,    0,        sf32x4)                // 0x0B  
+ABC_OP(         1,       1,     -2,    0,        ifnlt)                 // 0x0C  
+ABC_OP(         1,       1,     -2,    0,        ifnle)                 // 0x0D  
+ABC_OP(         1,       1,     -2,    0,        ifngt)                 // 0x0E  
+ABC_OP(         1,       1,     -2,    0,        ifnge)                 // 0x0F  
+ABC_OP(         1,       0,     0,     0,        jump)                  // 0x10  
+ABC_OP(         1,       0,     -1,    0,        iftrue)                // 0x11  
+ABC_OP(         1,       0,     -1,    0,        iffalse)               // 0x12  
+ABC_OP(         1,       1,     -2,    0,        ifeq)                  // 0x13  
+ABC_OP(         1,       1,     -2,    0,        ifne)                  // 0x14  
+ABC_OP(         1,       1,     -2,    0,        iflt)                  // 0x15  
+ABC_OP(         1,       1,     -2,    0,        ifle)                  // 0x16  
+ABC_OP(         1,       1,     -2,    0,        ifgt)                  // 0x17  
+ABC_OP(         1,       1,     -2,    0,        ifge)                  // 0x18  
+ABC_OP(         1,       0,     -2,    0,        ifstricteq)            // 0x19  
+ABC_OP(         1,       0,     -2,    0,        ifstrictne)            // 0x1A  
+ABC_OP(         2,       0,     -1,    0,        lookupswitch)          // 0x1B  
+ABC_OP(         0,       1,     -1,    0,        pushwith)              // 0x1C
+ABC_OP(         0,       0,     0,     0,        popscope)              // 0x1D  
+ABC_OP(         0,       1,     -1,    0,        nextname)              // 0x1E  
+ABC_OP(         0,       1,     -1,    0,        hasnext)               // 0x1F  
+ABC_OP(         0,       0,     1,     0,        pushnull)              // 0x20  
+ABC_OP(         0,       0,     1,     0,        pushundefined)         // 0x21  
+ABC_OP_F(       1,       0,     1,     0,        pushfloat)             // 0x22  
+ABC_OP(         0,       1,     -1,    0,        nextvalue)             // 0x23  
+ABC_OP(         1,       0,     1,     0,        pushbyte)              // 0x24  
+ABC_OP(         1,       0,     1,     0,        pushshort)             // 0x25  
+ABC_OP(         0,       0,     1,     0,        pushtrue)              // 0x26  
+ABC_OP(         0,       0,     1,     0,        pushfalse)             // 0x27  
+ABC_OP(         0,       0,     1,     0,        pushnan)               // 0x28  
+ABC_OP(         0,       0,     -1,    0,        pop)                   // 0x29  
+ABC_OP(         0,       0,     1,     0,        dup)                   // 0x2A  
+ABC_OP(         0,       0,     0,     0,        swap)                  // 0x2B  
+ABC_OP(         1,       0,     1,     0,        pushstring)            // 0x2C  
+ABC_OP(         1,       0,     1,     0,        pushint)               // 0x2D  
+ABC_OP(         1,       0,     1,     0,        pushuint)              // 0x2E  
+ABC_OP(         1,       0,     1,     0,        pushdouble)            // 0x2F  
+ABC_OP(         0,       1,     -1,    0,        pushscope)             // 0x30  
+ABC_OP(         1,       0,     1,     0,        pushnamespace)         // 0x31  
+ABC_OP(         2,       1,     1,     0,        hasnext2)              // 0x32  
+ABC_OP(        -1,       1,     0,     1,        lix8)                  // 0x33  
+ABC_OP(        -1,       1,     0,     1,        lix16)                 // 0x34  
+ABC_OP(         0,       1,     0,     0,        li8)                   // 0x35  
+ABC_OP(         0,       1,     0,     0,        li16)                  // 0x36  
+ABC_OP(         0,       1,     0,     0,        li32)                  // 0x37  
+ABC_OP(         0,       1,     0,     0,        lf32)                  // 0x38  
+ABC_OP(         0,       1,     0,     0,        lf64)                  // 0x39  
+ABC_OP(         0,       1,     -2,    0,        si8)                   // 0x3A  
+ABC_OP(         0,       1,     -2,    0,        si16)                  // 0x3B  
+ABC_OP(         0,       1,     -2,    0,        si32)                  // 0x3C  
+ABC_OP(         0,       1,     -2,    0,        sf32)                  // 0x3D  
+ABC_OP(         0,       1,     -2,    0,        sf64)                  // 0x3E  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0x3F)                  // 0x3F  
+ABC_OP(         1,       1,     1,     0,        newfunction)           // 0x40  
+ABC_OP(         1,       1,     -1,    0,        call)                  // 0x41  
+ABC_OP(         1,       1,     0,     0,        construct)             // 0x42  
+ABC_OP(         2,       1,     0,     0,        callmethod)            // 0x43  
+ABC_OP(         2,       1,     0,     0,        callstatic)            // 0x44  
+ABC_OP(         2,       1,     0,     0,        callsuper)             // 0x45  
+ABC_OP(         2,       1,     0,     0,        callproperty)          // 0x46  
+ABC_OP(         0,       0,     0,     0,        returnvoid)            // 0x47  
+ABC_OP(         0,       1,     -1,    0,        returnvalue)           // 0x48  
+ABC_OP(         1,       1,     -1,    0,        constructsuper)        // 0x49  
+ABC_OP(         2,       1,     0,     0,        constructprop)         // 0x4A  
+ABC_OP(         -1,      1,     0,     1,        callsuperid)           // 0x4B  
+ABC_OP(         2,       1,     0,     0,        callproplex)           // 0x4C  
+ABC_OP(         -1,      1,     0,     1,        callinterface)         // 0x4D  
+ABC_OP(         2,       1,     -1,    0,        callsupervoid)         // 0x4E  
+ABC_OP(         2,       1,     -1,    0,        callpropvoid)          // 0x4F  
+ABC_OP(         0,       1,     0,     0,        sxi1)                  // 0x50  
+ABC_OP(         0,       1,     0,     0,        sxi8)                  // 0x51  
+ABC_OP(         0,       1,     0,     0,        sxi16)                 // 0x52  
+ABC_OP(         1,       1,     0,     0,        applytype)             // 0x53  
+ABC_OP_F(       1,       0,     1,     0,        pushfloat4)            // 0x54  
+ABC_OP(         1,       1,     1,     0,        newobject)             // 0x55  
+ABC_OP(         1,       1,     1,     0,        newarray)              // 0x56  
+ABC_OP(         0,       1,     1,     0,        newactivation)         // 0x57  
+ABC_OP(         1,       1,     0,     0,        newclass)              // 0x58  
+ABC_OP(         1,       1,     0,     0,        getdescendants)        // 0x59  
+ABC_OP(         1,       1,     1,     0,        newcatch)              // 0x5A  
+ABC_OP(        -1,       1,     0,     1,        findpropglobalstrict)  // 0x5B  
+ABC_OP(        -1,       1,     0,     1,        findpropglobal)        // 0x5C  
+ABC_OP(         1,       1,     1,     0,        findpropstrict)        // 0x5D  
+ABC_OP(         1,       1,     1,     0,        findproperty)          // 0x5E  
+ABC_OP(         1,       1,     1,     0,        finddef)               // 0x5F  
+ABC_OP(         1,       1,     1,     0,        getlex)                // 0x60  
+ABC_OP(         1,       1,     -2,    0,        setproperty)           // 0x61  
+ABC_OP(         1,       0,     1,     0,        getlocal)              // 0x62  
+ABC_OP(         1,       0,     -1,    0,        setlocal)              // 0x63  
+ABC_OP(         0,       0,     1,     0,        getglobalscope)        // 0x64  
+ABC_OP(         1,       0,     1,     0,        getscopeobject)        // 0x65  
+ABC_OP(         1,       1,     0,     0,        getproperty)           // 0x66  
+ABC_OP(         1,       0,     1,     0,        getouterscope)         // 0x67  
+ABC_OP(         1,       1,     -2,    0,        initproperty)          // 0x68  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0x69)                  // 0x69  
+ABC_OP(         1,       1,     0,     0,        deleteproperty)        // 0x6A  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0x6B)                  // 0x6B  
+ABC_OP(         1,       1,     0,     0,        getslot)               // 0x6C  
+ABC_OP(         1,       1,     -2,    0,        setslot)               // 0x6D  
+ABC_OP(         1,       0,     1,     0,        getglobalslot)         // 0x6E  
+ABC_OP(         1,       1,     -1,    0,        setglobalslot)         // 0x6F  
+ABC_OP(         0,       1,     0,     0,        convert_s)             // 0x70  
+ABC_OP(         0,       1,     0,     0,        esc_xelem)             // 0x71  
+ABC_OP(         0,       1,     0,     0,        esc_xattr)             // 0x72  
+ABC_OP(         0,       1,     0,     0,        convert_i)             // 0x73  
+ABC_OP(         0,       1,     0,     0,        convert_u)             // 0x74  
+ABC_OP(         0,       1,     0,     0,        convert_d)             // 0x75  
+ABC_OP(         0,       1,     0,     0,        convert_b)             // 0x76  
+ABC_OP(         0,       1,     0,     0,        convert_o)             // 0x77  
+ABC_OP(         0,       1,     0,     0,        checkfilter)           // 0x78  
+ABC_OP_F(       0,       1,     0,     0,        convert_f)             // 0x79  
+ABC_OP_F(       0,       1,     0,     0,        unplus)                // 0x7A  
+ABC_OP_F(       0,       1,     0,     0,        convert_f4)            // 0x7B  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0x7C)                  // 0x7C  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0x7D)                  // 0x7D  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0x7E)                  // 0x7E  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0x7F)                  // 0x7F  
+ABC_OP(         1,       1,     0,     0,        coerce)                // 0x80  
+ABC_OP(         0,       1,     0,     0,        coerce_b)              // 0x81  
+ABC_OP(         0,       1,     0,     0,        coerce_a)              // 0x82  
+ABC_OP(         0,       1,     0,     0,        coerce_i)              // 0x83  
+ABC_OP(         0,       1,     0,     0,        coerce_d)              // 0x84  
+ABC_OP(         0,       1,     0,     0,        coerce_s)              // 0x85  
+ABC_OP(         1,       1,     0,     0,        astype)                // 0x86  
+ABC_OP(         0,       1,     -1,    0,        astypelate)            // 0x87  
+ABC_OP(         0,       1,     0,     0,        coerce_u)              // 0x88  
+ABC_OP(         0,       1,     0,     0,        coerce_o)              // 0x89  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0x8A)                  // 0x8A  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0x8B)                  // 0x8B  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0x8C)                  // 0x8C  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0x8D)                  // 0x8D  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0x8E)                  // 0x8E  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0x8F)                  // 0x8F  
+ABC_OP(         0,       1,     0,     0,        negate)                // 0x90  
+ABC_OP(         0,       1,     0,     0,        increment)             // 0x91  
+ABC_OP(         1,       1,     0,     0,        inclocal)              // 0x92  
+ABC_OP(         0,       1,     0,     0,        decrement)             // 0x93  
+ABC_OP(         1,       1,     0,     0,        declocal)              // 0x94  
+ABC_OP(         0,       0,     0,     0,        typeof)                // 0x95  
+ABC_OP(         0,       0,     0,     0,        not)                   // 0x96  
+ABC_OP(         0,       1,     0,     0,        bitnot)                // 0x97  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0x98)                  // 0x98  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0x99)                  // 0x99  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0x9A)                  // 0x9A  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0x9B)                  // 0x9B  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0x9C)                  // 0x9C  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0x9D)                  // 0x9D  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0x9E)                  // 0x9E  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0x9F)                  // 0x9F  
+ABC_OP(         0,       1,     -1,    0,        add)                   // 0xA0  
+ABC_OP(         0,       1,     -1,    0,        subtract)              // 0xA1  
+ABC_OP(         0,       1,     -1,    0,        multiply)              // 0xA2  
+ABC_OP(         0,       1,     -1,    0,        divide)                // 0xA3  
+ABC_OP(         0,       1,     -1,    0,        modulo)                // 0xA4  
+ABC_OP(         0,       1,     -1,    0,        lshift)                // 0xA5  
+ABC_OP(         0,       1,     -1,    0,        rshift)                // 0xA6  
+ABC_OP(         0,       1,     -1,    0,        urshift)               // 0xA7  
+ABC_OP(         0,       1,     -1,    0,        bitand)                // 0xA8  
+ABC_OP(         0,       1,     -1,    0,        bitor)                 // 0xA9  
+ABC_OP(         0,       1,     -1,    0,        bitxor)                // 0xAA  
+ABC_OP(         0,       1,     -1,    0,        equals)                // 0xAB  
+ABC_OP(         0,       1,     -1,    0,        strictequals)          // 0xAC  
+ABC_OP(         0,       1,     -1,    0,        lessthan)              // 0xAD  
+ABC_OP(         0,       1,     -1,    0,        lessequals)            // 0xAE  
+ABC_OP(         0,       1,     -1,    0,        greaterthan)           // 0xAF  
+ABC_OP(         0,       1,     -1,    0,        greaterequals)         // 0xB0  
+ABC_OP(         0,       1,     -1,    0,        instanceof)            // 0xB1  
+ABC_OP(         1,       1,     0,     0,        istype)                // 0xB2  
+ABC_OP(         0,       1,     -1,    0,        istypelate)            // 0xB3  
+ABC_OP(         0,       1,     -1,    0,        in)                    // 0xB4  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xB5)                  // 0xB5  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xB6)                  // 0xB6  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xB7)                  // 0xB7  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xB8)                  // 0xB8  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xB9)                  // 0xB9  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xBA)                  // 0xBA  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xBB)                  // 0xBB  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xBC)                  // 0xBC  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xBD)                  // 0xBD  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xBE)                  // 0xBE  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xBF)                  // 0xBF  
+ABC_OP(         0,       1,     0,     0,        increment_i)           // 0xC0  
+ABC_OP(         0,       1,     0,     0,        decrement_i)           // 0xC1  
+ABC_OP(         1,       1,     0,     0,        inclocal_i)            // 0xC2  
+ABC_OP(         1,       1,     0,     0,        declocal_i)            // 0xC3  
+ABC_OP(         0,       1,     0,     0,        negate_i)              // 0xC4  
+ABC_OP(         0,       1,     -1,    0,        add_i)                 // 0xC5  
+ABC_OP(         0,       1,     -1,    0,        subtract_i)            // 0xC6  
+ABC_OP(         0,       1,     -1,    0,        multiply_i)            // 0xC7  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xC8)                  // 0xC8  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xC9)                  // 0xC9  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xCA)                  // 0xCA  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xCB)                  // 0xCB  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xCC)                  // 0xCC  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xCD)                  // 0xCD  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xCE)                  // 0xCE  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xCF)                  // 0xCF  
+ABC_OP(         0,       0,     1,     0,        getlocal0)             // 0xD0  
+ABC_OP(         0,       0,     1,     0,        getlocal1)             // 0xD1  
+ABC_OP(         0,       0,     1,     0,        getlocal2)             // 0xD2  
+ABC_OP(         0,       0,     1,     0,        getlocal3)             // 0xD3  
+ABC_OP(         0,       0,     -1,    0,        setlocal0)             // 0xD4  
+ABC_OP(         0,       0,     -1,    0,        setlocal1)             // 0xD5  
+ABC_OP(         0,       0,     -1,    0,        setlocal2)             // 0xD6  
+ABC_OP(         0,       0,     -1,    0,        setlocal3)             // 0xD7  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xD8)                  // 0xD8  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xD9)                  // 0xD9  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xDA)                  // 0xDA  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xDB)                  // 0xDB  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xDC)                  // 0xDC  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xDD)                  // 0xDD  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xDE)                  // 0xDE  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xDF)                  // 0xDF  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xE0)                  // 0xE0  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xE1)                  // 0xE1  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xE2)                  // 0xE2  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xE3)                  // 0xE3  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xE4)                  // 0xE4  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xE5)                  // 0xE5  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xE6)                  // 0xE6  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xE7)                  // 0xE7  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xE8)                  // 0xE8  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xE9)                  // 0xE9  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xEA)                  // 0xEA  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xEB)                  // 0xEB  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xEC)                  // 0xEC  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xED)                  // 0xED  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xEE)                  // 0xEE  - was OP_abs_jump
+ABC_OP(         4,       1,     0,     0,        debug)                 // 0xEF  
+ABC_OP(         1,       1,     0,     0,        debugline)             // 0xF0  
+ABC_OP(         1,       1,     0,     0,        debugfile)             // 0xF1  
+ABC_OP(         1,       0,     0,     0,        bkptline)              // 0xF2  
+ABC_OP(         0,       0,     0,     0,        timestamp)             // 0xF3  
+ABC_OP(         -1,      1,     0,     1,        restargc)              // 0xF4  
+ABC_OP(         -1,      1,     0,     1,        restarg)               // 0xF5  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xF6)                  // 0xF6  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xF7)                  // 0xF7  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xF8)                  // 0xF8  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xF9)                  // 0xF9  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xFA)                  // 0xFA  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xFB)                  // 0xFB  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xFC)                  // 0xFC  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xFD)                  // 0xFD  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xFE)                  // 0xFE  
+ABC_UNUSED_OP(  -1,      0,     0,     0,        0xFF)                  // 0xFF  
+#ifdef ABC_OP_F_DEFINED
+#   undef ABC_OP_F
+#   undef ABC_OP_F_DEFINED
+#endif
