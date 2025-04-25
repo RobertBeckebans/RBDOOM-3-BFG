@@ -280,6 +280,7 @@ endif()
 
 if (USE_INTRINSICS_NEON)
 	add_definitions(-DUSE_INTRINSICS_NEON)
+	add_definitions(-DSTBI_NEON)
 endif()
 
 if(STANDALONE)
