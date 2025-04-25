@@ -669,12 +669,9 @@ void idImage::ActuallyLoadImage( bool fromBackEnd, nvrhi::ICommandList* commandL
 
 	if( ( fileSystem->InProductionMode() && binaryFileTime != FILE_NOT_FOUND_TIMESTAMP ) || ( ( binaryFileTime != FILE_NOT_FOUND_TIMESTAMP )
 			&& ( header.colorFormat == opts.colorFormat )
-#if ( defined( __APPLE__ ) && defined( USE_VULKAN ) ) || defined( USE_NVRHI )
-			// SRS - Handle case when image read is cached and RGB565 format conversion is already done
-			&& ( header.format == opts.format || ( header.format == FMT_RGB565 && opts.format == FMT_RGBA8 ) )
-#else
-			&& ( header.format == opts.format )
-#endif
+			// SRS: handle case when image read is cached and RGB565 format conversion is already done
+			// RB: allow R11G11B10 instead of BC6
+			&& ( header.format == opts.format || ( header.format == FMT_RGB565 && opts.format == FMT_RGBA8 ) || ( header.format == FMT_R11G11B10F && opts.format == FMT_BC6H ) )
 			&& ( header.textureType == opts.textureType )
 																							) )
 	{
@@ -682,14 +679,13 @@ void idImage::ActuallyLoadImage( bool fromBackEnd, nvrhi::ICommandList* commandL
 		opts.height = header.height;
 		opts.numLevels = header.numLevels;
 		opts.colorFormat = ( textureColor_t )header.colorFormat;
-#if ( defined( __APPLE__ ) && defined( USE_VULKAN ) ) || defined( USE_NVRHI )
+
 		// SRS - Set in-memory format to FMT_RGBA8 for converted FMT_RGB565 image
 		if( header.format == FMT_RGB565 )
 		{
 			opts.format = FMT_RGBA8;
 		}
 		else
-#endif
 		{
 			opts.format = ( textureFormat_t )header.format;
 		}
@@ -914,7 +910,10 @@ void idImage::ActuallyLoadImage( bool fromBackEnd, nvrhi::ICommandList* commandL
 
 void idImage::DeferredLoadImage()
 {
-	globalImages->imagesToLoad.AddUnique( this );
+	if( !globalImages->cacheImages )
+	{
+		globalImages->imagesToLoad.AddUnique( this );
+	}
 }
 
 void idImage::DeferredPurgeImage()

@@ -206,6 +206,16 @@ void idBinaryImage::Load2DFromMemory( int width, int height, const byte* pic_con
 		}
 		else if( textureFormat == FMT_BC6H )
 		{
+#if !defined(USE_INTRINSICS_SSE) && !defined(USE_INTRINSICS_NEON)
+
+			// RB: store as R11G11B10 because the generic fallback is too slow
+			fileData.format = textureFormat = FMT_R11G11B10F;
+			img.Alloc( scaledWidth * scaledHeight * 4 );
+			for( int i = 0; i < img.dataSize; i++ )
+			{
+				img.data[ i ] = pic[ i ];
+			}
+#else
 			img.Alloc( dxtWidth * dxtHeight );
 			idDxtEncoder dxt;
 
@@ -213,7 +223,7 @@ void idBinaryImage::Load2DFromMemory( int width, int height, const byte* pic_con
 			{
 				common->LoadPacifierBinarizeInfo( va( "(%d x %d) - BC6HQ", width, width ) );
 
-				dxt.CompressImageR11G11B10_BC6HQ( dxtPic, img.data, dxtWidth, dxtHeight );
+				dxt.CompressImageR11G11B10_BC6HQ( dxtPic, img.data, dxtWidth, dxtWidth );
 			}
 			else
 			{
@@ -221,6 +231,7 @@ void idBinaryImage::Load2DFromMemory( int width, int height, const byte* pic_con
 
 				dxt.CompressImageR11G11B10_BC6Fast( dxtPic, img.data, dxtWidth, dxtHeight );
 			}
+#endif
 		}
 		else if( textureFormat == FMT_LUM8 || textureFormat == FMT_INT8 )
 		{
@@ -534,6 +545,16 @@ void idBinaryImage::Load2DAtlasMipchainFromMemory( int width, int height, const 
 		}
 		else if( textureFormat == FMT_BC6H )
 		{
+#if !defined(USE_INTRINSICS_SSE) && !defined(USE_INTRINSICS_NEON)
+
+			// RB: store as R11G11B10 because the generic fallback is too slow
+			fileData.format = textureFormat = FMT_R11G11B10F;
+			img.Alloc( scaledWidth * scaledHeight * 4 );
+			for( int i = 0; i < img.dataSize; i++ )
+			{
+				img.data[ i ] = pic[ i ];
+			}
+#else
 			img.Alloc( dxtWidth * dxtHeight );
 			idDxtEncoder dxt;
 
@@ -549,6 +570,7 @@ void idBinaryImage::Load2DAtlasMipchainFromMemory( int width, int height, const 
 
 				dxt.CompressImageR11G11B10_BC6Fast( dxtPic, img.data, dxtWidth, dxtHeight );
 			}
+#endif
 		}
 		else if( textureFormat == FMT_LUM8 || textureFormat == FMT_INT8 )
 		{
@@ -686,7 +708,6 @@ void idBinaryImage::LoadCubeFromMemory( int width, const byte* pics[6], int numL
 
 			if( scaledWidth < 4 && ( textureFormat == FMT_DXT1 || textureFormat == FMT_DXT5 || textureFormat == FMT_BC6H ) )
 			{
-				// RB: TODO FMT_BC6H
 				PadImageTo4x4( pic, scaledWidth, scaledWidth, padBlock );
 				padSize = 4;
 				padSrc = padBlock;
@@ -740,8 +761,9 @@ void idBinaryImage::LoadCubeFromMemory( int width, const byte* pics[6], int numL
 			}
 			else if( textureFormat == FMT_BC6H )
 			{
-#if 0
-				// RB: copy it as it was a RGBA8 because of the same size
+#if !defined(USE_INTRINSICS_SSE) && !defined(USE_INTRINSICS_NEON)
+
+				// RB: store as R11G11B10 because the generic fallback is too slow
 				fileData.format = textureFormat = FMT_R11G11B10F;
 				img.Alloc( padSize * padSize * 4 );
 				for( int i = 0; i < img.dataSize; i++ )

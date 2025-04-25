@@ -6,7 +6,21 @@ cmake_minimum_required(VERSION 3.10)
 set(LIB_NAME ispc_texcomp)
 
 # Find the ISPC compiler
-find_program(ISPC_EXECUTABLE ispc)
+if (MSVC)
+    find_program(ISPC_EXECUTABLE 
+    NAMES ispc ispc.exe
+    PATHS ${CMAKE_SOURCE_DIR}/../tools/ispc/bin
+    NO_DEFAULT_PATH)
+
+    if (NOT ISPC_EXECUTABLE)
+        find_program(ISPC_EXECUTABLE ispc)
+    endif()
+    
+    message(STATUS "Setting 'ISPC_EXECUTABLE' to '${ISPC_EXECUTABLE}'")
+else()
+    find_program(ISPC_EXECUTABLE ispc)
+endif()
+
 if(NOT ISPC_EXECUTABLE)
     message(FATAL_ERROR "ISPC compiler not found. Please install ISPC and ensure it is in the PATH.")
 endif()
@@ -36,7 +50,8 @@ if (USE_INTRINSICS_SSE)
         COMMAND ${ISPC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${ISPC_SOURCE}
                 -o ${ISPC_OBJ}
                 -h ${ISPC_HEADER}
-                --target=avx2-i32x8 --arch=x86-64 ${ISPC_PIC}
+                #--target=avx2-i32x8 --arch=x86-64 ${ISPC_PIC}
+                --target=sse4-i32x4 --arch=x86-64 ${ISPC_PIC} # supports more CPUs beginning from 2008
         DEPENDS ${ISPC_SOURCE}
         COMMENT "Compiling ISPC file ${ISPC_SOURCE}"
     )
