@@ -47,7 +47,7 @@ elseif (USE_INTRINSICS_NEON)
         COMMAND ${ISPC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${ISPC_SOURCE}
                 -o ${ISPC_OBJ}
                 -h ${ISPC_HEADER}
-                --target=neon-i32x8 --arch=aarch64 --pic
+                --target=neon-i32x8 --arch=aarch64 ${ISPC_PIC}
         DEPENDS ${ISPC_SOURCE}
         COMMENT "Compiling ISPC file ${ISPC_SOURCE}"
     )
