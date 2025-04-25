@@ -5783,11 +5783,10 @@ void idDxtEncoder::CompressImageR11G11B10_BC6Fast_Generic( const byte* inBuf, by
 
 
 
-#if !defined( DMAP )
+#if ( defined(USE_INTRINSICS_SSE) || defined(USE_INTRINSICS_NEON) ) && !defined( DMAP )
 
 #if 1
 
-#if defined(USE_INTRINSICS_SSE) || defined(USE_INTRINSICS_NEON)
 #include "../../libs/ispc_texcomp/ispc_texcomp.h"
 
 /*
@@ -5868,11 +5867,9 @@ void idDxtEncoder::CompressImageR11G11B10_BC6Fast_SIMD( const byte* inBuf, byte*
 
 	delete[] fp16Buf;
 }
-#endif // #if defined(USE_INTRINSICS_SSE) || defined(USE_INTRINSICS_NEON)
 
 #else
 
-#if defined(USE_INTRINSICS_SSE)
 #include "../../libs/compressonator/include/compressonator.h"
 
 /*
@@ -6000,11 +5997,10 @@ void idDxtEncoder::CompressImageR11G11B10_BC6Fast_SIMD( const byte* inBuf, byte*
 
 	delete[] fp32Buf;
 }
-#endif // #if defined(USE_INTRINSICS_SSE)
 
 #endif
 
-#endif // #if !defined( DMAP )
+#endif // #if ( defined(USE_INTRINSICS_SSE) || defined(USE_INTRINSICS_NEON) ) && !defined( DMAP )
 
 void idDxtEncoder::CompressImageR11G11B10_BC6HQ( const byte* inBuf, byte* outBuf, int width, int height )
 {
