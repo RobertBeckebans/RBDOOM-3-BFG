@@ -589,6 +589,14 @@ static void R_FindClosestEnvironmentProbes()
 			tr.viewDef->radianceImages[i] = viewEnvprobes[i]->radianceImage;
 		}
 	}
+
+	if( tr.viewDef->radianceImages[0] == globalImages->defaultUACRadianceCube &&
+			tr.viewDef->radianceImages[1] == globalImages->defaultUACRadianceCube &&
+			tr.viewDef->radianceImages[2] == globalImages->defaultUACRadianceCube )
+	{
+		// this didn't work so this is the way to tell the backend and avoid blood reflections
+		tr.viewDef->globalProbeBounds.Clear();
+	}
 }
 
 // this one tries to interpolate between probes over time
@@ -771,6 +779,14 @@ static void R_FindClosestEnvironmentProbes2()
 		{
 			tr.viewDef->radianceImages[i] = viewEnvprobes[i]->radianceImage;
 		}
+	}
+
+	if( tr.viewDef->radianceImages[0] == globalImages->defaultUACRadianceCube &&
+			tr.viewDef->radianceImages[1] == globalImages->defaultUACRadianceCube &&
+			tr.viewDef->radianceImages[2] == globalImages->defaultUACRadianceCube )
+	{
+		// this didn't work so this is the way to tell the backend and avoid blood reflections
+		tr.viewDef->globalProbeBounds.Clear();
 	}
 }
 // RB end

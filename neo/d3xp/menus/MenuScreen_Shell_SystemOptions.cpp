@@ -39,6 +39,7 @@ extern idCVar r_swapInterval;
 extern idCVar s_volume_dB;
 extern idCVar r_exposure; // RB: use this to control HDR exposure or brightness in LDR mode
 extern idCVar r_lightScale;
+extern idCVar r_useSSR;
 
 /*
 ========================

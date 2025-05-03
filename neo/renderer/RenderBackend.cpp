@@ -396,117 +396,126 @@ void idRenderBackend::PrepareStageTexturing( const shaderStage_t* pStage,  const
 	}
 	else if( pStage->texture.texgen == TG_REFLECT_CUBE2 )
 	{
-		if( r_useSSR.GetBool() && R_UseHiZ() )
+		idVec4 probeMins, probeMaxs, probeCenter;
+
+		probeMins[0] = viewDef->globalProbeBounds[0][0];
+		probeMins[1] = viewDef->globalProbeBounds[0][1];
+		probeMins[2] = viewDef->globalProbeBounds[0][2];
+		probeMins[3] = viewDef->globalProbeBounds.IsCleared() ? 0.0f : 1.0f;
+
+		probeMaxs[0] = viewDef->globalProbeBounds[1][0];
+		probeMaxs[1] = viewDef->globalProbeBounds[1][1];
+		probeMaxs[2] = viewDef->globalProbeBounds[1][2];
+		probeMaxs[3] = 0.0f;
+
+		idVec3 center = viewDef->globalProbeBounds.GetCenter();
+		probeCenter.Set( center.x, center.y, center.z, 1.0f );
+
+		SetVertexParm( RENDERPARM_WOBBLESKY_X, probeMins.ToFloatPtr() );
+		SetVertexParm( RENDERPARM_WOBBLESKY_Y, probeMaxs.ToFloatPtr() );
+		SetVertexParm( RENDERPARM_WOBBLESKY_Z, probeCenter.ToFloatPtr() );
+
+		SetVertexParm( RENDERPARM_TEXGEN_0_S, viewDef->probePositions[0].ToFloatPtr() );
+		SetVertexParm( RENDERPARM_TEXGEN_0_T, viewDef->probePositions[1].ToFloatPtr() );
+		SetVertexParm( RENDERPARM_TEXGEN_0_Q, viewDef->probePositions[2].ToFloatPtr() );
+
+		// specular cubemap blend weights
+		renderProgManager.SetUniformValue( RENDERPARM_LOCALLIGHTORIGIN, viewDef->radianceImageBlends.ToFloatPtr() );
+
+		// general SSR parms
+		idVec4 ssrParms;
+		ssrParms.x = r_ssrStride.GetFloat();
+		ssrParms.y = r_ssrMaxDistance.GetFloat();
+		ssrParms.z = r_ssrZThickness.GetFloat();
+		ssrParms.w = r_ssrJitter.GetFloat();
+
+		idVec4 jitterTexScale;
+		jitterTexScale.x = r_ssrMaxDistance.GetFloat();
+		jitterTexScale.y = 0;
+		jitterTexScale.z = 0;
+		jitterTexScale.w = 0;
+		SetFragmentParm( RENDERPARM_JITTERTEXSCALE, jitterTexScale.ToFloatPtr() ); // rpJitterTexScale
+
+		renderProgManager.SetUniformValue( RENDERPARM_GLOBALLIGHTORIGIN, ssrParms.ToFloatPtr() );
+
+		// allow reconstruction of depth buffer value to full view space position
+		SetVertexParms( RENDERPARM_SHADOW_MATRIX_0_X, viewDef->unprojectionToCameraRenderMatrix[0], 4 );
+
+		// we need to rotate the normals from world space to view space
+		idRenderMatrix viewMatrix;
+		idRenderMatrix::Transpose( *( idRenderMatrix* ) viewDef->worldSpace.modelViewMatrix, viewMatrix );
+		//SetVertexParms( RENDERPARM_MODELVIEWMATRIX_X, viewMatrix[0], 4 );
+
+		// this is the main requirement for the DDA SSR algorithm next to the linear z buffer
+		// we need clip space [-1..1] -> window space [0..1] -> to texture space [0..w|h]
+		ALIGNTYPE16 const idRenderMatrix matClipToUvzw(
+			0.5f,  0.0f, 0.0f, 0.5f,
+			0.0f,  -0.5f, 0.0f, 0.5f,
+			0.0f,  0.0f, 1.0f, 0.0f,
+			0.0f,  0.0f, 0.0f, 1.0f
+		);
+
+		// should this be the viewport width / height instead?
+		int w = renderSystem->GetWidth();
+		int h = renderSystem->GetHeight();
+
+		ALIGNTYPE16 const idRenderMatrix screenScale(
+			w,  0.0f, 0.0f, 0.0f,
+			0.0f, h, 0.0f, 0.0f,
+			0.0f,  0.0f, 1.0f, 0.0f,
+			0.0f,  0.0f, 0.0f, 1.0f
+		);
+
+		idRenderMatrix screenSpaceScaled;
+		idRenderMatrix::Multiply( screenScale, matClipToUvzw, screenSpaceScaled );
+
+		idRenderMatrix screenSpace;
+		idRenderMatrix::Multiply( screenSpaceScaled, viewDef->projectionRenderMatrix, screenSpace );
+
+		SetVertexParms( RENDERPARM_SHADOW_MATRIX_1_X, screenSpace[0], 4 );
+
+		// see if there is also a bump map specified
+		const shaderStage_t* bumpStage = surf->material->GetBumpStage();
+		if( bumpStage != NULL )
 		{
-			idVec4 probeMins, probeMaxs, probeCenter;
+			// per-pixel reflection mapping with bump mapping
+			GL_SelectTexture( 0 );
+			bumpStage->texture.image->Bind();
 
-			probeMins[0] = viewDef->globalProbeBounds[0][0];
-			probeMins[1] = viewDef->globalProbeBounds[0][1];
-			probeMins[2] = viewDef->globalProbeBounds[0][2];
-			probeMins[3] = viewDef->globalProbeBounds.IsCleared() ? 0.0f : 1.0f;
+			GL_SelectTexture( 1 );
+			globalImages->currentRenderImage->Bind();
 
-			probeMaxs[0] = viewDef->globalProbeBounds[1][0];
-			probeMaxs[1] = viewDef->globalProbeBounds[1][1];
-			probeMaxs[2] = viewDef->globalProbeBounds[1][2];
-			probeMaxs[3] = 0.0f;
+			GL_SelectTexture( 2 );
+			globalImages->gbufferNormalsRoughnessImage->Bind();
 
-			idVec3 center = viewDef->globalProbeBounds.GetCenter();
-			probeCenter.Set( center.x, center.y, center.z, 1.0f );
+			GL_SelectTexture( 3 );
+			// use hierachical Z to avoid read & write at the same time on the depth buffer
+			globalImages->hierarchicalZbufferImage->Bind();
 
-			SetVertexParm( RENDERPARM_WOBBLESKY_X, probeMins.ToFloatPtr() );
-			SetVertexParm( RENDERPARM_WOBBLESKY_Y, probeMaxs.ToFloatPtr() );
-			SetVertexParm( RENDERPARM_WOBBLESKY_Z, probeCenter.ToFloatPtr() );
+			GL_SelectTexture( 4 );
+			viewDef->radianceImages[0]->Bind();
 
-			SetVertexParm( RENDERPARM_TEXGEN_0_S, viewDef->probePositions[0].ToFloatPtr() );
-			SetVertexParm( RENDERPARM_TEXGEN_0_T, viewDef->probePositions[1].ToFloatPtr() );
-			SetVertexParm( RENDERPARM_TEXGEN_0_Q, viewDef->probePositions[2].ToFloatPtr() );
+			GL_SelectTexture( 5 );
+			viewDef->radianceImages[1]->Bind();
 
-			// specular cubemap blend weights
-			renderProgManager.SetUniformValue( RENDERPARM_LOCALLIGHTORIGIN, viewDef->radianceImageBlends.ToFloatPtr() );
+			GL_SelectTexture( 6 );
+			viewDef->radianceImages[2]->Bind();
 
-			// general SSR parms
-			idVec4 ssrParms;
-			ssrParms.x = r_ssrStride.GetFloat();
-			ssrParms.y = r_ssrMaxDistance.GetFloat();
-			ssrParms.z = r_ssrZThickness.GetFloat();
-			ssrParms.w = r_ssrJitter.GetFloat();
+			GL_SelectTexture( 0 );
 
-			idVec4 jitterTexScale;
-			jitterTexScale.x = r_ssrMaxDistance.GetFloat();
-			jitterTexScale.y = 0;
-			jitterTexScale.z = 0;
-			jitterTexScale.w = 0;
-			SetFragmentParm( RENDERPARM_JITTERTEXSCALE, jitterTexScale.ToFloatPtr() ); // rpJitterTexScale
-
-			renderProgManager.SetUniformValue( RENDERPARM_GLOBALLIGHTORIGIN, ssrParms.ToFloatPtr() );
-
-			// allow reconstruction of depth buffer value to full view space position
-			SetVertexParms( RENDERPARM_SHADOW_MATRIX_0_X, viewDef->unprojectionToCameraRenderMatrix[0], 4 );
-
-			// we need to rotate the normals from world space to view space
-			idRenderMatrix viewMatrix;
-			idRenderMatrix::Transpose( *( idRenderMatrix* ) viewDef->worldSpace.modelViewMatrix, viewMatrix );
-			//SetVertexParms( RENDERPARM_MODELVIEWMATRIX_X, viewMatrix[0], 4 );
-
-			// this is the main requirement for the DDA SSR algorithm next to the linear z buffer
-			// we need clip space [-1..1] -> window space [0..1] -> to texture space [0..w|h]
-			ALIGNTYPE16 const idRenderMatrix matClipToUvzw(
-				0.5f,  0.0f, 0.0f, 0.5f,
-				0.0f,  -0.5f, 0.0f, 0.5f,
-				0.0f,  0.0f, 1.0f, 0.0f,
-				0.0f,  0.0f, 0.0f, 1.0f
-			);
-
-			// should this be the viewport width / height instead?
-			int w = renderSystem->GetWidth();
-			int h = renderSystem->GetHeight();
-
-			ALIGNTYPE16 const idRenderMatrix screenScale(
-				w,  0.0f, 0.0f, 0.0f,
-				0.0f, h, 0.0f, 0.0f,
-				0.0f,  0.0f, 1.0f, 0.0f,
-				0.0f,  0.0f, 0.0f, 1.0f
-			);
-
-			idRenderMatrix screenSpaceScaled;
-			idRenderMatrix::Multiply( screenScale, matClipToUvzw, screenSpaceScaled );
-
-			idRenderMatrix screenSpace;
-			idRenderMatrix::Multiply( screenSpaceScaled, viewDef->projectionRenderMatrix, screenSpace );
-
-			SetVertexParms( RENDERPARM_SHADOW_MATRIX_1_X, screenSpace[0], 4 );
-
-
-			// see if there is also a bump map specified
-			const shaderStage_t* bumpStage = surf->material->GetBumpStage();
-			if( bumpStage != NULL )
+			if( r_useSSR.GetBool() && R_UseHiZ() && !viewDef->globalProbeBounds.IsCleared() )
 			{
-				// per-pixel reflection mapping with bump mapping
-				GL_SelectTexture( 0 );
-				bumpStage->texture.image->Bind();
-				//globalImages->flatNormalMap->Bind();
-
-				GL_SelectTexture( 1 );
-				globalImages->currentRenderImage->Bind();
-
-				GL_SelectTexture( 2 );
-				globalImages->gbufferNormalsRoughnessImage->Bind();
-
-				GL_SelectTexture( 3 );
-				// use hierachical Z to avoid read & write at the same time on the depth buffer
-				globalImages->hierarchicalZbufferImage->Bind();
-
-				GL_SelectTexture( 4 );
-				viewDef->radianceImages[0]->Bind();
-
-				GL_SelectTexture( 5 );
-				viewDef->radianceImages[1]->Bind();
-
-				GL_SelectTexture( 6 );
-				viewDef->radianceImages[2]->Bind();
-
-				GL_SelectTexture( 0 );
-
+				if( surf->jointCache )
+				{
+					renderProgManager.BindShader_BumpyEnvironment2_SSR_Skinned();
+				}
+				else
+				{
+					renderProgManager.BindShader_BumpyEnvironment2_SSR();
+				}
+			}
+			else
+			{
 				if( surf->jointCache )
 				{
 					renderProgManager.BindShader_BumpyEnvironment2Skinned();

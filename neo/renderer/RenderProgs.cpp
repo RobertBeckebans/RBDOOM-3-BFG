@@ -559,8 +559,10 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 		{ BUILTIN_ENVIRONMENT_SKINNED, "builtin/legacy/environment", "_skinned",  { {"USE_GPU_SKINNING", "1" } }, true , SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DEFAULT_SKINNED },
 		{ BUILTIN_BUMPY_ENVIRONMENT, "builtin/legacy/bumpyenvironment", "", { {"USE_GPU_SKINNING", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_NORMAL_CUBE },
 		{ BUILTIN_BUMPY_ENVIRONMENT_SKINNED, "builtin/legacy/bumpyenvironment", "_skinned", { {"USE_GPU_SKINNING", "1" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_NORMAL_CUBE_SKINNED },
-		{ BUILTIN_BUMPY_ENVIRONMENT2, "builtin/legacy/bumpyenvironment2", "", { {"USE_GPU_SKINNING", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_OCTAHEDRON_CUBE },
-		{ BUILTIN_BUMPY_ENVIRONMENT2_SKINNED, "builtin/legacy/bumpyenvironment2", "_skinned", { {"USE_GPU_SKINNING", "1" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_OCTAHEDRON_CUBE_SKINNED },
+		{ BUILTIN_BUMPY_ENVIRONMENT2, "builtin/legacy/bumpyenvironment2", "", { {"USE_GPU_SKINNING", "0" }, {"USE_SSR", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_OCTAHEDRON_CUBE },
+		{ BUILTIN_BUMPY_ENVIRONMENT2_SKINNED, "builtin/legacy/bumpyenvironment2", "_skinned", { {"USE_GPU_SKINNING", "1" }, {"USE_SSR", "0" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_OCTAHEDRON_CUBE_SKINNED },
+		{ BUILTIN_BUMPY_ENVIRONMENT2_SSR, "builtin/legacy/bumpyenvironment2", "_SSR", { {"USE_GPU_SKINNING", "0" }, {"USE_SSR", "1" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_OCTAHEDRON_CUBE },
+		{ BUILTIN_BUMPY_ENVIRONMENT2_SSR_SKINNED, "builtin/legacy/bumpyenvironment2", "_SSR_skinned", { {"USE_GPU_SKINNING", "1" }, {"USE_SSR", "1" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_OCTAHEDRON_CUBE_SKINNED },
 
 		{ BUILTIN_DEPTH, "builtin/depth", "", { {"USE_GPU_SKINNING", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_CONSTANT_BUFFER_ONLY },
 		{ BUILTIN_DEPTH_SKINNED, "builtin/depth", "_skinned", { {"USE_GPU_SKINNING", "1" } }, true, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_CONSTANT_BUFFER_ONLY_SKINNED },
@@ -687,6 +689,8 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 		renderProgs[builtinShaders[BUILTIN_INTERACTION_AMBIENT_SKINNED]].usesJoints = true;
 		renderProgs[builtinShaders[BUILTIN_ENVIRONMENT_SKINNED]].usesJoints = true;
 		renderProgs[builtinShaders[BUILTIN_BUMPY_ENVIRONMENT_SKINNED]].usesJoints = true;
+		renderProgs[builtinShaders[BUILTIN_BUMPY_ENVIRONMENT2_SKINNED]].usesJoints = true;
+		renderProgs[builtinShaders[BUILTIN_BUMPY_ENVIRONMENT2_SSR_SKINNED]].usesJoints = true;
 		renderProgs[builtinShaders[BUILTIN_DEPTH_SKINNED]].usesJoints = true;
 		renderProgs[builtinShaders[BUILTIN_FOG_SKINNED]].usesJoints = true;
 
