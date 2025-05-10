@@ -91,7 +91,7 @@ SsaoPass::SsaoPass(
 	m_QuantizedGbufferTextureSize = idVec2( float( DeinterleavedTextureDesc.width ), float( DeinterleavedTextureDesc.height ) ) * 4.f;
 
 	DeinterleavedTextureDesc.debugName = "SSAO/DeinterleavedOcclusion";
-	DeinterleavedTextureDesc.format = params.directionalOcclusion ? nvrhi::Format::RGBA16_FLOAT : nvrhi::Format::R8_UNORM;
+	DeinterleavedTextureDesc.format = params.directionalOcclusion ? nvrhi::Format::RGBA32_FLOAT : nvrhi::Format::R32_FLOAT;
 	m_DeinterleavedOcclusion = device->createTexture( DeinterleavedTextureDesc );
 
 	{
