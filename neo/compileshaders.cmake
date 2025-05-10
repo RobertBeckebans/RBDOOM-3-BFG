@@ -120,6 +120,7 @@ function(compile_shaders)
                                    --platform=SPIRV
                                    --binaryBlob
                                    --outputExt=.bin
+                                   --retryCount=20				# SRS - allow 20 retries to recover from any macOS/linux command shell failures during multi-threaded compilation
                                    -I ${SHADER_INCLUDE_DIR}
                                    -D SPIRV
                                    ${CFLAGS}
