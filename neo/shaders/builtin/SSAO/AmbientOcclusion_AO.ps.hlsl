@@ -30,6 +30,8 @@
   */
 
 #include "global_inc.hlsl"
+#include "renderParmSet13.inc.hlsl"
+
 
 #define DIFFERENT_DEPTH_RESOLUTIONS 0
 #define USE_DEPTH_PEEL 0
@@ -114,10 +116,10 @@ struct PS_OUT
 
 float BlueNoise( float2 n, float x )
 {
-	float noise = t_BlueNoise.Sample( blueNoiseSampler, n.xy * rpJitterTexOffset.xy ).r;
+	float noise = t_BlueNoise.Sample( blueNoiseSampler, n.xy * pc.rpJitterTexOffset.xy ).r;
 
 #if TEMPORALLY_VARY_TAPS
-	noise = frac( noise + c_goldenRatioConjugate * rpJitterTexOffset.z * x );
+	noise = frac( noise + c_goldenRatioConjugate * pc.rpJitterTexOffset.z * x );
 #else
 	noise = frac( noise );
 #endif
@@ -163,18 +165,18 @@ float3 reconstructNonUnitCSFaceNormal( float3 C )
 float3 reconstructCSPosition( float2 S, float depth )
 {
 	// derive clip space from the depth buffer and screen position
-	float2 uv = S * rpWindowCoord.xy;
+	float2 uv = S * pc.rpWindowCoord.xy;
 	float3 ndc = float3( uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0, depth );
-	float clipW = -rpProjectionMatrixZ.w / ( -rpProjectionMatrixZ.z - ndc.z );
+	float clipW = -pc.rpProjectionMatrixZ.w / ( -pc.rpProjectionMatrixZ.z - ndc.z );
 
 	float4 clip = float4( ndc * clipW, clipW );
 
 	// camera space position
 	float4 csP;
-	csP.x = dot4( rpModelMatrixX, clip );
-	csP.y = dot4( rpModelMatrixY, clip );
-	csP.z = dot4( rpModelMatrixZ, clip );
-	csP.w = dot4( rpModelMatrixW, clip );
+	csP.x = dot4( pc.rpModelMatrixX, clip );
+	csP.y = dot4( pc.rpModelMatrixY, clip );
+	csP.z = dot4( pc.rpModelMatrixZ, clip );
+	csP.w = dot4( pc.rpModelMatrixW, clip );
 
 	csP.xyz /= csP.w;
 	//csP.z = abs( csP.z );	// this is still negative Z like for OpenGL
@@ -351,8 +353,8 @@ void main( PS_IN fragment, out PS_OUT result )
 	visibility = 1.0;
 
 	// Pixel being shaded
-	float2 ssC = fragment.texcoord0 * rpScreenCorrectionFactor.xy;
-	int2 ssP = int2( ssC.x * rpWindowCoord.z, ssC.y * rpWindowCoord.w );
+	float2 ssC = fragment.texcoord0 * pc.rpScreenCorrectionFactor.xy;
+	int2 ssP = int2( ssC.x * pc.rpWindowCoord.z, ssC.y * pc.rpWindowCoord.w );
 
 	//int2 ssP = int2( gl_FragCoord.xy );
 
@@ -366,9 +368,9 @@ void main( PS_IN fragment, out PS_OUT result )
 
 	// rotate n_W from world space into view space
 	float3 n_C;
-	n_C.x = dot3( rpModelViewMatrixX, n_W );
-	n_C.y = dot3( rpModelViewMatrixY, n_W );
-	n_C.z = dot3( rpModelViewMatrixZ, n_W );
+	n_C.x = dot3( pc.rpModelViewMatrixX, n_W );
+	n_C.y = dot3( pc.rpModelViewMatrixY, n_W );
+	n_C.z = dot3( pc.rpModelViewMatrixZ, n_W );
 
 	n_C = normalize( n_C );
 
@@ -408,7 +410,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	// Hash function used in the HPG12 AlchemyAO paper
 	float randomPatternRotationAngle = float( ( ( 3 * ssP.x ) ^ ( ssP.y + ssP.x * ssP.y ) )
 #if TEMPORALLY_VARY_TAPS
-									   + rpJitterTexOffset.z
+									   + pc.rpJitterTexOffset.z
 #endif
 											) * 10.0;
 

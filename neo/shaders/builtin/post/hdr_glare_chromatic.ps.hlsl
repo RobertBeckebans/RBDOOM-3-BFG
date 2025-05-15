@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet1.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -107,7 +108,7 @@ void main( PS_IN fragment, out PS_OUT result )
 
 		//float3 so = spectrumoffset( t );
 		float3 so = chromaticOffsets[ i ];
-		float4 color = t_CurrentRender.Sample( samp0, st + float2( float( i ), 0 ) * rpWindowCoord.xy * scale );
+		float4 color = t_CurrentRender.Sample( samp0, st + float2( float( i ), 0 ) * pc.rpWindowCoord.xy * scale );
 
 		float weight = gaussFact[ i ];
 		sumColor += color.rgb * ( so.rgb * weight * weightScale );
@@ -120,7 +121,7 @@ void main( PS_IN fragment, out PS_OUT result )
 
 		//float3 so = spectrumoffset( t );
 		float3 so = chromaticOffsets[sI];
-		float4 color = t_CurrentRender.Sample( samp0, st + float2( float( -sI ), 0 ) * rpWindowCoord.xy * scale );
+		float4 color = t_CurrentRender.Sample( samp0, st + float2( float( -sI ), 0 ) * pc.rpWindowCoord.xy * scale );
 
 		float weight = gaussFact[sI];
 		sumColor += color.rgb * ( so.rgb * weight * weightScale );

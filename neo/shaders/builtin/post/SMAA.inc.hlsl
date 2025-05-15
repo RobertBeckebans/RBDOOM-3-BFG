@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Copyright (C) 2013 Jorge Jimenez (jorge@iryoku.com)
  * Copyright (C) 2013 Jose I. Echevarria (joseignacioechevarria@gmail.com)
  * Copyright (C) 2013 Belen Masia (bmasia@unizar.es)
@@ -296,7 +296,7 @@
  */
 
 // RB begin
-#define SMAA_RT_METRICS rpScreenCorrectionFactor
+#define SMAA_RT_METRICS pc.rpScreenCorrectionFactor
 #define SMAA_PRESET_HIGH
 // RB end
 

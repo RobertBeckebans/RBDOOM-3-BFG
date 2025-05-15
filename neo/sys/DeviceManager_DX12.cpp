@@ -49,6 +49,7 @@ using nvrhi::RefCountPtr;
 
 idCVar r_graphicsAdapter( "r_graphicsAdapter", "", CVAR_RENDERER | CVAR_INIT | CVAR_ARCHIVE | CVAR_NEW, "Substring in the name the DXGI graphics adapter to select a certain GPU" );
 idCVar r_dxMaxFrameLatency( "r_dxMaxFrameLatency", "2", CVAR_RENDERER | CVAR_INIT | CVAR_ARCHIVE | CVAR_INTEGER | CVAR_NEW, "Maximum frame latency for DXGI swap chains (DX12 only)", 0, NUM_FRAME_DATA );
+idCVar r_dxUsePushConstants( "r_dxUsePushConstants", "0", CVAR_RENDERER | CVAR_BOOL | CVAR_INIT | CVAR_NEW, "Use D3D12 root constants / push constants for DX12 renderer" );
 
 class DeviceManager_DX12 : public DeviceManager
 {
@@ -449,6 +450,13 @@ bool DeviceManager_DX12::CreateDeviceAndSwapChain()
 	if( m_DeviceParams.enableNvrhiValidationLayer )
 	{
 		m_NvrhiDevice = nvrhi::validation::createValidationLayer( m_NvrhiDevice );
+	}
+
+	// SRS - Determine maxPushConstantSize for DX12 device (enabled based on r_dxUsePushConstants cvar setting)
+	if( r_dxUsePushConstants.GetBool() )
+	{
+		// SRS - D3D12 root constant max < 256 bytes due to layout root parameters: reduce by sizeof(DWORD) * 4 layouts max
+		m_DeviceParams.maxPushConstantSize = Min( ( uint32_t )( 256 - sizeof( DWORD ) * 4 ), nvrhi::c_MaxPushConstantSize );
 	}
 
 	if( !CreateRenderTargets() )

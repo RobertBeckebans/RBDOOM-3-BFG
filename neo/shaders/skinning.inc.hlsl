@@ -31,7 +31,7 @@ float4 modelPosition = vertex.position;
 
 // RB: no GPU skinning with ES 2.0
 #if USE_GPU_SKINNING
-BRANCH if( rpEnableSkinning.x > 0.0 )
+BRANCH if( pc.rpEnableSkinning.x > 0.0 )
 {
 	//--------------------------------------------------------------
 	// GPU transformation of the normal / binormal / bitangent
@@ -72,7 +72,7 @@ BRANCH if( rpEnableSkinning.x > 0.0 )
 #endif
 // RB end
 
-result.position.x = dot4( modelPosition, rpMVPmatrixX );
-result.position.y = dot4( modelPosition, rpMVPmatrixY );
-result.position.z = dot4( modelPosition, rpMVPmatrixZ );
-result.position.w = dot4( modelPosition, rpMVPmatrixW );
+result.position.x = dot4( modelPosition, pc.rpMVPmatrixX );
+result.position.y = dot4( modelPosition, pc.rpMVPmatrixY );
+result.position.z = dot4( modelPosition, pc.rpMVPmatrixZ );
+result.position.w = dot4( modelPosition, pc.rpMVPmatrixW );

@@ -880,7 +880,14 @@ void idRenderBackend::FillDepthBufferGeneric( const drawSurf_t* const* drawSurfs
 		{
 			if( shader->GetSort() == SS_SUBVIEW )
 			{
-				renderProgManager.BindShader_Color();
+				if( drawSurf->jointCache )
+				{
+					renderProgManager.BindShader_ColorSkinned();
+				}
+				else
+				{
+					renderProgManager.BindShader_Color();
+				}
 				GL_Color( color );
 				GL_State( surfGLState );
 			}
@@ -4519,6 +4526,15 @@ void idRenderBackend::T_BlendLight( const drawSurf_t* drawSurfs, const viewLight
 			currentSpace = drawSurf->space;
 		}
 
+		if( drawSurf->jointCache )
+		{
+			renderProgManager.BindShader_BlendLightSkinned();
+		}
+		else
+		{
+			renderProgManager.BindShader_BlendLight();
+		}
+
 		DrawElementsWithCounters( drawSurf );
 	}
 }
@@ -4552,8 +4568,6 @@ void idRenderBackend::BlendLight( const drawSurf_t* drawSurfs, const drawSurf_t*
 
 	// texture 0 will get the projected texture
 	GL_SelectTexture( 0 );
-
-	renderProgManager.BindShader_BlendLight();
 
 	for( int i = 0; i < lightShader->GetNumStages(); i++ )
 	{
@@ -5626,6 +5640,9 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	currentVertexOffset = 0;
 	currentIndexOffset = 0;
 	currentJointOffset = 0;
+
+	// SRS - clear renderparms and initialize/set change status for all binding layout types
+	renderProgManager.ZeroUniforms();
 
 	//-------------------------------------------------
 	// RB_BeginDrawingView

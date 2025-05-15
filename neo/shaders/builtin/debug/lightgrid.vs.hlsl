@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet6.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -110,21 +111,21 @@ void main( VS_IN vertex, out VS_OUT result )
 
 #endif
 
-	result.position.x = dot4( modelPosition, rpMVPmatrixX );
-	result.position.y = dot4( modelPosition, rpMVPmatrixY );
-	result.position.z = dot4( modelPosition, rpMVPmatrixZ );
-	result.position.w = dot4( modelPosition, rpMVPmatrixW );
+	result.position.x = dot4( modelPosition, pc.rpMVPmatrixX );
+	result.position.y = dot4( modelPosition, pc.rpMVPmatrixY );
+	result.position.z = dot4( modelPosition, pc.rpMVPmatrixZ );
+	result.position.w = dot4( modelPosition, pc.rpMVPmatrixW );
 
-	result.texcoord1.x = dot3( normal, rpModelMatrixX );
-	result.texcoord1.y = dot3( normal, rpModelMatrixY );
-	result.texcoord1.z = dot3( normal, rpModelMatrixZ );
+	result.texcoord1.x = dot3( normal, pc.rpModelMatrixX );
+	result.texcoord1.y = dot3( normal, pc.rpModelMatrixY );
+	result.texcoord1.z = dot3( normal, pc.rpModelMatrixZ );
 
 	float4 worldPosition;
-	worldPosition.x = dot4( modelPosition, rpModelMatrixX );
-	worldPosition.y = dot4( modelPosition, rpModelMatrixY );
-	worldPosition.z = dot4( modelPosition, rpModelMatrixZ );
-	worldPosition.w = dot4( modelPosition, rpModelMatrixW );
+	worldPosition.x = dot4( modelPosition, pc.rpModelMatrixX );
+	worldPosition.y = dot4( modelPosition, pc.rpModelMatrixY );
+	worldPosition.z = dot4( modelPosition, pc.rpModelMatrixZ );
+	worldPosition.w = dot4( modelPosition, pc.rpModelMatrixW );
 	result.texcoord0 = worldPosition.xyz;
 
-	result.color = sRGBAToLinearRGBA( rpColor );
+	result.color = sRGBAToLinearRGBA( pc.rpColor );
 }

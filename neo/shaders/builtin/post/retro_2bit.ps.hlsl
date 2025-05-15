@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet2.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -178,12 +179,12 @@ void main( PS_IN fragment, out PS_OUT result )
 	float3 quantDeviation = Deviation( palette );
 
 	// get pixellated base color
-	float3 color = t_BaseColor.Sample( s_LinearClamp, uvPixelated * rpWindowCoord.xy ).rgb;
+	float3 color = t_BaseColor.Sample( s_LinearClamp, uvPixelated * pc.rpWindowCoord.xy ).rgb;
 
 	float2 uvDither = uvPixelated;
-	//if( rpJitterTexScale.x > 1.0 )
+	//if( pc.rpJitterTexScale.x > 1.0 )
 	{
-		uvDither = fragment.position.xy / ( RESOLUTION_DIVISOR / rpJitterTexScale.x );
+		uvDither = fragment.position.xy / ( RESOLUTION_DIVISOR / pc.rpJitterTexScale.x );
 	}
 	float dither = DitherArray8x8( uvDither ) - 0.5;
 
@@ -209,7 +210,7 @@ void main( PS_IN fragment, out PS_OUT result )
 		// dithered quantized
 		color = HSVToRGB( float3( uv.x, 1.0, ( uv.y - 0.125 ) * 16.0 ) );
 
-		color.rgb += float3( dither, dither, dither ) * quantDeviation * rpJitterTexScale.y;
+		color.rgb += float3( dither, dither, dither ) * quantDeviation * pc.rpJitterTexScale.y;
 		color = LinearSearch( color, palette );
 
 		result.color = float4( color, 1.0 );
@@ -219,7 +220,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	{
 		color = _float3( uv.x );
 		color = floor( color * NUM_COLORS ) * ( 1.0 / ( NUM_COLORS - 1.0 ) );
-		color += float3( dither, dither, dither ) * quantDeviation * rpJitterTexScale.y;
+		color += float3( dither, dither, dither ) * quantDeviation * pc.rpJitterTexScale.y;
 		color = LinearSearch( color.rgb, palette );
 
 		result.color = float4( color, 1.0 );
@@ -227,7 +228,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	}
 #endif
 
-	color.rgb += float3( dither, dither, dither ) * quantDeviation * rpJitterTexScale.y;
+	color.rgb += float3( dither, dither, dither ) * quantDeviation * pc.rpJitterTexScale.y;
 
 	// find closest color match from C64 color palette
 	color = LinearSearch( color.rgb, palette );

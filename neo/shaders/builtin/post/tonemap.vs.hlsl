@@ -27,6 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet1.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -51,9 +52,9 @@ void main( VS_IN vertex, out VS_OUT result )
 	result.position = vertex.position;
 	result.position.y = -result.position.y;
 
-	//result.position.x = vertex.position; //dot4( vertex.position, rpMVPmatrixX );
-	//result.position.y = dot4( vertex.position, rpMVPmatrixY );
-	//result.position.z = dot4( vertex.position, rpMVPmatrixZ );
-	//result.position.w = dot4( vertex.position, rpMVPmatrixW );
+	//result.position.x = vertex.position; //dot4( vertex.position, pc.rpMVPmatrixX );
+	//result.position.y = dot4( vertex.position, pc.rpMVPmatrixY );
+	//result.position.z = dot4( vertex.position, pc.rpMVPmatrixZ );
+	//result.position.w = dot4( vertex.position, pc.rpMVPmatrixW );
 	result.texcoord0 = vertex.texcoord;
 }

@@ -84,8 +84,9 @@ void TemporalAntiAliasingPass::Init(
 		}
 	}
 
-	auto taaMotionVectorsShaderInfo = renderProgManager.GetProgramInfo( BUILTIN_TAA_MOTION_VECTORS );
-	m_MotionVectorPS = taaMotionVectorsShaderInfo.ps;
+	// SRS - Motion Vectors are generated using motionBlur shader in graphics pipeline
+	//auto taaMotionVectorsShaderInfo = renderProgManager.GetProgramInfo( BUILTIN_TAA_MOTION_VECTORS );
+	//m_MotionVectorPS = taaMotionVectorsShaderInfo.ps;
 
 	//switch( r_antiAliasing.GetInteger() )
 	{
@@ -132,6 +133,7 @@ void TemporalAntiAliasingPass::Init(
 	constantBufferDesc.maxVersions = params.numConstantBufferVersions;
 	m_TemporalAntiAliasingCB = device->createBuffer( constantBufferDesc );
 
+/*	SRS - Motion Vectors are generated using motionBlur shader in graphics pipeline
 	if( params.sourceDepth )
 	{
 		nvrhi::BindingLayoutDesc layoutDesc;
@@ -161,7 +163,7 @@ void TemporalAntiAliasingPass::Init(
 		}
 		m_MotionVectorsBindingSet = device->createBindingSet( bindingSetDesc, m_MotionVectorsBindingLayout );
 	}
-
+*/
 	{
 		nvrhi::BindingSetDesc bindingSetDesc;
 		bindingSetDesc.bindings =

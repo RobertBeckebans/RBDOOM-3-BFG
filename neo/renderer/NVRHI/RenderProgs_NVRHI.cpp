@@ -335,12 +335,25 @@ idRenderProgManager::SetUniformValue
 */
 void idRenderProgManager::SetUniformValue( const renderParm_t rp, const float value[4] )
 {
+	bool rpChanged = false;
+
 	for( int i = 0; i < 4; i++ )
 	{
-		uniforms[rp][i] = value[i];
+		if( uniforms[rp][i] != value[i] )
+		{
+			uniforms[rp][i] = value[i];
+			rpChanged = true;
+		}
 	}
 
-	uniformsChanged = true;
+	if( rpChanged )
+	{
+		for( int i = 0; i < renderParmLayoutTypes[rp].Num(); i++ )
+		{
+			// SRS - set flag if uniforms changed for associated binding layout types
+			uniformsChanged[renderParmLayoutTypes[rp][i]] = true;
+		}
+	}
 }
 
 /*
@@ -352,22 +365,205 @@ void idRenderProgManager::ZeroUniforms()
 {
 	memset( uniforms.Ptr(), 0, uniforms.Allocated() );
 
-	uniformsChanged = true;
+	for( int i = 0; i < NUM_BINDING_LAYOUTS; i++ )
+	{
+		uniformsChanged[i] = true;
+	}
+}
+
+/*
+================================================================================================
+idRenderProgManager::SelectUniforms
+================================================================================================
+*/
+void idRenderProgManager::SelectUniforms( renderParmSet_t* renderParmSet, int bindingLayoutType )
+{
+	switch ( layoutTypeAttributes[bindingLayoutType].rpSubSet )
+	{
+		case renderParmSet0:
+		{
+			for( int i = 0; i < rpMinimalSet0.Num(); i++ )
+			{
+				memcpy( &renderParmSet->minimalSet[i], &uniforms[rpMinimalSet0[i]], sizeof( idVec4 ) );
+			}
+			break;
+		}
+
+		case renderParmSet1:
+		{
+			for( int i = 0; i < rpMinimalSet1.Num(); i++ )
+			{
+				memcpy( &renderParmSet->minimalSet[i], &uniforms[rpMinimalSet1[i]], sizeof( idVec4 ) );
+			}
+			break;
+		}
+
+		case renderParmSet2:
+		{
+			for( int i = 0; i < rpMinimalSet2.Num(); i++ )
+			{
+				memcpy( &renderParmSet->minimalSet[i], &uniforms[rpMinimalSet2[i]], sizeof( idVec4 ) );
+			}
+			break;
+		}
+
+		case renderParmSet3:
+		{
+			for( int i = 0; i < rpNominalSet3.Num(); i++ )
+			{
+				memcpy( &renderParmSet->nominalSet[i], &uniforms[rpNominalSet3[i]], sizeof( idVec4 ) );
+			}
+			break;
+		}
+
+		case renderParmSet4:
+		{
+			for( int i = 0; i < rpNominalSet4.Num(); i++ )
+			{
+				memcpy( &renderParmSet->nominalSet[i], &uniforms[rpNominalSet4[i]], sizeof( idVec4 ) );
+			}
+			break;
+		}
+
+		case renderParmSet5:
+		{
+			for( int i = 0; i < rpNominalSet5.Num(); i++ )
+			{
+				memcpy( &renderParmSet->nominalSet[i], &uniforms[rpNominalSet5[i]], sizeof( idVec4 ) );
+			}
+			break;
+		}
+
+		case renderParmSet6:
+		{
+			for( int i = 0; i < rpNominalSet6.Num(); i++ )
+			{
+				memcpy( &renderParmSet->nominalSet[i], &uniforms[rpNominalSet6[i]], sizeof( idVec4 ) );
+			}
+			break;
+		}
+
+		case renderParmSet7:
+		{
+			for( int i = 0; i < rpNominalSet7.Num(); i++ )
+			{
+				memcpy( &renderParmSet->nominalSet[i], &uniforms[rpNominalSet7[i]], sizeof( idVec4 ) );
+			}
+			break;
+		}
+
+		case renderParmSet8:
+		{
+			for( int i = 0; i < rpNominalSet8.Num(); i++ )
+			{
+				memcpy( &renderParmSet->nominalSet[i], &uniforms[rpNominalSet8[i]], sizeof( idVec4 ) );
+			}
+			break;
+		}
+
+		case renderParmSet9:
+		{
+			for( int i = 0; i < rpMaximalSet9.Num(); i++ )
+			{
+				memcpy( &renderParmSet->maximalSet[i], &uniforms[rpMaximalSet9[i]], sizeof( idVec4 ) );
+			}
+			break;
+		}
+
+		case renderParmSet10:
+		{
+			for( int i = 0; i < rpMaximalSet10.Num(); i++ )
+			{
+				memcpy( &renderParmSet->maximalSet[i], &uniforms[rpMaximalSet10[i]], sizeof( idVec4 ) );
+			}
+			break;
+		}
+
+		case renderParmSet11:
+		{
+			for( int i = 0; i < rpMaximalSet11.Num(); i++ )
+			{
+				memcpy( &renderParmSet->maximalSet[i], &uniforms[rpMaximalSet11[i]], sizeof( idVec4 ) );
+			}
+			break;
+		}
+
+		case renderParmSet12:
+		{
+			for( int i = 0; i < rpNominalSet12.Num(); i++ )
+			{
+				memcpy( &renderParmSet->nominalSet[i], &uniforms[rpNominalSet12[i]], sizeof( idVec4 ) );
+			}
+			break;
+		}
+
+		case renderParmSet13:
+		{
+			for( int i = 0; i < rpNominalSet13.Num(); i++ )
+			{
+				memcpy( &renderParmSet->nominalSet[i], &uniforms[rpNominalSet13[i]], sizeof( idVec4 ) );
+			}
+			break;
+		}
+
+		case renderParmSet14:
+		{
+			for( int i = 0; i < rpMaximalSet14.Num(); i++ )
+			{
+				memcpy( &renderParmSet->maximalSet[i], &uniforms[rpMaximalSet14[i]], sizeof( idVec4 ) );
+			}
+			break;
+		}
+
+		case renderParmNullSet:
+		default:
+		{
+			common->FatalError( "No renderparm subset found for binding layout type %d\n", bindingLayoutType );
+		}
+	}
+
+	return;
 }
 
 // Only updates the constant buffer if it was updated at all
 bool idRenderProgManager::CommitConstantBuffer( nvrhi::ICommandList* commandList, bool bindingLayoutTypeChanged )
 {
+	const int bindingLayoutType = BindingLayoutType();
+
+	// SRS - If push constants enabled, skip writing the constant buffer but return state change indicator
+	if( layoutTypeAttributes[bindingLayoutType].pcEnabled )
+	{
+			return uniformsChanged[bindingLayoutType] || bindingLayoutTypeChanged;
+	}
 	// RB: It would be better to NUM_BINDING_LAYOUTS uniformsChanged entrys but we don't know the current binding layout type when we set the uniforms.
 	// The vkDoom3 backend even didn't bother with this and always fired the uniforms for each draw call.
-	if( uniformsChanged || bindingLayoutTypeChanged )
+	// SRS - Implemented uniformsChanged detection at per-binding layout type granularity
+	else if( uniformsChanged[bindingLayoutType] || bindingLayoutTypeChanged )
 	{
-		commandList->writeBuffer( constantBuffer /*[BindingLayoutType()]*/, uniforms.Ptr(), uniforms.Allocated() );
+		renderParmSet_t renderParmSet;
 
-		uniformsChanged = false;
+		SelectUniforms( &renderParmSet, bindingLayoutType );
+
+		commandList->writeBuffer( constantBuffer[bindingLayoutType], &renderParmSet, layoutTypeAttributes[bindingLayoutType].rpBufSize );
+
+		uniformsChanged[bindingLayoutType] = false;
 
 		return true;
 	}
 
 	return false;
+}
+
+void idRenderProgManager::CommitPushConstants( nvrhi::ICommandList* commandList, int bindingLayoutType )
+{
+	if( layoutTypeAttributes[bindingLayoutType].pcEnabled )
+	{
+		renderParmSet_t renderParmSet;
+
+		SelectUniforms( &renderParmSet, bindingLayoutType );
+
+		commandList->setPushConstants( &renderParmSet, layoutTypeAttributes[bindingLayoutType].rpBufSize );
+
+		uniformsChanged[bindingLayoutType] = false;
+	}
 }

@@ -795,6 +795,22 @@ enum bindingLayoutType_t
 	BINDING_LAYOUT_DEFAULT,
 	BINDING_LAYOUT_DEFAULT_SKINNED,
 
+	// SRS - new layouts for mapping renderparms to smaller constant buffer / push constant subsets
+	BINDING_LAYOUT_GBUFFER,
+	BINDING_LAYOUT_GBUFFER_SKINNED,
+
+	BINDING_LAYOUT_TEXTURE,
+	BINDING_LAYOUT_TEXTURE_SKINNED,
+	BINDING_LAYOUT_TEXGEN,
+
+	BINDING_LAYOUT_LEGACY,
+
+	BINDING_LAYOUT_DEBUG,
+	BINDING_LAYOUT_DEBUG_SKINNED,
+
+	BINDING_LAYOUT_POST_PROCESS,
+	// SRS end
+
 	BINDING_LAYOUT_CONSTANT_BUFFER_ONLY,
 	BINDING_LAYOUT_CONSTANT_BUFFER_ONLY_SKINNED,
 
@@ -1733,6 +1749,26 @@ TR_BACKEND_DRAW
 
 ============================================================
 */
+
+// SRS - Define renderparm subset sizes for push constants and smaller constant buffer entries
+
+typedef idVec4 rpMinimalSet[8];			// 128 bytes for minimal Vulkan push / DX12 root constant sizes
+typedef idVec4 rpNominalSet[16];		// 256 bytes for nominal Vulkan push / DX12 root constant sizes
+typedef idVec4 rpMaximalSet[72];		// 1152 bytes for larger sizes (e.g. 4096 limit on macOS MoltenVK)
+
+struct renderParmSet_t
+{
+	union
+	{
+		rpMinimalSet	minimalSet;
+		rpNominalSet	nominalSet;
+		rpMaximalSet	maximalSet;
+	};
+
+	renderParmSet_t() : maximalSet{}
+	{
+	};
+};
 
 void RB_SetMVP( const idRenderMatrix& mvp );
 
