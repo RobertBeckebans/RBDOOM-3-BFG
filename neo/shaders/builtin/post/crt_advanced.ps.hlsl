@@ -29,6 +29,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include <global_inc.hlsl>
+#include "renderParmSet2.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -180,7 +181,7 @@ float3 tpscany( float3 bef, float3 ucj, float3 dcj, float temp )
 void pinc( float2 uv, inout float2 uv2, inout float mxbf, inout float vign, float ar )
 {
 	float cus = 0.0;
-	if( rpWindowCoord.x > 0.0 )
+	if( pc.rpWindowCoord.x > 0.0 )
 	{
 		cus = 0.1;
 	}
@@ -218,10 +219,10 @@ void main( PS_IN fragment, out PS_OUT result )
 	*/
 
 	float4 outputSize;
-	outputSize.xy = rpWindowCoord.zw;
-	outputSize.zw = float2( 1.0, 1.0 ) / rpWindowCoord.zw;
+	outputSize.xy = pc.rpWindowCoord.zw;
+	outputSize.zw = float2( 1.0, 1.0 ) / pc.rpWindowCoord.zw;
 
-	float4 sourceSize = rpScreenCorrectionFactor;
+	float4 sourceSize = pc.rpScreenCorrectionFactor;
 
 	float2 vTexCoord = ( fragment.texcoord0.xy );
 	//vTexCoord.y = 1.0 - vTexCoord.y;

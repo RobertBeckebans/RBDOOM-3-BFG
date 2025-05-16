@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet3.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -57,7 +58,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	float2 specUV = fragment.texcoord1.xy;
 
 	// PSX affine texture mapping
-	if( rpPSXDistortions.z > 0.0 )
+	if( pc.rpPSXDistortions.z > 0.0 )
 	{
 		bumpUV /= fragment.texcoord0.z;
 		specUV /= fragment.texcoord0.z;
@@ -79,6 +80,6 @@ void main( PS_IN fragment, out PS_OUT result )
 	globalNormal.z = dot3( localNormal, fragment.texcoord4 );
 
 	// RB: rpColor is white and only used to generate the _fa_ uniform array
-	result.color.rgb = ( globalNormal.xyz * 0.5 + 0.5 ) * fragment.color.rgb;// * rpColor;
+	result.color.rgb = ( globalNormal.xyz * 0.5 + 0.5 ) * fragment.color.rgb;// * pc.rpColor;
 	result.color.a = 1.0;
 }

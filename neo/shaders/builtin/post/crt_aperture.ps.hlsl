@@ -29,6 +29,7 @@
 
 
 #include <global_inc.hlsl>
+#include "renderParmSet2.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -216,7 +217,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	// revised version from RetroArch
 
 	Params params;
-	params.FrameCount = int( rpJitterTexOffset.w );
+	params.FrameCount = int( pc.rpJitterTexOffset.w );
 	params.SHARPNESS_IMAGE = 1.0;
 	params.SHARPNESS_EDGES = 3.0;
 	params.GLOW_WIDTH = 0.5;
@@ -236,8 +237,8 @@ void main( PS_IN fragment, out PS_OUT result )
 	params.BRIGHTNESS = 1.5;
 
 	float4 outputSize;
-	outputSize.xy = rpWindowCoord.zw;
-	outputSize.zw = float2( 1.0, 1.0 ) / rpWindowCoord.zw;
+	outputSize.xy = pc.rpWindowCoord.zw;
+	outputSize.zw = float2( 1.0, 1.0 ) / pc.rpWindowCoord.zw;
 
 	float4 sourceSize = outputSize;
 

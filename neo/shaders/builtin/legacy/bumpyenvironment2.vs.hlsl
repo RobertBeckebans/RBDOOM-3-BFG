@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet14.inc.hlsl"
 
 // *INDENT-OFF*
 #if USE_GPU_SKINNING
@@ -126,20 +127,20 @@ void main( VS_IN vertex, out VS_OUT result )
 	float3 bitangent = vBitangent.xyz;
 #endif
 
-	result.position.x = dot4( modelPosition, rpMVPmatrixX );
-	result.position.y = dot4( modelPosition, rpMVPmatrixY );
-	result.position.z = dot4( modelPosition, rpMVPmatrixZ );
-	result.position.w = dot4( modelPosition, rpMVPmatrixW );
+	result.position.x = dot4( modelPosition, pc.rpMVPmatrixX );
+	result.position.y = dot4( modelPosition, pc.rpMVPmatrixY );
+	result.position.z = dot4( modelPosition, pc.rpMVPmatrixZ );
+	result.position.w = dot4( modelPosition, pc.rpMVPmatrixW );
 
-	result.position.xyz = psxVertexJitter( result.position );
+	result.position.xyz = psxVertexJitter( pc.rpPSXDistortions, pc.rpProjectionMatrixW, result.position );
 
 	result.texcoord0 = vertex.texcoord.xy;
 
 	// PSX affine texture mapping
 #if 0
-	if( rpPSXDistortions.z > 0.0 )
+	if( pc.rpPSXDistortions.z > 0.0 )
 	{
-		float distance = length( rpLocalViewOrigin - modelPosition );
+		float distance = length( pc.rpLocalViewOrigin - modelPosition );
 		float warp =  psxAffineWarp( distance );
 
 		result.texcoord0.z = warp;
@@ -149,31 +150,31 @@ void main( VS_IN vertex, out VS_OUT result )
 	}
 #endif
 
-	float4 toEye = rpLocalViewOrigin - modelPosition;
+	float4 toEye = pc.rpLocalViewOrigin - modelPosition;
 
-	result.texcoord1.x = dot3( toEye, rpModelMatrixX );
-	result.texcoord1.y = dot3( toEye, rpModelMatrixY );
-	result.texcoord1.z = dot3( toEye, rpModelMatrixZ );
+	result.texcoord1.x = dot3( toEye, pc.rpModelMatrixX );
+	result.texcoord1.y = dot3( toEye, pc.rpModelMatrixY );
+	result.texcoord1.z = dot3( toEye, pc.rpModelMatrixZ );
 
 	// rotate from tangent space into world space
-	result.texcoord2.x = dot3( tangent, rpModelMatrixX );
-	result.texcoord3.x = dot3( tangent, rpModelMatrixY );
-	result.texcoord4.x = dot3( tangent, rpModelMatrixZ );
+	result.texcoord2.x = dot3( tangent, pc.rpModelMatrixX );
+	result.texcoord3.x = dot3( tangent, pc.rpModelMatrixY );
+	result.texcoord4.x = dot3( tangent, pc.rpModelMatrixZ );
 
-	result.texcoord2.y = dot3( bitangent, rpModelMatrixX );
-	result.texcoord3.y = dot3( bitangent, rpModelMatrixY );
-	result.texcoord4.y = dot3( bitangent, rpModelMatrixZ );
+	result.texcoord2.y = dot3( bitangent, pc.rpModelMatrixX );
+	result.texcoord3.y = dot3( bitangent, pc.rpModelMatrixY );
+	result.texcoord4.y = dot3( bitangent, pc.rpModelMatrixZ );
 
-	result.texcoord2.z = dot3( normal, rpModelMatrixX );
-	result.texcoord3.z = dot3( normal, rpModelMatrixY );
-	result.texcoord4.z = dot3( normal, rpModelMatrixZ );
+	result.texcoord2.z = dot3( normal, pc.rpModelMatrixX );
+	result.texcoord3.z = dot3( normal, pc.rpModelMatrixY );
+	result.texcoord4.z = dot3( normal, pc.rpModelMatrixZ );
 
 	float4 worldPosition;
-	worldPosition.x = dot4( modelPosition, rpModelMatrixX );
-	worldPosition.y = dot4( modelPosition, rpModelMatrixY );
-	worldPosition.z = dot4( modelPosition, rpModelMatrixZ );
-	worldPosition.w = dot4( modelPosition, rpModelMatrixW );
+	worldPosition.x = dot4( modelPosition, pc.rpModelMatrixX );
+	worldPosition.y = dot4( modelPosition, pc.rpModelMatrixY );
+	worldPosition.z = dot4( modelPosition, pc.rpModelMatrixZ );
+	worldPosition.w = dot4( modelPosition, pc.rpModelMatrixW );
 	result.texcoord5 = worldPosition;
 
-	result.color = rpColor;
+	result.color = pc.rpColor;
 }

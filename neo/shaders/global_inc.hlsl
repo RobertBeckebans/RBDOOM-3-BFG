@@ -30,6 +30,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "vulkan.hlsli"
 
 // *INDENT-OFF*
+/* SRS - Disable global renderparms and use reduced-size constant buffer / push constant subsets
 cbuffer globals : register( b0 VK_DESCRIPTOR_SET( 0 ) )
 {
 	float4 rpScreenCorrectionFactor;
@@ -123,7 +124,7 @@ cbuffer globals : register( b0 VK_DESCRIPTOR_SET( 0 ) )
 	float4 rpUser6;
 	float4 rpUser7;
 };
-
+*/
 // *INDENT-ON*
 
 static float dot2( float2 a, float2 b )
@@ -487,10 +488,11 @@ static int2 textureSize( Texture2D<float> buffer, int mipLevel )
 	return int2( width, height );
 }
 
-static float2 vposToScreenPosTexCoord( float2 vpos )
-{
-	return vpos.xy * rpWindowCoord.xy;
-}
+// SRS - moved to renderParmSet8.inc.hlsl and renderParmSet9.inc.hlsl
+//static float2 vposToScreenPosTexCoord( float2 vpos )
+//{
+//	return vpos.xy * rpWindowCoord.xy;
+//}
 
 // ----------------------
 // PSX rendering
@@ -500,9 +502,9 @@ static float2 vposToScreenPosTexCoord( float2 vpos )
 // https://www.david-colson.com/2021/11/30/ps1-style-renderer.html
 
 // emulate rasterization with fixed point math
-static float3 psxVertexJitter( float4 clipPos )
+static float3 psxVertexJitter( float4 psxDistortions, float4 projectionMatrixW, float4 clipPos )
 {
-	float jitterScale = rpPSXDistortions.x;
+	float jitterScale = psxDistortions.x;
 	if( jitterScale > 0.0 )
 	{
 		// snap to vertex to a pixel position on a lower grid
@@ -510,10 +512,10 @@ static float3 psxVertexJitter( float4 clipPos )
 
 		//float2 resolution = float2( 320, 240 ) * ( 1.0 - jitterScale );
 		//float2 resolution = float2( 160, 120 );
-		float2 resolution = float2( rpPSXDistortions.x, rpPSXDistortions.y );
+		float2 resolution = float2( psxDistortions.x, psxDistortions.y );
 
 		// depth independent snapping
-		float w = dot4( rpProjectionMatrixW,  float4( vertex.xyz, 1.0 ) );
+		float w = dot4( projectionMatrixW, float4( vertex.xyz, 1.0 ) );
 		vertex.xy = round( vertex.xy / w * resolution ) / resolution * w;
 
 		//vertex.xy = floor( vertex.xy / 4.0 ) * 4.0;

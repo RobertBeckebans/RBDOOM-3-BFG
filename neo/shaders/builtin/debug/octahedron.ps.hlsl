@@ -28,6 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet0.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -62,15 +63,15 @@ void main( PS_IN fragment, out PS_OUT result )
 
 	// offset by one pixel border bleed size for linear filtering
 #if 0
-	float2 octCoordNormalizedToTextureDimensions = ( normalizedOctCoordZeroOne * ( rpCascadeDistances.x - float( 2.0 ) ) ) / rpCascadeDistances.xy;
+	float2 octCoordNormalizedToTextureDimensions = ( normalizedOctCoordZeroOne * ( pc.rpCascadeDistances.x - float( 2.0 ) ) ) / pc.rpCascadeDistances.xy;
 
 	float2 probeTopLeftPosition = float2( 1.0, 1.0 );
-	float2 normalizedProbeTopLeftPosition = probeTopLeftPosition * rpCascadeDistances.zw;
+	float2 normalizedProbeTopLeftPosition = probeTopLeftPosition * pc.rpCascadeDistances.zw;
 
 	normalizedOctCoordZeroOne.xy = normalizedProbeTopLeftPosition + octCoordNormalizedToTextureDimensions;
 #endif
 
-	//normalizedOctCoordZeroOne = TextureCoordFromDirection( reflectionVector, 0, int( rpCascadeDistances.x ), int( rpCascadeDistances.y ), int( rpCascadeDistances.x ) - 2 );
+	//normalizedOctCoordZeroOne = TextureCoordFromDirection( reflectionVector, 0, int( pc.rpCascadeDistances.x ), int( pc.rpCascadeDistances.y ), int( pc.rpCascadeDistances.x ) - 2 );
 
 	float4 envMap = t_CubeMap.SampleLevel( samp0, normalizedOctCoordZeroOne, 0 );
 

@@ -29,6 +29,7 @@
 
 
 #include <global_inc.hlsl>
+#include "renderParmSet2.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -304,9 +305,9 @@ float3 get_blurred_pixel( float2 vTexCoord, float4 sourceSize )
 #define JINC2_AR_STRENGTH params.JINC2_AR_STRENGTH
 */
 
-#define JINC2_WINDOW_SINC rpDiffuseModifier.x
-#define JINC2_SINC rpDiffuseModifier.y
-#define JINC2_AR_STRENGTH rpDiffuseModifier.z
+#define JINC2_WINDOW_SINC pc.rpDiffuseModifier.x
+#define JINC2_SINC pc.rpDiffuseModifier.y
+#define JINC2_AR_STRENGTH pc.rpDiffuseModifier.z
 
 
 #define halfpi  1.5707963267948966192313216916398
@@ -562,15 +563,15 @@ void main( PS_IN fragment, out PS_OUT result )
 	params.SHARPNESS_V = 1.0;
 
 	float4 outputSize;
-	outputSize.xy = rpWindowCoord.zw;
-	outputSize.zw = float2( 1.0, 1.0 ) / rpWindowCoord.zw;
+	outputSize.xy = pc.rpWindowCoord.zw;
+	outputSize.zw = float2( 1.0, 1.0 ) / pc.rpWindowCoord.zw;
 
-	float4 sourceSize = rpScreenCorrectionFactor;
+	float4 sourceSize = pc.rpScreenCorrectionFactor;
 
 	float2 vTexCoord = fragment.texcoord0.xy;
 
 #if 0
-	if( rpWindowCoord.x > 0.0 )
+	if( pc.rpWindowCoord.x > 0.0 )
 	{
 		vTexCoord = curve( vTexCoord, 2.0 );
 	}

@@ -6,7 +6,7 @@ date_string=$(date +"%Y%m%d")
 # Get first 7 characters of the git hash
 git_hash=$(git rev-parse --short=7 HEAD)
 
-buildversion="1.6.0.20"
+buildversion="1.6.0.22"
 filename="RBDOOM-3-BFG-${buildversion}-lite-win64-${date_string}-git-${git_hash}.7z"
 
 # Copy the base file to the new filename
@@ -20,8 +20,8 @@ cp build/tools/compilers/release/rbdmap.exe .
 7z a "$filename" RBDoom3BFG.exe rbdmap.exe
 
 7z a "$filename" README.md RELEASE-NOTES.md LICENSE.md LICENSE_EXCEPTIONS.md \
-    base/*.cfg base/def/*.def base/materials/*.mtr \
-    base/script/*.script base/textures/common base/textures/editor \
+    base/*.cfg base/materials/*.mtr \
+    base/textures/common base/textures/editor \
     base/maps/zoomaps -x!generated -xr!autosave -xr!*.xcf -xr!*.blend
 
 #7z a "$filename" base/maps/game/*_extra_ents.map

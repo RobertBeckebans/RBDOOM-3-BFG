@@ -999,7 +999,7 @@ model enpro_wounded_player {
 	mesh							models/md5/characters/player/mocap/player.md5mesh
 
 
-	channel torso     				()
+	channel torso     				( )
 	channel legs					( *origin )
 
 
