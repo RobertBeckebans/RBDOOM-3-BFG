@@ -886,8 +886,9 @@ bool R_ReadPixelsRGB8( nvrhi::IDevice* device, CommonRenderPasses* pPasses, nvrh
 		data[ i * 4 + 3 ] = 0xff;
 	}
 
-	// SRS - Save screen shots to fs_savepath on macOS (i.e. don't save into an app bundle's basepath)
-#if defined(__APPLE__)
+	// SRS: save screen shots to fs_savepath on macOS (i.e. don't save into an app bundle's basepath)
+	// RB: save screen shots to fs_savepath on Linux Flatpak builds as the engine is not allowed to write to the basepath
+#if defined(__APPLE__) || defined(FLATPAK)
 	R_WritePNG( fullname, static_cast<byte*>( pData ), 4, desc.width, desc.height, "fs_savepath" );
 #else
 	R_WritePNG( fullname, static_cast<byte*>( pData ), 4, desc.width, desc.height, "fs_basepath" );
