@@ -74,14 +74,15 @@ class TemporalAntiAliasingPass
 private:
 	CommonRenderPasses* m_CommonPasses;
 
-	nvrhi::ShaderHandle m_MotionVectorPS;
+	//nvrhi::ShaderHandle m_MotionVectorPS;
 	nvrhi::ShaderHandle m_TemporalAntiAliasingCS;
 	nvrhi::SamplerHandle m_BilinearSampler;
 	nvrhi::BufferHandle m_TemporalAntiAliasingCB;
 
-	nvrhi::BindingLayoutHandle m_MotionVectorsBindingLayout;
-	nvrhi::BindingSetHandle m_MotionVectorsBindingSet;
-	nvrhi::GraphicsPipelineHandle m_MotionVectorsPso;
+	// SRS - Motion Vectors are generated using motionBlur shader in graphics pipeline
+	//nvrhi::BindingLayoutHandle m_MotionVectorsBindingLayout;
+	//nvrhi::BindingSetHandle m_MotionVectorsBindingSet;
+	//nvrhi::GraphicsPipelineHandle m_MotionVectorsPso;
 
 	nvrhi::BindingLayoutHandle m_ResolveBindingLayout;
 	nvrhi::BindingSetHandle m_ResolveBindingSet;
