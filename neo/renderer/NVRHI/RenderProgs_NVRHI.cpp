@@ -378,7 +378,7 @@ idRenderProgManager::SelectUniforms
 */
 void idRenderProgManager::SelectUniforms( renderParmSet_t* renderParmSet, int bindingLayoutType )
 {
-	switch ( layoutTypeAttributes[bindingLayoutType].rpSubSet )
+	switch( layoutTypeAttributes[bindingLayoutType].rpSubSet )
 	{
 		case renderParmSet0:
 		{
@@ -533,7 +533,7 @@ bool idRenderProgManager::CommitConstantBuffer( nvrhi::ICommandList* commandList
 	// SRS - If push constants enabled, skip writing the constant buffer but return state change indicator
 	if( layoutTypeAttributes[bindingLayoutType].pcEnabled )
 	{
-			return uniformsChanged[bindingLayoutType] || bindingLayoutTypeChanged;
+		return uniformsChanged[bindingLayoutType] || bindingLayoutTypeChanged;
 	}
 	// RB: It would be better to NUM_BINDING_LAYOUTS uniformsChanged entrys but we don't know the current binding layout type when we set the uniforms.
 	// The vkDoom3 backend even didn't bother with this and always fired the uniforms for each draw call.

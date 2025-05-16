@@ -2175,7 +2175,9 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 			continue;
 		}
 
-		auto usePushConstants = renderProgManager.layoutTypeAttributes[BINDING_LAYOUT_POST_PROCESS_INGAME].pcEnabled ? "1" : "0";
+#if !defined( DMAP )
+		const char* usePushConstants = renderProgManager.layoutTypeAttributes[BINDING_LAYOUT_POST_PROCESS_INGAME].pcEnabled ? "1" : "0";
+#endif
 
 		if( !token.Icmp( "program" ) )
 		{

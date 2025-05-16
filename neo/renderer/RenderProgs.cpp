@@ -89,17 +89,17 @@ nvrhi::BindingLayoutHandle idRenderProgManager::uniformsLayout( bindingLayoutTyp
 	if( skinning )
 	{
 		auto skinningLayoutDesc = nvrhi::BindingLayoutDesc()
-									.setVisibility( nvrhi::ShaderType::All )
-									.addItem( rpLayoutItem )
-									.addItem( nvrhi::BindingLayoutItem::StructuredBuffer_SRV( 11 ) ); // joint buffer;
+								  .setVisibility( nvrhi::ShaderType::All )
+								  .addItem( rpLayoutItem )
+								  .addItem( nvrhi::BindingLayoutItem::StructuredBuffer_SRV( 11 ) ); // joint buffer;
 
 		return device->createBindingLayout( skinningLayoutDesc );
 	}
 	else
 	{
 		auto uniformsLayoutDesc = nvrhi::BindingLayoutDesc()
-									.setVisibility( nvrhi::ShaderType::All )
-									.addItem( rpLayoutItem );
+								  .setVisibility( nvrhi::ShaderType::All )
+								  .addItem( rpLayoutItem );
 
 		return device->createBindingLayout( uniformsLayoutDesc );
 	}
@@ -194,20 +194,20 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 
 	// SRS - Check to make sure renderparm subsets are within push constant size limits
 	if( rpMinimalSet0.Num() * sizeof( idVec4 )  > sizeof( rpMinimalSet ) ||
-		rpMinimalSet1.Num() * sizeof( idVec4 )  > sizeof( rpMinimalSet ) ||
-	    rpMinimalSet2.Num() * sizeof( idVec4 )  > sizeof( rpMinimalSet ) ||
-	    rpNominalSet3.Num() * sizeof( idVec4 )  > sizeof( rpNominalSet ) ||
-	    rpNominalSet4.Num() * sizeof( idVec4 )  > sizeof( rpNominalSet ) ||
-	    rpNominalSet5.Num() * sizeof( idVec4 )  > sizeof( rpNominalSet ) ||
-	    rpNominalSet6.Num() * sizeof( idVec4 )  > sizeof( rpNominalSet ) ||
-		rpNominalSet7.Num() * sizeof( idVec4 )  > sizeof( rpNominalSet ) ||
-		rpNominalSet8.Num() * sizeof( idVec4 )  > sizeof( rpNominalSet ) ||
-		rpMaximalSet9.Num() * sizeof( idVec4 )  > sizeof( rpMaximalSet ) ||
-		rpMaximalSet10.Num() * sizeof( idVec4 ) > sizeof( rpMaximalSet ) ||
-		rpMaximalSet11.Num() * sizeof( idVec4 ) > sizeof( rpMaximalSet ) ||
-		rpNominalSet12.Num() * sizeof( idVec4 ) > sizeof( rpNominalSet ) ||
-		rpNominalSet13.Num() * sizeof( idVec4 ) > sizeof( rpNominalSet ) ||
-		rpMaximalSet14.Num() * sizeof( idVec4 ) > sizeof( rpMaximalSet ) )
+			rpMinimalSet1.Num() * sizeof( idVec4 )  > sizeof( rpMinimalSet ) ||
+			rpMinimalSet2.Num() * sizeof( idVec4 )  > sizeof( rpMinimalSet ) ||
+			rpNominalSet3.Num() * sizeof( idVec4 )  > sizeof( rpNominalSet ) ||
+			rpNominalSet4.Num() * sizeof( idVec4 )  > sizeof( rpNominalSet ) ||
+			rpNominalSet5.Num() * sizeof( idVec4 )  > sizeof( rpNominalSet ) ||
+			rpNominalSet6.Num() * sizeof( idVec4 )  > sizeof( rpNominalSet ) ||
+			rpNominalSet7.Num() * sizeof( idVec4 )  > sizeof( rpNominalSet ) ||
+			rpNominalSet8.Num() * sizeof( idVec4 )  > sizeof( rpNominalSet ) ||
+			rpMaximalSet9.Num() * sizeof( idVec4 )  > sizeof( rpMaximalSet ) ||
+			rpMaximalSet10.Num() * sizeof( idVec4 ) > sizeof( rpMaximalSet ) ||
+			rpMaximalSet11.Num() * sizeof( idVec4 ) > sizeof( rpMaximalSet ) ||
+			rpNominalSet12.Num() * sizeof( idVec4 ) > sizeof( rpNominalSet ) ||
+			rpNominalSet13.Num() * sizeof( idVec4 ) > sizeof( rpNominalSet ) ||
+			rpMaximalSet14.Num() * sizeof( idVec4 ) > sizeof( rpMaximalSet ) )
 	{
 		common->FatalError( "Renderparm subset sizes exceed push constant buffer sizes" );
 	}
@@ -391,10 +391,10 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 		layoutTypeAttributes[layoutType].pcEnabled = layoutTypeAttributes[layoutType].rpBufSize <= deviceManager->m_DeviceParams.maxPushConstantSize;
 	}
 
-#if	defined(USE_INTRINSICS_SSE)	// USE_INTRINSICS_SSE is a portable proxy for x86 and is disabled when compiling or x-compiling to arm64 on macOS
-	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
+	// SRS - Perform runtime check for Vulkan running on x86-based vs. Apple Silicon hosts since this has to work for Universal Binaries on macOS
+	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN && glConfig.vendor != VENDOR_APPLE )
 	{
-		// SRS - FIXME: Disable Vulkan push constants for select layout types to reduce GPU Timeout Errors (seen on Intel/Linux and Intel/macOS)
+		// SRS - FIXME: Disable Vulkan push constants for select layout types to reduce GPU Timeout Errors (seen on x86_64/Linux and x86_64/macOS)
 		//     - Possibly due to exceeding pc buffer limits (nvrhi or driver) or imperfect logic for push constant uniforms change detection - TBD
 		//     - Note these correspond to rpNominalSet3LayoutTypes and rpNominalSet4LayoutTypes for rpNominalSet3 and rpNominalSet4 renderparm sets
 		layoutTypeAttributes[BINDING_LAYOUT_GBUFFER].pcEnabled = false;
@@ -402,7 +402,6 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 		layoutTypeAttributes[BINDING_LAYOUT_TEXTURE].pcEnabled = false;
 		layoutTypeAttributes[BINDING_LAYOUT_TEXTURE_SKINNED].pcEnabled = false;
 	}
-#endif
 
 	auto defaultLayoutDesc = nvrhi::BindingLayoutDesc()
 							 .setVisibility( nvrhi::ShaderType::Pixel )
@@ -699,7 +698,7 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 										  .setVisibility( nvrhi::ShaderType::All )
 										  .addItem( smaaEdgeDetectionLayoutItem )
 										  .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 0 ) );		// _smaaInput
-										//.addItem( nvrhi::BindingLayoutItem::Texture_SRV( 1 ) )		// _motionVectors
+	//.addItem( nvrhi::BindingLayoutItem::Texture_SRV( 1 ) )		// _motionVectors
 
 	bindingLayouts[BINDING_LAYOUT_SMAA_EDGE_DETECTION] = { device->createBindingLayout( smaaEdgeDetectionBindingLayout ), samplerTwoBindingLayout };
 
@@ -796,7 +795,7 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 	}
 
 	// SRS - added support for runtime configuration of push constants
-	#define usePushConstants( layoutType ) ( layoutTypeAttributes[layoutType].pcEnabled ? "1" : "0" )
+#define usePushConstants( layoutType ) ( layoutTypeAttributes[layoutType].pcEnabled ? "1" : "0" )
 
 	// RB: added checks for GPU skinning
 	struct builtinShaders_t

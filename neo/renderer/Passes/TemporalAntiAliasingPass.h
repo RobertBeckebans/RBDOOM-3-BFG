@@ -74,15 +74,10 @@ class TemporalAntiAliasingPass
 private:
 	CommonRenderPasses* m_CommonPasses;
 
-	//nvrhi::ShaderHandle m_MotionVectorPS;
+	// SRS - Motion Vectors are generated using motionBlur shader in graphics pipeline instead of donut shader
 	nvrhi::ShaderHandle m_TemporalAntiAliasingCS;
 	nvrhi::SamplerHandle m_BilinearSampler;
 	nvrhi::BufferHandle m_TemporalAntiAliasingCB;
-
-	// SRS - Motion Vectors are generated using motionBlur shader in graphics pipeline
-	//nvrhi::BindingLayoutHandle m_MotionVectorsBindingLayout;
-	//nvrhi::BindingSetHandle m_MotionVectorsBindingSet;
-	//nvrhi::GraphicsPipelineHandle m_MotionVectorsPso;
 
 	nvrhi::BindingLayoutHandle m_ResolveBindingLayout;
 	nvrhi::BindingSetHandle m_ResolveBindingSet;
@@ -112,7 +107,6 @@ public:
 
 	void Init(
 		nvrhi::IDevice* device,
-		//std::shared_ptr<engine::ShaderFactory> shaderFactory,
 		CommonRenderPasses* commonPasses,
 		const viewDef_t* viewDef,
 		const CreateParameters& params );

@@ -66,11 +66,13 @@ struct renderParmSet10_t
 
 #if USE_PUSH_CONSTANTS
 
-VK_PUSH_CONSTANT ConstantBuffer<renderParmSet10_t> pc : register( b0 );
+VK_PUSH_CONSTANT ConstantBuffer<renderParmSet10_t> pc :
+register( b0 );
 
 #else
 
-cbuffer pc : register( b0 VK_DESCRIPTOR_SET( 0 ) )
+cbuffer pc :
+register( b0 VK_DESCRIPTOR_SET( 0 ) )
 {
 	renderParmSet10_t pc;
 }
