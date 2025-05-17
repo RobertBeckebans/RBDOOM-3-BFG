@@ -293,6 +293,10 @@ if(RETAIL)
 	add_definitions(-DID_RETAIL)
 endif()
 
+if(FLATPAK)
+	add_definitions(-DFLATPAK)
+endif()
+
 # SRS - on Apple set find_package() to prefer dylibs over macOS frameworks and xcframeworks
 #     - required for cmake >= 3.29 and MoltenVK, also prefers openal-soft over Apple OpenAL
 if(APPLE)
@@ -454,7 +458,6 @@ endif()
 # RB: there haven't been requests for a separate map compiler executable by macOS users
 # and it is ok to not support it until someone also supports TrenchBroomBFG on macOS
 if(NOT APPLE AND NOT FLATPAK)
-	add_definitions(-DFLATPAK)
 	add_subdirectory(tools/compilers)
 endif()
 
