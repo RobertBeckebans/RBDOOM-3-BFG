@@ -454,6 +454,7 @@ endif()
 # RB: there haven't been requests for a separate map compiler executable by macOS users
 # and it is ok to not support it until someone also supports TrenchBroomBFG on macOS
 if(NOT APPLE AND NOT FLATPAK)
+	add_definitions(-DFLATPAK)
 	add_subdirectory(tools/compilers)
 endif()
 
