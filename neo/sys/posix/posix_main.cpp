@@ -447,6 +447,7 @@ const char* Sys_DefaultBasePath()
 		basepath = xdg_data_home;
 		basepath += "/rbdoom3bfg";
 		testbase = basepath;
+		testbase += "/";
 		testbase += BASE_GAMEDIR;
 		if( stat( testbase.c_str(), &st ) != -1 && S_ISDIR( st.st_mode ) )
 		{
