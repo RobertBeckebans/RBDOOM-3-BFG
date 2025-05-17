@@ -105,10 +105,10 @@ const char* Sys_DefaultSavePath()
 		SDL_free( base_path );
 	}
 #else
-	const char* xdg_data_home = getenv( "XDG_DATA_HOME" );
-	if( xdg_data_home != NULL )
+	const char* xdg_config_home = getenv( "XDG_CONFIG_HOME" );
+	if( xdg_config_home != NULL )
 	{
-		sprintf( savepath, "%s/rbdoom3bfg", xdg_data_home );
+		sprintf( savepath, "%s/rbdoom3bfg", xdg_config_home );
 	}
 	else
 	{
@@ -422,6 +422,7 @@ const char* Sys_DefaultBasePath()
 {
 	struct stat st;
 	idStr testbase, exepath = {};
+
 	basepath = Sys_EXEPath();
 	if( basepath.Length() )
 	{
@@ -438,6 +439,26 @@ const char* Sys_DefaultBasePath()
 			common->Printf( "no '%s' directory in exe path %s, skipping\n", BASE_GAMEDIR, basepath.c_str() );
 		}
 	}
+
+#if defined(FLATPAK)
+	const char* xdg_data_home = getenv( "XDG_DATA_HOME" );
+	if( xdg_data_home != NULL )
+	{
+		basepath = xdg_data_home;
+		testbase = basepath;
+		testbase += "/rbdoom3bfg/";
+		testbase += BASE_GAMEDIR;
+		if( stat( testbase.c_str(), &st ) != -1 && S_ISDIR( st.st_mode ) )
+		{
+			return basepath.c_str();
+		}
+		else
+		{
+			common->Printf( "no '%s' directory in XDG_DATA_HOME path %s, skipping\n", BASE_GAMEDIR, basepath.c_str() );
+		}
+	}
+#endif
+
 	if( basepath != Posix_Cwd() )
 	{
 		basepath = Posix_Cwd();
@@ -453,6 +474,7 @@ const char* Sys_DefaultBasePath()
 			common->Printf( "no '%s' directory in cwd path %s, skipping\n", BASE_GAMEDIR, basepath.c_str() );
 		}
 	}
+
 	if( exepath.Length() )
 	{
 #if defined(__APPLE__)
