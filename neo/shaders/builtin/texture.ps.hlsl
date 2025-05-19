@@ -27,6 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet4.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -45,7 +46,7 @@ struct PS_OUT {
 
 void main( PS_IN fragment, out PS_OUT result )
 {
-	result.color = tex.Sample( samp0, fragment.texcoord0 ) * rpColor;
-	//result.color = textureLod( samp0, fragment.texcoord0, 2.0 ) * rpColor;
-	//result.color = float4( 0.0, 1.0, 0.0, 1.0 ) * rpColor;
+	result.color = tex.Sample( samp0, fragment.texcoord0 ) * pc.rpColor;
+	//result.color = textureLod( samp0, fragment.texcoord0, 2.0 ) * pc.rpColor;
+	//result.color = float4( 0.0, 1.0, 0.0, 1.0 ) * pc.rpColor;
 }

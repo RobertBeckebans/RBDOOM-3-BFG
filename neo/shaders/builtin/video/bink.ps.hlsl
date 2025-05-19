@@ -27,6 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 #include "global_inc.hlsl"
+#include "renderParmSet0.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -64,7 +65,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	float4 color;
 	color.xyz = p;
 	color.w = 1.0;
-	color *= rpColor;
+	color *= pc.rpColor;
 
 	result.color = sRGBAToLinearRGBA( color );
 }

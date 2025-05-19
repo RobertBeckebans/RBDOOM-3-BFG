@@ -84,9 +84,6 @@ void TemporalAntiAliasingPass::Init(
 		}
 	}
 
-	auto taaMotionVectorsShaderInfo = renderProgManager.GetProgramInfo( BUILTIN_TAA_MOTION_VECTORS );
-	m_MotionVectorPS = taaMotionVectorsShaderInfo.ps;
-
 	//switch( r_antiAliasing.GetInteger() )
 	{
 #if ID_MSAA
@@ -131,36 +128,6 @@ void TemporalAntiAliasingPass::Init(
 	constantBufferDesc.isVolatile = true;
 	constantBufferDesc.maxVersions = params.numConstantBufferVersions;
 	m_TemporalAntiAliasingCB = device->createBuffer( constantBufferDesc );
-
-	if( params.sourceDepth )
-	{
-		nvrhi::BindingLayoutDesc layoutDesc;
-		layoutDesc.visibility = nvrhi::ShaderType::Pixel;
-		layoutDesc.bindings =
-		{
-			nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 ),
-			nvrhi::BindingLayoutItem::Texture_SRV( 0 )
-		};
-
-		if( useStencil )
-		{
-			layoutDesc.bindings.push_back( nvrhi::BindingLayoutItem::Texture_SRV( 1 ) );
-		}
-
-		m_MotionVectorsBindingLayout = device->createBindingLayout( layoutDesc );
-
-		nvrhi::BindingSetDesc bindingSetDesc;
-		bindingSetDesc.bindings =
-		{
-			nvrhi::BindingSetItem::ConstantBuffer( 0, m_TemporalAntiAliasingCB ),
-			nvrhi::BindingSetItem::Texture_SRV( 0, params.sourceDepth ),
-		};
-		if( useStencil )
-		{
-			bindingSetDesc.bindings.push_back( nvrhi::BindingSetItem::Texture_SRV( 1, params.sourceDepth, stencilFormat ) );
-		}
-		m_MotionVectorsBindingSet = device->createBindingSet( bindingSetDesc, m_MotionVectorsBindingLayout );
-	}
 
 	{
 		nvrhi::BindingSetDesc bindingSetDesc;

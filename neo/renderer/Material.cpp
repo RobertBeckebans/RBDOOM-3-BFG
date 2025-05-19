@@ -2174,12 +2174,17 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 			ss->conditionRegister = ParseExpression( src );
 			continue;
 		}
+
+#if !defined( DMAP )
+		const char* usePushConstants = renderProgManager.layoutTypeAttributes[BINDING_LAYOUT_POST_PROCESS_INGAME].pcEnabled ? "1" : "0";
+#endif
+
 		if( !token.Icmp( "program" ) )
 		{
 			if( src.ReadTokenOnLine( &token ) )
 			{
 #if !defined( DMAP )
-				idList<shaderMacro_t> macros = { { "USE_GPU_SKINNING", "0" } };
+				idList<shaderMacro_t> macros = { { "USE_GPU_SKINNING", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants } };
 				newStage.vertexProgram = renderProgManager.FindShader( token.c_str(), SHADER_STAGE_VERTEX, "", macros, false );
 				newStage.fragmentProgram = renderProgManager.FindShader( token.c_str(), SHADER_STAGE_FRAGMENT, "", macros, false );
 #endif
@@ -2191,7 +2196,7 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 			if( src.ReadTokenOnLine( &token ) )
 			{
 #if !defined( DMAP )
-				idList<shaderMacro_t> macros = { { "USE_GPU_SKINNING", "0" } };
+				idList<shaderMacro_t> macros = { { "USE_GPU_SKINNING", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants } };
 				newStage.fragmentProgram = renderProgManager.FindShader( token.c_str(), SHADER_STAGE_FRAGMENT, "", macros, false );
 #endif
 			}
@@ -2202,7 +2207,7 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 			if( src.ReadTokenOnLine( &token ) )
 			{
 #if !defined( DMAP )
-				idList<shaderMacro_t> macros = { { "USE_GPU_SKINNING", "0" } };
+				idList<shaderMacro_t> macros = { { "USE_GPU_SKINNING", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants } };
 				newStage.vertexProgram = renderProgManager.FindShader( token.c_str(), SHADER_STAGE_VERTEX, "", macros, false );
 #endif
 			}
