@@ -69,6 +69,7 @@ public:
 	virtual int				ReturnGameInputEvent( const int n, int& action, int& value ) = 0;
 
 	virtual void			SubmitStereoRenders( nvrhi::ICommandList* commandList, idImage* image0, idImage* image1 ) = 0;
+	virtual void			PreSwap() = 0;
 	virtual void			PostSwap() = 0;
 
 	virtual idVec2i			GetRenderResolution() const = 0;

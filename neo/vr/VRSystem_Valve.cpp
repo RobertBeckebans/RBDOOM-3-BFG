@@ -54,6 +54,7 @@ class VRSystem_Valve : public VRSystem
 	virtual int				ReturnGameInputEvent( const int n, int& action, int& value );
 
 	virtual void			SubmitStereoRenders( nvrhi::ICommandList* commandList, idImage* image0, idImage* image1 );
+	virtual void			PreSwap();
 	virtual void			PostSwap();
 
 	virtual idVec2i			GetRenderResolution() const
@@ -310,6 +311,9 @@ bool VRSystem_Valve::InitHMD()
 	int hmdHz = ( int )( hmd->GetFloatTrackedDeviceProperty( vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float ) + 0.5f );
 	cvarSystem->SetCVarString( "r_swapInterval", "0" );
 	cvarSystem->SetCVarInteger( "com_engineHz", hmdHz );
+
+	// RB: avoid waiting when WaitGetPoses is called
+	vr::VRCompositor()->SetExplicitTimingMode( vr::VRCompositorTimingMode_Explicit_RuntimePerformsPostPresentHandoff );
 
 	return true;
 }
@@ -942,12 +946,26 @@ void VRSystem_Valve::SubmitStereoRenders( nvrhi::ICommandList* commandList, idIm
 	}
 }
 
+void VRSystem_Valve::PreSwap()
+{
+	// https://github.com/ValveSoftware/openvr/wiki/Vulkan#explicit-timing
+
+	// Explicit Timing: sync the frame data with the compositor
+	vr::VRCompositor()->SubmitExplicitTimingData();
+}
+
 void VRSystem_Valve::PostSwap()
 {
-	//vr::VRCompositor()->PostPresentHandoff();
+	// tell the compositor that we are done rendering
+	vr::VRCompositor()->PostPresentHandoff();
 
 	vr::TrackedDevicePose_t rTrackedDevicePose[ vr::k_unMaxTrackedDeviceCount ];
-	vr::VRCompositor()->WaitGetPoses( rTrackedDevicePose, vr::k_unMaxTrackedDeviceCount, NULL, 0 );
+
+	{
+		OPTICK_CATEGORY( "VR_WaitGetPoses", Optick::Category::Wait );
+
+		vr::VRCompositor()->WaitGetPoses( rTrackedDevicePose, vr::k_unMaxTrackedDeviceCount, NULL, 0 );
+	}
 
 	UpdateControllers();
 

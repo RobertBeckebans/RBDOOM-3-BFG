@@ -32,7 +32,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "VRSystem.h"
 
-idCVar vr_enable( "vr_enable", "0", CVAR_INTEGER | CVAR_INIT | CVAR_ARCHIVE | CVAR_NEW, "" );
+idCVar vr_enable( "vr_enable", "1", CVAR_INTEGER | CVAR_INIT | CVAR_NEW, "" );
 idCVar vr_resolutionScale( "vr_resolutionScale", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_FLOAT | CVAR_NEW, "hmd resolution scaling, restart required" );
 idCVar vr_playerHeightCM( "vr_playerHeightCM", "183", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_FLOAT | CVAR_NEW, "player height for vr in centimeters" );
 idCVar vr_aimLook( "vr_aimLook", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL | CVAR_NEW, "aim where you look" );
