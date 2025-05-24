@@ -948,6 +948,8 @@ void VRSystem_Valve::SubmitStereoRenders( nvrhi::ICommandList* commandList, idIm
 
 void VRSystem_Valve::PreSwap()
 {
+	OPTICK_EVENT( "VR_PreSwap" )
+
 	// https://github.com/ValveSoftware/openvr/wiki/Vulkan#explicit-timing
 
 	// Explicit Timing: sync the frame data with the compositor
@@ -956,6 +958,8 @@ void VRSystem_Valve::PreSwap()
 
 void VRSystem_Valve::PostSwap()
 {
+	OPTICK_EVENT( "VR_PostSwap" )
+
 	// tell the compositor that we are done rendering
 	vr::VRCompositor()->PostPresentHandoff();
 
