@@ -1,4 +1,4 @@
-
+// clang-format off
 #ifndef BRDFLUT_TEX_H
 #define BRDFLUT_TEX_H
 

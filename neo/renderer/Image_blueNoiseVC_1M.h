@@ -1,3 +1,4 @@
+// clang-format off
 #ifndef BLUENOISE_TEX_H
 #define BLUENOISE_TEX_H
 #define BLUENOISE_TEX_WIDTH 256
