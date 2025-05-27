@@ -1,3 +1,4 @@
+// clang-format off
 #ifndef IMAGE_ENV_UAC_LOBBY_AMB_H_TEX_H
 #define IMAGE_ENV_UAC_LOBBY_AMB_H_TEX_H
 
