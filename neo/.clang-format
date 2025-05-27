@@ -52,7 +52,7 @@ SpacesInAngles: true
 SpacesInCStyleCastParentheses: true
 SpacesInContainerLiterals: true
 SpacesInParentheses: true
-SpacesInSquareBrackets: true
+SpacesInSquareBrackets: false
 Standard: Cpp11
 TabWidth: 4
 UseTab: ForContinuationAndIndentation
