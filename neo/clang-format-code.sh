@@ -11,7 +11,7 @@ print_usage () {
 
 # Determine platform and set clang-format binary path
 case "$(uname -s)" in
-    Linux*)   CLANGFMT_DEFAULT="clang-format" ;;
+    Linux*)   CLANGFMT_DEFAULT="./clang-format" ;;
     MINGW*|MSYS*|CYGWIN*) CLANGFMT_DEFAULT="./clang-format.exe" ;;
     *)        echo "ERROR: Unsupported platform: $(uname -s)"; print_usage; exit 1 ;;
 esac
@@ -35,7 +35,23 @@ if [ "$CLANGFMT_VERSION" != "$OUR_CLANGFMT_VERSION" ]; then
     exit 1
 fi
 
+# Check for multiple .clang-format files
+CLANG_FORMAT_FILES=$(find . -name ".clang-format" | wc -l)
+if [ "$CLANG_FORMAT_FILES" -gt 1 ]; then
+    echo "WARNING: Multiple .clang-format files found in the project directory:"
+    find . -name ".clang-format"
+    echo "This may cause conflicts. Consider keeping only one .clang-format file in the project root."
+fi
+
 # Run clang-format on all relevant files
 find . -regex ".*\.\(cpp\|cc\|cxx\|h\|hpp\)" ! -path "./libs/*" ! -path "./extern/*" ! -path "./d3xp/gamesys/SysCvar.cpp" ! -path "./d3xp/gamesys/Callbacks.cpp" ! -path "./sys/win32/win_cpu.cpp" ! -path "./sys/win32/win_main.cpp" -print0 | xargs -0 -P 16 "$CLANGFMT_BIN" -i
+
+# Post-process files to align method names right (requires Python)
+if command -v python >/dev/null 2>&1; then
+    find . -regex ".*\.\(h\|hpp\)" ! -path "./libs/*" ! -path "./extern/*" ! -path "./d3xp/gamesys/SysCvar.cpp" ! -path "./d3xp/gamesys/Callbacks.cpp" ! -path "./sys/win32/win_cpu.cpp" ! -path "./sys/win32/win_main.cpp" -print0 | xargs -0 -I {} python align_methods.py {}
+    echo "Right-alignment post-processing completed!"
+else
+    echo "WARNING: Python3 not found, skipping right-alignment post-processing."
+fi
 
 echo "Formatting completed!"
