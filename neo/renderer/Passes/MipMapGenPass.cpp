@@ -24,7 +24,7 @@
 #pragma hdrstop
 
 #include "renderer/Passes/MipMapGenPass.h"
-
+#include "renderer/Passes/MipMapGenPass_cb.h"
 #include "renderer/RenderCommon.h"
 
 #include <cassert>
@@ -43,13 +43,6 @@
 #define MODE_MIN    1
 #define MODE_MAX    2
 #define MODE_MINMAX 3
-
-struct MipmmapGenConstants
-{
-	uint dispatch;
-	uint numLODs;
-	uint padding[2];
-};
 
 // The compute shader reduces 'NUM_LODS' mip-levels at a time into an
 // array of NUM_LODS bound UAVs. For textures that have a number
@@ -80,7 +73,6 @@ static nvrhi::TextureHandle createNullTexture( nvrhi::DeviceHandle device )
 
 struct MipMapGenPass::NullTextures
 {
-
 	nvrhi::TextureHandle lod[NUM_LODS];
 
 	static std::shared_ptr<NullTextures> get( nvrhi::DeviceHandle device )

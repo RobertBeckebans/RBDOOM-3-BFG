@@ -25,8 +25,8 @@
 #pragma hdrstop
 
 #include "renderer/RenderCommon.h"
-
 #include "TonemapPass.h"
+#include "TonemapPass_cb.h"
 
 TonemapPass::TonemapPass()
 	: isLoaded( false )
@@ -175,6 +175,8 @@ void TonemapPass::Render(
 			nvrhi::BindingSetItem::Sampler( 0, commonPasses->m_LinearClampSampler )
 		};
 		renderBindingSet = device->createBindingSet( bindingSetDesc, renderBindingLayoutHandle );
+		renderBindingSets.Append( renderBindingSet );
+		renderBindingHash.Add( renderHash, renderBindingSets.Num() - 1 );
 	}
 
 	{
@@ -258,6 +260,8 @@ void TonemapPass::AddFrameToHistogram( nvrhi::ICommandList* commandList, const v
 		};
 
 		bindingSet = device->createBindingSet( bindingSetDesc, histogramBindingLayoutHandle );
+		histogramBindingSets.Append( bindingSet );
+		histogramBindingHash.Add( renderHash, histogramBindingSets.Num() - 1 );
 	}
 
 	nvrhi::ViewportState viewportState;

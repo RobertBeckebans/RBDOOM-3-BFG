@@ -27,30 +27,6 @@
 
 #include "CommonPasses.h"
 
-struct ToneMappingConstants
-{
-	idVec2i viewOrigin;
-	idVec2i viewSize;
-
-	float logLuminanceScale;
-	float logLuminanceBias;
-	float histogramLowPercentile;
-	float histogramHighPercentile;
-
-	float eyeAdaptationSpeedUp;
-	float eyeAdaptationSpeedDown;
-	float minAdaptedLuminance;
-	float maxAdaptedLuminance;
-
-	float frameTime;
-	float exposureScale;
-	float whitePointInvSquared;
-	uint sourceSlice;
-
-	idVec2 colorLUTTextureSize;
-	idVec2 colorLUTTextureSizeInv;
-};
-
 struct ToneMappingParameters
 {
 	float histogramLowPercentile = 0.8f;
@@ -67,7 +43,6 @@ struct ToneMappingParameters
 class TonemapPass
 {
 public:
-
 	struct CreateParameters
 	{
 		bool isTextureArray = false;
