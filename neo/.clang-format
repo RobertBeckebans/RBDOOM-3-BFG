@@ -60,6 +60,5 @@ UseTab: ForContinuationAndIndentation
 AddBrackets: true
 IndentPreprocBlock: true
 PadOper: true
-PadParenIn: true
 UnpadParen: true
 ---
