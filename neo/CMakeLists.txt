@@ -1,14 +1,19 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(RBDoom3BFG)
+if(NOT DEFINED APP_NAME)
+	# RB: This sets the name of the .exe and is the only line needed for a different mod executable.
+	# If you want to make a different game then you also need to change neo/framework/Licensee.h
+    set(APP_NAME RBDoom3BFG)
+endif()
+project(${APP_NAME})
 
 set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-if(CMAKE_MAJOR_VERSION EQUAL 3 AND CMAKE_MINOR_VERSION GREATER_EQUAL 6)
-	# set MSVC startup project
-	set_property (DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT RBDoom3BFG)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.6")
+    # set MSVC startup project
+    set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${APP_NAME})
 endif()
 	
 option(STANDALONE
@@ -65,7 +70,10 @@ option(OPTICK
 option(RETAIL
 		"Strip certain developer features and cheats from shipping builds" OFF)
 
-set(NVRHI_INSTALL OFF)
+option(FLATPAK
+		"Strip certain developer features and cheats from flatpak builds" OFF)
+
+#set(NVRHI_INSTALL OFF)
 
 set(CPU_TYPE "" CACHE STRING "When set, passes this string as CPU-ID which will be embedded into the binary.")
 
@@ -79,6 +87,13 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)|(e2k)|(E2K)" AND 
 	option(USE_INTRINSICS_SSE "Compile using x86 MMX/SSE intrinsics (e.g SSE SIMD instructions)" ON)
 else()
 	option(USE_INTRINSICS_SSE "Compile using x86 MMX/SSE intrinsics (e.g SSE SIMD instructions)" OFF)
+endif()
+
+# SRS - Turn on NEON intrinsics for arm but not when cross-compiling from Apple arm64 to x86_64
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "(arm64)|(ARM64)|(aarch64)|(AArch64)" AND NOT CMAKE_OSX_ARCHITECTURES MATCHES "x86_64")
+	option(USE_INTRINSICS_NEON "Compile using arm NEON intrinsics (e.g NEON SIMD instructions)" ON)
+else()
+	option(USE_INTRINSICS_NEON "Compile using arm NEON intrinsics (e.g NEON SIMD instructions)" OFF)
 endif()
 
 if(FFMPEG AND BINKDEC)
@@ -268,6 +283,11 @@ if (USE_INTRINSICS_SSE)
 	add_definitions(-DUSE_INTRINSICS_SSE)
 endif()
 
+if (USE_INTRINSICS_NEON)
+	add_definitions(-DUSE_INTRINSICS_NEON)
+	add_definitions(-DSTBI_NEON)
+endif()
+
 if(STANDALONE)
 	add_definitions(-DSTANDALONE)
 
@@ -423,15 +443,23 @@ endif()
 
 add_subdirectory(idlib)
 
-# RB: there haven't been requests for a separate map compiler executable by macOS users
-# and it is ok to not support it until someone also supports TrenchBroomBFG on macOS
-if(NOT APPLE)
-	add_subdirectory(tools/compilers)
-endif()
-
 if(USE_INTRINSICS_SSE)
 	add_subdirectory(libs/moc)
 	set(MASKED_OCCLUSION_LIBRARY MaskedOcclusionCulling)
+endif()
+
+if(USE_INTRINSICS_SSE OR USE_INTRINSICS_NEON)
+	add_subdirectory(libs/ispc_texcomp)
+	set(ISPC_TEXCOMP_LIBRARY ispc_texcomp)
+
+	#set(ISPC_TEXCOMP_LIBRARY Compressonator_MD)
+	#link_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/compressonator/lib)
+endif()
+
+# RB: there haven't been requests for a separate map compiler executable by macOS users
+# and it is ok to not support it until someone also supports TrenchBroomBFG on macOS
+if(NOT APPLE AND NOT FLATPAK)
+	add_subdirectory(tools/compilers)
 endif()
 
 file(GLOB NATVIS_SOURCES .natvis)
@@ -1409,25 +1437,25 @@ if(MSVC)
 	
 	list(APPEND RBDOOM3_SOURCES ${WIN32_RESOURCES})
 	
-	add_executable(RBDoom3BFG WIN32 ${RBDOOM3_INCLUDES} ${RBDOOM3_SOURCES})
-
-	add_dependencies(RBDoom3BFG idlib)
+	add_executable(${APP_NAME} WIN32 ${RBDOOM3_INCLUDES} ${RBDOOM3_SOURCES})
+	add_dependencies(${APP_NAME} idlib)
     
     if(USE_DX12)
-		add_dependencies(RBDoom3BFG nvrhi_d3d12)
+		add_dependencies(${APP_NAME} nvrhi_d3d12)
 	endif()
 	
 	if(USE_VULKAN)
-		add_dependencies(RBDoom3BFG nvrhi_vk)
+		add_dependencies(${APP_NAME} nvrhi_vk)
 	endif()
-	target_link_libraries(RBDoom3BFG
+	target_link_libraries(${APP_NAME}
 		idlib
 		${DirectX_LIBRARIES}
 		dbghelp
 		#eaxguid
 		iphlpapi
 		winmm
-		wsock32.lib
+		wsock32
+		Shlwapi
 		${Vulkan_LIBRARIES}
 		${OpenAL_LIBRARIES}
 		${FFmpeg_LIBRARIES}
@@ -1436,16 +1464,16 @@ if(MSVC)
 		)
 		
 	# set MSVC default debug directory on executable	
-	if(CMAKE_MAJOR_VERSION EQUAL 3 AND CMAKE_MINOR_VERSION GREATER_EQUAL 8)
-		set_target_properties(RBDoom3BFG PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/..")
+	if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.8")
+		set_target_properties(${APP_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/..")
 	endif()
 	
 	#CMAKE_BINARY_DIR
 	if(CMAKE_CL_64)
-		install(TARGETS RBDoom3BFG
+		install(TARGETS ${APP_NAME}
 			RUNTIME DESTINATION .)
 	else()
-		install(TARGETS RBDoom3BFG
+		install(TARGETS ${APP_NAME}
 			RUNTIME DESTINATION .)
 	endif()	
 
@@ -1559,7 +1587,7 @@ else()
 		add_custom_target(precomp_header_rbdoom3bfg ALL
 				COMMAND ${CMAKE_CXX_COMPILER} ${_compiler_FLAGS} -x c++-header idlib/precompiled.h -o idlib/precompiled.h.gch
 				WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-				COMMENT "Creating idlib/precompiled.h.gch for RBDoom3BFG"
+				COMMENT "Creating idlib/precompiled.h.gch for ${APP_NAME}"
 				)
 
 		# make sure this is run after creating idlib
@@ -1600,18 +1628,18 @@ else()
 		set(MACOSX_BUNDLE_INFO_STRING "")					# to be added by author if desired
 		set(MACOSX_BUNDLE_COPYRIGHT "")						# to be added by author if desired
 
-		add_executable(RBDoom3BFG MACOSX_BUNDLE ${MACOS_RESOURCES} ${RBDOOM3_INCLUDES} ${RBDOOM3_SOURCES})
+		add_executable(${APP_NAME} MACOSX_BUNDLE ${MACOS_RESOURCES} ${RBDOOM3_INCLUDES} ${RBDOOM3_SOURCES})
 	else()
-		add_executable(RBDoom3BFG WIN32 ${RBDOOM3_INCLUDES} ${RBDOOM3_SOURCES})
+		add_executable(${APP_NAME} WIN32 ${RBDOOM3_INCLUDES} ${RBDOOM3_SOURCES})
 	endif()
 
 	if(USE_VULKAN)
-        add_dependencies(RBDoom3BFG nvrhi_vk)
+        add_dependencies(${APP_NAME} nvrhi_vk)
     endif()
 
 	if (USE_PRECOMPILED_HEADERS)
 		# make sure precompiled header is created before executable is compiled
-		add_dependencies(RBDoom3BFG precomp_header_rbdoom3bfg)
+		add_dependencies(${APP_NAME} precomp_header_rbdoom3bfg)
 		
 		if(WIN32)
 			set(remove_command "del")
@@ -1626,11 +1654,11 @@ else()
 					WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 					COMMENT "remove idlib/precompiled.h.gch"
 					)
-			add_dependencies(rm_precomp_header RBDoom3BFG)
+			add_dependencies(rm_precomp_header ${APP_NAME})
 
 		# delete precompiled header file after executable is compiled: IDE build case (e.g. Xcode)
 		else()
-			add_custom_command(TARGET RBDoom3BFG POST_BUILD
+			add_custom_command(TARGET ${APP_NAME} POST_BUILD
 					# SRS - added wildcards to remove tmp files from cmake ZERO_CHECK regeneration
 					COMMAND ${remove_command} "idlib/precompiled.h*.gch*"
 					WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -1644,7 +1672,7 @@ else()
 			set(RT_LIBRARY rt)
 		endif()
 
-		target_link_libraries(RBDoom3BFG
+		target_link_libraries(${APP_NAME}
 			idlib
 			${Vulkan_LIBRARY}
 			pthread
@@ -1659,30 +1687,30 @@ else()
 endif()
 
 if(USE_DX12)
-	target_compile_definitions(RBDoom3BFG PUBLIC USE_DX12=1)
-	target_link_libraries(RBDoom3BFG nvrhi_d3d12)
+	target_compile_definitions(${APP_NAME} PUBLIC USE_DX12=1)
+	target_link_libraries(${APP_NAME} nvrhi_d3d12)
 endif()
 
 if(USE_DXIL_ON_DX12)
-	target_compile_definitions(RBDoom3BFG PRIVATE USE_DXIL_ON_DX12=1)
+	target_compile_definitions(${APP_NAME} PRIVATE USE_DXIL_ON_DX12=1)
 endif()
 
 if(USE_VULKAN)
-	target_compile_definitions(RBDoom3BFG PUBLIC USE_VK=1)
-	target_link_libraries(RBDoom3BFG nvrhi_vk)
+	target_compile_definitions(${APP_NAME} PUBLIC USE_VK=1)
+	target_link_libraries(${APP_NAME} nvrhi_vk)
 endif()
 
 if(OPTICK)
-	target_compile_definitions(RBDoom3BFG PUBLIC USE_OPTICK=1)
+	target_compile_definitions(${APP_NAME} PUBLIC USE_OPTICK=1)
 else()
-	target_compile_definitions(RBDoom3BFG PUBLIC USE_OPTICK=0)
+	target_compile_definitions(${APP_NAME} PUBLIC USE_OPTICK=0)
 endif()
 
 # needs to come after nvrhi_d3d11 etc. for link order
-target_link_libraries(RBDoom3BFG nvrhi)
-target_link_libraries(RBDoom3BFG ShaderMakeBlob ${MASKED_OCCLUSION_LIBRARY})
+target_link_libraries(${APP_NAME} nvrhi)
+target_link_libraries(${APP_NAME} ShaderMakeBlob ${MASKED_OCCLUSION_LIBRARY} ${ISPC_TEXCOMP_LIBRARY})
 
 add_subdirectory(shaders)
 add_dependencies(Shaders ShaderMake)
-add_dependencies(RBDoom3BFG Shaders ${MASKED_OCCLUSION_LIBRARY})
+add_dependencies(${APP_NAME} Shaders ${MASKED_OCCLUSION_LIBRARY} ${ISPC_TEXCOMP_LIBRARY})
 

@@ -295,6 +295,11 @@
  * macros will be ignored if set in the "Configurable Defines" section.
  */
 
+// RB begin
+#define SMAA_RT_METRICS rpScreenCorrectionFactor
+#define SMAA_PRESET_HIGH
+// RB end
+
 #if defined(SMAA_PRESET_LOW)
 	#define SMAA_THRESHOLD 0.15
 	#define SMAA_MAX_SEARCH_STEPS 4

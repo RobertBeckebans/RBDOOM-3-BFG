@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2015-2023 Robert Beckebans
+Copyright (C) 2015-2025 Robert Beckebans
 Copyright (C) 2020 Admer (id Tech Fox)
 Copyright (C) 2022 Harrie van Ginneken
 
@@ -145,33 +145,6 @@ void idMapBrushSide::ConvertToValve220Format( const idMat4& entityTransform, idS
 		return;
 	}
 
-#if 0
-	// create p1, p2, p3
-	idVec3 forward = plane.Normal();
-	idVec3 p1 = forward * plane.Dist();
-
-	// create tangents right,up similar as in Quake's MakeNormalVectors
-	idVec3 right = forward;
-	right[1] = -forward[0];
-	right[2] = forward[1];
-	right[0] = forward[2];
-
-	float d = right * forward;
-	right = right + ( -d * forward );
-	right.Normalize();
-
-	idVec3 up = right.Cross( forward );
-
-	// offset p1 by tangents to have 3 points in a plane
-	idVec3 p2 = p1 + right;
-	idVec3 p3 = p1 + up;
-
-	// move planepts from entity space to world space because TrenchBroom can only handle brushes in world space
-	planepts[0] = entityTransform * p1;
-	planepts[1] = entityTransform * p2;
-	planepts[2] = entityTransform * p3;
-
-#else
 	// from DoomEdit's void BrushPrimit_Parse( brush_t* b, bool newFormat, const idVec3 origin )
 
 	idVec3 origin = entityTransform.GetTranslation();
@@ -188,7 +161,6 @@ void idMapBrushSide::ConvertToValve220Format( const idMat4& entityTransform, idS
 		planepts[j].y = w[j].y + origin.y;
 		planepts[j].z = w[j].z + origin.z;
 	}
-#endif
 
 	idVec3 texX, texY;
 
@@ -1618,31 +1590,12 @@ void idMapEntity::CalculateBrushOrigin()
 	originOffset /= static_cast<float>( originBrushes.Num() );
 }
 
-class idSort_CompareMapEntity : public idSort_Quick< idMapEntity*, idSort_CompareMapEntity >
-{
-public:
-	int Compare( idMapEntity* const& a, idMapEntity* const& b ) const
-	{
-		if( idStr::Icmp( a->epairs.GetString( "name" ), "worldspawn" ) == 0 )
-		{
-			return 1;
-		}
-
-		if( idStr::Icmp( b->epairs.GetString( "name" ), "worldspawn" ) == 0 )
-		{
-			return -1;
-		}
-
-		return idStr::Icmp( a->epairs.GetString( "name" ), b->epairs.GetString( "name" ) );
-	}
-};
-
 /*
 ===============
 idMapFile::Parse
 ===============
 */
-bool idMapFile::Parse( const char* filename, bool ignoreRegion, bool osPath )
+bool idMapFile::Parse( const char* filename, bool ignoreRegion, bool osPath, bool ignoreExtraEnts )
 {
 	// no string concatenation for epairs and allow path names for materials
 	idLexer src( LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
@@ -1750,14 +1703,12 @@ bool idMapFile::Parse( const char* filename, bool ignoreRegion, bool osPath )
 			}
 		}
 
-		//entities.SortWithTemplate( idSort_CompareMapEntity() );
-
-		if( entities.Num() > 0 && ( idStr::Icmp( entities[0]->epairs.GetString( "name" ), "worldspawn" ) != 0 ) )
+		// move world spawn to first place if it was written by Python's JSON serializer
+		if( entities.Num() > 0 && ( idStr::Icmp( entities[0]->epairs.GetString( "classname" ), "worldspawn" ) != 0 ) )
 		{
-			// move world spawn to first place
 			for( int i = 1; i < entities.Num(); i++ )
 			{
-				if( idStr::Icmp( entities[i]->epairs.GetString( "name" ), "worldspawn" ) == 0 )
+				if( idStr::Icmp( entities[i]->epairs.GetString( "classname" ), "worldspawn" ) == 0 )
 				{
 					idMapEntity* tmp = entities[0];
 					entities[0] = entities[i];
@@ -1769,6 +1720,8 @@ bool idMapFile::Parse( const char* filename, bool ignoreRegion, bool osPath )
 	}
 	else if( isGTLF )
 	{
+		gltfFormat = true;
+
 		GLTF_Parser gltf;
 		gltf.Load( fullName );
 		idMapEntity::GetEntities( gltf.currentAsset, entities, gltf.currentAsset->GetSceneId( gltf_MapSceneName.GetString() ) );
@@ -1881,53 +1834,63 @@ bool idMapFile::Parse( const char* filename, bool ignoreRegion, bool osPath )
 		FixDuplicatedNamesInGroupInstances();
 	}
 
-	// RB: <name>_extraents.map allows to add and override existing entities
-	idMapFile extrasMap;
-	fullName = name;
-	//fullName.StripFileExtension();
-	fullName += "_extra_ents.map";
-
-	if( extrasMap.Parse( fullName, ignoreRegion, osPath ) )
+	// RB: <name>_extra_ents.map allows to add and override existing entities
+	if( !ignoreExtraEnts )
 	{
-		for( i = 0; i < extrasMap.entities.Num(); i++ )
+		idMapFile extrasMap;
+		fullName = name;
+		//fullName.StripFileExtension();
+		fullName += "_extra_ents.map";
+
+		if( extrasMap.Parse( fullName, ignoreRegion, osPath ) )
 		{
-			idMapEntity* extraEnt = extrasMap.entities[i];
-
-			const idKeyValue* kv = extraEnt->epairs.FindKey( "name" );
-			if( kv && kv->GetValue().Length() )
+			for( i = 0; i < extrasMap.entities.Num(); i++ )
 			{
-				mapEnt = FindEntity( kv->GetValue().c_str() );
-				if( mapEnt )
-				{
-					// allow override old settings
-					for( int j = 0; j < extraEnt->epairs.GetNumKeyVals(); j++ )
-					{
-						const idKeyValue* pair = extraEnt->epairs.GetKeyVal( j );
-						if( pair && pair->GetValue().Length() )
-						{
-							mapEnt->epairs.Set( pair->GetKey(), pair->GetValue() );
-						}
-					}
+				idMapEntity* extraEnt = extrasMap.entities[i];
 
-					continue;
+				const idKeyValue* kv = extraEnt->epairs.FindKey( "name" );
+				if( kv && kv->GetValue().Length() )
+				{
+					mapEnt = FindEntity( kv->GetValue().c_str() );
+					if( mapEnt )
+					{
+						// allow override old settings
+						for( int j = 0; j < extraEnt->epairs.GetNumKeyVals(); j++ )
+						{
+							const idKeyValue* kv2 = extraEnt->epairs.GetKeyVal( j );
+							const char* key = kv2->GetKey();
+							const char* val = kv2->GetValue();
+
+							if( idStr::Icmp( key, "name" ) != 0 )
+							{
+								// DG: if val is "", delete key from the entity
+								//     => same behavior as EntityChangeSpawnArgs()
+								if( val[0] == '\0' )
+								{
+									mapEnt->epairs.Delete( key );
+								}
+								else
+								{
+									mapEnt->epairs.Set( key, val );
+								}
+							}
+						}
+
+						continue;
+					}
+				}
+
+				// entity wasn't found so add new one
+				if( idStr::Icmp( extraEnt->epairs.GetString( "classname" ), "worldspawn" ) != 0 )
+				{
+					mapEnt = new( TAG_SYSTEM ) idMapEntity();
+					entities.Append( mapEnt );
+
+					// don't grab brushes or polys
+					mapEnt->epairs.Copy( extraEnt->epairs );
 				}
 			}
-
-			{
-				mapEnt = new( TAG_SYSTEM ) idMapEntity();
-				entities.Append( mapEnt );
-
-				// don't grab brushes or polys
-				mapEnt->epairs.Copy( extraEnt->epairs );
-			}
 		}
-
-#if 0
-		fullName = name;
-		fullName += "_extra_debug.map";
-
-		Write( fullName, ".map" );
-#endif
 	}
 
 	hasPrimitiveData = true;
@@ -2022,6 +1985,169 @@ bool idMapFile::WriteJSON( const char* fileName, const char* ext, bool fromBaseP
 
 	fp->Printf( "\t]\n" );
 	fp->Printf( "}\n" );
+
+	idLib::fileSystem->CloseFile( fp );
+
+	return true;
+}
+
+bool idMapFile::WriteDiff( const idMapFile* otherMap, const char* fileName, const char* ext, bool fromBasePath )
+{
+	int i;
+	idStr qpath;
+	idFile* fp;
+
+	qpath = fileName;
+	qpath.SetFileExtension( ext );
+
+	idLib::common->Printf( "writing %s...\n", qpath.c_str() );
+
+	if( fromBasePath )
+	{
+		fp = idLib::fileSystem->OpenFileWrite( qpath, "fs_basepath" );
+	}
+	else
+	{
+		fp = idLib::fileSystem->OpenExplicitFileWrite( qpath );
+	}
+
+	if( !fp )
+	{
+		idLib::common->Warning( "Couldn't open %s\n", qpath.c_str() );
+		return false;
+	}
+
+	if( valve220Format )
+	{
+		fp->WriteFloatString( "// Game: Doom 3 BFG\n// Format: Doom3 (Valve)\n" );
+	}
+	else
+	{
+		fp->WriteFloatString( "Version %d\n", CURRENT_MAP_VERSION );
+	}
+
+	static const char* DELETE_VAL = "";
+
+	for( i = 1; i < otherMap->entities.Num(); i++ )
+	{
+		idMapEntity* otherEnt = otherMap->entities[i];
+
+		idDict epairs;
+
+		// TODO build epairs diff and only write different entities
+		const idKeyValue* kv = otherEnt->epairs.FindKey( "name" );
+		if( kv && kv->GetValue().Length() )
+		{
+			idMapEntity* origEnt = FindEntity( kv->GetValue().c_str() );
+			if( origEnt )
+			{
+				// delete all entries that have been deleted
+				for( int d = 0; d < origEnt->epairs.GetNumKeyVals(); d++ )
+				{
+					const idKeyValue* kv = origEnt->epairs.GetKeyVal( d );
+					const char* key = kv->GetKey();
+
+					if( !otherEnt->epairs.FindKey( key ) )
+					{
+						epairs.Set( key, DELETE_VAL );
+					}
+				}
+
+				// update new entries
+#if 1
+				// more compact
+				bool haveEpairsChanged = epairs.GetNumKeyVals() > 0;
+
+				// scan for changes
+				for( int d = 0; d < otherEnt->epairs.GetNumKeyVals(); d++ )
+				{
+					const idKeyValue* kv = otherEnt->epairs.GetKeyVal( d );
+					const char* key = kv->GetKey();
+					const char* val = kv->GetValue();
+
+					const idKeyValue* kv2 = origEnt->epairs.FindKey( key );
+					if( kv2 )
+					{
+						const char* val2 = kv2->GetValue();
+
+						if( idStr::Cmp( val, val2 ) != 0 )
+						{
+							haveEpairsChanged = true;
+							break;
+						}
+					}
+					else
+					{
+						haveEpairsChanged = true;
+						break;
+					}
+				}
+
+				// apply changes
+				if( haveEpairsChanged )
+				{
+					for( int d = 0; d < otherEnt->epairs.GetNumKeyVals(); d++ )
+					{
+						const idKeyValue* kv = otherEnt->epairs.GetKeyVal( d );
+						const char* key = kv->GetKey();
+						const char* val = kv->GetValue();
+
+						if( idStr::Icmp( key, "name" ) == 0 )
+						{
+							epairs.Set( key, val );
+						}
+						else
+						{
+							const idKeyValue* kv2 = origEnt->epairs.FindKey( key );
+							if( kv2 )
+							{
+								const char* val2 = kv2->GetValue();
+
+								if( idStr::Cmp( val, val2 ) != 0 )
+								{
+									epairs.Set( key, val );
+								}
+							}
+							else
+							{
+								// new key
+								epairs.Set( key, val );
+							}
+						}
+					}
+				}
+#else
+				// better if you want to read the values in TrenchBroom
+				if( origEnt->epairs.GetNumKeyVals() != otherEnt->epairs.GetNumKeyVals() )
+				{
+					epairs.Copy( otherEnt->epairs );
+				}
+#endif
+			}
+			else
+			{
+				// it is a new entity
+				epairs.Copy( otherEnt->epairs );
+			}
+		}
+		else
+		{
+			// it is a new entity
+			epairs.Copy( otherEnt->epairs );
+		}
+
+		if( epairs.GetNumKeyVals() )
+		{
+			fp->WriteFloatString( "// entity %d\n{\n", i );
+
+			for( int j = 0; j < epairs.GetNumKeyVals(); j++ )
+			{
+				fp->WriteFloatString( "\"%s\" \"%s\"\n", epairs.GetKeyVal( j )->GetKey().c_str(), epairs.GetKeyVal( j )->GetValue().c_str() );
+			}
+
+			fp->WriteFloatString( "}\n" );
+		}
+	}
 
 	idLib::fileSystem->CloseFile( fp );
 
@@ -2996,7 +3122,7 @@ bool idMapFile::ConvertToPolygonMeshFormat()
 	return true;
 }
 
-bool idMapFile::ConvertToValve220Format()
+bool idMapFile::ConvertToValve220Format( bool recalcPlanePoints )
 {
 	valve220Format = true;
 
@@ -3237,9 +3363,12 @@ bool idMapFile::ConvertToValve220Format()
 							side->ConvertToValve220Format( transform, textureCollections );
 						}
 
-						// RB: this is not necessary but the initial plane definitions are at the border of the max world size
+						// RB: this shouldn't necessary but the initial plane definitions are at the border of the max world size
 						// so with this function we get sane values that are within the brush boundaries
-						brushPrim->SetPlanePointsFromWindings( transform.GetTranslation(), j, i );
+						if( recalcPlanePoints )
+						{
+							brushPrim->SetPlanePointsFromWindings( transform.GetTranslation(), j, i );
+						}
 					}
 					else if( mapPrim->GetType() == idMapPrimitive::TYPE_PATCH )
 					{

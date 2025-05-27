@@ -498,13 +498,14 @@ public:
 	// normally this will use a .reg file instead of a .map file if it exists,
 	// which is what the game and dmap want, but the editor will want to always
 	// load a .map file
-	bool					Parse( const char* filename, bool ignoreRegion = false, bool osPath = false );
+	bool					Parse( const char* filename, bool ignoreRegion = false, bool osPath = false, bool ignoreExtraEnts = false );
 	bool					Write( const char* fileName, const char* ext, bool fromBasePath = true );
 
 	// RB begin
 	bool					WriteJSON( const char* fileName, const char* ext, bool fromBasePath = true );
+	bool					WriteDiff( const idMapFile* other, const char* fileName, const char* ext, bool fromBasePath = true );
 	bool					ConvertToPolygonMeshFormat();
-	bool					ConvertToValve220Format();
+	bool					ConvertToValve220Format( bool recalcPlanePoints );
 
 	void					ClassifyEntitiesForTrenchBroom( idDict& classTypeOverview );
 
@@ -554,6 +555,11 @@ public:
 		return hasPrimitiveData;
 	}
 
+	bool					IsGLTF() const
+	{
+		return gltfFormat;
+	}
+
 	static void				AddMaterialToCollection( const char* material, idStrList& textureCollections );
 	static void				WadTextureToMaterial( const char* material, idStr& matName );
 
@@ -564,7 +570,8 @@ protected:
 	idMapEntity::EntityList	entities;
 	idStr					name;
 	bool					hasPrimitiveData;
-	bool					valve220Format; // RB: for TrenchBroom support
+	bool					valve220Format;	// RB: for TrenchBroom support
+	bool					gltfFormat;
 
 private:
 	void					SetGeometryCRC();
@@ -579,6 +586,7 @@ ID_INLINE idMapFile::idMapFile()
 	entities.Resize( 1024, 256 );
 	hasPrimitiveData = false;
 	valve220Format = false;
+	gltfFormat = false;
 }
 
 #endif /* !__MAPFILE_H__ */

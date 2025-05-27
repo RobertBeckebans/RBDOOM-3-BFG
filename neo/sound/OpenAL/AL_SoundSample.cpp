@@ -580,21 +580,24 @@ void idSoundSample_OpenAL::MakeDefault()
 	playLength = DEFAULT_NUM_SAMPLES;
 
 
-	CheckALErrors();
-	alGenBuffers( 1, &openalBuffer );
-
-	if( CheckALErrors() != AL_NO_ERROR )
-	{
-		common->Error( "idSoundSample_OpenAL::MakeDefault: error generating OpenAL hardware buffer" );
-	}
-
-	if( alIsBuffer( openalBuffer ) )
+	if( soundSystem->GetOpenALDevice() != NULL && !s_noSound.GetBool() )
 	{
 		CheckALErrors();
-		alBufferData( openalBuffer, GetOpenALBufferFormat(), defaultBuffer, totalBufferSize, format.basic.samplesPerSec );
+		alGenBuffers( 1, &openalBuffer );
+
 		if( CheckALErrors() != AL_NO_ERROR )
 		{
-			common->Error( "idSoundSample_OpenAL::MakeDefault: error loading data into OpenAL hardware buffer" );
+			common->Error( "idSoundSample_OpenAL::MakeDefault: error generating OpenAL hardware buffer" );
+		}
+
+		if( alIsBuffer( openalBuffer ) )
+		{
+			CheckALErrors();
+			alBufferData( openalBuffer, GetOpenALBufferFormat(), defaultBuffer, totalBufferSize, format.basic.samplesPerSec );
+			if( CheckALErrors() != AL_NO_ERROR )
+			{
+				common->Error( "idSoundSample_OpenAL::MakeDefault: error loading data into OpenAL hardware buffer" );
+			}
 		}
 	}
 }

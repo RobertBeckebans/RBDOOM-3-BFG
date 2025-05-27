@@ -509,6 +509,7 @@ void idInteraction::UnlinkAndFree()
 {
 	// clear the table pointer
 	idRenderWorldLocal* renderWorld = this->lightDef->world;
+
 	// RB: added check for NULL
 	if( renderWorld->interactionTable != NULL )
 	{

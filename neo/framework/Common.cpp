@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2012-2014 Robert Beckebans
+Copyright (C) 2012-2025 Robert Beckebans
 Copyright (C) 2022 Stephen Pridham
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
@@ -97,12 +97,13 @@ idCVar net_inviteOnly( "net_inviteOnly", "1", CVAR_BOOL | CVAR_ARCHIVE, "whether
 // DG: add cvar for pause
 idCVar com_pause( "com_pause", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_NOCHEAT, "set to 1 to pause game, to 0 to unpause again" );
 // DG end
+idCVar com_activeApp( "com_activeApp", "1", CVAR_BOOL | CVAR_SYSTEM | CVAR_NOCHEAT, "this is set to 0 if running in background" );
 
 extern idCVar g_demoMode;
 
 idCVar com_engineHz( "com_engineHz", "60", CVAR_FLOAT | CVAR_ARCHIVE, "Frames per second the engine runs at", 10.0f, 1024.0f );
 float com_engineHz_latched = 60.0f; // Latched version of cvar, updated between map loads
-int64 com_engineHz_numerator = 100LL * 1000LL;
+const int64 com_engineHz_numerator = 100LL * 1000LL;
 int64 com_engineHz_denominator = 100LL * 60LL;
 
 // RB begin
@@ -1953,8 +1954,6 @@ void idCommonLocal::PerformGameSwitch()
 	{
 		return;
 	}
-
-	const int DOOM_CLASSIC_HZ = 35;
 
 	if( idealCurrentGame == DOOM_CLASSIC || idealCurrentGame == DOOM2_CLASSIC )
 	{

@@ -736,7 +736,7 @@ const emptyCommand_t* idRenderSystemLocal::SwapCommandBuffers_FinishCommandBuffe
 
 	// possibly change the stereo3D mode
 	// PC
-	UpdateStereo3DMode();
+	// TODO vrSystem->UpdateStereo3DMode();
 
 	if( !commandList )
 	{

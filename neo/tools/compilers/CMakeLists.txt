@@ -284,8 +284,8 @@ if(MSVC)
 			)
 
     add_executable(rbdmap ${MC_SOURCES_ALL} ${MC_INCLUDES_ALL})
-	add_dependencies(rbdmap idlib)
-	target_link_libraries(rbdmap idlib winmm imtui-pdcurses ${ZLIB_LIBRARY})
+	add_dependencies(rbdmap idlib  ${ISPC_TEXCOMP_LIBRARY})
+	target_link_libraries(rbdmap idlib winmm imtui-pdcurses Shlwapi ${ZLIB_LIBRARY} ${ISPC_TEXCOMP_LIBRARY})
 
 	# set MSVC default debug directory on executable	
 	if(CMAKE_MAJOR_VERSION EQUAL 3 AND CMAKE_MINOR_VERSION GREATER_EQUAL 8)
@@ -345,7 +345,7 @@ else()
 			)
 
 	add_executable(rbdmap ${MC_SOURCES_ALL} ${MC_INCLUDES_ALL})
-	add_dependencies(rbdmap idlib)
+	add_dependencies(rbdmap idlib ${ISPC_TEXCOMP_LIBRARY})
 
 	if (USE_PRECOMPILED_HEADERS)
 		add_dependencies(rbdmap precomp_header_rbdmap)
@@ -379,7 +379,7 @@ else()
 		endif()
 	endif()
 
-	target_link_libraries(rbdmap idlib ${CURSES_NCURSES_LIBRARY} ${ZLIB_LIBRARY})
+	target_link_libraries(rbdmap idlib ${CURSES_NCURSES_LIBRARY} ${ZLIB_LIBRARY} ${ISPC_TEXCOMP_LIBRARY})
 endif()
 	
 

@@ -106,73 +106,6 @@ float3 LinearSearch( float3 c, float3 pal[NUM_COLORS] )
 	return pal[index];
 }
 
-/*
-float3 GetClosest( float3 val1, float3 val2, float3 target )
-{
-	if( distance( target, val1 ) >= distance( val2, target ) )
-	{
-		return val2;
-	}
-	else
-	{
-		return val1;
-	}
-}
-
-// find nearest palette color using Euclidean disntance and binary search
-// this requires an already sorted palette as input
-float3 BinarySearch( float3 target, float3 pal[NUM_COLORS] )
-{
-	float targetY = PhotoLuma( target );
-
-	// left-side case
-	if( targetY <= PhotoLuma( pal[0] ) )
-	{
-		return pal[0];
-	}
-
-	// right-side case
-	if( targetY >= PhotoLuma( pal[NUM_COLORS - 1] ) )
-	{
-		return pal[NUM_COLORS - 1];
-	}
-
-	int i = 0, j = NUM_COLORS, mid = 0;
-	while( i < j )
-	{
-		mid = ( i + j ) / 2;
-
-		if( distance( pal[mid], target ) < 0.01 )
-		{
-			return pal[mid];
-		}
-
-		// if target is less than array element, then search in left
-		if( targetY < PhotoLuma( pal[mid] ) )
-		{
-			// if target is greater than previous
-			// to mid, return closest of two
-			if( mid > 0 && targetY > PhotoLuma( pal[mid - 1] ) )
-			{
-				return GetClosest( pal[mid - 1], pal[mid], target );
-			}
-			j = mid;
-		}
-		else
-		{
-			if( mid < ( NUM_COLORS - 1 ) && targetY < PhotoLuma( pal[mid + 1] ) )
-			{
-				return GetClosest( pal[mid], pal[mid + 1], target );
-			}
-			i = mid + 1;
-		}
-	}
-
-	// only single element left after search
-	return pal[mid];
-}
-*/
-
 
 #define RGB(r, g, b) float3(float(r)/255.0, float(g)/255.0, float(b)/255.0)
 
@@ -283,7 +216,6 @@ void main( PS_IN fragment, out PS_OUT result )
 
 	// find closest color match from C64 color palette
 	color = LinearSearch( color.rgb, palette );
-	//color = float4( BinarySearch( color.rgb, palette ), 1.0 );
 
 	result.color = float4( color, 1.0 );
 }

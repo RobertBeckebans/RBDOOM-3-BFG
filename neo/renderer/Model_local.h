@@ -54,7 +54,7 @@ public:
 	virtual						~idRenderModelStatic();
 
 	virtual void				InitFromFile( const char* fileName, const idImportOptions* options );
-	virtual bool				LoadBinaryModel( idFile* file, const ID_TIME_T sourceTimeStamp );
+	virtual bool				LoadBinaryModel( idFile* file, const ID_TIME_T sourceTimeStamp, const ID_TIME_T declSourceTimeStamp );
 	virtual void				WriteBinaryModel( idFile* file, ID_TIME_T* _timeStamp = NULL ) const;
 	virtual bool				SupportsBinaryModel()
 	{
@@ -83,6 +83,8 @@ public:
 	virtual void				List() const;
 	virtual int					Memory() const;
 	virtual ID_TIME_T			Timestamp() const;
+	virtual ID_TIME_T			DeclTimestamp() const;	// RB
+	virtual const char*			GetModelDefName() const;
 	virtual int					NumSurfaces() const;
 	virtual int					NumBaseSurfaces() const;
 	virtual const modelSurface_t* Surface( int surfaceNum ) const;
@@ -159,6 +161,8 @@ protected:
 	bool						hasInteractingSurfaces;
 	bool						hasShadowCastingSurfaces;
 	ID_TIME_T					timeStamp;
+	ID_TIME_T					declTimeStamp;			// RB: only != 0 if initialized from modelDef
+	idStr						declModelDefName;		// RB
 
 	static idCVar				r_mergeModelSurfaces;	// combine model surfaces with the same material
 	static idCVar				r_slopVertex;			// merge xyz coordinates this far apart
@@ -218,7 +222,7 @@ class idRenderModelMD5 : public idRenderModelStatic
 	friend class				idRenderModelGLTF;
 public:
 	void				InitFromFile( const char* fileName, const idImportOptions* options ) override;
-	bool				LoadBinaryModel( idFile* file, const ID_TIME_T sourceTimeStamp ) override;
+	bool				LoadBinaryModel( idFile* file, const ID_TIME_T sourceTimeStamp, const ID_TIME_T declSourceTimeStamp ) override;
 	void				WriteBinaryModel( idFile* file, ID_TIME_T* _timeStamp = NULL ) const override;
 	dynamicModel_t		IsDynamicModel() const override;
 	idBounds			Bounds( const struct renderEntity_s* ent ) const override;

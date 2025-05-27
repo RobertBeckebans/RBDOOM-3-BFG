@@ -1201,7 +1201,22 @@ void idGameEdit::MapSave( const char* path ) const
 	idMapFile* mapFile = gameLocal.GetLevelMap();
 	if( mapFile )
 	{
-		mapFile->Write( ( path ) ? path : mapFile->GetName(), ".map" );
+		if( mapFile->IsGLTF() )
+		{
+			// RB: can't write .glb so we write a _extra_ents.map which acts like a patch
+			idMapFile* origFile = new( TAG_GAME ) idMapFile;
+			if( origFile->Parse( mapFile->GetName(), true, false, true ) )
+			{
+				idStr filename = mapFile->GetName();
+				filename += "_extra_ents";
+
+				origFile->WriteDiff( mapFile, filename, ".map" );
+			}
+		}
+		else
+		{
+			mapFile->Write( ( path ) ? path : mapFile->GetName(), ".map" );
+		}
 	}
 }
 

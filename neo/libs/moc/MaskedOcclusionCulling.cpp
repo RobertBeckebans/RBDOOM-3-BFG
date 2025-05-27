@@ -486,7 +486,7 @@ extern MaskedOcclusionCulling* CreateMaskedOcclusionCulling( pfnAlignedAlloc ali
 
 MaskedOcclusionCulling* MaskedOcclusionCulling::Create( Implementation RequestedSIMD )
 {
-	return Create( RequestedSIMD, aligned_alloc, aligned_free );
+	return Create( RequestedSIMD, moc_aligned_alloc, moc_aligned_free );
 }
 
 MaskedOcclusionCulling* MaskedOcclusionCulling::Create( Implementation RequestedSIMD, pfnAlignedAlloc alignedAlloc, pfnAlignedFree alignedFree )

@@ -381,7 +381,7 @@ void idImage::AllocImage()
 			format = nvrhi::Format::R8_UNORM;
 			break;
 
-		case FMT_R8:
+		case FMT_R8F:
 			format = nvrhi::Format::R8_UNORM;
 			break;
 
@@ -391,6 +391,10 @@ void idImage::AllocImage()
 
 		case FMT_DXT5:
 			format = nvrhi::Format::BC3_UNORM;
+			break;
+
+		case FMT_BC6H:
+			format = nvrhi::Format::BC6H_UFLOAT;
 			break;
 
 		case FMT_DEPTH:
@@ -450,10 +454,6 @@ void idImage::AllocImage()
 			format = nvrhi::Format::R11G11B10_FLOAT;
 			break;
 
-		case FMT_SRGB8:
-			format = nvrhi::Format::SRGBA8_UNORM;
-			break;
-
 		default:
 			idLib::Error( "Unhandled image format %d in %s\n", opts.format, GetName() );
 	}
@@ -485,7 +485,7 @@ void idImage::AllocImage()
 	if( maxTextureSize > 0 &&
 			int( Max( originalWidth, originalHeight ) ) > maxTextureSize &&
 			opts.isRenderTarget &&
-			opts.textureType == TT_2D )
+			opts.textureType == DTT_2D )
 	{
 		if( originalWidth >= originalHeight )
 		{
@@ -574,21 +574,21 @@ void idImage::AllocImage()
 		}
 	}
 
-	if( opts.textureType == TT_2D )
+	if( opts.textureType == DTT_2D )
 	{
 		textureDesc.setDimension( nvrhi::TextureDimension::Texture2D );
 	}
-	else if( opts.textureType == TT_CUBIC )
+	else if( opts.textureType == DTT_CUBIC )
 	{
 		textureDesc.setDimension( nvrhi::TextureDimension::TextureCube );
 		textureDesc.setArraySize( 6 );
 	}
-	else if( opts.textureType == TT_2D_ARRAY )
+	else if( opts.textureType == DTT_2D_ARRAY )
 	{
 		textureDesc.setDimension( nvrhi::TextureDimension::Texture2DArray );
 		textureDesc.setArraySize( 6 );
 	}
-	else if( opts.textureType == TT_2D_MULTISAMPLE )
+	else if( opts.textureType == DTT_2D_MULTISAMPLE )
 	{
 		textureDesc.setDimension( nvrhi::TextureDimension::Texture2DMS );
 		textureDesc.setArraySize( 1 );
@@ -598,7 +598,7 @@ void idImage::AllocImage()
 	if( m_VmaAllocator )
 	{
 		VkImageCreateInfo imageCreateInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
-		imageCreateInfo.flags = ( opts.textureType == TT_CUBIC ) ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0;
+		imageCreateInfo.flags = ( opts.textureType == DTT_CUBIC ) ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0;
 		imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
 		imageCreateInfo.format = static_cast< VkFormat >( nvrhi::vulkan::convertFormat( format ) );
 		imageCreateInfo.extent.width = scaledWidth;

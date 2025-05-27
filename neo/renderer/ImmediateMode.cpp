@@ -147,7 +147,7 @@ void fhImmediateMode::End()
 
 	for( int i = 0; i < layouts->Num(); i++ )
 	{
-		if( !tr.backend.currentBindingSets[i] || *tr.backend.currentBindingSets[i]->getDesc() != tr.backend.pendingBindingSetDescs[bindingLayoutType][i] )
+		if( !tr.backend.currentBindingSets[i] || *tr.backend.currentBindingSets[i]->getDesc() != tr.backend.pendingBindingSetDescs[bindingLayoutType][i] || bindingLayoutType != tr.backend.prevBindingLayoutType )
 		{
 			tr.backend.currentBindingSets[i] = tr.backend.bindingCache.GetOrCreateBindingSet( tr.backend.pendingBindingSetDescs[bindingLayoutType][i], ( *layouts )[i] );
 		}

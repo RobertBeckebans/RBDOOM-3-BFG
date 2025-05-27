@@ -718,7 +718,7 @@ CONSOLE_COMMAND_SHIP( convertMapToValve220, "Convert .map file to the Valve 220 
 		// make sure we have access to all .bimage files for that map
 		fileSystem->BeginLevelLoad( filename, NULL, 0 );
 
-		map.ConvertToValve220Format();
+		map.ConvertToValve220Format( true );
 
 		fileSystem->EndLevelLoad();
 

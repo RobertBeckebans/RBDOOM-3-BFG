@@ -442,4 +442,17 @@ textures/common/occlusion
 	noshadows
 	occlusion
 }
+
+// this one is not invisible and like textures/sfx/black but will also cast shadows
+// so it works as a blocker for the lightgrid
+textures/common/black
+{
+	qer_editorimage textures/common/black.tga
+	nonsolid
+	forceshadows
+	forceOpaque
+	noselfshadow
+
+	basecolormap _blackDiffuse
+}
 // RB end

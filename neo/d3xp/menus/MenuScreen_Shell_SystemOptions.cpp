@@ -39,6 +39,7 @@ extern idCVar r_swapInterval;
 extern idCVar s_volume_dB;
 extern idCVar r_exposure; // RB: use this to control HDR exposure or brightness in LDR mode
 extern idCVar r_lightScale;
+extern idCVar r_useSSR;
 
 /*
 ========================
@@ -140,6 +141,14 @@ void idMenuScreen_Shell_SystemOptions::Initialize( idMenuHandler* data )
 	control->SetDataSource( &systemData, idMenuDataSource_SystemSettings::SYSTEM_FIELD_SSAO );
 	control->SetupEvents( DEFAULT_REPEAT_TIME, options->GetChildren().Num() );
 	control->AddEventAction( WIDGET_EVENT_PRESS ).Set( WIDGET_ACTION_COMMAND, idMenuDataSource_SystemSettings::SYSTEM_FIELD_SSAO );
+	options->AddChild( control );
+
+	control = new( TAG_SWF ) idMenuWidget_ControlButton();
+	control->SetOptionType( OPTION_SLIDER_TEXT );
+	control->SetLabel( "Blood Reflections" );
+	control->SetDataSource( &systemData, idMenuDataSource_SystemSettings::SYSTEM_FIELD_BLOOD_REFLECTIONS );
+	control->SetupEvents( DEFAULT_REPEAT_TIME, options->GetChildren().Num() );
+	control->AddEventAction( WIDGET_EVENT_PRESS ).Set( WIDGET_ACTION_COMMAND, idMenuDataSource_SystemSettings::SYSTEM_FIELD_BLOOD_REFLECTIONS );
 	options->AddChild( control );
 
 	/*control = new( TAG_SWF ) idMenuWidget_ControlButton();
@@ -438,6 +447,7 @@ void idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::LoadData
 	originalRenderMode = r_renderMode.GetInteger();
 	originalAmbientBrightness = r_forceAmbient.GetFloat();
 	originalSSAO = r_useSSAO.GetInteger();
+	originalBloodReflections = r_useSSR.GetInteger();
 	originalPostProcessing = r_useFilmicPostFX.GetInteger();
 	originalCRTPostFX = r_useCRTPostFX.GetInteger();
 	// RB end
@@ -599,10 +609,11 @@ void idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::AdjustFi
 				ANTI_ALIASING_MSAA_4X,
 			};
 #else
-			static const int numValues = 2;
+			static const int numValues = 3;
 			static const int values[numValues] =
 			{
 				ANTI_ALIASING_NONE,
+				ANTI_ALIASING_SMAA_1X,
 				ANTI_ALIASING_TAA,
 			};
 #endif
@@ -613,8 +624,8 @@ void idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::AdjustFi
 		// RB begin
 		case SYSTEM_FIELD_RENDERMODE:
 		{
-			static const int numValues = 12;
-			static const int values[numValues] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
+			static const int numValues = 10;
+			static const int values[numValues] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 			r_renderMode.SetInteger( AdjustOption( r_renderMode.GetInteger(), values, numValues, adjustAmount ) );
 			break;
 		}
@@ -653,6 +664,13 @@ void idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::AdjustFi
 			static const int numValues = 2;
 			static const int values[numValues] = { 0, 1 };
 			r_useSSAO.SetInteger( AdjustOption( r_useSSAO.GetInteger(), values, numValues, adjustAmount ) );
+			break;
+		}
+		case SYSTEM_FIELD_BLOOD_REFLECTIONS:
+		{
+			static const int numValues = 2;
+			static const int values[numValues] = { 0, 1 };
+			r_useSSR.SetInteger( AdjustOption( r_useSSR.GetInteger(), values, numValues, adjustAmount ) );
 			break;
 		}
 		case SYSTEM_FIELD_AMBIENT_BRIGHTNESS:
@@ -779,10 +797,11 @@ idSWFScriptVar idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings
 
 			compile_time_assert( numValues == ( ANTI_ALIASING_MSAA_4X + 1 ) );
 #else
-			static const int numValues = 2;
+			static const int numValues = 3;
 			static const char* values[numValues] =
 			{
 				"None",
+				"SMAA",
 				"TAA"
 			};
 
@@ -793,7 +812,7 @@ idSWFScriptVar idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings
 		}
 		case SYSTEM_FIELD_RENDERMODE:
 		{
-			static const int numValues = 12;
+			static const int numValues = 10;
 			static const char* values[numValues] =
 			{
 				"Doom 3",
@@ -803,8 +822,6 @@ idSWFScriptVar idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings
 				"Commodore 64 Hi",
 				"Amstrad CPC 6128",
 				"Amstrad CPC 6128 Hi",
-				"NES",
-				"NES Hi",
 				"Sega Genesis",
 				"Sega Genesis Highres",
 				"Sony PSX",
@@ -849,6 +866,16 @@ idSWFScriptVar idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings
 			else
 			{
 				return "#str_swf_disabled";
+			}
+
+		case SYSTEM_FIELD_BLOOD_REFLECTIONS:
+			if( r_useSSR.GetInteger() == 1 )
+			{
+				return "Dynamic (SSR)";
+			}
+			else
+			{
+				return "Static";
 			}
 
 		case SYSTEM_FIELD_AMBIENT_BRIGHTNESS:
@@ -908,6 +935,11 @@ bool idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::IsDataCh
 	}
 
 	if( originalSSAO != r_useSSAO.GetInteger() )
+	{
+		return true;
+	}
+
+	if( originalBloodReflections != r_useSSR.GetInteger() )
 	{
 		return true;
 	}

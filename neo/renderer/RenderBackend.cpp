@@ -336,7 +336,14 @@ void idRenderBackend::BindVariableStageImage( const textureStage_t* texture, con
 	{
 		if( texture->image != NULL )
 		{
-			texture->image->Bind();
+			if( texture->image->IsLoaded() && !texture->image->IsDefaulted() )
+			{
+				texture->image->Bind();
+			}
+			else
+			{
+				globalImages->defaultImage->Bind();
+			}
 		}
 	}
 }
@@ -356,7 +363,6 @@ void idRenderBackend::PrepareStageTexturing( const shaderStage_t* pStage,  const
 	// texgens
 	if( pStage->texture.texgen == TG_REFLECT_CUBE )
 	{
-
 		// see if there is also a bump map specified
 		const shaderStage_t* bumpStage = surf->material->GetBumpStage();
 		if( bumpStage != NULL )
@@ -387,7 +393,139 @@ void idRenderBackend::PrepareStageTexturing( const shaderStage_t* pStage,  const
 				renderProgManager.BindShader_Environment();
 			}
 		}
+	}
+	else if( pStage->texture.texgen == TG_REFLECT_CUBE2 )
+	{
+		idVec4 probeMins, probeMaxs, probeCenter;
 
+		probeMins[0] = viewDef->globalProbeBounds[0][0];
+		probeMins[1] = viewDef->globalProbeBounds[0][1];
+		probeMins[2] = viewDef->globalProbeBounds[0][2];
+		probeMins[3] = viewDef->globalProbeBounds.IsCleared() ? 0.0f : 1.0f;
+
+		probeMaxs[0] = viewDef->globalProbeBounds[1][0];
+		probeMaxs[1] = viewDef->globalProbeBounds[1][1];
+		probeMaxs[2] = viewDef->globalProbeBounds[1][2];
+		probeMaxs[3] = 0.0f;
+
+		idVec3 center = viewDef->globalProbeBounds.GetCenter();
+		probeCenter.Set( center.x, center.y, center.z, 1.0f );
+
+		SetVertexParm( RENDERPARM_WOBBLESKY_X, probeMins.ToFloatPtr() );
+		SetVertexParm( RENDERPARM_WOBBLESKY_Y, probeMaxs.ToFloatPtr() );
+		SetVertexParm( RENDERPARM_WOBBLESKY_Z, probeCenter.ToFloatPtr() );
+
+		SetVertexParm( RENDERPARM_TEXGEN_0_S, viewDef->probePositions[0].ToFloatPtr() );
+		SetVertexParm( RENDERPARM_TEXGEN_0_T, viewDef->probePositions[1].ToFloatPtr() );
+		SetVertexParm( RENDERPARM_TEXGEN_0_Q, viewDef->probePositions[2].ToFloatPtr() );
+
+		// specular cubemap blend weights
+		renderProgManager.SetUniformValue( RENDERPARM_LOCALLIGHTORIGIN, viewDef->radianceImageBlends.ToFloatPtr() );
+
+		// general SSR parms
+		idVec4 ssrParms;
+		ssrParms.x = r_ssrStride.GetFloat();
+		ssrParms.y = r_ssrMaxDistance.GetFloat();
+		ssrParms.z = r_ssrZThickness.GetFloat();
+		ssrParms.w = r_ssrJitter.GetFloat();
+
+		idVec4 jitterTexScale;
+		jitterTexScale.x = r_ssrMaxDistance.GetFloat();
+		jitterTexScale.y = 0;
+		jitterTexScale.z = 0;
+		jitterTexScale.w = 0;
+		SetFragmentParm( RENDERPARM_JITTERTEXSCALE, jitterTexScale.ToFloatPtr() ); // rpJitterTexScale
+
+		renderProgManager.SetUniformValue( RENDERPARM_GLOBALLIGHTORIGIN, ssrParms.ToFloatPtr() );
+
+		// allow reconstruction of depth buffer value to full view space position
+		SetVertexParms( RENDERPARM_SHADOW_MATRIX_0_X, viewDef->unprojectionToCameraRenderMatrix[0], 4 );
+
+		// we need to rotate the normals from world space to view space
+		idRenderMatrix viewMatrix;
+		idRenderMatrix::Transpose( *( idRenderMatrix* ) viewDef->worldSpace.modelViewMatrix, viewMatrix );
+		//SetVertexParms( RENDERPARM_MODELVIEWMATRIX_X, viewMatrix[0], 4 );
+
+		// this is the main requirement for the DDA SSR algorithm next to the linear z buffer
+		// we need clip space [-1..1] -> window space [0..1] -> to texture space [0..w|h]
+		ALIGNTYPE16 const idRenderMatrix matClipToUvzw(
+			0.5f,  0.0f, 0.0f, 0.5f,
+			0.0f,  -0.5f, 0.0f, 0.5f,
+			0.0f,  0.0f, 1.0f, 0.0f,
+			0.0f,  0.0f, 0.0f, 1.0f
+		);
+
+		// should this be the viewport width / height instead?
+		int w = renderSystem->GetWidth();
+		int h = renderSystem->GetHeight();
+
+		ALIGNTYPE16 const idRenderMatrix screenScale(
+			w,  0.0f, 0.0f, 0.0f,
+			0.0f, h, 0.0f, 0.0f,
+			0.0f,  0.0f, 1.0f, 0.0f,
+			0.0f,  0.0f, 0.0f, 1.0f
+		);
+
+		idRenderMatrix screenSpaceScaled;
+		idRenderMatrix::Multiply( screenScale, matClipToUvzw, screenSpaceScaled );
+
+		idRenderMatrix screenSpace;
+		idRenderMatrix::Multiply( screenSpaceScaled, viewDef->projectionRenderMatrix, screenSpace );
+
+		SetVertexParms( RENDERPARM_SHADOW_MATRIX_1_X, screenSpace[0], 4 );
+
+		// see if there is also a bump map specified
+		const shaderStage_t* bumpStage = surf->material->GetBumpStage();
+		if( bumpStage != NULL )
+		{
+			// per-pixel reflection mapping with bump mapping
+			GL_SelectTexture( 0 );
+			bumpStage->texture.image->Bind();
+
+			GL_SelectTexture( 1 );
+			globalImages->currentRenderImage->Bind();
+
+			GL_SelectTexture( 2 );
+			globalImages->gbufferNormalsRoughnessImage->Bind();
+
+			GL_SelectTexture( 3 );
+			// use hierachical Z to avoid read & write at the same time on the depth buffer
+			globalImages->hierarchicalZbufferImage->Bind();
+
+			GL_SelectTexture( 4 );
+			viewDef->radianceImages[0]->Bind();
+
+			GL_SelectTexture( 5 );
+			viewDef->radianceImages[1]->Bind();
+
+			GL_SelectTexture( 6 );
+			viewDef->radianceImages[2]->Bind();
+
+			GL_SelectTexture( 0 );
+
+			if( r_useSSR.GetBool() && R_UseHiZ() ) //&& !viewDef->globalProbeBounds.IsCleared() )
+			{
+				if( surf->jointCache )
+				{
+					renderProgManager.BindShader_BumpyEnvironment2_SSR_Skinned();
+				}
+				else
+				{
+					renderProgManager.BindShader_BumpyEnvironment2_SSR();
+				}
+			}
+			else
+			{
+				if( surf->jointCache )
+				{
+					renderProgManager.BindShader_BumpyEnvironment2Skinned();
+				}
+				else
+				{
+					renderProgManager.BindShader_BumpyEnvironment2();
+				}
+			}
+		}
 	}
 	else if( pStage->texture.texgen == TG_SKYBOX_CUBE )
 	{
@@ -395,7 +533,6 @@ void idRenderBackend::PrepareStageTexturing( const shaderStage_t* pStage,  const
 	}
 	else if( pStage->texture.texgen == TG_WOBBLESKY_CUBE )
 	{
-
 		const int* parms = surf->material->GetTexGenRegisters();
 
 		float wobbleDegrees = surf->shaderRegisters[ parms[0] ] * ( idMath::PI / 180.0f );
@@ -453,7 +590,6 @@ void idRenderBackend::PrepareStageTexturing( const shaderStage_t* pStage,  const
 	}
 	else if( ( pStage->texture.texgen == TG_SCREEN ) || ( pStage->texture.texgen == TG_SCREEN2 ) )
 	{
-
 		useTexGenParm[0] = 1.0f;
 		useTexGenParm[1] = 1.0f;
 		useTexGenParm[2] = 1.0f;
@@ -518,7 +654,7 @@ void idRenderBackend::FinishStageTexturing( const shaderStage_t* pStage, const d
 		GL_SelectTexture( 0 );
 	}
 
-	if( pStage->texture.texgen == TG_REFLECT_CUBE )
+	if( pStage->texture.texgen == TG_REFLECT_CUBE || pStage->texture.texgen == TG_REFLECT_CUBE2 )
 	{
 		// see if there is also a bump map specified
 		const shaderStage_t* bumpStage = surf->material->GetBumpStage();
@@ -531,6 +667,7 @@ void idRenderBackend::FinishStageTexturing( const shaderStage_t* pStage, const d
 		{
 			// per-pixel reflection mapping without bump mapping
 		}
+
 		renderProgManager.Unbind();
 	}
 }
@@ -994,7 +1131,14 @@ void idRenderBackend::DrawSingleInteraction( drawInteraction_t* din, bool useFas
 			return;
 		}
 
-		if( r_skipDiffuse.GetInteger() == 2 )
+		if( r_skipDiffuse.GetInteger() == 3 )
+		{
+			// RB: for testing specular aliasing
+			din->diffuseImage = globalImages->redClayImage;
+			din->specularImage = globalImages->plasticSpecImage;
+			din->specularColor = colorWhite;
+		}
+		else if( r_skipDiffuse.GetInteger() == 2 )
 		{
 			din->diffuseImage = globalImages->whiteImage;
 		}
@@ -1042,7 +1186,7 @@ void idRenderBackend::DrawSingleInteraction( drawInteraction_t* din, bool useFas
 	const textureUsage_t specUsage = din->specularImage->GetUsage();
 
 	// RB begin
-	if( useIBL && currentSpace->useLightGrid && r_useLightGrid.GetBool() )
+	if( useIBL && din->surf->area != NULL && r_useLightGrid.GetBool() )
 	{
 		idVec4 probeMins, probeMaxs, probeCenter;
 
@@ -1064,9 +1208,11 @@ void idRenderBackend::DrawSingleInteraction( drawInteraction_t* din, bool useFas
 		SetVertexParm( RENDERPARM_WOBBLESKY_Z, probeCenter.ToFloatPtr() );
 
 		// use rpGlobalLightOrigin for lightGrid center
-		idVec4 lightGridOrigin( currentSpace->lightGridOrigin.x, currentSpace->lightGridOrigin.y, currentSpace->lightGridOrigin.z, 1.0f );
-		idVec4 lightGridSize( currentSpace->lightGridSize.x, currentSpace->lightGridSize.y, currentSpace->lightGridSize.z, 1.0f );
-		idVec4 lightGridBounds( currentSpace->lightGridBounds[0], currentSpace->lightGridBounds[1], currentSpace->lightGridBounds[2], 1.0f );
+		const LightGrid& lightGrid = din->surf->area->lightGrid;
+
+		idVec4 lightGridOrigin( lightGrid.lightGridOrigin.x, lightGrid.lightGridOrigin.y, lightGrid.lightGridOrigin.z, 1.0f );
+		idVec4 lightGridSize( lightGrid.lightGridSize.x, lightGrid.lightGridSize.y, lightGrid.lightGridSize.z, 1.0f );
+		idVec4 lightGridBounds( lightGrid.lightGridBounds[0], lightGrid.lightGridBounds[1], lightGrid.lightGridBounds[2], 1.0f );
 
 		renderProgManager.SetUniformValue( RENDERPARM_GLOBALLIGHTORIGIN, lightGridOrigin.ToFloatPtr() );
 		renderProgManager.SetUniformValue( RENDERPARM_JITTERTEXSCALE, lightGridSize.ToFloatPtr() );
@@ -1074,10 +1220,10 @@ void idRenderBackend::DrawSingleInteraction( drawInteraction_t* din, bool useFas
 
 		// individual probe sizes on the atlas image
 		idVec4 probeSize;
-		probeSize[0] = currentSpace->lightGridAtlasSingleProbeSize - currentSpace->lightGridAtlasBorderSize;
-		probeSize[1] = currentSpace->lightGridAtlasSingleProbeSize;
-		probeSize[2] = currentSpace->lightGridAtlasBorderSize;
-		probeSize[3] = float( currentSpace->lightGridAtlasSingleProbeSize - currentSpace->lightGridAtlasBorderSize ) / currentSpace->lightGridAtlasSingleProbeSize;
+		probeSize[0] = lightGrid.imageSingleProbeSize - lightGrid.imageBorderSize;
+		probeSize[1] = lightGrid.imageSingleProbeSize;
+		probeSize[2] = lightGrid.imageBorderSize;
+		probeSize[3] = float( lightGrid.imageSingleProbeSize - lightGrid.imageBorderSize ) / lightGrid.imageSingleProbeSize;
 		renderProgManager.SetUniformValue( RENDERPARM_SCREENCORRECTIONFACTOR, probeSize.ToFloatPtr() ); // rpScreenCorrectionFactor
 
 		// specular cubemap blend weights
@@ -1121,9 +1267,9 @@ void idRenderBackend::DrawSingleInteraction( drawInteraction_t* din, bool useFas
 		}
 
 		GL_SelectTexture( INTERACTION_TEXUNIT_AMBIENT_CUBE1 );
-		currentSpace->lightGridAtlasImage->Bind();
+		lightGrid.GetIrradianceImage()->Bind();
 
-		idVec2i res = currentSpace->lightGridAtlasImage->GetUploadResolution();
+		idVec2i res = lightGrid.GetIrradianceImage()->GetUploadResolution();
 		idVec4 textureSize( res.x, res.y, 1.0f / res.x, 1.0f / res.y );
 
 		renderProgManager.SetUniformValue( RENDERPARM_CASCADEDISTANCES, textureSize.ToFloatPtr() );
@@ -1575,7 +1721,7 @@ void idRenderBackend::RenderInteractions( const drawSurf_t* surfList, const view
 	// are added single-threaded, and there is only a negligable amount
 	// of benefit to trying to sort by materials.
 	//---------------------------------
-	static const int MAX_INTERACTIONS_PER_LIGHT = 1024;
+	static const int MAX_INTERACTIONS_PER_LIGHT = 2048; // 1024 in BFG
 	static const int MAX_COMPLEX_INTERACTIONS_PER_LIGHT = 256;
 	idStaticList< const drawSurf_t*, MAX_INTERACTIONS_PER_LIGHT > allSurfaces;
 	idStaticList< const drawSurf_t*, MAX_COMPLEX_INTERACTIONS_PER_LIGHT > complexSurfaces;
@@ -1704,9 +1850,11 @@ void idRenderBackend::RenderInteractions( const drawSurf_t* surfList, const view
 
 		// apply the world-global overbright and the 2x factor for specular
 		idVec4 diffuseColor = lightColor;
-// jmarshall
-		idVec4 specularColor = lightColor * 2.0f;
 
+		// RB: the BFG edition has exagerated specular lighting compared to vanilla Doom 3
+		// turn this back to 1.0
+		idVec4 specularColor = lightColor * 1.0f;
+// jmarshall
 		if( vLight->lightDef->parms.noSpecular )
 		{
 			specularColor.Zero();
@@ -2067,13 +2215,13 @@ void idRenderBackend::AmbientPass( const drawSurf_t* const* drawSurfs, int numDr
 
 	if( fillGbuffer )
 	{
-		commandList->clearTextureFloat( globalImages->gbufferNormalsRoughnessImage->GetTextureHandle(), nvrhi::AllSubresources, nvrhi::Color( 0.f ) );
+		commandList->clearTextureFloat( globalImages->gbufferNormalsRoughnessImage->GetTextureHandle(), nvrhi::AllSubresources, nvrhi::Color( 0.0f ) );
 	}
 
 	// RB: TODO remove this
 	if( !fillGbuffer && r_useSSAO.GetBool() && r_ssaoDebug.GetBool() )
 	{
-		GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS );
+		GL_State( GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS | GLS_CULL_TWOSIDED );
 
 		// We just want to do a quad pass - so make sure we disable any texgen and
 		// set the texture matrix to the identity so we don't get anomalies from
@@ -2088,9 +2236,7 @@ void idRenderBackend::AmbientPass( const drawSurf_t* const* drawSurfs, int numDr
 		renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_ENABLED, texGenEnabled );
 
 		currentSpace = NULL;
-		auto mvp = renderMatrix_identity;
-		mvp[1][1] = -mvp[1][1]; // flip y
-		RB_SetMVP( mvp );
+		RB_SetMVP( renderMatrix_fullscreen );
 
 		renderProgManager.BindShader_Texture();
 		GL_Color( 1, 1, 1, 1 );
@@ -2116,7 +2262,7 @@ void idRenderBackend::AmbientPass( const drawSurf_t* const* drawSurfs, int numDr
 	{
 		globalFramebuffers.geometryBufferFBO->Bind();
 
-		GL_Clear( true, false, false, 0, 0.0f, 0.0f, 0.0f, 1.0f, false );
+		GL_Clear( true, false, false, 0, 0.0f, 0.0f, 0.0f, 1.0f );
 	}
 
 	// RB: not needed
@@ -2172,11 +2318,6 @@ void idRenderBackend::AmbientPass( const drawSurf_t* const* drawSurfs, int numDr
 		specularColor = lightColor;// * 0.5f;
 
 		float ambientBoost = 1.0f;
-		//if( !r_usePBR.GetBool() )
-		//{
-		//	ambientBoost += r_useSSAO.GetBool() ? 0.2f : 0.0f;
-		//	ambientBoost *= 1.1f;
-		//}
 
 		ambientColor.x = r_forceAmbient.GetFloat() * ambientBoost;
 		ambientColor.y = r_forceAmbient.GetFloat() * ambientBoost;
@@ -2882,12 +3023,9 @@ void idRenderBackend::SetupShadowMapMatrices( viewLight_t* vLight, int side, idR
 		lightProjectionMatrix[1 * 4 + 2] = 0.0f;
 		lightProjectionMatrix[2 * 4 + 2] = -0.999f; // adjust value to prevent imprecision issues
 
-#if 0 //defined( USE_NVRHI )
 		// the D3D clip space Z is in range [0,1] instead of [-1,1]
-		lightProjectionMatrix[3 * 4 + 2] = -zNear;
-#else
+		// FIXME -1.0f * zNear kills shadow depth
 		lightProjectionMatrix[3 * 4 + 2] = -2.0f * zNear;
-#endif
 
 		lightProjectionMatrix[0 * 4 + 3] = 0.0f;
 		lightProjectionMatrix[1 * 4 + 3] = 0.0f;
@@ -2966,21 +3104,28 @@ void idRenderBackend::ShadowMapPassPerforated( const drawSurf_t** drawSurfs, int
 	// like a no-change-required
 	GL_State( glState | GLS_POLYGON_OFFSET );
 
+	const float polygonFactor = r_shadowMapPolygonFactor.GetFloat();
+	float polygonOffset = r_dxShadowMapPolygonOffset.GetFloat();
+	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
+	{
+		polygonOffset = r_vkShadowMapPolygonOffset.GetFloat();
+	}
+
 	switch( r_shadowMapOccluderFacing.GetInteger() )
 	{
 		case 0:
 			GL_State( ( glStateBits & ~( GLS_CULL_MASK ) ) | GLS_CULL_FRONTSIDED );
-			GL_PolygonOffset( r_shadowMapPolygonFactor.GetFloat(), r_shadowMapPolygonOffset.GetFloat() );
+			GL_PolygonOffset( polygonFactor, polygonOffset );
 			break;
 
 		case 1:
 			GL_State( ( glStateBits & ~( GLS_CULL_MASK ) ) | GLS_CULL_BACKSIDED );
-			GL_PolygonOffset( -r_shadowMapPolygonFactor.GetFloat(), -r_shadowMapPolygonOffset.GetFloat() );
+			GL_PolygonOffset( -polygonFactor, -polygonOffset );
 			break;
 
 		default:
 			GL_State( ( glStateBits & ~( GLS_CULL_MASK ) ) | GLS_CULL_TWOSIDED );
-			GL_PolygonOffset( r_shadowMapPolygonFactor.GetFloat(), r_shadowMapPolygonOffset.GetFloat() );
+			GL_PolygonOffset( polygonFactor, polygonOffset );
 			break;
 	}
 
@@ -3188,21 +3333,28 @@ void idRenderBackend::ShadowMapPassFast( const drawSurf_t* drawSurfs, viewLight_
 	// like a no-change-required
 	GL_State( glState | GLS_POLYGON_OFFSET );
 
+	const float polygonFactor = r_shadowMapPolygonFactor.GetFloat();
+	float polygonOffset = r_dxShadowMapPolygonOffset.GetFloat();
+	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN )
+	{
+		polygonOffset = r_vkShadowMapPolygonOffset.GetFloat();
+	}
+
 	switch( r_shadowMapOccluderFacing.GetInteger() )
 	{
 		case 0:
 			GL_State( ( glStateBits & ~( GLS_CULL_MASK ) ) | GLS_CULL_FRONTSIDED );
-			GL_PolygonOffset( r_shadowMapPolygonFactor.GetFloat(), r_shadowMapPolygonOffset.GetFloat() );
+			GL_PolygonOffset( polygonFactor, polygonOffset );
 			break;
 
 		case 1:
 			GL_State( ( glStateBits & ~( GLS_CULL_MASK ) ) | GLS_CULL_BACKSIDED );
-			GL_PolygonOffset( -r_shadowMapPolygonFactor.GetFloat(), -r_shadowMapPolygonOffset.GetFloat() );
+			GL_PolygonOffset( -polygonFactor, -polygonOffset );
 			break;
 
 		default:
 			GL_State( ( glStateBits & ~( GLS_CULL_MASK ) ) | GLS_CULL_TWOSIDED );
-			GL_PolygonOffset( r_shadowMapPolygonFactor.GetFloat(), r_shadowMapPolygonOffset.GetFloat() );
+			GL_PolygonOffset( polygonFactor, polygonOffset );
 			break;
 	}
 
@@ -3425,7 +3577,7 @@ void idRenderBackend::ShadowAtlasPass( const viewDef_t* _viewDef )
 			continue;
 		}
 
-		if( vLight->shadowLOD == -1 )
+		if( vLight->shadowLOD == -1 || vLight->globalShadows == NULL )
 		{
 			// light doesn't cast shadows
 			continue;
@@ -3563,7 +3715,7 @@ void idRenderBackend::ShadowAtlasPass( const viewDef_t* _viewDef )
 			continue;
 		}
 
-		if( vLight->shadowLOD == -1 )
+		if( vLight->shadowLOD == -1 || vLight->globalShadows == NULL )
 		{
 			// light doesn't cast shadows
 			vLight->imageSize.x = vLight->imageSize.y = -1;
@@ -4699,19 +4851,26 @@ void idRenderBackend::DrawMotionVectors()
 	renderLog.OpenMainBlock( MRB_MOTION_VECTORS );
 	renderLog.OpenBlock( "Render_MotionVectors" );
 
-	// clear the alpha buffer and draw only the hands + weapon into it so
-	// we can avoid blurring them
+	// clear the alpha buffer
 	GL_State( GLS_COLORMASK | GLS_DEPTHMASK );
+
+	//globalFramebuffers.smaaInputFBO->Bind();
+	//commandList->clearTextureFloat( globalImages->smaaInputImage->GetTextureHandle(), nvrhi::AllSubresources, nvrhi::Color( 0, 0, 0, 1 ) );
+
+	// draw only the hands + weapon into the alpha buffer so
+	// we can avoid blurring them
+	GL_State( GLS_COLORMASK | GLS_DEPTHMASK | GLS_DEPTHFUNC_ALWAYS | GLS_CULL_TWOSIDED );
 	GL_Color( 0, 0, 0, 1 );
 
 	renderProgManager.BindShader_Color();
 
-	currentSpace = &viewDef->worldSpace;
-	RB_SetMVP( viewDef->worldSpace.mvp );
+	currentSpace = NULL;
+	RB_SetMVP( renderMatrix_fullscreen );
 
 	DrawElementsWithCounters( &unitSquareSurface );
 
 	// draw the hands + weapon with alpha 0
+	GL_State( GLS_COLORMASK | GLS_DEPTHMASK );
 	GL_Color( 0, 0, 0, 0 );
 
 	GL_SelectTexture( 0 );
@@ -4723,9 +4882,9 @@ void idRenderBackend::DrawMotionVectors()
 	{
 		const drawSurf_t* surf = drawSurfs[ surfNum ];
 
-		if( !surf->space->weaponDepthHack && !surf->space->skipMotionBlur && !surf->material->HasSubview() )
+		if( !surf->space->weaponDepthHack && !surf->space->skipMotionBlur && !surf->material->HasSubview() )//&& !surf->space->isGuiSurface )
 		{
-			// Apply motion blur to this object
+			// don't apply TAA to this object
 			continue;
 		}
 
@@ -4865,11 +5024,11 @@ void idRenderBackend::TemporalAAPass( const viewDef_t* _viewDef )
 	renderLog.CloseMainBlock();
 }
 
-idVec2 idRenderBackend::GetCurrentPixelOffset() const
+idVec2 idRenderBackend::GetCurrentPixelOffset( int frameIndex ) const
 {
 	if( taaPass )
 	{
-		return taaPass->GetCurrentPixelOffset();
+		return taaPass->GetCurrentPixelOffset( frameIndex );
 	}
 
 	return idVec2( 0, 0 );
@@ -5035,31 +5194,7 @@ void idRenderBackend::DrawScreenSpaceAmbientOcclusion( const viewDef_t* _viewDef
 	int screenWidth = renderSystem->GetWidth();
 	int screenHeight = renderSystem->GetHeight();
 
-	commandList->clearTextureFloat( globalImages->hierarchicalZbufferImage->GetTextureHandle(), nvrhi::AllSubresources, nvrhi::Color( 1.f ) );
-	commandList->clearTextureFloat( globalImages->ambientOcclusionImage[0]->GetTextureHandle(), nvrhi::AllSubresources, nvrhi::Color( 1.f ) );
-
-	// build hierarchical depth buffer
-	if( r_useHierarchicalDepthBuffer.GetBool() )
-	{
-		renderLog.OpenBlock( "Render_HiZ" );
-
-		//if( R_GetMSAASamples() > 1 )
-		//{
-		//	commandList->resolveTexture( globalImages->hierarchicalZbufferImage->GetTextureHandle(), nvrhi::AllSubresources, globalImages->currentDepthImage->GetTextureHandle(), nvrhi::AllSubresources );
-		//}
-		//else
-		{
-			commonPasses.BlitTexture(
-				commandList,
-				globalFramebuffers.csDepthFBO[0]->GetApiObject(),
-				globalImages->currentDepthImage->GetTextureHandle(),
-				&bindingCache );
-		}
-
-		hiZGenPass->Dispatch( commandList, MAX_HIERARCHICAL_ZBUFFERS );
-
-		renderLog.CloseBlock();
-	}
+	commandList->clearTextureFloat( globalImages->ambientOcclusionImage[0]->GetTextureHandle(), nvrhi::AllSubresources, nvrhi::Color( 1.0f ) );
 
 	if( previousFramebuffer != NULL )
 	{
@@ -5151,7 +5286,7 @@ void idRenderBackend::DrawScreenSpaceAmbientOcclusion( const viewDef_t* _viewDef
 	globalImages->gbufferNormalsRoughnessImage->Bind();
 
 	GL_SelectTexture( 1 );
-	if( r_useHierarchicalDepthBuffer.GetBool() )
+	if( R_UseHiZ() )
 	{
 		globalImages->hierarchicalZbufferImage->Bind();
 	}
@@ -5309,6 +5444,8 @@ void idRenderBackend::ExecuteBackEndCommands( const emptyCommand_t* cmds )
 
 	resolutionScale.SetCurrentGPUFrameTime( commonLocal.GetRendererGPUMicroseconds() );
 
+	// make sure the swapchains and rendertargets have the size requested
+	// by the window system
 	ResizeImages();
 
 	if( cmds->commandId == RC_NOP && !cmds->next )
@@ -5316,62 +5453,13 @@ void idRenderBackend::ExecuteBackEndCommands( const emptyCommand_t* cmds )
 		return;
 	}
 
-	if( renderSystem->GetStereo3DMode() != STEREO3D_OFF )
-	{
-		StereoRenderExecuteBackEndCommands( cmds );
-		//renderLog.EndFrame();
-		return;
-	}
+	//if( renderSystem->GetStereo3DMode() != STEREO3D_OFF )
+	//{
+	//	StereoRenderExecuteBackEndCommands( cmds );
+	//	return;
+	//}
 
 	GL_StartFrame();
-
-	void* textureId = globalImages->hierarchicalZbufferImage->GetTextureID();
-
-	// RB: we need to load all images left before rendering
-	// this can be expensive here because of the runtime image compression
-	//globalImages->LoadDeferredImages( commandList );
-
-	if( !ssaoPass && r_useNewSsaoPass.GetBool() )
-	{
-		ssaoPass = new SsaoPass(
-			deviceManager->GetDevice(),
-			&commonPasses, globalImages->currentDepthImage->GetTextureHandle(),
-			globalImages->gbufferNormalsRoughnessImage->GetTextureHandle(),
-			globalImages->ambientOcclusionImage[0]->GetTextureHandle() );
-	}
-
-	if( globalImages->hierarchicalZbufferImage->GetTextureID() != textureId || !hiZGenPass )
-	{
-		if( hiZGenPass )
-		{
-			delete hiZGenPass;
-		}
-
-		hiZGenPass = new MipMapGenPass( deviceManager->GetDevice(), globalImages->hierarchicalZbufferImage->GetTextureHandle() );
-	}
-
-
-	if( !toneMapPass )
-	{
-		TonemapPass::CreateParameters createParms;
-		toneMapPass = new TonemapPass();
-		toneMapPass->Init( deviceManager->GetDevice(), &commonPasses, createParms, globalFramebuffers.ldrFBO->GetApiObject() );
-	}
-
-	if( !taaPass )
-	{
-		TemporalAntiAliasingPass::CreateParameters taaParams;
-		taaParams.sourceDepth = globalImages->currentDepthImage->GetTextureHandle();
-		taaParams.motionVectors = globalImages->taaMotionVectorsImage->GetTextureHandle();
-		taaParams.unresolvedColor = globalImages->currentRenderHDRImage->GetTextureHandle();
-		taaParams.resolvedColor = globalImages->taaResolvedImage->GetTextureHandle();
-		taaParams.feedback1 = globalImages->taaFeedback1Image->GetTextureHandle();
-		taaParams.feedback2 = globalImages->taaFeedback2Image->GetTextureHandle();
-		taaParams.motionVectorStencilMask = 0; //0x01;
-		taaParams.useCatmullRomFilter = true;
-		taaPass = new TemporalAntiAliasingPass();
-		taaPass->Init( deviceManager->GetDevice(), &commonPasses, NULL, taaParams );
-	}
 
 	uint64 backEndStartTime = Sys_Microseconds();
 
@@ -5440,7 +5528,7 @@ void idRenderBackend::ExecuteBackEndCommands( const emptyCommand_t* cmds )
 				break;
 
 			default:
-				common->Error( "RB_ExecuteBackEndCommands: bad commandId" );
+				common->Error( "ExecuteBackEndCommands: bad commandId" );
 				break;
 		}
 	}
@@ -5459,8 +5547,6 @@ void idRenderBackend::ExecuteBackEndCommands( const emptyCommand_t* cmds )
 		common->Printf( "3d: %i, 2d: %i, SetBuf: %i, CpyRenders: %i, CpyFrameBuf: %i\n", c_draw3d, c_draw2d, c_setBuffers, c_copyRenders, pc.c_copyFrameBuffer );
 		pc.c_copyFrameBuffer = 0;
 	}
-
-	//renderLog.EndFrame();
 }
 
 
@@ -5482,7 +5568,39 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	OPTICK_GPU_CONTEXT( ( void* ) commandList->getNativeObject( commandObject ) );
 	//OPTICK_GPU_EVENT( "DrawView" );	// SRS - now in DrawView() for 3D vs. GUI
 
-	renderLog.OpenBlock( "Render_DrawViewInternal", colorRed );
+	bool is3D = _viewDef->viewEntitys && !_viewDef->is2Dgui;
+
+	// ugly but still faster than building the string
+	if( !is3D )
+	{
+		if( stereoEye == -1 )
+		{
+			renderLog.OpenBlock( "Render_DrawView2D_LeftEye", colorRed );
+		}
+		else if( stereoEye == 1 )
+		{
+			renderLog.OpenBlock( "Render_DrawView2D_RightEye", colorRed );
+		}
+		else
+		{
+			renderLog.OpenBlock( "Render_DrawView2D", colorRed );
+		}
+	}
+	else
+	{
+		if( stereoEye == -1 )
+		{
+			renderLog.OpenBlock( "Render_DrawView3D_LeftEye", colorRed );
+		}
+		else if( stereoEye == 1 )
+		{
+			renderLog.OpenBlock( "Render_DrawView3D_RightEye", colorRed );
+		}
+		else
+		{
+			renderLog.OpenBlock( "Render_DrawView3D", colorRed );
+		}
+	}
 
 	//-------------------------------------------------
 	// guis can wind up referencing purged images that need to be loaded.
@@ -5522,7 +5640,6 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	// ensures that depth writes are enabled for the depth clear
 	GL_State( GLS_DEFAULT | GLS_CULL_FRONTSIDED, true );
 
-	bool useHDR = !_viewDef->is2Dgui;
 	bool clearColor = false;
 
 	if( _viewDef->renderView.rdflags & RDF_IRRADIANCE )
@@ -5530,7 +5647,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		globalFramebuffers.envprobeFBO->Bind();
 		clearColor = true;
 	}
-	else if( useHDR )
+	else if( is3D )
 	{
 		globalFramebuffers.hdrFBO->Bind();
 	}
@@ -5547,7 +5664,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	{
 		OPTICK_GPU_EVENT( "Render_ClearDepthStencil" );
 
-		GL_Clear( clearColor, true, true, STENCIL_SHADOW_TEST_VALUE, 0.0f, 0.0f, 0.0f, 0.0f, false );
+		GL_Clear( clearColor, true, true, STENCIL_SHADOW_TEST_VALUE, 0.0f, 0.0f, 0.0f, 0.0f );
 	}
 
 	// RB end
@@ -5580,9 +5697,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		SetFragmentParm( RENDERPARM_OVERBRIGHT, parm );
 
 		// Set Projection Matrix
-		float projMatrixTranspose[16];
-		R_MatrixTranspose( viewDef->projectionMatrix, projMatrixTranspose );
-		SetVertexParms( RENDERPARM_PROJMATRIX_X, projMatrixTranspose, 4 );
+		SetVertexParms( RENDERPARM_PROJMATRIX_X, viewDef->projectionRenderMatrix[0], 4 );
 
 		// PSX jitter parms
 		if( ( r_renderMode.GetInteger() == RENDERMODE_PSX ) && ( _viewDef->viewEntitys && !_viewDef->is2Dgui ) )
@@ -5607,6 +5722,19 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		}
 
 		SetVertexParm( RENDERPARM_PSX_DISTORTIONS, parm );
+
+		// make sure rpWindowCoord is set even without post processing surfaces in the view
+		int x = viewDef->viewport.x1;
+		int y = viewDef->viewport.y1;
+		int	w = viewDef->viewport.x2 - viewDef->viewport.x1 + 1;
+		int	h = viewDef->viewport.y2 - viewDef->viewport.y1 + 1;
+
+		float windowCoordParm[4];
+		windowCoordParm[0] = 1.0f / w;
+		windowCoordParm[1] = 1.0f / h;
+		windowCoordParm[2] = w;
+		windowCoordParm[3] = h;
+		SetFragmentParm( RENDERPARM_WINDOWCOORD, windowCoordParm ); // rpWindowCoord
 	}
 
 	//-------------------------------------------------
@@ -5615,11 +5743,32 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	FillDepthBufferFast( drawSurfs, numDrawSurfs );
 
 	//-------------------------------------------------
+	// build hierarchical depth buffer
+	//-------------------------------------------------
+	if( R_UseHiZ() && is3D )
+	{
+		OPTICK_GPU_EVENT( "Render_HiZ" );
+		renderLog.OpenBlock( "Render_HiZ" );
+
+		commandList->clearTextureFloat( globalImages->hierarchicalZbufferImage->GetTextureHandle(), nvrhi::AllSubresources, nvrhi::Color( 1.f ) );
+
+		commonPasses.BlitTexture(
+			commandList,
+			globalFramebuffers.csDepthFBO[0]->GetApiObject(),
+			globalImages->currentDepthImage->GetTextureHandle(),
+			&bindingCache );
+
+		hiZGenPass->Dispatch( commandList, MAX_HIERARCHICAL_ZBUFFERS );
+
+		renderLog.CloseBlock();
+	}
+
+	//-------------------------------------------------
 	// FIXME, OPTIMIZE: merge this with FillDepthBufferFast like in a light prepass deferred renderer
 	//
 	// fill the geometric buffer with normals and roughness
 	//-------------------------------------------------
-	if( viewDef->viewEntitys )		// 3D views only
+	if( is3D )
 	{
 		//OPTICK_EVENT( "Render_GeometryBuffer" );
 		OPTICK_GPU_EVENT( "Render_GeometryBuffer" );
@@ -5642,7 +5791,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	//-------------------------------------------------
 	// render static lighting and consider SSAO results
 	//-------------------------------------------------
-	if( viewDef->viewEntitys )		// 3D views only
+	if( is3D )
 	{
 		//OPTICK_EVENT( "Render_AmbientPass" );
 		OPTICK_GPU_EVENT( "Render_AmbientPass" );
@@ -5661,8 +5810,37 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	DrawInteractions( _viewDef );
 
 	//-------------------------------------------------
+	// resolve the screen for SSR
+	//-------------------------------------------------
+	if( is3D && r_useSSR.GetBool() && R_UseHiZ() )
+	{
+		OPTICK_GPU_EVENT( "Resolve_Screen4SSR" );
+
+		if( R_GetMSAASamples() > 1 )
+		{
+			renderLog.OpenBlock( "Resolve to _currentRender" );
+
+			commandList->resolveTexture( globalImages->currentRenderImage->GetTextureHandle(), nvrhi::AllSubresources, globalImages->currentRenderHDRImage->GetTextureHandle(), nvrhi::AllSubresources );
+		}
+		else
+		{
+			renderLog.OpenBlock( "Blit to _currentRender" );
+
+			BlitParameters blitParms;
+			nvrhi::IFramebuffer* currentFB = ( nvrhi::IFramebuffer* )currentFrameBuffer->GetApiObject();
+			blitParms.sourceTexture = currentFB->getDesc().colorAttachments[0].texture;
+			blitParms.targetFramebuffer = globalFramebuffers.postProcFBO->GetApiObject(); // _currentRender image
+			blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
+			commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
+		}
+
+		renderLog.CloseBlock();
+	}
+
+	//-------------------------------------------------
 	// now draw any non-light dependent shading passes
 	//-------------------------------------------------
+
 	int processed = 0;
 	if( !r_skipShaderPasses.GetBool() )
 	{
@@ -5778,7 +5956,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	// tonemapping: convert back from HDR to LDR range
 	//-------------------------------------------------
 
-	if( useHDR && !( _viewDef->renderView.rdflags & RDF_IRRADIANCE ) && !_viewDef->targetRender )
+	if( is3D && !( _viewDef->renderView.rdflags & RDF_IRRADIANCE ) && !_viewDef->targetRender )
 	{
 		OPTICK_GPU_EVENT( "Render_ToneMapPass" );
 
@@ -5825,7 +6003,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		BlitParameters blitParms;
 		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
 		blitParms.targetFramebuffer = deviceManager->GetCurrentFramebuffer();
-		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
+		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetNativeWidth(), renderSystem->GetNativeHeight() );
 		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
 
 		// blit envprobe over it for quick review where we are
@@ -5837,15 +6015,62 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	}
 	else
 	{
-		OPTICK_GPU_EVENT( "Blit_Rendered" );
+		OPTICK_GPU_EVENT( "Blit_Rendered2SwapChain" );
+		renderLog.OpenBlock( "Blit_Rendered2SwapChain", colorBlue );
 
 		// copy LDR result to DX12 / Vulkan swapchain image
+#if 0
+		if( vrSystem->IsActive() )
+		{
+			uint32_t swapChainIndex = deviceManager->GetCurrentBackBufferIndex();
 
-		BlitParameters blitParms;
-		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
-		blitParms.targetFramebuffer = deviceManager->GetCurrentFramebuffer();
-		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
-		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
+			globalFramebuffers.swapFramebuffers[ swapChainIndex ]->Bind();
+
+			int width = globalFramebuffers.swapFramebuffers[ swapChainIndex ]->GetWidth();
+			int height = globalFramebuffers.swapFramebuffers[ swapChainIndex ]->GetHeight();
+
+			// set the window clipping
+			GL_Viewport( 0, 0, width, width );
+			GL_Scissor( 0, 0, width, height );
+
+			renderProgManager.BindShader_TextureVertexColor_sRGB();
+			//renderProgManager.BindShader_Screen();
+
+			currentSpace = NULL;
+			RB_SetMVP( renderMatrix_fullscreen );
+
+			renderProgManager.SetRenderParm( RENDERPARM_ALPHA_TEST, vec4_zero.ToFloatPtr() );
+
+			float texS[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
+			float texT[4] = { 0.0f, 1.0f, 0.0f, 0.0f };
+			renderProgManager.SetRenderParm( RENDERPARM_TEXTUREMATRIX_S, texS );
+			renderProgManager.SetRenderParm( RENDERPARM_TEXTUREMATRIX_T, texT );
+
+			float texGenEnabled[4] = { 0, 0, 0, 0 };
+			renderProgManager.SetRenderParm( RENDERPARM_TEXGEN_0_ENABLED, texGenEnabled );
+			RB_SetVertexColorParms( SVC_IGNORE );
+
+			GL_State( GLS_DEPTHFUNC_ALWAYS | GLS_DEPTHMASK | GLS_CULL_TWOSIDED );
+
+			GL_SelectTexture( 0 );
+			globalImages->ldrImage->Bind();
+
+			DrawElementsWithCounters( &unitSquareSurface );
+
+			ResetViewportAndScissorToDefaultCamera( _viewDef );
+		}
+		else
+#endif
+			//if( stereoEye == 1 || stereoEye == 0 )
+		{
+			BlitParameters blitParms;
+			blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
+			blitParms.targetFramebuffer = deviceManager->GetCurrentFramebuffer();
+			blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetNativeWidth(), renderSystem->GetNativeHeight() );
+			commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
+		}
+
+		renderLog.CloseBlock();
 	}
 
 	renderLog.CloseBlock();
@@ -5860,6 +6085,7 @@ Experimental feature
 */
 void idRenderBackend::MotionBlur()
 {
+#if 0
 	if( !viewDef->viewEntitys )
 	{
 		// 3D views only
@@ -5958,6 +6184,7 @@ void idRenderBackend::MotionBlur()
 	globalImages->currentDepthImage->Bind();
 
 	DrawElementsWithCounters( &unitSquareSurface );
+#endif
 }
 
 /*
@@ -6128,21 +6355,20 @@ void idRenderBackend::PostProcess( const void* data )
 
 	if( viewDef->renderView.rdflags & RDF_IRRADIANCE )
 	{
-#if defined( USE_NVRHI )
 		OPTICK_GPU_EVENT( "Blit_EnvProbePostFX" );
 
 		// we haven't changed ldrImage so it's basically the previewsRenderLDR
 		BlitParameters blitParms;
 		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
 		blitParms.targetFramebuffer = deviceManager->GetCurrentFramebuffer();
-		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
+		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetNativeWidth(), renderSystem->GetNativeHeight() );
 		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
 
 		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->envprobeHDRImage->GetTextureID();
 		blitParms.targetFramebuffer = deviceManager->GetCurrentFramebuffer();
 		blitParms.targetViewport = nvrhi::Viewport( ENVPROBE_CAPTURE_SIZE, ENVPROBE_CAPTURE_SIZE );
 		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
-#endif
+
 		return;
 	}
 
@@ -6162,11 +6388,14 @@ void idRenderBackend::PostProcess( const void* data )
 	GL_Viewport( 0, 0, screenWidth, screenHeight );
 	GL_Scissor( 0, 0, screenWidth, screenHeight );
 
-#if 0
+#if 1
 	// SMAA
 	int aaMode = r_antiAliasing.GetInteger();
 	if( aaMode == ANTI_ALIASING_SMAA_1X )
 	{
+		OPTICK_GPU_EVENT( "Render_SMAA" );
+		renderLog.OpenBlock( "Render_SMAA" );
+
 		/*
 		 * The shader has three passes, chained together as follows:
 		 *
@@ -6185,8 +6414,6 @@ void idRenderBackend::PostProcess( const void* data )
 		 *                           |output|
 		*/
 
-		globalImages->smaaInputImage->CopyFramebuffer( 0, 0, screenWidth, screenHeight );
-
 		// set SMAA_RT_METRICS = rpScreenCorrectionFactor
 		float screenCorrectionParm[4];
 		screenCorrectionParm[0] = 1.0f / screenWidth;
@@ -6195,53 +6422,60 @@ void idRenderBackend::PostProcess( const void* data )
 		screenCorrectionParm[3] = screenHeight;
 		SetFragmentParm( RENDERPARM_SCREENCORRECTIONFACTOR, screenCorrectionParm ); // rpScreenCorrectionFactor
 
-		globalFramebuffers.smaaEdgesFBO->Bind();
+		BlitParameters blitParms;
+		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
+		blitParms.targetFramebuffer = globalFramebuffers.smaaInputFBO->GetApiObject();
 
-		glClearColor( 0, 0, 0, 0 );
-		glClear( GL_COLOR_BUFFER_BIT );
+		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
+		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
 
-		GL_SelectTexture( 0 );
-		globalImages->smaaInputImage->Bind();
+		{
+			//                    [ SMAA*EdgeDetection ]
+			globalFramebuffers.smaaEdgesFBO->Bind();
 
-		renderProgManager.BindShader_SMAA_EdgeDetection();
-		DrawElementsWithCounters( &unitSquareSurface );
+			GL_Clear( true, false, false, 128, 0, 0, 0, 0 );
 
-#if 1
-		//globalImages->smaaEdgesImage->CopyFramebuffer( viewport.x1, viewport.y1, viewport.GetWidth(), viewport.GetHeight() );
+			GL_SelectTexture( 0 );
+			globalImages->smaaInputImage->Bind();
 
-		globalFramebuffers.smaaBlendFBO->Bind();
-		//Framebuffer::Unbind();
+			renderProgManager.BindShader_SMAA_EdgeDetection();
+			DrawElementsWithCounters( &unitSquareSurface );
+		}
 
-		glClear( GL_COLOR_BUFFER_BIT );
+		{
+			//              [ SMAABlendingWeightCalculation ]
+			globalFramebuffers.smaaBlendFBO->Bind();
 
-		GL_SelectTexture( 0 );
-		globalImages->smaaEdgesImage->Bind();
+			GL_Clear( true, false, false, 128, 0, 0, 0, 0 );
 
-		GL_SelectTexture( 1 );
-		globalImages->smaaAreaImage->Bind();
+			GL_SelectTexture( 0 );
+			globalImages->smaaEdgesImage->Bind();
 
-		GL_SelectTexture( 2 );
-		globalImages->smaaSearchImage->Bind();
+			GL_SelectTexture( 1 );
+			globalImages->smaaAreaImage->Bind();
 
-		renderProgManager.BindShader_SMAA_BlendingWeightCalculation();
-		DrawElementsWithCounters( &unitSquareSurface );
+			GL_SelectTexture( 2 );
+			globalImages->smaaSearchImage->Bind();
 
-		Framebuffer::Unbind();
-#endif
+			renderProgManager.BindShader_SMAA_BlendingWeightCalculation();
+			DrawElementsWithCounters( &unitSquareSurface );
+		}
 
-#if 1
-		//GL_SelectTexture( 0 );
-		//globalImages->smaaBlendImage->CopyFramebuffer( viewport.x1, viewport.y1, viewport.GetWidth(), viewport.GetHeight() );
+		{
+			//                [ SMAANeighborhoodBlending ]
+			globalFramebuffers.ldrFBO->Bind();
 
-		GL_SelectTexture( 0 );
-		globalImages->smaaInputImage->Bind();
+			GL_SelectTexture( 0 );
+			globalImages->smaaInputImage->Bind();
 
-		GL_SelectTexture( 1 );
-		globalImages->smaaBlendImage->Bind();
+			GL_SelectTexture( 1 );
+			globalImages->smaaBlendImage->Bind();
 
-		renderProgManager.BindShader_SMAA_NeighborhoodBlending();
-		DrawElementsWithCounters( &unitSquareSurface );
-#endif
+			renderProgManager.BindShader_SMAA_NeighborhoodBlending();
+			DrawElementsWithCounters( &unitSquareSurface );
+		}
+
+		renderLog.CloseBlock();
 	}
 #endif
 
@@ -6336,23 +6570,8 @@ void idRenderBackend::PostProcess( const void* data )
 		globalImages->gbufferNormalsRoughnessImage->Bind();
 
 		GL_SelectTexture( 3 );
-		if( r_useHierarchicalDepthBuffer.GetBool() )
+		if( R_UseHiZ() )
 		{
-			// build hierarchical depth buffer
-			renderLog.OpenBlock( "Render_HiZ" );
-
-			commandList->clearTextureFloat( globalImages->hierarchicalZbufferImage->GetTextureHandle(), nvrhi::AllSubresources, nvrhi::Color( 1.f ) );
-
-			commonPasses.BlitTexture(
-				commandList,
-				globalFramebuffers.csDepthFBO[0]->GetApiObject(),
-				globalImages->currentDepthImage->GetTextureHandle(),
-				&bindingCache );
-
-			hiZGenPass->Dispatch( commandList, MAX_HIERARCHICAL_ZBUFFERS );
-
-			renderLog.CloseBlock();
-
 			globalImages->hierarchicalZbufferImage->Bind();
 		}
 		else
@@ -6381,12 +6600,6 @@ void idRenderBackend::PostProcess( const void* data )
 			jitterTexScale[0] = r_renderMode.GetInteger() == RENDERMODE_CPC_HIGHRES ? 2.0 : 1.0;
 
 			renderProgManager.BindShader_PostProcess_RetroCPC();
-		}
-		else if( r_renderMode.GetInteger() == RENDERMODE_NES || r_renderMode.GetInteger() == RENDERMODE_NES_HIGHRES )
-		{
-			jitterTexScale[0] = r_renderMode.GetInteger() == RENDERMODE_NES_HIGHRES ? 2.0 : 1.0;
-
-			renderProgManager.BindShader_PostProcess_RetroNES();
 		}
 		else if( r_renderMode.GetInteger() == RENDERMODE_GENESIS || r_renderMode.GetInteger() == RENDERMODE_GENESIS_HIGHRES )
 		{
@@ -6440,7 +6653,7 @@ void idRenderBackend::PostProcess( const void* data )
 		BlitParameters blitParms;
 		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
 		blitParms.targetFramebuffer = deviceManager->GetCurrentFramebuffer();
-		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
+		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetNativeWidth(), renderSystem->GetNativeHeight() );
 		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
 
 		// copy LDR result to postProcFBO which is HDR but also used by postFX
@@ -6606,7 +6819,7 @@ void idRenderBackend::CRTPostProcess()
 		BlitParameters blitParms;
 		blitParms.sourceTexture = ( nvrhi::ITexture* )globalImages->ldrImage->GetTextureID();
 		blitParms.targetFramebuffer = deviceManager->GetCurrentFramebuffer();
-		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetWidth(), renderSystem->GetHeight() );
+		blitParms.targetViewport = nvrhi::Viewport( renderSystem->GetNativeWidth(), renderSystem->GetNativeHeight() );
 		commonPasses.BlitTexture( commandList, blitParms, &bindingCache );
 	}
 

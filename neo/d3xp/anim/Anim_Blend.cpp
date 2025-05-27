@@ -3492,12 +3492,11 @@ bool idDeclModelDef::Parse( const char* text, const int textLength, bool allowBi
 				return false;
 			}
 
-			idImportOptions options;
 			if( isGltf )
 			{
 				try
 				{
-					options.Init( optionsStr.c_str(), filename.c_str() );
+					importOptions.Init( optionsStr.c_str(), filename.c_str() );
 				}
 				catch( idException& ex )
 				{
@@ -3506,7 +3505,11 @@ bool idDeclModelDef::Parse( const char* text, const int textLength, bool allowBi
 					return false;
 				}
 
-				modelHandle = renderModelManager->FindModel( filename, &options );
+				importOptions.modelDefName = base->GetName();
+				importOptions.modelDefFileName = base->GetFileName();
+				importOptions.declSourceTimeStamp = base->GetSourceFileTimestamp();
+
+				modelHandle = renderModelManager->FindModel( filename, &importOptions );
 			}
 			else
 			{

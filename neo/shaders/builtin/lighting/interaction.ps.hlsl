@@ -116,9 +116,9 @@ void main( PS_IN fragment, out PS_OUT result )
 	float hdotN = clamp( dot3( halfAngleVector, localNormal ), 0.0, 1.0 );
 
 #if USE_PBR
+	// RB: roughness 0 somehow is not shiny so we clamp it
+	float roughness = max( 0.05, specMapSRGB.r );
 	const float metallic = specMapSRGB.g;
-	const float roughness = specMapSRGB.r;
-	const float glossiness = 1.0 - roughness;
 
 	// the vast majority of real-world materials (anything not metal or gems) have F(0)
 	// values in a very narrow range (~0.02 - 0.08)
@@ -131,6 +131,13 @@ void main( PS_IN fragment, out PS_OUT result )
 
 	float3 diffuseColor = baseColor * ( 1.0 - metallic );
 	float3 specularColor = lerp( dielectricColor, baseColor, metallic );
+
+#elif KENNY_PBR
+	float3 diffuseColor = diffuseMap;
+	float3 specularColor;
+	float roughness;
+
+	PBRFromSpecmap( specMapSRGB.rgb, specularColor, roughness );
 #else
 	const float roughness = EstimateLegacyRoughness( specMapSRGB.rgb );
 
@@ -139,8 +146,10 @@ void main( PS_IN fragment, out PS_OUT result )
 #endif
 
 
-	// RB: compensate r_lightScale 3 and the division of Pi
+	// RB FIXME or not: compensate r_lightScale 3 and the division of Pi
 	//lambert *= 1.3;
+	// see http://seblagarde.wordpress.com/2012/01/08/pi-or-not-to-pi-in-game-lighting-equation/
+	//lambert /= PI;
 
 	// rpDiffuseModifier contains light color multiplier
 	float3 lightColor = sRGBToLinearRGB( lightProj.xyz * lightFalloff.xyz );
@@ -149,8 +158,8 @@ void main( PS_IN fragment, out PS_OUT result )
 	float vdotH = clamp( dot3( viewVector, halfAngleVector ), 0.0, 1.0 );
 	float ldotH = clamp( dot3( lightVector, halfAngleVector ), 0.0, 1.0 );
 
-	// compensate r_lightScale 3 * 2
-	float3 reflectColor = specularColor * rpSpecularModifier.rgb * 1.0;// * 0.5;
+	// keep in mind this is r_lightScale 3 * 2
+	float3 reflectColor = specularColor * rpSpecularModifier.rgb;
 
 	// cheap approximation by ARM with only one division
 	// http://community.arm.com/servlet/JiveServlet/download/96891546-19496/siggraph2015-mmg-renaldas-slides.pdf
@@ -162,16 +171,18 @@ void main( PS_IN fragment, out PS_OUT result )
 	// disney GGX
 	float D = ( hdotN * hdotN ) * ( rrrr - 1.0 ) + 1.0;
 	float VFapprox = ( ldotH * ldotH ) * ( roughness + 0.5 );
+
+#if KENNY_PBR
+	float3 specularLight = ( rrrr / ( 4.0 * D * D * VFapprox ) ) * ldotN * reflectColor;
+#else
 	float3 specularLight = ( rrrr / ( 4.0 * PI * D * D * VFapprox ) ) * ldotN * reflectColor;
-	//specularLight = float3( 0.0 );
+#endif
+
 
 #if 0
 	result.color = float4( _float3( VFapprox ), 1.0 );
 	return;
 #endif
-
-	// see http://seblagarde.wordpress.com/2012/01/08/pi-or-not-to-pi-in-game-lighting-equation/
-	//lambert /= PI;
 
 	//float3 diffuseColor = mix( diffuseMap, F0, metal ) * rpDiffuseModifier.xyz;
 	float3 diffuseLight = diffuseColor * lambert * ( rpDiffuseModifier.xyz );

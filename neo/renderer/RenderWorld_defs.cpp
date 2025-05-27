@@ -766,12 +766,12 @@ void R_DeriveEnvprobeData( RenderEnvprobeLocal* probe )
 	fullname.Format( "env/%s/area%i_envprobe_%i_%i_%i_amb", basename.c_str(), areaNum, int( point.x ), int( point.y ), int( point.z ) );
 	fullname.ReplaceChar( '-', '_' );
 
-	probe->irradianceImage = globalImages->ImageFromFile( fullname, TF_LINEAR, TR_CLAMP, TD_R11G11B10F, CF_2D_PACKED_MIPCHAIN );
+	probe->irradianceImage = globalImages->ImageFromFile( fullname, TF_LINEAR, TR_CLAMP, TD_HDR_LIGHTPROBE, CF_2D_PACKED_MIPCHAIN );
 
 	fullname.Format( "env/%s/area%i_envprobe_%i_%i_%i_spec", basename.c_str(), areaNum, int( point.x ), int( point.y ), int( point.z ) );
 	fullname.ReplaceChar( '-', '_' );
 
-	probe->radianceImage = globalImages->ImageFromFile( fullname, TF_DEFAULT, TR_CLAMP, TD_R11G11B10F, CF_2D_PACKED_MIPCHAIN );
+	probe->radianceImage = globalImages->ImageFromFile( fullname, TF_DEFAULT, TR_CLAMP, TD_HDR_LIGHTPROBE, CF_2D_PACKED_MIPCHAIN );
 
 	// ------------------------------------
 	// compute the probe projection matrix

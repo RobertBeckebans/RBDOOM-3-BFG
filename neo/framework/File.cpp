@@ -2119,3 +2119,32 @@ CONSOLE_COMMAND( testEndianNessReset, "Tests the read/write compatibility betwee
 {
 	fileSystem->RemoveFile( testEndianNessFilename );
 }
+
+// RB
+CONSOLE_COMMAND( testListFiles, "Tests the list files function", 0 )
+{
+	if( args.Argc() < 2 )
+	{
+		common->Printf( "Usage: testListFiles [extensions] <folder>\n" );
+		return;
+	}
+
+	idStr extensionList;
+	if( args.Argc() > 2 )
+	{
+		extensionList = args.Argv( args.Argc() - 2 );
+	}
+
+	idStr folderName = args.Argv( args.Argc() - 1 );
+	idFileList* files = fileSystem->ListFilesTree( folderName, extensionList, true );
+
+	idStrList list = files->GetList();
+	for( int i = 0; i < files->GetNumFiles(); i++ )
+	{
+		idStr filename = list[i];
+
+		idLib::Printf( "%s\n", filename.c_str() );
+	}
+
+	fileSystem->FreeFileList( files );
+}

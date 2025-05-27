@@ -211,19 +211,6 @@ void idMenuScreen_Shell_Root::ShowScreen( const mainMenuTransition_t transitionT
 
 			idMenuWidget_Button* buttonWidget = NULL;
 
-#if !defined( ID_RETAIL )
-			option.Append( "DEV" );	// DEV
-			menuOptions.Append( option );
-			options->GetChildByIndex( index ).ClearEventActions();
-			options->GetChildByIndex( index ).AddEventAction( WIDGET_EVENT_PRESS ).Set( WIDGET_ACTION_COMMAND, ROOT_CMD_DEV );
-			buttonWidget = dynamic_cast< idMenuWidget_Button* >( &options->GetChildByIndex( index ) );
-			if( buttonWidget != NULL )
-			{
-				buttonWidget->SetDescription( "View a list of maps available for play" );
-			}
-			index++;
-#endif
-
 			option.Clear();
 			option.Append( "#str_swf_campaign" );	// singleplayer
 			menuOptions.Append( option );
@@ -272,6 +259,22 @@ void idMenuScreen_Shell_Root::ShowScreen( const mainMenuTransition_t transitionT
 				buttonWidget->SetDescription( "#str_02219" );
 			}
 			index++;
+
+			// Leyland VR: moved DEV menu down
+#if !defined ( ID_RETAIL )
+			option.Clear();
+			option.Append( "DEV" );	// DEV
+			menuOptions.Append( option );
+			options->GetChildByIndex( index ).ClearEventActions();
+			options->GetChildByIndex( index ).AddEventAction( WIDGET_EVENT_PRESS ).Set( WIDGET_ACTION_COMMAND, ROOT_CMD_DEV );
+			buttonWidget = dynamic_cast< idMenuWidget_Button* >( &options->GetChildByIndex( index ) );
+			if( buttonWidget != NULL )
+			{
+				buttonWidget->SetDescription( "View a list of maps available for play" );
+			}
+			index++;
+#endif
+			// Leyland end
 
 			// only add quit option for PC
 			option.Clear();
@@ -432,6 +435,7 @@ bool idMenuScreen_Shell_Root::HandleAction( idWidgetAction& action, const idWidg
 		{
 			if( menuData->GetPlatform() == 2 )
 			{
+
 				idMenuHandler_Shell* shell = dynamic_cast< idMenuHandler_Shell* >( menuData );
 				if( !shell )
 				{
@@ -459,6 +463,7 @@ bool idMenuScreen_Shell_Root::HandleAction( idWidgetAction& action, const idWidg
 		}
 		case WIDGET_ACTION_SCROLL_HORIZONTAL:
 		{
+
 			if( menuData->GetPlatform() != 2 )
 			{
 				return true;

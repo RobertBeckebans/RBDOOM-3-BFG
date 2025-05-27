@@ -214,7 +214,7 @@ cpuid_t Sys_GetCPUId()
 	}
 
 	// check for Streaming SIMD Extensions 3 aka Prescott's New Instructions
-#if 0 //SDL_VERSION_ATLEAST(2,0,0)
+#if 0
 	if( SDL_HasSSE3() )
 	{
 		flags |= CPUID_SSE3;

@@ -160,7 +160,7 @@ public:
 	virtual void				InitFromFile( const char* fileName, const idImportOptions* options ) = 0;
 
 	// Supports reading/writing binary file formats
-	virtual bool				LoadBinaryModel( idFile* file, const ID_TIME_T sourceTimeStamp ) = 0;
+	virtual bool				LoadBinaryModel( idFile* file, const ID_TIME_T sourceTimeStamp, const ID_TIME_T declSourceTimeStamp ) = 0;
 	virtual void				WriteBinaryModel( idFile* file, ID_TIME_T* _timeStamp = NULL ) const = 0;
 	virtual bool				SupportsBinaryModel() = 0;
 
@@ -230,6 +230,12 @@ public:
 
 	// for reloadModels
 	virtual ID_TIME_T			Timestamp() const = 0;
+
+	// RB: for checking if the modelDef has changed
+	virtual ID_TIME_T			DeclTimestamp() const = 0;
+
+	// RB: returns the name of the modelDef this model was loaded from
+	virtual const char*			GetModelDefName() const = 0;
 
 	// returns the number of surfaces
 	virtual int					NumSurfaces() const = 0;

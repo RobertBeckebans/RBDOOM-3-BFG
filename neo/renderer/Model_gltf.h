@@ -33,7 +33,7 @@ class idRenderModelGLTF : public idRenderModelStatic
 {
 public:
 	virtual void				InitFromFile( const char* fileName, const idImportOptions* options ) override;
-	virtual bool				LoadBinaryModel( idFile* file, const ID_TIME_T sourceTimeStamp ) override;
+	virtual bool				LoadBinaryModel( idFile* file, const ID_TIME_T sourceTimeStamp, const ID_TIME_T declSourceTimeStamp ) override;
 	virtual void				WriteBinaryModel( idFile* file, ID_TIME_T* _timeStamp = NULL ) const override;
 	virtual dynamicModel_t		IsDynamicModel() const override;
 	virtual idBounds			Bounds( const struct renderEntity_s* ent ) const override;
@@ -68,14 +68,14 @@ private:
 
 	const idMD5Joint*			FindMD5Joint( const idStr& name ) const;
 
-	gltfData*	data;
-	gltfNode*	root;
-	int			rootID;
+	gltfData*						data;
+	gltfNode*						root;
+	int								rootID;
 
-	bool fileExclusive;
-	bool hasAnimations;
+	bool							fileExclusive;
+	bool							hasAnimations;
 
-	float							maxJointVertDist;	// maximum distance a vertex is separated from a joint
+	float							maxJointVertDist = 10.0f;	// maximum distance a vertex is separated from a joint
 	idList<int, TAG_MODEL>			animIds;
 	idList<int, TAG_MODEL>			bones;
 	idList<int, TAG_MODEL>			MeshNodeIds;

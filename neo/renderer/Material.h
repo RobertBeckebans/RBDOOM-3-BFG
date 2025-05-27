@@ -164,11 +164,12 @@ typedef enum
 	TG_EXPLICIT,
 	TG_DIFFUSE_CUBE,
 	TG_REFLECT_CUBE,
+	TG_REFLECT_CUBE2,	// RB interpolates 3 octahedrons like for ambient lighting
 	TG_SKYBOX_CUBE,
 	TG_WOBBLESKY_CUBE,
 	TG_SCREEN,			// screen aligned, for mirrorRenders and screen space temporaries
 	TG_SCREEN2,
-	TG_GLASSWARP
+	TG_GLASSWARP,
 } texgen_t;
 
 typedef struct
@@ -361,9 +362,8 @@ typedef enum
 	MF_LOD3						= BIT( 9 ),	 // motorsep 11-24-2014; material flag for LOD3 iteration
 	MF_LOD4						= BIT( 10 ), // motorsep 11-24-2014; material flag for LOD4 iteration
 	MF_LOD_PERSISTENT			= BIT( 11 ), // motorsep 11-24-2014; material flag for persistent LOD iteration
-	MF_GUITARGET				= BIT( 12 ), // Admer: this GUI surface is used to compute a GUI render map, but a GUI should NOT be drawn on it
-	MF_AUTOGEN_TEMPLATE			= BIT( 13 ), // Admer: this material is a template for auto-generated templates
-	MF_ORIGIN					= BIT( 14 ), // Admer: for origin brushes
+	MF_ORIGIN					= BIT( 12 ), // Admer: for origin brushes
+	MF_UNLIT					= BIT( 13 ), // RB: receive no lighting
 } materialFlags_t;
 
 // contents flags, NOTE: make sure to keep the defines in doom_defs.script up to date with these!
@@ -595,7 +595,7 @@ public:
 	// stages, and don't interact with lights at all
 	bool				ReceivesLighting() const
 	{
-		return numAmbientStages != numStages;
+		return ( numAmbientStages != numStages ) && ( materialFlags & MF_UNLIT ) == 0;
 	}
 
 	// returns true if the material should generate interactions on sides facing away

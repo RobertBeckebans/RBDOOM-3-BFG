@@ -154,6 +154,7 @@ struct globalFramebuffers_t
 	Framebuffer*				ambientOcclusionFBO[MAX_SSAO_BUFFERS];
 	Framebuffer*				csDepthFBO[MAX_HIERARCHICAL_ZBUFFERS];
 	Framebuffer*				geometryBufferFBO;
+	Framebuffer*				smaaInputFBO;
 	Framebuffer*				smaaEdgesFBO;
 	Framebuffer*				smaaBlendFBO;
 	Framebuffer*				guiRenderTargetFBO;

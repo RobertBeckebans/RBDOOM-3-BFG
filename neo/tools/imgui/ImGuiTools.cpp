@@ -40,26 +40,15 @@ If you have questions concerning this license or the applicable additional terms
 extern idCVar g_editEntityMode;
 
 static bool releaseMouse = false;
-#if 0 // currently this doesn't make too much sense
-void ShowEditors_f( const idCmdArgs& args )
-{
-	showToolWindows = true;
-}
-#endif // 0
+
 
 namespace ImGuiTools
-{
-
-// things in impl need to be used in at least one other file, but should generally not be touched
-namespace impl
 {
 
 void SetReleaseToolMouse( bool doRelease )
 {
 	releaseMouse = doRelease;
 }
-
-} //namespace impl
 
 bool AreEditorsActive()
 {
@@ -69,11 +58,17 @@ bool AreEditorsActive()
 
 bool ReleaseMouseForTools()
 {
-	return AreEditorsActive() && releaseMouse;
+	// RB: ignore everything as long right mouse button is pressed
+	return AreEditorsActive() && releaseMouse && !ImGuiHook::RightMouseActive();
 }
 
 void DrawToolWindows()
 {
+	if( !AreEditorsActive() )
+	{
+		return;
+	}
+
 	if( LightEditor::Instance().IsShown() )
 	{
 		LightEditor::Instance().Draw();
@@ -98,7 +93,7 @@ void LightEditorInit( const idDict* dict, idEntity* ent )
 
 
 	LightEditor::Instance().ShowIt( true );
-	impl::SetReleaseToolMouse( true );
+	SetReleaseToolMouse( true );
 
 	LightEditor::ReInit( dict, ent );
 }
@@ -106,7 +101,7 @@ void LightEditorInit( const idDict* dict, idEntity* ent )
 void AfEditorInit()
 {
 	AfEditor::Instance().ShowIt( true );
-	impl::SetReleaseToolMouse( true );
+	SetReleaseToolMouse( true );
 }
 
 } //namespace ImGuiTools

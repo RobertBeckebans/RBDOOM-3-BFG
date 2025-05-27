@@ -291,11 +291,7 @@ void LightInfo::ToDict( idDict* e )
 			e->Set( "light_center", DELETE_VAL );
 		}
 
-		if( lightType == LIGHT_SUN )
-		{
-			e->Set( "parallel", "1" );
-			e->Set( "style", DELETE_VAL );
-		}
+		e->Set( "parallel", ( lightType == LIGHT_SUN ) ? "1" : DELETE_VAL );
 
 		// get rid of all the projected light specific stuff
 		e->Set( "light_target", DELETE_VAL );
@@ -344,9 +340,15 @@ void LightInfo::ToDict( idDict* e )
 		e->SetAngles( "light_angles", angles );
 	}
 	else
-		//if( angles.yaw != 0.0f || angles.pitch != 0.0f || angles.roll != 0.0f )
 	{
-		e->SetAngles( "angles", angles );
+		if( angles.yaw != 0.0f || angles.pitch != 0.0f || angles.roll != 0.0f )
+		{
+			e->SetAngles( "angles", angles );
+		}
+		else
+		{
+			e->Set( "angles", DELETE_VAL );
+		}
 	}
 }
 
@@ -1017,9 +1019,9 @@ void LightEditor::Draw()
 
 		ImGui::Spacing();
 
-		if( ImGui::Button( "Save to .map" ) )
+		if( ImGui::Button( "Apply" ) )
 		{
-			SaveChanges( true );
+			SaveChanges( false );
 			showTool = false;
 		}
 		else if( ImGui::SameLine(), ImGui::Button( "Cancel" ) )
@@ -1229,7 +1231,7 @@ void LightEditor::Draw()
 	if( isShown && !showTool )
 	{
 		isShown = showTool;
-		impl::SetReleaseToolMouse( false );
+		SetReleaseToolMouse( false );
 	}
 }
 

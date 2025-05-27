@@ -37,7 +37,6 @@ extern "C"
 	#include <BinkDecoder.h>
 #endif
 
-extern idCVar s_noSound;
 extern idCVar s_volume_dB;
 
 CinematicAudio_OpenAL::CinematicAudio_OpenAL():
@@ -51,7 +50,7 @@ CinematicAudio_OpenAL::CinematicAudio_OpenAL():
 	alSource3i( alMusicSourceVoicecin, AL_POSITION, 0, 0, 0 );
 	alSourcei( alMusicSourceVoicecin, AL_SOURCE_RELATIVE, AL_TRUE );
 	alSourcei( alMusicSourceVoicecin, AL_ROLLOFF_FACTOR, 0 );
-	alListenerf( AL_GAIN, s_noSound.GetBool() ? 0.0f : DBtoLinear( s_volume_dB.GetFloat() ) ); //GK: Set the sound volume the same that is used in DOOM 3
+	alListenerf( AL_GAIN, DBtoLinear( s_volume_dB.GetFloat() ) ); //GK: Set the sound volume the same that is used in DOOM 3
 	alGenBuffers( NUM_BUFFERS, &alMusicBuffercin[0] );
 }
 
@@ -153,11 +152,11 @@ void CinematicAudio_OpenAL::PlayAudio( uint8_t* data, int size )
 #elif defined(USE_BINKDEC)
 					Mem_Free( tempdata );
 #endif
+					CheckALErrors();
 					alSourceQueueBuffers( alMusicSourceVoicecin, 1, &bufid );
-					ALenum error = alGetError();
-					if( error != AL_NO_ERROR )
+					if( CheckALErrors() != AL_NO_ERROR )
 					{
-						common->Warning( "OpenAL Cinematic: %s\n", alGetString( error ) );
+						common->Warning( "CinematicAudio_OpenAL::PlayAudio: error queueing OpenAL hardware buffers" );
 						return;
 					}
 				}
@@ -183,11 +182,11 @@ void CinematicAudio_OpenAL::PlayAudio( uint8_t* data, int size )
 		// SRS - Initiate playback trigger once we have MIN_BUFFERS filled: limit startup latency
 		if( offset == MIN_BUFFERS )
 		{
+			CheckALErrors();
 			alSourceQueueBuffers( alMusicSourceVoicecin, MIN_BUFFERS, &alMusicBuffercin[0] );
-			ALenum error = alGetError();
-			if( error != AL_NO_ERROR )
+			if( CheckALErrors() != AL_NO_ERROR )
 			{
-				common->Warning( "OpenAL Cinematic: %s\n", alGetString( error ) );
+				common->Warning( "CinematicAudio_OpenAL::PlayAudio: error queueing OpenAL hardware buffers" );
 				return;
 			}
 			// SRS - Prepare additional free buffers to handle variable packet rate codecs (e.g. webm vorbis)
@@ -209,11 +208,11 @@ void CinematicAudio_OpenAL::PlayAudio( uint8_t* data, int size )
 			{
 				return;
 			}
+			CheckALErrors();
 			alSourcePlay( alMusicSourceVoicecin );
-			ALenum error = alGetError();
-			if( error != AL_NO_ERROR )
+			if( CheckALErrors() != AL_NO_ERROR )
 			{
-				common->Warning( "OpenAL Cinematic: %s\n", alGetString( error ) );
+				common->Warning( "CinematicAudio_OpenAL::PlayAudio: error playing OpenAL streaming source" );
 				return;
 			}
 		}
@@ -259,6 +258,8 @@ void CinematicAudio_OpenAL::ShutdownAudio()
 	{
 		alSourceStop( alMusicSourceVoicecin );
 		alSourcei( alMusicSourceVoicecin, AL_BUFFER, 0 );
+
+		CheckALErrors();
 		alDeleteSources( 1, &alMusicSourceVoicecin );
 		if( CheckALErrors() == AL_NO_ERROR )
 		{
@@ -266,12 +267,16 @@ void CinematicAudio_OpenAL::ShutdownAudio()
 		}
 	}
 
-	alDeleteBuffers( NUM_BUFFERS, &alMusicBuffercin[0] );
-	if( CheckALErrors() == AL_NO_ERROR )
+	for( int i = 0; i < NUM_BUFFERS; i++ )
 	{
-		for( int i = 0; i < NUM_BUFFERS; i++ )
+		if( alIsBuffer( alMusicBuffercin[i] ) )
 		{
-			alMusicBuffercin[ i ] = 0;
+			CheckALErrors();
+			alDeleteBuffers( 1, &alMusicBuffercin[i] );
+			if( CheckALErrors() == AL_NO_ERROR )
+			{
+				alMusicBuffercin[i] = 0;
+			}
 		}
 	}
 

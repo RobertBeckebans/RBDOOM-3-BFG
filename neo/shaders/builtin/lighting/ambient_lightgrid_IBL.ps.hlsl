@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2013-2021 Robert Beckebans
+Copyright (C) 2013-2025 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -69,61 +69,7 @@ struct PS_OUT
 // *INDENT-ON*
 
 
-// RB: TODO OPTIMIZE
-// this is a straight port of idBounds::RayIntersection
-bool AABBRayIntersection( float3 b[2], float3 start, float3 dir, out float scale )
-{
-	int i, ax0, ax1, ax2, side, inside;
-	float f;
-	float3 hit;
 
-	ax0 = -1;
-	inside = 0;
-	for( i = 0; i < 3; i++ )
-	{
-		if( start[i] < b[0][i] )
-		{
-			side = 0;
-		}
-		else if( start[i] > b[1][i] )
-		{
-			side = 1;
-		}
-		else
-		{
-			inside++;
-			continue;
-		}
-		if( dir[i] == 0.0f )
-		{
-			continue;
-		}
-
-		f = ( start[i] - b[side][i] );
-
-		if( ax0 < 0 || abs( f ) > abs( scale * dir[i] ) )
-		{
-			scale = - ( f / dir[i] );
-			ax0 = i;
-		}
-	}
-
-	if( ax0 < 0 )
-	{
-		scale = 0.0f;
-
-		// return true if the start point is inside the bounds
-		return ( inside == 3 );
-	}
-
-	ax1 = ( ax0 + 1 ) % 3;
-	ax2 = ( ax0 + 2 ) % 3;
-	hit[ax1] = start[ax1] + scale * dir[ax1];
-	hit[ax2] = start[ax2] + scale * dir[ax2];
-
-	return ( hit[ax1] >= b[0][ax1] && hit[ax1] <= b[1][ax1] &&
-			 hit[ax2] >= b[0][ax2] && hit[ax2] <= b[1][ax2] );
-}
 
 void main( PS_IN fragment, out PS_OUT result )
 {
@@ -202,6 +148,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	const float metallic = specMapSRGB.g;
 	const float roughness = specMapSRGB.r;
 	const float glossiness = 1.0 - roughness;
+	float ao = specMapSRGB.b;
 
 	// the vast majority of real-world materials (anything not metal or gems) have F(0)
 	// values in a very narrow range (~0.02 - 0.08)
@@ -224,10 +171,21 @@ void main( PS_IN fragment, out PS_OUT result )
 	float3 kD = ( float3( 1.0, 1.0, 1.0 ) - kS ) * ( 1.0 - metallic );
 
 #else
+
+	float ao = 1.0;
+
+#if KENNY_PBR
+	float3 diffuseColor = diffuseMap;
+	float3 specularColor;
+	float roughness;
+
+	PBRFromSpecmap( specMapSRGB.rgb, specularColor, roughness );
+#else
 	const float roughness = EstimateLegacyRoughness( specMapSRGB.rgb );
 
 	float3 diffuseColor = diffuseMap;
 	float3 specularColor = specMap.rgb;
+#endif
 
 #if defined( DEBUG_PBR )
 	diffuseColor = float3( 0.0, 0.0, 0.0 );
@@ -248,10 +206,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	//float2 screenTexCoord = vposToScreenPosTexCoord( fragment.position.xy );
 	float2 screenTexCoord = fragment.position.xy * rpWindowCoord.xy;
 
-	float ao = 1.0;
-	ao = t_Ssao.Sample( s_LinearClamp, screenTexCoord ).r;
-
-	//diffuseColor.rgb *= ao;
+	ao = min( ao,  t_Ssao.Sample( s_LinearClamp, screenTexCoord ).r );
 
 	// evaluate diffuse IBL
 
@@ -287,14 +242,11 @@ void main( PS_IN fragment, out PS_OUT result )
 		gridCoord[j] = int( floor( v ) );
 		frac[ j ] = v - gridCoord[ j ];
 
-		/*
-		if( gridCoord[i] < 0 )
+		if( gridCoord[j] < 0 )
 		{
-			gridCoord[i] = 0;
+			gridCoord[j] = 0;
 		}
-		else
-		*/
-		if( gridCoord[j] >= lightGridBounds[j] - 1 )
+		else if( gridCoord[j] >= lightGridBounds[j] - 1 )
 		{
 			gridCoord[j] = lightGridBounds[j] - 1;
 		}
@@ -429,13 +381,11 @@ void main( PS_IN fragment, out PS_OUT result )
 	float specAO = ComputeSpecularAO( vDotN, ao, roughness );
 	float3 specularLight = radiance * ( kS * envBRDF.x + envBRDF.y ) * specAO * ( rpSpecularModifier.xyz * 1.0 );
 
-#if 1
 	// Marmoset Horizon Fade trick
 	const half horizonFade = 1.3;
 	half horiz = saturate( 1.0 + horizonFade * saturate( dot3( reflectionVector, globalNormal ) ) );
 	horiz *= horiz;
 	//horiz = clamp( horiz, 0.0, 1.0 );
-#endif
 
 	//float3 lightColor = sRGBToLinearRGB( rpAmbientColor.rgb );
 	float3 lightColor = ( rpAmbientColor.rgb );

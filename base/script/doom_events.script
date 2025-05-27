@@ -295,7 +295,7 @@ scriptEvent	entity	getEntity( string name );
 scriptEvent	entity	spawn( string classname );
 
 // Respawn
-scriptEvent void	respawn();
+scriptEvent void	respawn( );
 
 // copies the spawn args from an entity
 scriptEvent	void 	copySpawnArgs( entity ent );

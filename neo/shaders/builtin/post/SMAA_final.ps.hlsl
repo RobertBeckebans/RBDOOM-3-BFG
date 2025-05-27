@@ -36,16 +36,19 @@ If you have questions concerning this license or the applicable additional terms
 #include "SMAA.inc.hlsl"
 
 // *INDENT-OFF*
-Texture2D t_CurrentColor	: register( t0 VK_DESCRIPTOR_SET( 1 ) );
-Texture2D t_SmaaBlend		: register( t1 VK_DESCRIPTOR_SET( 1 ) );
-//Texture2D t_Velocity		: register( t2 VK_DESCRIPTOR_SET( 1 ) );
+Texture2D t_CurrentColor	: register( t0 VK_DESCRIPTOR_SET( 0 ) );
+Texture2D t_SmaaBlend		: register( t1 VK_DESCRIPTOR_SET( 0 ) );
 
-SamplerState LinearSampler	: register( s0 VK_DESCRIPTOR_SET( 2 ) );
-SamplerState PointSampler	: register( s1 VK_DESCRIPTOR_SET( 2 ) );
+#if SMAA_REPROJECTION
+	Texture2D t_Velocity		: register( t2 VK_DESCRIPTOR_SET( 0 ) );
+#endif
+
+SamplerState LinearSampler	: register( s0 VK_DESCRIPTOR_SET( 1 ) );
+SamplerState PointSampler	: register( s1 VK_DESCRIPTOR_SET( 1 ) );
 
 struct PS_IN
 {
-	float4 position		: VPOS;
+	float4 position		: SV_Position;
 	float2 texcoord0	: TEXCOORD0_centroid;
 	float4 texcoord1	: TEXCOORD1_centroid;
 };

@@ -98,10 +98,11 @@ struct drawSurf_t
 	const idMaterial* 		material;			// may be NULL for shadow volumes
 	uint64					extraGLState;		// Extra GL state |'d with material->stage[].drawStateBits
 	float					sort;				// material->sort, modified by gui / entity sort offsets
-	const float* 				shaderRegisters;	// evaluated and adjusted for referenceShaders
+	const float* 			shaderRegisters;	// evaluated and adjusted for referenceShaders
 	drawSurf_t* 			nextOnLight;		// viewLight chains
 	drawSurf_t** 			linkChain;			// defer linking to lights to a serial section to avoid a mutex
 	idScreenRect			scissorRect;		// for scissor clipping, local inside renderView viewport
+	const struct portalArea_s*	area;			// RB: if != NULL then the area provides valid lightgrid
 };
 
 // areas have references to hold all the lights and entities in them
@@ -422,17 +423,6 @@ struct viewEntity_t
 	// parallelAddModels will build a chain of surfaces here that will need to
 	// be linked to the lights or added to the drawsurf list in a serial code section
 	drawSurf_t* 			drawSurfs;
-
-	// RB: use light grid of the best area this entity is in
-	bool					useLightGrid;
-	idImage* 				lightGridAtlasImage;
-	int						lightGridAtlasSingleProbeSize; // including border
-	int						lightGridAtlasBorderSize;
-
-	idVec3					lightGridOrigin;
-	idVec3					lightGridSize;
-	int						lightGridBounds[3];
-	// RB end
 };
 
 // RB: viewEnvprobes are allocated on the frame temporary stack memory
@@ -481,7 +471,7 @@ struct calcEnvprobeParms_t
 	idStr							filename;
 
 	// output
-	halfFloat_t*					outBuffer;				// HDR R11G11B11F packed octahedron atlas
+	halfFloat_t*					outBuffer;				// HDR RGB16F packed octahedron atlas
 	int								time;					// execution time in milliseconds
 };
 
@@ -505,7 +495,7 @@ struct calcLightGridPointParms_t
 	SphericalHarmonicsT<idVec3, 4>	shRadiance;				// L4 Spherical Harmonics
 #endif
 
-	halfFloat_t*					outBuffer;				// HDR R11G11B11F octahedron LIGHTGRID_IRRADIANCE_SIZE^2
+	halfFloat_t*					outBuffer;				// HDR RGB16F octahedron LIGHTGRID_IRRADIANCE_SIZE^2
 	int								time;					// execution time in milliseconds
 };
 // RB end
@@ -623,14 +613,17 @@ struct viewDef_t
 	// RB: collect environment probes like lights
 	viewEnvprobe_t*		viewEnvprobes;
 
-	// RB: nearest probe for now
+	// RB: nearest 3 probes for now
 	idBounds			globalProbeBounds;
 	idRenderMatrix		inverseBaseEnvProbeProject;	// the matrix for deforming the 'zeroOneCubeModel' to exactly cover the environent probe volume in world space
 	idImage* 			irradianceImage;			// cubemap image used for diffuse IBL by backend
 	idImage* 			radianceImages[3];			// cubemap image used for specular IBL by backend
 	idVec4				radianceImageBlends;		// blending weights
+	idVec4				probePositions[3];			// only used by parallax correction
 
 	Framebuffer*		targetRender;				// SP: The framebuffer to render to
+
+	int					taaFrameCount;				// RB: so we have the same frame index in frontend and backend
 };
 
 
@@ -821,6 +814,9 @@ enum bindingLayoutType_t
 	BINDING_LAYOUT_NORMAL_CUBE,
 	BINDING_LAYOUT_NORMAL_CUBE_SKINNED,
 
+	BINDING_LAYOUT_OCTAHEDRON_CUBE,
+	BINDING_LAYOUT_OCTAHEDRON_CUBE_SKINNED,
+
 	// NO GPU SKINNING ANYMORE
 	BINDING_LAYOUT_POST_PROCESS_INGAME,
 	BINDING_LAYOUT_POST_PROCESS_FINAL,
@@ -832,6 +828,10 @@ enum bindingLayoutType_t
 	BINDING_LAYOUT_DRAW_AO1,
 
 	BINDING_LAYOUT_BINK_VIDEO,
+
+	// SMAA
+	BINDING_LAYOUT_SMAA_EDGE_DETECTION,
+	BINDING_LAYOUT_SMAA_WEIGHT_CALC,
 
 	// NVRHI render passes specific
 	BINDING_LAYOUT_TAA_MOTION_VECTORS,
@@ -874,13 +874,10 @@ public:
 	virtual void			ShutdownOpenGL();
 	virtual bool			IsOpenGLRunning() const;
 	virtual bool			IsFullScreen() const;
-	virtual stereo3DMode_t	GetStereo3DMode() const;
-	virtual bool			HasQuadBufferSupport() const;
-	virtual bool			IsStereoScopicRenderingSupported() const;
-	virtual stereo3DMode_t	GetStereoScopicRenderingMode() const;
-	virtual void			EnableStereoScopicRendering( const stereo3DMode_t mode ) const;
 	virtual int				GetWidth() const;
 	virtual int				GetHeight() const;
+	virtual int				GetNativeWidth() const;
+	virtual int				GetNativeHeight() const;
 	virtual int				GetVirtualWidth() const;
 	virtual int				GetVirtualHeight() const;
 	virtual float			GetPixelAspect() const;
@@ -953,8 +950,6 @@ public:
 	// internal functions
 	idRenderSystemLocal();
 	~idRenderSystemLocal();
-
-	void					UpdateStereo3DMode();
 
 	void					Clear();
 	void					GetCroppedViewport( idScreenRect* viewport );
@@ -1195,8 +1190,6 @@ extern idCVar r_singleEntity;				// suppress all but one entity
 extern idCVar r_singleEnvprobe;				// suppress all but one envprobe
 extern idCVar r_singleArea;					// only draw the portal area the view is actually in
 extern idCVar r_singleSurface;				// suppress all but one surface on each entity
-extern idCVar r_shadowPolygonOffset;		// bias value added to depth test for stencil shadow drawing
-extern idCVar r_shadowPolygonFactor;		// scale value for stencil shadow drawing
 
 extern idCVar r_orderIndexes;				// perform index reorganization to optimize vertex use
 
@@ -1228,7 +1221,8 @@ extern idCVar r_shadowMapSplitWeight;
 extern idCVar r_shadowMapLodScale;
 extern idCVar r_shadowMapLodBias;
 extern idCVar r_shadowMapPolygonFactor;
-extern idCVar r_shadowMapPolygonOffset;
+extern idCVar r_dxShadowMapPolygonOffset;
+extern idCVar r_vkShadowMapPolygonOffset;
 extern idCVar r_shadowMapOccluderFacing;
 extern idCVar r_shadowMapRegularDepthBiasScale;
 extern idCVar r_shadowMapSunDepthBiasScale;
@@ -1262,6 +1256,13 @@ extern idCVar r_useLightGrid;
 
 extern idCVar r_exposure;
 
+extern idCVar r_useSSR;
+extern idCVar r_ssrJitter;
+extern idCVar r_ssrMaxDistance;
+extern idCVar r_ssrMaxSteps;
+extern idCVar r_ssrStride;
+extern idCVar r_ssrZThickness;
+
 extern idCVar r_useTemporalAA;
 extern idCVar r_taaJitter;
 extern idCVar r_taaEnableHistoryClamping;
@@ -1286,8 +1287,6 @@ enum RenderMode
 	RENDERMODE_C64_HIGHRES,
 	RENDERMODE_CPC,
 	RENDERMODE_CPC_HIGHRES,
-	RENDERMODE_NES,
-	RENDERMODE_NES_HIGHRES,
 	RENDERMODE_GENESIS,
 	RENDERMODE_GENESIS_HIGHRES,
 	RENDERMODE_PSX,
@@ -1313,6 +1312,8 @@ INITIALIZATION
 bool R_UsePixelatedLook();
 
 bool R_UseTemporalAA();
+
+bool R_UseHiZ();
 
 uint R_GetMSAASamples();
 
@@ -1378,7 +1379,6 @@ struct glimpParms_t
 	int			fullScreen;		// 0 = windowed, otherwise 1 based monitor number to go full screen on
 	// -1 = borderless window for spanning multiple displays
 	bool		startMaximized = false;
-	bool		stereo;
 	int			displayHz;
 	int			multiSamples;
 };

@@ -382,51 +382,80 @@ void R_RenderSingleModel( viewEntity_t* vEntity )
 #if 0
 			else
 			{
-				idVec4 triVerts[3];
-				unsigned int triIndices[] = { 0, 1, 2 };
-
 				tr.pc.c_mocIndexes += 36;
 				tr.pc.c_mocVerts += 8;
+
+				idBounds surfaceBounds;
+				if( gpuSkinned )
+				{
+					surfaceBounds = vEntity->entityDef->localReferenceBounds;
+				}
+				else
+				{
+					surfaceBounds = tri->bounds;
+				}
 
 				idRenderMatrix modelRenderMatrix;
 				idRenderMatrix::CreateFromOriginAxis( renderEntity->origin, renderEntity->axis, modelRenderMatrix );
 
-				//const float size = 16.0f;
-				//idBounds debugBounds( idVec3( -size ), idVec3( size ) );
-				idBounds debugBounds;
-#if 0
-				if( gpuSkinned )
-				{
-					//debugBounds = vEntity->entityDef->localReferenceBounds;
-					debugBounds = model->Bounds();
-				}
-				else
-#endif
-				{
-					debugBounds = tri->bounds;
-				}
-
 				idRenderMatrix inverseBaseModelProject;
-				idRenderMatrix::OffsetScaleForBounds( modelRenderMatrix, debugBounds, inverseBaseModelProject );
+				idRenderMatrix::OffsetScaleForBounds( modelRenderMatrix, surfaceBounds, inverseBaseModelProject );
 
 				idRenderMatrix invProjectMVPMatrix;
 				idRenderMatrix::Multiply( viewDef->worldSpace.unjitteredMVP, inverseBaseModelProject, invProjectMVPMatrix );
 
 				// NOTE: unit cube instead of zeroToOne cube
 				idVec4* verts = tr.maskedUnitCubeVerts;
-				unsigned int* indexes = tr.maskedZeroOneCubeIndexes;
-				for( int i = 0, face = 0; i < 36; i += 3, face++ )
+				idVec4 triVerts[8];
+
+				for( int i = 0; i < 8; i++ )
 				{
-					const idVec4& v0 = verts[indexes[i + 0]];
-					const idVec4& v1 = verts[indexes[i + 1]];
-					const idVec4& v2 = verts[indexes[i + 2]];
-
 					// transform to clip space
-					invProjectMVPMatrix.TransformPoint( v0, triVerts[0] );
-					invProjectMVPMatrix.TransformPoint( v1, triVerts[1] );
-					invProjectMVPMatrix.TransformPoint( v2, triVerts[2] );
+					invProjectMVPMatrix.TransformPoint( verts[i], triVerts[i] );
+				}
 
-					tr.maskedOcclusionCulling->RenderTriangles( ( float* )triVerts, triIndices, 1, NULL, MaskedOcclusionCulling::BACKFACE_CCW );
+				tr.maskedOcclusionCulling->RenderTriangles( ( float* )triVerts, tr.maskedZeroOneCubeIndexes, 12, NULL, MaskedOcclusionCulling::BACKFACE_CCW );
+			}
+
+#elif 0
+			else
+			{
+				idBounds surfaceBounds;
+				if( gpuSkinned )
+				{
+					surfaceBounds = vEntity->entityDef->localReferenceBounds;
+				}
+				else
+				{
+					surfaceBounds = tri->bounds;
+				}
+
+				idRenderMatrix modelRenderMatrix;
+				idRenderMatrix::CreateFromOriginAxis( renderEntity->origin, renderEntity->axis, modelRenderMatrix );
+
+				idRenderMatrix inverseBaseModelProject;
+				idRenderMatrix::OffsetScaleForBounds( modelRenderMatrix, surfaceBounds, inverseBaseModelProject );
+
+				// NOTE: unit cube instead of zeroToOne cube
+				idVec4* verts = tr.maskedUnitCubeVerts;
+				idVec4 triVerts[8];
+
+				for( int i = 0; i < 8; i++ )
+				{
+					// transform to clip space
+					inverseBaseModelProject.TransformPoint( verts[i], triVerts[i] );
+				}
+
+				static idVec4 colors[] = { colorRed, colorGreen, colorBlue, colorYellow, colorMagenta, colorCyan, colorWhite, colorPurple };
+				idVec4 color = colors[surfaceNum & 7];
+
+				// same as idRenderWorldLocal::DebugBox
+				const int lifetime = 0;
+				for( int i = 0; i < 4; i++ )
+				{
+					tr.viewDef->renderWorld->DebugLine( color, triVerts[i].ToVec3(), triVerts[( i + 1 ) & 3].ToVec3(), lifetime );
+					tr.viewDef->renderWorld->DebugLine( color, triVerts[4 + i].ToVec3(), triVerts[4 + ( ( i + 1 ) & 3 )].ToVec3(), lifetime );
+					tr.viewDef->renderWorld->DebugLine( color, triVerts[i].ToVec3(), triVerts[4 + i].ToVec3(), lifetime );
 				}
 			}
 #endif

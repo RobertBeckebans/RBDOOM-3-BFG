@@ -488,9 +488,14 @@ void Dmap( const idCmdArgs& args )
 			// create AAS files
 			RunAAS_f( args );
 		}
+
+		common->DmapPacifierFilename( passedName, "Done" );
+	}
+	else
+	{
+		common->DmapPacifierFilename( passedName, "Failed due to errors. Quit program." );
 	}
 
-	common->DmapPacifierFilename( passedName, "Done" );
 
 	// free the common .map representation
 	delete dmapGlobals.dmapFile;

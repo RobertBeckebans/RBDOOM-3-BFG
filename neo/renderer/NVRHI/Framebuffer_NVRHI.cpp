@@ -186,6 +186,10 @@ void Framebuffer::ResizeFramebuffers( bool reloadImages )
 			.addColorAttachment( globalImages->gbufferNormalsRoughnessImage->texture )
 			.setDepthAttachment( globalImages->currentDepthImage->texture ) );
 
+	globalFramebuffers.smaaInputFBO = new Framebuffer( "_smaaInput",
+			nvrhi::FramebufferDesc()
+			.addColorAttachment( globalImages->smaaInputImage->texture ) );
+
 	globalFramebuffers.smaaEdgesFBO = new Framebuffer( "_smaaEdges",
 			nvrhi::FramebufferDesc()
 			.addColorAttachment( globalImages->smaaEdgesImage->texture ) );
@@ -227,11 +231,14 @@ void Framebuffer::ReloadImages()
 	globalImages->hierarchicalZbufferImage->Reload( false, tr.backend.commandList );
 	globalImages->gbufferNormalsRoughnessImage->Reload( false, tr.backend.commandList );
 	globalImages->taaMotionVectorsImage->Reload( false, tr.backend.commandList );
-	globalImages->taaResolvedImage->Reload( false, tr.backend.commandList );
 	globalImages->taaFeedback1Image->Reload( false, tr.backend.commandList );
 	globalImages->taaFeedback2Image->Reload( false, tr.backend.commandList );
+	globalImages->taaResolvedImage->Reload( false, tr.backend.commandList );
+
+	globalImages->smaaInputImage->Reload( false, tr.backend.commandList );
 	globalImages->smaaEdgesImage->Reload( false, tr.backend.commandList );
 	globalImages->smaaBlendImage->Reload( false, tr.backend.commandList );
+
 	globalImages->shadowAtlasImage->Reload( false, tr.backend.commandList );
 	for( int i = 0; i < MAX_SHADOWMAP_RESOLUTIONS; i++ )
 	{

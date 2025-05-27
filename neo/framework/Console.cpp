@@ -415,17 +415,19 @@ float idConsoleLocal::DrawFPS( float y )
 
 		compile_time_assert( aaNumValues == ( ANTI_ALIASING_MSAA_4X + 1 ) );
 #else
-		static const int aaNumValues = 2;
+		static const int aaNumValues = 3;
 
 		static const char* aaValues[aaNumValues] =
 		{
 			"None",
+			"SMAA",
 			"None",
 		};
 
 		static const char* taaValues[aaNumValues] =
 		{
 			"None",
+			"SMAA",
 			"TAA",
 		};
 
@@ -442,7 +444,7 @@ float idConsoleLocal::DrawFPS( float y )
 			aaMode = aaValues[ r_antiAliasing.GetInteger() ];
 		}
 
-		static const int rrNumValues = 12;
+		static const int rrNumValues = 10;
 		static const char* rrValues[rrNumValues] =
 		{
 			"Doom",
@@ -452,10 +454,8 @@ float idConsoleLocal::DrawFPS( float y )
 			"C64 Hi",
 			"CPC",
 			"CPC Hi",
-			"NES",
-			"NES Hi",
-			"Sega MD",
-			"Sega MD Hi",
+			"Sega",
+			"Sega Hi",
 			"Sony PSX",
 		};
 

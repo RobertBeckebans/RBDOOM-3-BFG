@@ -41,6 +41,8 @@ base/renderprogs2/
 base/generated/
 base/env/
 base/screenshots/
+base/_tb/*.obj
+base/_tb/*.mtl
 
 GPATH
 GRTAGS
@@ -52,3 +54,4 @@ neo/neo.kdev4
 neo/.idea/
 neo/cmake-build-*/
 neo/bin/
+tools/

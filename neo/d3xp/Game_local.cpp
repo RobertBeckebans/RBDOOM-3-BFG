@@ -1715,6 +1715,18 @@ void idGameLocal::MapShutdown()
 		gameRenderWorld->DebugClearPolygons( 0 );
 	}
 
+	// RB: kill ingame editors to prevent crashes during shutdown
+	if( com_editors != 0 )
+	{
+		com_editors = 0;
+		g_editEntityMode.SetInteger( 0 );
+
+		// turn off light debug drawing in the render backend
+		r_singleLight.SetInteger( -1 );
+		r_showLights.SetInteger( 0 );
+	}
+	// RB end
+
 	// clear out camera if we're in a cinematic
 	if( inCinematic )
 	{
@@ -4476,7 +4488,7 @@ void idGameLocal::AlertAI( idEntity* ent )
 	if( ent && ent->IsType( idActor::Type ) )
 	{
 		// alert them for the next frame
-		lastAIAlertTime = time + 1;
+		lastAIAlertTime = framenum + 1;
 		lastAIAlertEntity = static_cast<idActor*>( ent );
 	}
 }
@@ -4488,14 +4500,7 @@ idGameLocal::GetAlertEntity
 */
 idActor* idGameLocal::GetAlertEntity()
 {
-	int timeGroup = 0;
-	if( lastAIAlertTime && lastAIAlertEntity.GetEntity() )
-	{
-		timeGroup = lastAIAlertEntity.GetEntity()->timeGroup;
-	}
-	SetTimeState ts( timeGroup );
-
-	if( lastAIAlertTime >= time )
+	if( lastAIAlertTime >= framenum )
 	{
 		return lastAIAlertEntity.GetEntity();
 	}

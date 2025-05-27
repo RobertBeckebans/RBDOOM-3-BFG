@@ -116,12 +116,6 @@ public:
 		const viewDef_t* viewDef,
 		const CreateParameters& params );
 
-	void RenderMotionVectors(
-		nvrhi::ICommandList* commandList,
-		const viewDef_t* viewDef,
-		const viewDef_t* viewDefPrevious,
-		idVec3 preViewTranslationDifference = vec3_zero );
-
 	void TemporalResolve(
 		nvrhi::ICommandList* commandList,
 		const TemporalAntiAliasingParameters& params,
@@ -129,7 +123,7 @@ public:
 		const viewDef_t* viewDef );
 
 	void AdvanceFrame();
-	idVec2 GetCurrentPixelOffset();
+	idVec2 GetCurrentPixelOffset( int frameIndex );
 
 	uint32_t GetFrameIndex() const
 	{

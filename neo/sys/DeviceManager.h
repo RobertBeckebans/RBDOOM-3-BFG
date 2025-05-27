@@ -146,6 +146,12 @@ public:
 
 	void UpdateWindowSize( const glimpParms_t& params );
 
+	// RB: for OpenVR to submit native Vulkan images
+	virtual int GetGraphicsFamilyIndex() const
+	{
+		return -1;
+	}
+
 protected:
 	friend class idRenderBackend;
 	friend class idImage;
@@ -153,7 +159,6 @@ protected:
 	void* windowInstance;
 	void* windowHandle;
 	bool m_windowVisible = false;
-	bool isNvidia = false;
 
 	DeviceCreationParameters m_DeviceParams;
 
@@ -164,6 +169,8 @@ protected:
 	uint32_t m_FrameIndex = 0;
 
 	DeviceManager() = default;
+
+	graphicsVendor_t getGPUVendor( uint32_t vendorID ) const;
 
 	void BackBufferResizing();
 	void BackBufferResized();

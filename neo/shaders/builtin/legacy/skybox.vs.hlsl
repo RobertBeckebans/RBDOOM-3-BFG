@@ -58,5 +58,7 @@ void main( VS_IN vertex, out VS_OUT result )
 
 	result.texcoord0 = vertex.position.xyz - rpLocalViewOrigin.xyz;
 
-	result.color = ( swizzleColor( vertex.color ) * rpVertexColorModulate ) + rpVertexColorAdd;
+	// RB: pass rpColor as intensity scaling factor for HDRI skies because the vertex color logic isn't used on skyboxes afaik
+	//result.color = ( swizzleColor( vertex.color ) * rpVertexColorModulate ) + rpVertexColorAdd;
+	result.color = rpColor;
 }

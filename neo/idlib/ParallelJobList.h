@@ -177,6 +177,7 @@ public:
 	virtual idParallelJobList* 	GetJobList( int index ) = 0;
 
 	virtual int					GetNumProcessingUnits() = 0;
+	virtual int					GetLogicalCpuCores() const = 0;	// RB
 
 	virtual void				WaitForAllJobLists() = 0;
 };

@@ -452,7 +452,7 @@ main
 */
 int main( int argc, const char** argv )
 {
-	extern idCVar r_useGPUSkinning;
+	//extern idCVar r_useGPUSkinning;
 
 	// DG: needed for Sys_ReLaunch()
 	cmdargc = argc;
@@ -483,6 +483,8 @@ int main( int argc, const char** argv )
 		common->Init( 0, NULL, NULL );
 	}
 
+	// SRS - GPU skinning on Apple Silicon now works for recent builds and/or drivers
+#if 0
 	// SRS - Determine the machine name, e.g. "x86_64" or "arm64"
 	// Might be cleaner in posix Sys_Init(), but only needed on
 	// macOS and all the required sys includes are located here.
@@ -497,6 +499,7 @@ int main( int argc, const char** argv )
 		r_useGPUSkinning.SetInteger( 0 );
 	}
 	Mem_Free( machineName );
+#endif
 
 	Posix_LateInit();
 

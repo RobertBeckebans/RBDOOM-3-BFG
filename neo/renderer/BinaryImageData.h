@@ -39,8 +39,11 @@ This is where the Binary image headers go that are also included by external too
 // These structures are used for memory mapping bimage files, but
 // not for the normal loading, so be careful making changes.
 // Values are big endien to reduce effort on consoles.
-#define BIMAGE_VERSION 10
-#define BIMAGE_MAGIC (unsigned int)( ('B'<<0)|('I'<<8)|('M'<<16)|(BIMAGE_VERSION<<24) )
+static const unsigned int BIMAGE_VERSION_BFG = 10;
+static const unsigned int BIMAGE_VERSION_BC6 = 11;
+
+static const unsigned int BIMAGE_MAGIC_BFG = ( 'B' << 0 ) | ( 'I' << 8 ) | ( 'M' << 16 ) | ( BIMAGE_VERSION_BFG << 24 );
+static const unsigned int BIMAGE_MAGIC = ( 'B' << 0 ) | ( 'I' << 8 ) | ( 'M' << 16 ) | ( BIMAGE_VERSION_BC6 << 24 );
 
 struct bimageImage_t
 {
