@@ -49,7 +49,7 @@ SpaceBeforeParens: Never
 SpaceBeforeRangeBasedForLoopColon: false
 SpaceInEmptyParentheses: false
 SpacesInAngles: true
-SpacesInCStyleCastParentheses: false
+SpacesInCStyleCastParentheses: true
 SpacesInContainerLiterals: true
 SpacesInParentheses: true
 SpacesInSquareBrackets: true
