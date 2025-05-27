@@ -22,7 +22,6 @@
 
 #pragma once
 
-
 #include <nvrhi/nvrhi.h>
 #include <memory>
 
@@ -45,36 +44,11 @@ struct TemporalAntiAliasingParameters
 	bool enableHistoryClamping = true;
 };
 
-struct TemporalAntiAliasingConstants
-{
-	idRenderMatrix reprojectionMatrix;
-
-	idVec2 inputViewOrigin;
-	idVec2 inputViewSize;
-
-	idVec2 outputViewOrigin;
-	idVec2 outputViewSize;
-
-	idVec2 inputPixelOffset;
-	idVec2 outputTextureSizeInv;
-
-	idVec2 inputOverOutputViewSize;
-	idVec2 outputOverInputViewSize;
-
-	float clampingFactor;
-	float newFrameWeight;
-	float pqC;
-	float invPqC;
-
-	uint stencilMask;
-};
-
 class TemporalAntiAliasingPass
 {
 private:
 	CommonRenderPasses* m_CommonPasses;
 
-	// SRS - Motion Vectors are generated using motionBlur shader in graphics pipeline instead of donut shader
 	nvrhi::ShaderHandle m_TemporalAntiAliasingCS;
 	nvrhi::SamplerHandle m_BilinearSampler;
 	nvrhi::BufferHandle m_TemporalAntiAliasingCB;
@@ -88,6 +62,8 @@ private:
 	uint32_t m_StencilMask;
 
 	idVec2 m_R2Jitter;
+
+	bool pcEnabled = false; // true if push constants are used
 
 public:
 	struct CreateParameters

@@ -20,6 +20,8 @@
 * DEALINGS IN THE SOFTWARE.
 */
 
+#include "vulkan.hlsli"
+
 #define GROUP_SIZE 16
 #define LOD0_TILE_SIZE 8
 #define NUM_LODS 4
@@ -78,10 +80,14 @@ VALUE_TYPE reduce( float4 a )
 #endif
 
 // *INDENT-OFF*
+#if USE_PUSH_CONSTANTS
+VK_PUSH_CONSTANT ConstantBuffer<MipmmapGenConstants> g_MipMapGen : register( b0 );
+#else
 cbuffer c_MipMapgen : register( b0 )
 {
-	MipmmapGenConstants g_MipMapGen;
+    MipmmapGenConstants g_MipMapGen;
 };
+#endif
 
 #ifdef __spirv__	// use unbounded array size for proper SPIR-V descriptor binding
 RWTexture2D<VALUE_TYPE> u_output[] : register( u0 );

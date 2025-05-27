@@ -28,7 +28,7 @@
 #include "renderer/RenderCommon.h"
 
 #include "SsaoPass.h"
-
+#include "SsaoPass_cb.h"
 
 static idCVar r_ssaoBackgroundViewDepth( "r_ssaoBackgroundViewDepth", "100", CVAR_RENDERER | CVAR_FLOAT, "specified in meters" );
 static idCVar r_ssaoRadiusWorld( "r_ssaoRadiusWorld", "1.0", CVAR_RENDERER | CVAR_FLOAT, "specified in meters" );
@@ -36,30 +36,6 @@ static idCVar r_ssaoSurfaceBias( "r_ssaoSurfaceBias", "0.05", CVAR_RENDERER | CV
 static idCVar r_ssaoPowerExponent( "r_ssaoPowerExponent", "2", CVAR_RENDERER | CVAR_FLOAT, "" );
 static idCVar r_ssaoBlurSharpness( "r_ssaoBlurSharpness", "16", CVAR_RENDERER | CVAR_FLOAT, "" );
 static idCVar r_ssaoAmount( "r_ssaoAmount", "4", CVAR_RENDERER | CVAR_FLOAT, "" );
-
-struct SsaoConstants
-{
-	idVec2		viewportOrigin;
-	idVec2		viewportSize;
-	idVec2		pixelOffset;
-	idVec2		unused;
-
-	idRenderMatrix matClipToView;
-	idRenderMatrix matWorldToView; // unused
-	idRenderMatrix matViewToWorld; // unused
-
-	idVec2      clipToView;
-	idVec2      invQuantizedGbufferSize;
-
-	idVec2i     quantizedViewportOrigin;
-	float       amount;
-	float       invBackgroundViewDepth;
-	float       radiusWorld;
-	float       surfaceBias;
-
-	float       radiusToScreen;
-	float       powerExponent;
-};
 
 SsaoPass::SsaoPass(
 	nvrhi::IDevice* device,

@@ -1,14 +1,19 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(RBDoom3BFG)
+if(NOT DEFINED APP_NAME)
+	# RB: This sets the name of the .exe and is the only line needed for a different mod executable.
+	# If you want to make a different game then you also need to change neo/framework/Licensee.h
+    set(APP_NAME RBDoom3BFG)
+endif()
+project(${APP_NAME})
 
 set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-if(CMAKE_MAJOR_VERSION EQUAL 3 AND CMAKE_MINOR_VERSION GREATER_EQUAL 6)
-	# set MSVC startup project
-	set_property (DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT RBDoom3BFG)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.6")
+    # set MSVC startup project
+    set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${APP_NAME})
 endif()
 	
 option(STANDALONE
@@ -1436,18 +1441,17 @@ if(MSVC)
 	
 	list(APPEND RBDOOM3_SOURCES ${WIN32_RESOURCES})
 	
-	add_executable(RBDoom3BFG WIN32 ${RBDOOM3_INCLUDES} ${RBDOOM3_SOURCES})
-
-	add_dependencies(RBDoom3BFG idlib)
+	add_executable(${APP_NAME} WIN32 ${RBDOOM3_INCLUDES} ${RBDOOM3_SOURCES})
+	add_dependencies(${APP_NAME} idlib)
     
     if(USE_DX12)
-		add_dependencies(RBDoom3BFG nvrhi_d3d12)
+		add_dependencies(${APP_NAME} nvrhi_d3d12)
 	endif()
 	
 	if(USE_VULKAN)
-		add_dependencies(RBDoom3BFG nvrhi_vk)
+		add_dependencies(${APP_NAME} nvrhi_vk)
 	endif()
-	target_link_libraries(RBDoom3BFG
+	target_link_libraries(${APP_NAME}
 		idlib
 		${DirectX_LIBRARIES}
 		dbghelp
@@ -1464,16 +1468,16 @@ if(MSVC)
 		)
 		
 	# set MSVC default debug directory on executable	
-	if(CMAKE_MAJOR_VERSION EQUAL 3 AND CMAKE_MINOR_VERSION GREATER_EQUAL 8)
-		set_target_properties(RBDoom3BFG PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/..")
+	if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.8")
+		set_target_properties(${APP_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/..")
 	endif()
 	
 	#CMAKE_BINARY_DIR
 	if(CMAKE_CL_64)
-		install(TARGETS RBDoom3BFG
+		install(TARGETS ${APP_NAME}
 			RUNTIME DESTINATION .)
 	else()
-		install(TARGETS RBDoom3BFG
+		install(TARGETS ${APP_NAME}
 			RUNTIME DESTINATION .)
 	endif()	
 
@@ -1587,7 +1591,7 @@ else()
 		add_custom_target(precomp_header_rbdoom3bfg ALL
 				COMMAND ${CMAKE_CXX_COMPILER} ${_compiler_FLAGS} -x c++-header idlib/precompiled.h -o idlib/precompiled.h.gch
 				WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-				COMMENT "Creating idlib/precompiled.h.gch for RBDoom3BFG"
+				COMMENT "Creating idlib/precompiled.h.gch for ${APP_NAME}"
 				)
 
 		# make sure this is run after creating idlib
@@ -1628,18 +1632,18 @@ else()
 		set(MACOSX_BUNDLE_INFO_STRING "")					# to be added by author if desired
 		set(MACOSX_BUNDLE_COPYRIGHT "")						# to be added by author if desired
 
-		add_executable(RBDoom3BFG MACOSX_BUNDLE ${MACOS_RESOURCES} ${RBDOOM3_INCLUDES} ${RBDOOM3_SOURCES})
+		add_executable(${APP_NAME} MACOSX_BUNDLE ${MACOS_RESOURCES} ${RBDOOM3_INCLUDES} ${RBDOOM3_SOURCES})
 	else()
-		add_executable(RBDoom3BFG WIN32 ${RBDOOM3_INCLUDES} ${RBDOOM3_SOURCES})
+		add_executable(${APP_NAME} WIN32 ${RBDOOM3_INCLUDES} ${RBDOOM3_SOURCES})
 	endif()
 
 	if(USE_VULKAN)
-        add_dependencies(RBDoom3BFG nvrhi_vk)
+        add_dependencies(${APP_NAME} nvrhi_vk)
     endif()
 
 	if (USE_PRECOMPILED_HEADERS)
 		# make sure precompiled header is created before executable is compiled
-		add_dependencies(RBDoom3BFG precomp_header_rbdoom3bfg)
+		add_dependencies(${APP_NAME} precomp_header_rbdoom3bfg)
 		
 		if(WIN32)
 			set(remove_command "del")
@@ -1654,11 +1658,11 @@ else()
 					WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 					COMMENT "remove idlib/precompiled.h.gch"
 					)
-			add_dependencies(rm_precomp_header RBDoom3BFG)
+			add_dependencies(rm_precomp_header ${APP_NAME})
 
 		# delete precompiled header file after executable is compiled: IDE build case (e.g. Xcode)
 		else()
-			add_custom_command(TARGET RBDoom3BFG POST_BUILD
+			add_custom_command(TARGET ${APP_NAME} POST_BUILD
 					# SRS - added wildcards to remove tmp files from cmake ZERO_CHECK regeneration
 					COMMAND ${remove_command} "idlib/precompiled.h*.gch*"
 					WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -1672,7 +1676,7 @@ else()
 			set(RT_LIBRARY rt)
 		endif()
 
-		target_link_libraries(RBDoom3BFG
+		target_link_libraries(${APP_NAME}
 			idlib
 			${Vulkan_LIBRARY}
 			pthread
@@ -1687,30 +1691,30 @@ else()
 endif()
 
 if(USE_DX12)
-	target_compile_definitions(RBDoom3BFG PUBLIC USE_DX12=1)
-	target_link_libraries(RBDoom3BFG nvrhi_d3d12)
+	target_compile_definitions(${APP_NAME} PUBLIC USE_DX12=1)
+	target_link_libraries(${APP_NAME} nvrhi_d3d12)
 endif()
 
 if(USE_DXIL_ON_DX12)
-	target_compile_definitions(RBDoom3BFG PRIVATE USE_DXIL_ON_DX12=1)
+	target_compile_definitions(${APP_NAME} PRIVATE USE_DXIL_ON_DX12=1)
 endif()
 
 if(USE_VULKAN)
-	target_compile_definitions(RBDoom3BFG PUBLIC USE_VK=1)
-	target_link_libraries(RBDoom3BFG nvrhi_vk)
+	target_compile_definitions(${APP_NAME} PUBLIC USE_VK=1)
+	target_link_libraries(${APP_NAME} nvrhi_vk)
 endif()
 
 if(OPTICK)
-	target_compile_definitions(RBDoom3BFG PUBLIC USE_OPTICK=1)
+	target_compile_definitions(${APP_NAME} PUBLIC USE_OPTICK=1)
 else()
-	target_compile_definitions(RBDoom3BFG PUBLIC USE_OPTICK=0)
+	target_compile_definitions(${APP_NAME} PUBLIC USE_OPTICK=0)
 endif()
 
 # needs to come after nvrhi_d3d11 etc. for link order
-target_link_libraries(RBDoom3BFG nvrhi)
-target_link_libraries(RBDoom3BFG ShaderMakeBlob ${MASKED_OCCLUSION_LIBRARY} ${ISPC_TEXCOMP_LIBRARY})
+target_link_libraries(${APP_NAME} nvrhi)
+target_link_libraries(${APP_NAME} ShaderMakeBlob ${MASKED_OCCLUSION_LIBRARY} ${ISPC_TEXCOMP_LIBRARY})
 
 add_subdirectory(shaders)
 add_dependencies(Shaders ShaderMake)
-add_dependencies(RBDoom3BFG Shaders ${MASKED_OCCLUSION_LIBRARY} ${ISPC_TEXCOMP_LIBRARY})
+add_dependencies(${APP_NAME} Shaders ${MASKED_OCCLUSION_LIBRARY} ${ISPC_TEXCOMP_LIBRARY})
 

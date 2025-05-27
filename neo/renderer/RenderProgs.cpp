@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2013-2024 Robert Beckebans
+Copyright (C) 2013-2025 Robert Beckebans
 Copyright (C) 2022 Stephen Pridham
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
@@ -32,7 +32,9 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 
 #include "RenderCommon.h"
-
+#include "Passes/MipMapGenPass_cb.h"
+#include "Passes/TemporalAntiAliasingPass_cb.h"
+#include "Passes/TonemapPass_cb.h"
 
 #include <sys/DeviceManager.h>
 #include <nvrhi/utils.h>
@@ -388,8 +390,14 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 			layoutTypeAttributes[layoutType].cbStatic  = false;
 		}
 
-		layoutTypeAttributes[layoutType].pcEnabled = layoutTypeAttributes[layoutType].rpBufSize <= deviceManager->m_DeviceParams.maxPushConstantSize;
+		layoutTypeAttributes[layoutType].pcEnabled = layoutTypeAttributes[layoutType].rpBufSize <= deviceManager->GetMaxPushConstantSize();
 	}
+
+	// RB: isolated render passes can have their own push constant buffer sizes
+	layoutTypeAttributes[BINDING_LAYOUT_TAA_RESOLVE].pcEnabled = sizeof( TemporalAntiAliasingConstants ) <= deviceManager->GetMaxPushConstantSize();
+	layoutTypeAttributes[BINDING_LAYOUT_TONEMAP].pcEnabled = sizeof( ToneMappingConstants ) <= deviceManager->GetMaxPushConstantSize();
+	layoutTypeAttributes[BINDING_LAYOUT_HISTOGRAM].pcEnabled = sizeof( ToneMappingConstants ) <= deviceManager->GetMaxPushConstantSize();
+	layoutTypeAttributes[BINDING_LAYOUT_EXPOSURE].pcEnabled = sizeof( ToneMappingConstants ) <= deviceManager->GetMaxPushConstantSize();
 
 	// SRS - Perform runtime check for Vulkan running on x86-based vs. Apple Silicon hosts since this has to work for Universal Binaries on macOS
 	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN && glConfig.vendor != VENDOR_APPLE )
@@ -681,9 +689,9 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 	auto binkVideoBindingLayout = nvrhi::BindingLayoutDesc()
 								  .setVisibility( nvrhi::ShaderType::All )
 								  .addItem( binkVideoLayoutItem )
-								  .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 0 ) )	// cube map
-								  .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 1 ) )	// cube map
-								  .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 2 ) );	// normal map
+								  .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 0 ) )	// image Y
+								  .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 1 ) )	// image Cr
+								  .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 2 ) );	// image Cb
 
 	bindingLayouts[BINDING_LAYOUT_BINK_VIDEO] = { device->createBindingLayout( binkVideoBindingLayout ), samplerOneBindingLayout };
 
@@ -728,47 +736,12 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 	auto motionVectorsBindingLayout = nvrhi::BindingLayoutDesc()
 									  .setVisibility( nvrhi::ShaderType::All )
 									  .addItem( motionVectorsLayoutItem )
-									  .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 0 ) )	// cube map
-									  .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 1 ) );	// normal map
+									  .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 0 ) )	// HDR _currentRender
+									  .addItem( nvrhi::BindingLayoutItem::Texture_SRV( 1 ) );	// _currentDepth
 
 	bindingLayouts[BINDING_LAYOUT_TAA_MOTION_VECTORS] = { device->createBindingLayout( motionVectorsBindingLayout ), samplerOneBindingLayout };
 
 	bindingLayouts[BINDING_LAYOUT_TAA_RESOLVE] = { };
-
-	nvrhi::BindingLayoutDesc tonemapLayout;
-	tonemapLayout.visibility = nvrhi::ShaderType::Pixel;
-	tonemapLayout.bindings =
-	{
-		nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 ),
-		nvrhi::BindingLayoutItem::Texture_SRV( 0 ),
-		nvrhi::BindingLayoutItem::TypedBuffer_SRV( 1 ),
-		nvrhi::BindingLayoutItem::Texture_SRV( 2 ),
-		nvrhi::BindingLayoutItem::Sampler( 0 )
-	};
-
-	bindingLayouts[BINDING_LAYOUT_TONEMAP] = { device->createBindingLayout( tonemapLayout ) };
-
-	nvrhi::BindingLayoutDesc histogramLayout;
-	histogramLayout.visibility = nvrhi::ShaderType::Compute;
-	histogramLayout.bindings =
-	{
-		nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 ),
-		nvrhi::BindingLayoutItem::Texture_SRV( 0 ),
-		nvrhi::BindingLayoutItem::TypedBuffer_UAV( 0 )
-	};
-
-	bindingLayouts[BINDING_LAYOUT_HISTOGRAM] = { device->createBindingLayout( histogramLayout ) };
-
-	nvrhi::BindingLayoutDesc exposureLayout;
-	exposureLayout.visibility = nvrhi::ShaderType::Compute;
-	exposureLayout.bindings =
-	{
-		nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 ),
-		nvrhi::BindingLayoutItem::TypedBuffer_SRV( 0 ),
-		nvrhi::BindingLayoutItem::TypedBuffer_UAV( 0 )
-	};
-
-	bindingLayouts[BINDING_LAYOUT_EXPOSURE] = { device->createBindingLayout( exposureLayout ) };
 
 	// SRS - allocate static/volatile constant buffers after renderparm buffer sizes are defined for each binding layout type
 	//	   - allocate constant buffers only when needed, i.e. when push constants are not enabled for binding layout type
@@ -934,10 +907,12 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 
 		// SRS - changed from BUILTIN_MOTION_BLUR to BUILTIN_TAA_MOTION_VECTORS
 		{ BUILTIN_TAA_MOTION_VECTORS, "builtin/post/motionBlur", "_vectors", { { "VECTORS_ONLY", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_TAA_MOTION_VECTORS ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_TAA_MOTION_VECTORS },
-		{ BUILTIN_TAA_RESOLVE, "builtin/post/taa", "", { { "SAMPLE_COUNT", "1" }, { "USE_CATMULL_ROM_FILTER", "1" } }, false, SHADER_STAGE_COMPUTE, LAYOUT_UNKNOWN, BINDING_LAYOUT_TAA_RESOLVE },
-		{ BUILTIN_TAA_RESOLVE_MSAA_2X, "builtin/post/taa", "_msaa2x", { { "SAMPLE_COUNT", "2" }, { "USE_CATMULL_ROM_FILTER", "1" } }, false, SHADER_STAGE_COMPUTE, LAYOUT_UNKNOWN, BINDING_LAYOUT_TAA_RESOLVE },
-		{ BUILTIN_TAA_RESOLVE_MSAA_4X, "builtin/post/taa", "_msaa4x", { { "SAMPLE_COUNT", "4" }, { "USE_CATMULL_ROM_FILTER", "1" } }, false, SHADER_STAGE_COMPUTE, LAYOUT_UNKNOWN, BINDING_LAYOUT_TAA_RESOLVE },
-		{ BUILTIN_TAA_RESOLVE_MSAA_8X, "builtin/post/taa", "_msaa8x", { { "SAMPLE_COUNT", "8" }, { "USE_CATMULL_ROM_FILTER", "1" } }, false, SHADER_STAGE_COMPUTE, LAYOUT_UNKNOWN, BINDING_LAYOUT_TAA_RESOLVE },
+
+		// RB: without access to the renderpass code itself we don't know wether we need the push constants or constant buffer versions
+		{ BUILTIN_TAA_RESOLVE, "builtin/post/taa", "", { { "SAMPLE_COUNT", "1" }, { "USE_CATMULL_ROM_FILTER", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_TAA_RESOLVE ) } }, false, SHADER_STAGE_COMPUTE, LAYOUT_UNKNOWN, BINDING_LAYOUT_TAA_RESOLVE },
+		{ BUILTIN_TAA_RESOLVE_MSAA_2X, "builtin/post/taa", "_msaa2x", { { "SAMPLE_COUNT", "2" }, { "USE_CATMULL_ROM_FILTER", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_TAA_RESOLVE ) } }, false, SHADER_STAGE_COMPUTE, LAYOUT_UNKNOWN, BINDING_LAYOUT_TAA_RESOLVE },
+		{ BUILTIN_TAA_RESOLVE_MSAA_4X, "builtin/post/taa", "_msaa4x", { { "SAMPLE_COUNT", "4" }, { "USE_CATMULL_ROM_FILTER", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_TAA_RESOLVE ) } }, false, SHADER_STAGE_COMPUTE, LAYOUT_UNKNOWN, BINDING_LAYOUT_TAA_RESOLVE },
+		{ BUILTIN_TAA_RESOLVE_MSAA_8X, "builtin/post/taa", "_msaa8x", { { "SAMPLE_COUNT", "8" }, { "USE_CATMULL_ROM_FILTER", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_TAA_RESOLVE ) } }, false, SHADER_STAGE_COMPUTE, LAYOUT_UNKNOWN, BINDING_LAYOUT_TAA_RESOLVE },
 
 		{ BUILTIN_AMBIENT_OCCLUSION, "builtin/SSAO/AmbientOcclusion_AO", "", { { "BRIGHTPASS", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_AO ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_AO },
 		{ BUILTIN_AMBIENT_OCCLUSION_AND_OUTPUT, "builtin/SSAO/AmbientOcclusion_AO", "_write", { { "BRIGHTPASS", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_DRAW_AO ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_DRAW_VERT, BINDING_LAYOUT_DRAW_AO },
@@ -962,11 +937,12 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 		// SP begin
 		{ BUILTIN_BLIT, "builtin/blit", "", { { "TEXTURE_ARRAY", "0" } }, false, SHADER_STAGE_FRAGMENT, LAYOUT_UNKNOWN, BINDING_LAYOUT_BLIT },
 		{ BUILTIN_RECT, "builtin/rect", "", { }, false, SHADER_STAGE_VERTEX, LAYOUT_DRAW_VERT, BINDING_LAYOUT_BLIT },
-		{ BUILTIN_TONEMAPPING, "builtin/post/tonemapping", "", { { "HISTOGRAM_BINS", "256" }, { "SOURCE_ARRAY", "0" }, { "QUAD_Z", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_UNKNOWN, BINDING_LAYOUT_TONEMAP },
-		{ BUILTIN_TONEMAPPING_TEX_ARRAY, "builtin/post/tonemapping", "", { { "HISTOGRAM_BINS", "256" }, { "SOURCE_ARRAY", "1" }, { "QUAD_Z", "0" } }, false, SHADER_STAGE_DEFAULT, LAYOUT_UNKNOWN, BINDING_LAYOUT_TONEMAP },
-		{ BUILTIN_HISTOGRAM_CS, "builtin/post/histogram", "", { { "HISTOGRAM_BINS", "256" }, { "SOURCE_ARRAY", "0" } }, false, SHADER_STAGE_COMPUTE, LAYOUT_UNKNOWN, BINDING_LAYOUT_HISTOGRAM },
-		{ BUILTIN_HISTOGRAM_TEX_ARRAY_CS, "builtin/post/histogram", "", { { "HISTOGRAM_BINS", "256" }, { "SOURCE_ARRAY", "1" } }, false, SHADER_STAGE_COMPUTE, LAYOUT_UNKNOWN, BINDING_LAYOUT_HISTOGRAM },
-		{ BUILTIN_EXPOSURE_CS, "builtin/post/exposure", "", { { "HISTOGRAM_BINS", "256" } }, false, SHADER_STAGE_COMPUTE, LAYOUT_UNKNOWN, BINDING_LAYOUT_EXPOSURE },
+
+		{ BUILTIN_TONEMAPPING, "builtin/post/tonemapping", "", { { "HISTOGRAM_BINS", "256" }, { "SOURCE_ARRAY", "0" }, { "QUAD_Z", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_TONEMAP ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_UNKNOWN, BINDING_LAYOUT_TONEMAP },
+		{ BUILTIN_TONEMAPPING_TEX_ARRAY, "builtin/post/tonemapping", "_tex_array", { { "HISTOGRAM_BINS", "256" }, { "SOURCE_ARRAY", "1" }, { "QUAD_Z", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_TONEMAP ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_UNKNOWN, BINDING_LAYOUT_TONEMAP },
+		{ BUILTIN_HISTOGRAM_CS, "builtin/post/histogram", "", { { "HISTOGRAM_BINS", "256" }, { "SOURCE_ARRAY", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_HISTOGRAM ) } }, false, SHADER_STAGE_COMPUTE, LAYOUT_UNKNOWN, BINDING_LAYOUT_HISTOGRAM },
+		{ BUILTIN_HISTOGRAM_TEX_ARRAY_CS, "builtin/post/histogram", "_tex_array", { { "HISTOGRAM_BINS", "256" }, { "SOURCE_ARRAY", "1" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_HISTOGRAM ) } }, false, SHADER_STAGE_COMPUTE, LAYOUT_UNKNOWN, BINDING_LAYOUT_HISTOGRAM },
+		{ BUILTIN_EXPOSURE_CS, "builtin/post/exposure", "", { { "HISTOGRAM_BINS", "256" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_EXPOSURE ) } }, false, SHADER_STAGE_COMPUTE, LAYOUT_UNKNOWN, BINDING_LAYOUT_EXPOSURE },
 		// SP end
 	};
 	int numBuiltins = sizeof( builtins ) / sizeof( builtins[0] );
@@ -988,6 +964,11 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 		//{
 		// RB: don't try to load shaders that would break the GLSL compiler in the OpenGL driver
 		//	continue;
+		//}
+
+		//if( i == BUILTIN_TONEMAPPING )
+		//{
+		//	idLib::Printf( "Loading shader program %s\n", prog.name.c_str() );
 		//}
 
 		int vIndex = -1;

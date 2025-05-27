@@ -22,6 +22,8 @@
 
 #pragma pack_matrix(row_major)
 
+#include "vulkan.hlsli"
+
 struct ToneMappingConstants
 {
 	uint2 viewOrigin;
@@ -50,11 +52,14 @@ struct ToneMappingConstants
 Buffer<uint> t_Histogram : register(t0);
 RWBuffer<uint> u_Exposure : register(u0);
 
-cbuffer c_ToneMapping :
-register( b0 )
+#if USE_PUSH_CONSTANTS
+VK_PUSH_CONSTANT ConstantBuffer<ToneMappingConstants> g_ToneMapping : register( b0 );
+#else
+cbuffer c_ToneMapping : register(b0)
 {
-	ToneMappingConstants g_ToneMapping;
+    ToneMappingConstants g_ToneMapping;
 };
+#endif
 // *INDENT-ON*
 
 #define FIXED_POINT_FRAC_BITS 6

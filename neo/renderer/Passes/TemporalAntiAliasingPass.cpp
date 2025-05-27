@@ -1,6 +1,6 @@
 /*
 * Copyright (c) 2014-2021, NVIDIA CORPORATION. All rights reserved.
-* Copyright (C) 2022-2023 Robert Beckebans (id Tech 4x integration)
+* Copyright (C) 2022-2025 Robert Beckebans (id Tech 4x integration)
 *
 * Permission is hereby granted, free of charge, to any person obtaining a
 * copy of this software and associated documentation files (the "Software"),
@@ -25,9 +25,12 @@
 #pragma hdrstop
 
 #include "TemporalAntiAliasingPass.h"
+#include "TemporalAntiAliasingPass_cb.h"
 #include "CommonPasses.h"
 
 #include "renderer/RenderCommon.h"
+#include <sys/DeviceManager.h>
+extern DeviceManager* deviceManager;
 
 #include <nvrhi/utils.h>
 
@@ -37,8 +40,9 @@
 TemporalAntiAliasingPass::TemporalAntiAliasingPass()
 	: m_CommonPasses( NULL )
 	, m_FrameIndex( 0 )
-	, m_StencilMask( 0 )//params.motionVectorStencilMask )
+	, m_StencilMask( 0 )
 	, m_R2Jitter( 0.0f, 0.0f )
+	, pcEnabled( false )
 {
 }
 
@@ -84,6 +88,10 @@ void TemporalAntiAliasingPass::Init(
 		}
 	}
 
+	// determine if push constants can be used
+	size_t pcSize = sizeof( TemporalAntiAliasingConstants );
+	pcEnabled = pcSize <= deviceManager->GetMaxPushConstantSize();
+
 	//switch( r_antiAliasing.GetInteger() )
 	{
 #if ID_MSAA
@@ -121,26 +129,45 @@ void TemporalAntiAliasingPass::Init(
 	samplerDesc.borderColor = nvrhi::Color( 0.0f );
 	m_BilinearSampler = device->createSampler( samplerDesc );
 
-	nvrhi::BufferDesc constantBufferDesc;
-	constantBufferDesc.byteSize = sizeof( TemporalAntiAliasingConstants );
-	constantBufferDesc.debugName = "TemporalAntiAliasingConstants";
-	constantBufferDesc.isConstantBuffer = true;
-	constantBufferDesc.isVolatile = true;
-	constantBufferDesc.maxVersions = params.numConstantBufferVersions;
-	m_TemporalAntiAliasingCB = device->createBuffer( constantBufferDesc );
+	if( !pcEnabled )
+	{
+		nvrhi::BufferDesc constantBufferDesc;
+		constantBufferDesc.byteSize = pcSize;
+		constantBufferDesc.debugName = "TemporalAntiAliasingConstants";
+		constantBufferDesc.isConstantBuffer = true;
+		constantBufferDesc.isVolatile = true;
+		constantBufferDesc.maxVersions = params.numConstantBufferVersions;
+		m_TemporalAntiAliasingCB = device->createBuffer( constantBufferDesc );
+	}
 
 	{
 		nvrhi::BindingSetDesc bindingSetDesc;
-		bindingSetDesc.bindings =
+		if( pcEnabled )
 		{
-			nvrhi::BindingSetItem::ConstantBuffer( 0, m_TemporalAntiAliasingCB ),
-			nvrhi::BindingSetItem::Sampler( 0, m_BilinearSampler ),
-			nvrhi::BindingSetItem::Texture_SRV( 0, params.unresolvedColor ),
-			nvrhi::BindingSetItem::Texture_SRV( 1, params.motionVectors ),
-			nvrhi::BindingSetItem::Texture_SRV( 2, params.feedback1 ),
-			nvrhi::BindingSetItem::Texture_UAV( 0, params.resolvedColor ),
-			nvrhi::BindingSetItem::Texture_UAV( 1, params.feedback2 )
-		};
+			bindingSetDesc.bindings =
+			{
+				nvrhi::BindingSetItem::PushConstants( 0, pcSize ),
+				nvrhi::BindingSetItem::Sampler( 0, m_BilinearSampler ),
+				nvrhi::BindingSetItem::Texture_SRV( 0, params.unresolvedColor ),
+				nvrhi::BindingSetItem::Texture_SRV( 1, params.motionVectors ),
+				nvrhi::BindingSetItem::Texture_SRV( 2, params.feedback1 ),
+				nvrhi::BindingSetItem::Texture_UAV( 0, params.resolvedColor ),
+				nvrhi::BindingSetItem::Texture_UAV( 1, params.feedback2 )
+			};
+		}
+		else
+		{
+			bindingSetDesc.bindings =
+			{
+				nvrhi::BindingSetItem::ConstantBuffer( 0, m_TemporalAntiAliasingCB ),
+				nvrhi::BindingSetItem::Sampler( 0, m_BilinearSampler ),
+				nvrhi::BindingSetItem::Texture_SRV( 0, params.unresolvedColor ),
+				nvrhi::BindingSetItem::Texture_SRV( 1, params.motionVectors ),
+				nvrhi::BindingSetItem::Texture_SRV( 2, params.feedback1 ),
+				nvrhi::BindingSetItem::Texture_UAV( 0, params.resolvedColor ),
+				nvrhi::BindingSetItem::Texture_UAV( 1, params.feedback2 )
+			};
+		}
 
 		nvrhi::utils::CreateBindingSetAndLayout( device, nvrhi::ShaderType::Compute, 0, bindingSetDesc, m_ResolveBindingLayout, m_ResolveBindingSet );
 
@@ -175,7 +202,6 @@ void TemporalAntiAliasingPass::TemporalResolve(
 	TemporalAntiAliasingConstants taaConstants = {};
 	const float marginSize = 1.f;
 	taaConstants.inputViewOrigin = idVec2( viewportInput.minX, viewportInput.minY );
-	// RB: TODO figure out why 1 pixel is missing and the old code for resolving _currentImage adds 1 pixel to each side
 	taaConstants.inputViewSize = idVec2( viewportInput.width() + 1, viewportInput.height() + 1 );
 	taaConstants.outputViewOrigin = idVec2( viewportOutput.minX, viewportOutput.minY );
 	taaConstants.outputViewSize = idVec2( viewportOutput.width() + 1, viewportOutput.height() + 1 );
@@ -187,15 +213,25 @@ void TemporalAntiAliasingPass::TemporalResolve(
 	taaConstants.newFrameWeight = feedbackIsValid ? params.newFrameWeight : 1.0f;
 	taaConstants.pqC = idMath::ClampFloat( 1e-4f, 1e8f, params.maxRadiance );
 	taaConstants.invPqC = 1.f / taaConstants.pqC;
-	commandList->writeBuffer( m_TemporalAntiAliasingCB, &taaConstants, sizeof( taaConstants ) );
 
-	idVec2i viewportSize = idVec2i( taaConstants.outputViewSize.x, taaConstants.outputViewSize.y );
-	idVec2i gridSize = ( viewportSize + 15 ) / 16;
+	if( !pcEnabled )
+	{
+		commandList->writeBuffer( m_TemporalAntiAliasingCB, &taaConstants, sizeof( taaConstants ) );
+	}
 
 	nvrhi::ComputeState state;
 	state.pipeline = m_ResolvePso;
 	state.bindings = { m_ResolveBindingSet };
+
 	commandList->setComputeState( state );
+
+	if( pcEnabled )
+	{
+		commandList->setPushConstants( &taaConstants, sizeof( taaConstants ) );
+	}
+
+	idVec2i viewportSize = idVec2i( taaConstants.outputViewSize.x, taaConstants.outputViewSize.y );
+	idVec2i gridSize = ( viewportSize + 15 ) / 16;
 
 	commandList->dispatch( gridSize.x, gridSize.y, 1 );
 }
