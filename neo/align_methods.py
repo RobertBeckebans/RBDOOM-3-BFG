@@ -1,9 +1,17 @@
-```python
 import re
+import sys
+import os
 
 def align_method_names(file_path):
-    with open(file_path, 'r') as f:
-        lines = f.readlines()
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+    except FileNotFoundError:
+        print(f"ERROR: File not found: {file_path}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"ERROR: Failed to read file {file_path}: {e}")
+        sys.exit(1)
 
     max_prefix_length = 0
     modified_lines = []
@@ -41,15 +49,24 @@ def align_method_names(file_path):
             modified_lines.append((None, None, line))
 
     # Second pass: Write the file with aligned lines
-    with open(file_path, 'w') as f:
-        for prefix, suffix, line in modified_lines:
-            if prefix and suffix:
-                # Add spaces to align names right
-                padded_prefix = prefix + ' ' * (max_prefix_length - len(prefix))
-                f.write(padded_prefix + suffix + '\n')
-            else:
-                f.write(line)
+    try:
+        with open(file_path, 'w', encoding='utf-8') as f:
+            for prefix, suffix, line in modified_lines:
+                if prefix and suffix:
+                    # Add spaces to align names right
+                    padded_prefix = prefix + ' ' * (max_prefix_length - len(prefix))
+                    f.write(padded_prefix + suffix + '\n')
+                else:
+                    f.write(line)
+    except Exception as e:
+        print(f"ERROR: Failed to write file {file_path}: {e}")
+        sys.exit(1)
 
-# Example usage
-align_method_names('example.h')
-```
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("ERROR: Exactly one file path must be provided as an argument")
+        print(f"Usage: {sys.argv[0]} <file_path>")
+        sys.exit(1)
+    # Normalize file path for Windows compatibility
+    file_path = os.path.normpath(sys.argv[1])
+    align_method_names(file_path)
