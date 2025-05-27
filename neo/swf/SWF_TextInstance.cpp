@@ -3,6 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2023 Harrie van Ginneken
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -67,6 +68,81 @@ idSWFTextInstance::~idSWFTextInstance()
 
 	subtitleTimingInfo.Clear();
 }
+
+// HarrievG begin
+void idSWFTextInstance::Init( idSWFText* _text, idSWF* _swf )
+{
+	editText = nullptr;
+	staticText = _text;
+	swf = _swf;
+
+	text = "staticText";//idLocalization::GetString( staticText->textRecords[0]. );
+
+	lengthCalculated = false;
+	//if ( editText )
+	//{
+	//	variable = editText->variable;
+	//	color = editText->color;
+	//}
+	visible = true;
+
+	selectionStart = -1;
+	selectionEnd = -1;
+
+	scroll = 0;
+	scrollTime = 0;
+	maxscroll = 0;
+	maxLines = 0;
+	linespacing = 0;
+	glyphScale = 1.0f;
+
+	shiftHeld = false;
+	tooltip = false;
+	renderMode = SWF_TEXT_RENDER_NORMAL;
+	generatingText = false;
+	triggerGenerate = false;
+	rndSpotsVisible = 0;
+	textSpotsVisible = 0;
+	startRndTime = 0;
+	charMultiplier = 0;
+	prevReplaceIndex = 0;
+	scrollUpdate = false;
+	ignoreColor = false;
+
+	isSubtitle = false;
+	subLength = 0;
+	subAlign = 0;
+	subUpdating = false;
+	subCharStartIndex = 0;
+	subNextStartIndex = 0;
+	subCharEndIndex = 0;
+	subDisplayTime = 0;
+	subStartTime = -1;
+	subSourceID = -1;
+	subNeedsSwitch = false;
+	subForceKill = false;
+	subKillTimeDelay = 0;
+	subSwitchTime = 0;
+	subLastWordIndex = 0;
+	subPrevLastWordIndex = 0;
+	subInitialLine = true;
+
+	textLength = 0;
+
+	inputTextStartChar = 0;
+
+	renderDelay = swf_textRndLetterDelay.GetInteger();
+	needsSoundUpdate = false;
+	useDropShadow = false;
+	useStroke = false;
+	strokeStrength = 1.0f;
+	strokeWeight = swf_textStrokeSize.GetFloat();
+
+	scriptObject.SetPrototype( &textInstanceScriptObjectPrototype );
+	scriptObject.SetText( this );
+	scriptObject.SetNoAutoDelete( true );
+}
+// HarrievG end
 
 /*
 ========================
@@ -1028,6 +1104,7 @@ idSWFScriptObject_TextInstancePrototype::idSWFScriptObject_TextInstancePrototype
 
 	SWF_TEXT_NATIVE_VAR_SET( text );
 	SWF_TEXT_NATIVE_VAR_SET( _textLength );	// only works on single lines of text not multiline
+	SWF_TEXT_NATIVE_VAR_SET( length );	// only works on single lines of text not multiline
 	SWF_TEXT_NATIVE_VAR_SET( autoSize );
 	SWF_TEXT_NATIVE_VAR_SET( dropShadow );
 	SWF_TEXT_NATIVE_VAR_SET( _stroke );
@@ -1250,6 +1327,11 @@ SWF_TEXT_NATIVE_VAR_DEFINE_GET( maxscroll )
 SWF_TEXT_NATIVE_VAR_DEFINE_GET( _textLength )
 {
 	SWF_TEXT_PTHIS_GET( "_textLength" );
+	return pThis->GetTextLength();
+}
+SWF_TEXT_NATIVE_VAR_DEFINE_GET( length )
+{
+	SWF_TEXT_PTHIS_GET( "length" );
 	return pThis->GetTextLength();
 }
 
