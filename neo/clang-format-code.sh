@@ -47,11 +47,11 @@ fi
 find . -regex ".*\.\(cpp\|cc\|cxx\|h\|hpp\)" ! -path "./libs/*" ! -path "./extern/*" ! -path "./d3xp/gamesys/SysCvar.cpp" ! -path "./d3xp/gamesys/Callbacks.cpp" ! -path "./sys/win32/win_cpu.cpp" ! -path "./sys/win32/win_main.cpp" -print0 | xargs -0 -P 16 "$CLANGFMT_BIN" -i
 
 # Post-process files to align method names right (requires Python)
-if command -v python >/dev/null 2>&1; then
-    find . -regex ".*\.\(h\|hpp\)" ! -path "./libs/*" ! -path "./extern/*" ! -path "./d3xp/gamesys/SysCvar.cpp" ! -path "./d3xp/gamesys/Callbacks.cpp" ! -path "./sys/win32/win_cpu.cpp" ! -path "./sys/win32/win_main.cpp" -print0 | xargs -0 -I {} python align_methods.py {}
-    echo "Right-alignment post-processing completed!"
-else
-    echo "WARNING: Python3 not found, skipping right-alignment post-processing."
-fi
+#if command -v python >/dev/null 2>&1; then
+#    find . -regex ".*\.\(h\|hpp\)" ! -path "./libs/*" ! -path "./extern/*" ! -path "./d3xp/gamesys/SysCvar.cpp" ! -path "./d3xp/gamesys/Callbacks.cpp" ! -path "./sys/win32/win_cpu.cpp" ! -path "./sys/win32/win_main.cpp" -print0 | xargs -0 -I {} python align_methods.py {}
+#    echo "Right-alignment post-processing completed!"
+#else
+#    echo "WARNING: Python3 not found, skipping right-alignment post-processing."
+#fi
 
 echo "Formatting completed!"
