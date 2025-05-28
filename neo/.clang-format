@@ -11,29 +11,29 @@ AlignConsecutiveAssignments:
   PadOperators: true
 AlignConsecutiveBitFields:
   Enabled: true
-  AcrossEmptyLines: false
-  AcrossComments: false
+  AcrossEmptyLines: true
+  AcrossComments: true
   AlignCompound: false
   AlignFunctionPointers: false
   PadOperators: true
 AlignConsecutiveDeclarations:
   Enabled: true
-  AcrossEmptyLines: false
-  AcrossComments: false
+  AcrossEmptyLines: true
+  AcrossComments: true
   AlignCompound: false
   AlignFunctionPointers: false
   PadOperators: true
 AlignConsecutiveMacros:
   Enabled: true
-  AcrossEmptyLines: false
-  AcrossComments: false
+  AcrossEmptyLines: true
+  AcrossComments: true
   AlignCompound: false
   AlignFunctionPointers: false
   PadOperators: true
 AlignEscapedNewlines: Left
 AlignOperands: true
 AlignTrailingComments: true
-AllowShortBlocksOnASingleLine: false
+AllowShortBlocksOnASingleLine: true
 AllowShortCaseLabelsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: All
 AllowShortIfStatementsOnASingleLine: false
@@ -64,6 +64,7 @@ MaxEmptyLinesToKeep: 1
 NamespaceIndentation: Inner
 PPIndentWidth: 4
 PointerAlignment: Left
+ReferenceAlignment: Left
 SortIncludes: false
 SortUsingDeclarations: true
 SpaceAfterCStyleCast: false
@@ -75,11 +76,11 @@ SpaceBeforeInheritanceColon: true
 SpaceBeforeParens: Never
 SpaceBeforeRangeBasedForLoopColon: false
 SpaceInEmptyParentheses: false
-SpacesInAngles: true
-SpacesInCStyleCastParentheses: true
+SpacesInAngles: false
+SpacesInCStyleCastParentheses: false
 SpacesInContainerLiterals: true
 SpacesInParentheses: true
-SpacesInSquareBrackets: true
+SpacesInSquareBrackets: false
 Standard: Cpp11
 TabWidth: 4
 UseTab: ForContinuationAndIndentation
