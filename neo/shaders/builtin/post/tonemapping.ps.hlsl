@@ -59,10 +59,14 @@ Buffer<uint> t_Exposure : register(t1);
 Texture2D t_ColorLUT : register(t2);
 SamplerState s_ColorLUTSampler : register(s0);
 
-cbuffer c_ToneMapping : register(b0)
+#if USE_PUSH_CONSTANTS
+VK_PUSH_CONSTANT ConstantBuffer<ToneMappingConstants> g_ToneMapping : register( b0 );
+#else
+cbuffer c_ToneMapping : register( b0 )
 {
     ToneMappingConstants g_ToneMapping;
 };
+#endif
 // *INDENT-ON*
 
 float3 ACESFilm( float3 x )

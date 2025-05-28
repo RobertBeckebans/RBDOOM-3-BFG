@@ -183,6 +183,9 @@ void idRenderProgManager::LoadShader( shader_t& shader )
 	}
 
 	idList<ShaderMake::ShaderConstant> constants;
+#ifdef _DEBUG
+	idStr constantsDebugString;
+#endif
 
 	for( int i = 0; i < shader.macros.Num(); i++ )
 	{
@@ -191,6 +194,10 @@ void idRenderProgManager::LoadShader( shader_t& shader )
 			shader.macros[i].name.c_str(),
 			shader.macros[i].definition.c_str()
 		} );
+
+#ifdef _DEBUG
+		constantsDebugString += shader.macros[i].name + "=" + shader.macros[i].definition + "; ";
+#endif
 	}
 
 	nvrhi::ShaderDesc desc = nvrhi::ShaderDesc( shaderType );

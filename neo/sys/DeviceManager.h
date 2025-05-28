@@ -158,7 +158,6 @@ public:
 protected:
 	friend class idRenderBackend;
 	friend class idImage;
-	friend class idRenderProgManager;
 
 	void* windowInstance;
 	void* windowHandle;
@@ -202,6 +201,11 @@ public:
 	[[nodiscard]] uint32_t GetFrameIndex() const
 	{
 		return m_FrameIndex;
+	}
+
+	uint32_t GetMaxPushConstantSize() const
+	{
+		return m_DeviceParams.maxPushConstantSize;
 	}
 
 	virtual nvrhi::ITexture* GetCurrentBackBuffer() = 0;

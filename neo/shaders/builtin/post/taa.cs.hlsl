@@ -22,6 +22,8 @@
 
 #pragma pack_matrix(row_major)
 
+#include "vulkan.hlsli"
+
 //#include <donut/shaders/taa_cb.h>
 
 struct TemporalAntiAliasingConstants
@@ -48,11 +50,16 @@ struct TemporalAntiAliasingConstants
 	uint stencilMask;
 };
 
+#if USE_PUSH_CONSTANTS
+VK_PUSH_CONSTANT ConstantBuffer<TemporalAntiAliasingConstants> g_TemporalAA :
+register( b0 );
+#else
 cbuffer c_TemporalAA :
 register( b0 )
 {
 	TemporalAntiAliasingConstants g_TemporalAA;
 };
+#endif
 
 #ifndef SAMPLE_COUNT
 	#define SAMPLE_COUNT 1
