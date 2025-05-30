@@ -1,10 +1,10 @@
 #!/bin/sh
 
 # Desired clang-format version
-OUR_CLANGFMT_VERSION=18.1.8
+REQUIRED_VERSION=18.1.8
 
 print_usage () {
-    echo "Please ensure that clang-format version $OUR_CLANGFMT_VERSION is used, as other versions may produce different formatting!"
+    echo "Please ensure that clang-format version $REQUIRED_VERSION is used, as other versions may produce different formatting!"
     echo "Set the CLANGFMT_BIN environment variable to specify a custom path to clang-format."
     echo "Example: CLANGFMT_BIN=/usr/bin/clang-format $0"
 }
@@ -26,11 +26,26 @@ if [ ! -x "$CLANGFMT_BIN" ]; then
     exit 1
 fi
 
-# Extract clang-format version
-CLANGFMT_VERSION=$($CLANGFMT_BIN --version | grep -o -E "([0-9]{1,}\.)+[0-9]{1,}")
+# Extract clang-format version, take only the first match
+CLANGFMT_VERSION="$($CLANGFMT_BIN --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)"
+if [ -z "$CLANGFMT_VERSION" ]; then
+    echo "ERROR: Could not extract version from $CLANGFMT_BIN --version"
+    exit 1
+fi
 
-if [ "$CLANGFMT_VERSION" != "$OUR_CLANGFMT_VERSION" ]; then
-    echo "ERROR: $CLANGFMT_BIN has version $CLANGFMT_VERSION, but version $OUR_CLANGFMT_VERSION is required"
+# Clean the version strings
+CLANGFMT_VERSION_CLEAN="$(echo "$CLANGFMT_VERSION" | tr -d '\r\n[:space:]' | sed 's/[^0-9.]//g')"
+REQUIRED_VERSION_CLEAN="$(echo "$REQUIRED_VERSION" | tr -d '\r\n[:space:]' | sed 's/[^0-9.]//g')"
+
+# Debug output to inspect values
+#echo "DEBUG: CLANGFMT_BIN: $CLANGFMT_BIN"
+#echo "DEBUG: Raw CLANGFMT_VERSION: '$CLANGFMT_VERSION'"
+#echo "DEBUG: Cleaned CLANGFMT_VERSION_CLEAN: '$CLANGFMT_VERSION_CLEAN'"
+#echo "DEBUG: Cleaned REQUIRED_VERSION_CLEAN: '$REQUIRED_VERSION_CLEAN'"
+
+# Compare versions
+if [ "$CLANGFMT_VERSION_CLEAN" != "$REQUIRED_VERSION_CLEAN" ]; then
+    echo "ERROR: $CLANGFMT_BIN has version $CLANGFMT_VERSION, but version $REQUIRED_VERSION is required"
     echo "       (Different versions of clang-format may produce slightly different formatting.)"
     exit 1
 fi
