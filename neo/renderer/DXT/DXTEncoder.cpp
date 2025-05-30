@@ -5785,7 +5785,7 @@ void idDxtEncoder::CompressImageR11G11B10_BC6Fast_Generic( const byte* inBuf, by
 
 #if 1
 
-#if defined(USE_INTRINSICS_SSE) || defined(USE_INTRINSICS_NEON)
+#if (defined(USE_INTRINSICS_SSE) || defined(USE_INTRINSICS_NEON)) && !defined(FLATPAK)
 #include "../../libs/ispc_texcomp/ispc_texcomp.h"
 
 /*
@@ -5998,7 +5998,16 @@ void idDxtEncoder::CompressImageR11G11B10_BC6Fast_SIMD( const byte* inBuf, byte*
 
 	delete[] fp32Buf;
 }
-#endif // #if defined(USE_INTRINSICS_SSE)
+
+#else // #if defined(FLATPAK)
+
+void idDxtEncoder::CompressImageR11G11B10_BC6Fast_SIMD( const byte* inBuf, byte* outBuf, int width, int height )
+{
+	// TODO
+	idLib::FatalError( "idDxtEncoder::CompressImageR11G11B10_BC6Fast_SIMD not implemented" );
+}
+
+#endif
 
 #endif
 
