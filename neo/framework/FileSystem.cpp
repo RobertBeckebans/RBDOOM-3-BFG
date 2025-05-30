@@ -3262,6 +3262,11 @@ idFileSystemLocal::SetupGameDirectories
 */
 void idFileSystemLocal::SetupGameDirectories( const char* gameName )
 {
+#if __linux__
+	// setup LFH based system file locations at the bottom of the path stack
+	AddGameDirectory( "/usr/share/rbdoom3bfg", gameName );
+	AddGameDirectory( "/usr/local/share/rbdoom3bfg", gameName );
+#endif
 	// setup basepath
 	if( fs_basepath.GetString()[0] )
 	{
