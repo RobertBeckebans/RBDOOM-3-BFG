@@ -206,7 +206,7 @@ void idBinaryImage::Load2DFromMemory( int width, int height, const byte* pic_con
 		}
 		else if( textureFormat == FMT_BC6H )
 		{
-#if !defined(USE_INTRINSICS_SSE) && !defined(USE_INTRINSICS_NEON)
+#if !defined(USE_INTRINSICS_SSE) && !defined(USE_INTRINSICS_NEON) && !defined(FLATPAK)
 
 			// RB: store as R11G11B10 because the generic fallback is too slow
 			fileData.format = textureFormat = FMT_R11G11B10F;
@@ -545,7 +545,7 @@ void idBinaryImage::Load2DAtlasMipchainFromMemory( int width, int height, const 
 		}
 		else if( textureFormat == FMT_BC6H )
 		{
-#if !defined(USE_INTRINSICS_SSE) && !defined(USE_INTRINSICS_NEON)
+#if !defined(USE_INTRINSICS_SSE) && !defined(USE_INTRINSICS_NEON) && !defined(FLATPAK)
 
 			// RB: store as R11G11B10 because the generic fallback is too slow
 			fileData.format = textureFormat = FMT_R11G11B10F;
@@ -761,7 +761,7 @@ void idBinaryImage::LoadCubeFromMemory( int width, const byte* pics[6], int numL
 			}
 			else if( textureFormat == FMT_BC6H )
 			{
-#if !defined(USE_INTRINSICS_SSE) && !defined(USE_INTRINSICS_NEON)
+#if !defined(USE_INTRINSICS_SSE) && !defined(USE_INTRINSICS_NEON) && !defined(FLATPAK)
 
 				// RB: store as R11G11B10 because the generic fallback is too slow
 				fileData.format = textureFormat = FMT_R11G11B10F;

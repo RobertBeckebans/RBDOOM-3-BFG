@@ -5870,7 +5870,7 @@ void idDxtEncoder::CompressImageR11G11B10_BC6Fast_SIMD( const byte* inBuf, byte*
 
 #else
 
-#if defined(USE_INTRINSICS_SSE)
+#if defined(USE_INTRINSICS_SSE) && !defined(FLATPAK)
 #include "../../libs/compressonator/include/compressonator.h"
 
 /*
