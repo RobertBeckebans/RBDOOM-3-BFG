@@ -22,6 +22,8 @@
 
 #pragma pack_matrix(row_major)
 
+#include "vulkan.hlsli"
+
 struct ToneMappingConstants
 {
 	uint2 viewOrigin;
@@ -54,10 +56,14 @@ Texture2D t_Source : register(t0);
 #endif
 RWBuffer<uint> u_Histogram : register(u0);
 
+#if USE_PUSH_CONSTANTS
+VK_PUSH_CONSTANT ConstantBuffer<ToneMappingConstants> g_ToneMapping : register( b0 );
+#else
 cbuffer c_ToneMapping : register(b0)
 {
     ToneMappingConstants g_ToneMapping;
 };
+#endif
 // *INDENT-ON*
 
 float Luminance( float3 color )

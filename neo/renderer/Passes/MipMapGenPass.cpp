@@ -27,6 +27,9 @@
 #include "renderer/Passes/MipMapGenPass_cb.h"
 #include "renderer/RenderCommon.h"
 
+#include <sys/DeviceManager.h>
+extern DeviceManager* deviceManager;
+
 #include <cassert>
 #include <mutex>
 
@@ -116,28 +119,45 @@ MipMapGenPass::MipMapGenPass(
 	// Shader
 	assert( mode >= 0 && mode <= MODE_MINMAX );
 
-	idList<shaderMacro_t> macros;
-	macros.Append( shaderMacro_t( "MODE", std::to_string( mode ).c_str() ) );
-	int index = renderProgManager.FindShader( "builtin/mipmapgen", SHADER_STAGE_COMPUTE, "", macros, true );
-	m_Shader = renderProgManager.GetShader( index );
+	auto mipmapShaderInfo = renderProgManager.GetProgramInfo( BUILTIN_MIPMAPGEN_CS );
+	m_Shader = mipmapShaderInfo.cs;
 
-	// Constants
-	nvrhi::BufferDesc constantBufferDesc;
-	constantBufferDesc.byteSize = sizeof( MipmmapGenConstants );
-	constantBufferDesc.isConstantBuffer = true;
-	constantBufferDesc.isVolatile = true;
-	constantBufferDesc.debugName = "MipMapGenPass/Constants";
-	constantBufferDesc.maxVersions = c_MaxRenderPassConstantBufferVersions;
-	m_ConstantBuffer = m_Device->createBuffer( constantBufferDesc );
+	// Determine if push constants can be used
+	size_t pcSize = sizeof( MipmmapGenConstants );
+	pcEnabled = mipmapShaderInfo.usesPushConstants;
+
+	if( !pcEnabled )
+	{
+		// Constants
+		nvrhi::BufferDesc constantBufferDesc;
+		constantBufferDesc.byteSize = pcSize;
+		constantBufferDesc.isConstantBuffer = true;
+		constantBufferDesc.isVolatile = true;
+		constantBufferDesc.debugName = "MipMapGenPass/Constants";
+		constantBufferDesc.maxVersions = numConstantBufferVersions;
+		m_ConstantBuffer = m_Device->createBuffer( constantBufferDesc );
+	}
 
 	// BindingLayout
 	nvrhi::BindingLayoutDesc layoutDesc;
 	layoutDesc.visibility = nvrhi::ShaderType::Compute;
-	layoutDesc.bindings =
+
+	if( pcEnabled )
 	{
-		nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 ),
-		nvrhi::BindingLayoutItem::Texture_SRV( 0 )
-	};
+		layoutDesc.bindings =
+		{
+			nvrhi::BindingLayoutItem::PushConstants( 0, pcSize ),
+			nvrhi::BindingLayoutItem::Texture_SRV( 0 )
+		};
+	}
+	else
+	{
+		layoutDesc.bindings =
+		{
+			nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 ),
+			nvrhi::BindingLayoutItem::Texture_SRV( 0 )
+		};
+	}
 
 	for( uint mipLevel = 1; mipLevel <= NUM_LODS; ++mipLevel )
 	{
@@ -159,11 +179,23 @@ MipMapGenPass::MipMapGenPass(
 		nvrhi::BindingSetHandle& set = m_BindingSets[i];
 
 		nvrhi::BindingSetDesc setDesc;
-		setDesc.bindings =
+		if( pcEnabled )
 		{
-			nvrhi::BindingSetItem::ConstantBuffer( 0, m_ConstantBuffer ),
-			nvrhi::BindingSetItem::Texture_SRV( 0, m_Texture, nvrhi::Format::UNKNOWN, nvrhi::TextureSubresourceSet( i * NUM_LODS, 1, 0, 1 ) )
-		};
+			setDesc.bindings =
+			{
+				nvrhi::BindingSetItem::PushConstants( 0, pcSize ),
+				nvrhi::BindingSetItem::Texture_SRV( 0, m_Texture, nvrhi::Format::UNKNOWN, nvrhi::TextureSubresourceSet( i * NUM_LODS, 1, 0, 1 ) )
+			};
+		}
+		else
+		{
+			setDesc.bindings =
+			{
+				nvrhi::BindingSetItem::ConstantBuffer( 0, m_ConstantBuffer ),
+				nvrhi::BindingSetItem::Texture_SRV( 0, m_Texture, nvrhi::Format::UNKNOWN, nvrhi::TextureSubresourceSet( i * NUM_LODS, 1, 0, 1 ) )
+			};
+		}
+
 		for( uint mipLevel = 1; mipLevel <= NUM_LODS; ++mipLevel )
 		{
 			// output UAVs start after the mip-level UAV that was computed last
@@ -216,12 +248,23 @@ void MipMapGenPass::Dispatch( nvrhi::ICommandList* commandList, int maxLOD )
 		MipmmapGenConstants constants = {};
 		constants.numLODs = Min( nmipLevels - i * NUM_LODS - 1, ( uint32_t )NUM_LODS );
 		constants.dispatch = i;
-		commandList->writeBuffer( m_ConstantBuffer, &constants, sizeof( constants ) );
+
+
+		if( !pcEnabled )
+		{
+			commandList->writeBuffer( m_ConstantBuffer, &constants, sizeof( constants ) );
+		}
 
 		nvrhi::ComputeState state;
 		state.pipeline = m_Pso;
 		state.bindings = { m_BindingSets[i] };
 		commandList->setComputeState( state );
+
+		if( pcEnabled )
+		{
+			commandList->setPushConstants( &constants, sizeof( constants ) );
+		}
+
 		commandList->dispatch( width, height );
 	}
 

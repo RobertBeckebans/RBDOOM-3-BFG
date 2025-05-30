@@ -44,7 +44,7 @@ If you have questions concerning this license or the applicable additional terms
 // RB end
 
 // jmarshall
-#define ENGINE_BRANCH					"master"
+#define ENGINE_BRANCH					"rpsubsets-and-pc"
 // jmarshall end
 
 #ifdef STANDALONE

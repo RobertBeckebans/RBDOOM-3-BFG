@@ -1,6 +1,6 @@
 /*
 * Copyright (c) 2014-2021, NVIDIA CORPORATION. All rights reserved.
-* Copyright (C) 2022-2023 Robert Beckebans (id Tech 4x integration)
+* Copyright (C) 2022-2025 Robert Beckebans (id Tech 4x integration)
 *
 * Permission is hereby granted, free of charge, to any person obtaining a
 * copy of this software and associated documentation files (the "Software"),
@@ -28,11 +28,17 @@
 #include "TonemapPass.h"
 #include "TonemapPass_cb.h"
 
+#include <sys/DeviceManager.h>
+extern DeviceManager* deviceManager;
+
 TonemapPass::TonemapPass()
 	: isLoaded( false )
 	, colorLut( nullptr )
 	, colorLutSize( 0 )
 	, commonPasses( nullptr )
+	, pcEnabledHistogram( false )
+	, pcEnabledExposure( false )
+	, pcEnabledTonemap( false )
 {
 }
 
@@ -51,16 +57,22 @@ void TonemapPass::Init( nvrhi::DeviceHandle _device, CommonRenderPasses* _common
 	exposureShader = exposureShaderInfo.cs;
 	tonemapShader = tonemapShaderInfo.ps;
 
-	renderBindingLayoutHandle = ( *tonemapShaderInfo.bindingLayouts )[0];
-	histogramBindingLayoutHandle = ( *histogramShaderInfo.bindingLayouts )[0];
+	// Determine if push constants can be used
+	size_t pcSize = sizeof( ToneMappingConstants );
+	pcEnabledHistogram = histogramShaderInfo.usesPushConstants;
+	pcEnabledExposure = exposureShaderInfo.usesPushConstants;
+	pcEnabledTonemap = tonemapShaderInfo.usesPushConstants;
 
-	nvrhi::BufferDesc constantBufferDesc;
-	constantBufferDesc.byteSize = sizeof( ToneMappingConstants );
-	constantBufferDesc.debugName = "ToneMappingConstants";
-	constantBufferDesc.isConstantBuffer = true;
-	constantBufferDesc.isVolatile = true;
-	constantBufferDesc.maxVersions = _params.numConstantBufferVersions;
-	toneMappingCb = device->createBuffer( constantBufferDesc );
+	if( !pcEnabledHistogram || !pcEnabledExposure || !pcEnabledTonemap )
+	{
+		nvrhi::BufferDesc constantBufferDesc;
+		constantBufferDesc.byteSize = pcSize;
+		constantBufferDesc.debugName = "ToneMappingConstants";
+		constantBufferDesc.isConstantBuffer = true;
+		constantBufferDesc.isVolatile = true;
+		constantBufferDesc.maxVersions = _params.numConstantBufferVersions;
+		toneMappingCb = device->createBuffer( constantBufferDesc );
+	}
 
 	nvrhi::BufferDesc storageBufferDesc;
 	storageBufferDesc.byteSize = sizeof( uint ) * _params.histogramBins;
@@ -104,35 +116,121 @@ void TonemapPass::Init( nvrhi::DeviceHandle _device, CommonRenderPasses* _common
 		}
 	}
 
+	// histogram pipeline
 	{
+		nvrhi::BindingLayoutDesc histogramLayout;
+		histogramLayout.visibility = nvrhi::ShaderType::Compute;
+		if( pcEnabledHistogram )
+		{
+			histogramLayout.bindings =
+			{
+				nvrhi::BindingLayoutItem::PushConstants( 0, pcSize ),
+				nvrhi::BindingLayoutItem::Texture_SRV( 0 ),
+				nvrhi::BindingLayoutItem::TypedBuffer_UAV( 0 )
+			};
+		}
+		else
+		{
+			histogramLayout.bindings =
+			{
+				nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 ),
+				nvrhi::BindingLayoutItem::Texture_SRV( 0 ),
+				nvrhi::BindingLayoutItem::TypedBuffer_UAV( 0 )
+			};
+		}
+
+		histogramBindingLayout = device->createBindingLayout( histogramLayout );
+
 		nvrhi::ComputePipelineDesc computePipelineDesc;
 		computePipelineDesc.CS = histogramShader;
-		computePipelineDesc.bindingLayouts = { histogramBindingLayoutHandle };
+		computePipelineDesc.bindingLayouts = { histogramBindingLayout };
 		histogramPipeline = device->createComputePipeline( computePipelineDesc );
 	}
 
+	// exposure pipeline
 	{
-		nvrhi::BindingSetDesc bindingSetDesc;
-		bindingSetDesc.bindings =
+		nvrhi::BindingLayoutDesc layoutDesc;
+		layoutDesc.visibility = nvrhi::ShaderType::Compute;
+		if( pcEnabledExposure )
 		{
-			nvrhi::BindingSetItem::ConstantBuffer( 0, toneMappingCb ),
-			nvrhi::BindingSetItem::TypedBuffer_SRV( 0, histogramBuffer ),
-			nvrhi::BindingSetItem::TypedBuffer_UAV( 0, exposureBuffer )
-		};
-		exposureBindingSet = device->createBindingSet( bindingSetDesc, ( *exposureShaderInfo.bindingLayouts )[0] );
+			layoutDesc.bindings =
+			{
+				nvrhi::BindingLayoutItem::PushConstants( 0, pcSize ),
+				nvrhi::BindingLayoutItem::TypedBuffer_SRV( 0 ),
+				nvrhi::BindingLayoutItem::TypedBuffer_UAV( 0 )
+			};
+		}
+		else
+		{
+			// Use volatile constant buffer for exposure
+			layoutDesc.bindings =
+			{
+				nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 ),
+				nvrhi::BindingLayoutItem::TypedBuffer_SRV( 0 ),
+				nvrhi::BindingLayoutItem::TypedBuffer_UAV( 0 )
+			};
+		}
+
+		nvrhi::BindingSetDesc bindingSetDesc;
+		if( pcEnabledExposure )
+		{
+			bindingSetDesc.bindings =
+			{
+				nvrhi::BindingSetItem::PushConstants( 0, pcSize ),
+				nvrhi::BindingSetItem::TypedBuffer_SRV( 0, histogramBuffer ),
+				nvrhi::BindingSetItem::TypedBuffer_UAV( 0, exposureBuffer )
+			};
+		}
+		else
+		{
+			bindingSetDesc.bindings =
+			{
+				nvrhi::BindingSetItem::ConstantBuffer( 0, toneMappingCb ),
+				nvrhi::BindingSetItem::TypedBuffer_SRV( 0, histogramBuffer ),
+				nvrhi::BindingSetItem::TypedBuffer_UAV( 0, exposureBuffer )
+			};
+		}
+		exposureBindingLayout = device->createBindingLayout( layoutDesc );
+		exposureBindingSet = device->createBindingSet( bindingSetDesc, exposureBindingLayout );
 
 		nvrhi::ComputePipelineDesc computePipelineDesc;
 		computePipelineDesc.CS = exposureShader;
-		computePipelineDesc.bindingLayouts = { ( *exposureShaderInfo.bindingLayouts )[0] };
+		computePipelineDesc.bindingLayouts = { exposureBindingLayout };
 		exposurePipeline = device->createComputePipeline( computePipelineDesc );
 	}
 
 	{
+		nvrhi::BindingLayoutDesc layoutDesc;
+		layoutDesc.visibility = nvrhi::ShaderType::Pixel;
+		if( pcEnabledTonemap )
+		{
+			layoutDesc.bindings =
+			{
+				nvrhi::BindingLayoutItem::PushConstants( 0, pcSize ),
+				nvrhi::BindingLayoutItem::Texture_SRV( 0 ),
+				nvrhi::BindingLayoutItem::TypedBuffer_SRV( 1 ),
+				nvrhi::BindingLayoutItem::Texture_SRV( 2 ),
+				nvrhi::BindingLayoutItem::Sampler( 0 )
+			};
+		}
+		else
+		{
+			layoutDesc.bindings =
+			{
+				nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 ),
+				nvrhi::BindingLayoutItem::Texture_SRV( 0 ),
+				nvrhi::BindingLayoutItem::TypedBuffer_SRV( 1 ),
+				nvrhi::BindingLayoutItem::Texture_SRV( 2 ),
+				nvrhi::BindingLayoutItem::Sampler( 0 )
+			};
+		}
+		renderBindingLayout = device->createBindingLayout( layoutDesc );
+
 		nvrhi::GraphicsPipelineDesc pipelineDesc;
 		pipelineDesc.primType = nvrhi::PrimitiveType::TriangleStrip;
 		pipelineDesc.VS = tonemapShaderInfo.vs;
 		pipelineDesc.PS = tonemapShaderInfo.ps;
-		pipelineDesc.bindingLayouts = { renderBindingLayoutHandle };
+		pipelineDesc.bindingLayouts = { renderBindingLayout };
 
 		pipelineDesc.renderState.rasterState.setCullNone();
 		pipelineDesc.renderState.depthStencilState.depthTestEnable = false;
@@ -151,7 +249,7 @@ void TonemapPass::Render(
 	nvrhi::ITexture* sourceTexture,
 	nvrhi::FramebufferHandle _targetFb )
 {
-	size_t renderHash = std::hash< nvrhi::ITexture* >()( sourceTexture );
+	size_t renderHash = std::hash<nvrhi::ITexture*>()( sourceTexture );
 	nvrhi::BindingSetHandle renderBindingSet;
 	for( int i = renderBindingHash.First( renderHash ); i != -1; i = renderBindingHash.Next( i ) )
 	{
@@ -166,15 +264,29 @@ void TonemapPass::Render(
 	if( !renderBindingSet )
 	{
 		nvrhi::BindingSetDesc bindingSetDesc;
-		bindingSetDesc.bindings =
+		if( pcEnabledTonemap )
 		{
-			nvrhi::BindingSetItem::ConstantBuffer( 0, toneMappingCb ),
-			nvrhi::BindingSetItem::Texture_SRV( 0, sourceTexture ),
-			nvrhi::BindingSetItem::TypedBuffer_SRV( 1, exposureBuffer ),
-			nvrhi::BindingSetItem::Texture_SRV( 2, colorLut->GetTextureHandle() ),
-			nvrhi::BindingSetItem::Sampler( 0, commonPasses->m_LinearClampSampler )
-		};
-		renderBindingSet = device->createBindingSet( bindingSetDesc, renderBindingLayoutHandle );
+			bindingSetDesc.bindings =
+			{
+				nvrhi::BindingSetItem::PushConstants( 0, sizeof( ToneMappingConstants ) ),
+				nvrhi::BindingSetItem::Texture_SRV( 0, sourceTexture ),
+				nvrhi::BindingSetItem::TypedBuffer_SRV( 1, exposureBuffer ),
+				nvrhi::BindingSetItem::Texture_SRV( 2, colorLut->GetTextureHandle() ),
+				nvrhi::BindingSetItem::Sampler( 0, commonPasses->m_LinearClampSampler )
+			};
+		}
+		else
+		{
+			bindingSetDesc.bindings =
+			{
+				nvrhi::BindingSetItem::ConstantBuffer( 0, toneMappingCb ),
+				nvrhi::BindingSetItem::Texture_SRV( 0, sourceTexture ),
+				nvrhi::BindingSetItem::TypedBuffer_SRV( 1, exposureBuffer ),
+				nvrhi::BindingSetItem::Texture_SRV( 2, colorLut->GetTextureHandle() ),
+				nvrhi::BindingSetItem::Sampler( 0, commonPasses->m_LinearClampSampler )
+			};
+		}
+		renderBindingSet = device->createBindingSet( bindingSetDesc, renderBindingLayout );
 		renderBindingSets.Append( renderBindingSet );
 		renderBindingHash.Add( renderHash, renderBindingSets.Num() - 1 );
 	}
@@ -191,7 +303,6 @@ void TonemapPass::Render(
 								  viewDef->viewport.zmin,
 								  viewDef->viewport.zmax };
 		state.viewport.addViewportAndScissorRect( viewport );
-		//state.viewport.addScissorRect( nvrhi::Rect( viewDef->scissor.x1, viewDef->scissor.y1, viewDef->scissor.x2, viewDef->scissor.y2 ) );
 
 		bool enableColorLUT = params.enableColorLUT && colorLutSize > 0;
 
@@ -203,9 +314,18 @@ void TonemapPass::Render(
 		toneMappingConstants.sourceSlice = 0;
 		toneMappingConstants.colorLUTTextureSize = enableColorLUT ? idVec2( colorLutSize * colorLutSize, colorLutSize ) : idVec2( 0.f, 0.f );
 		toneMappingConstants.colorLUTTextureSizeInv = enableColorLUT ? 1.f / toneMappingConstants.colorLUTTextureSize : idVec2( 0.f, 0.f );
-		commandList->writeBuffer( toneMappingCb, &toneMappingConstants, sizeof( toneMappingConstants ) );
+
+		if( !pcEnabledTonemap )
+		{
+			commandList->writeBuffer( toneMappingCb, &toneMappingConstants, sizeof( toneMappingConstants ) );
+		}
 
 		commandList->setGraphicsState( state );
+
+		if( pcEnabledTonemap )
+		{
+			commandList->setPushConstants( &toneMappingConstants, sizeof( toneMappingConstants ) );
+		}
 
 		nvrhi::DrawArguments args;
 		args.instanceCount = 1;
@@ -214,13 +334,13 @@ void TonemapPass::Render(
 	}
 }
 
-void TonemapPass::SimpleRender( nvrhi::ICommandList* commandList, const ToneMappingParameters& params, const viewDef_t* view, nvrhi::ITexture* sourceTexture, nvrhi::FramebufferHandle _fbHandle )
+void TonemapPass::SimpleRender( nvrhi::ICommandList* commandList, const ToneMappingParameters& params, const viewDef_t* viewDef, nvrhi::ITexture* sourceTexture, nvrhi::FramebufferHandle _fbHandle )
 {
 	commandList->beginMarker( "ToneMapping" );
 	ResetHistogram( commandList );
-	AddFrameToHistogram( commandList, view, sourceTexture );
+	AddFrameToHistogram( commandList, viewDef, sourceTexture );
 	ComputeExposure( commandList, params );
-	Render( commandList, params, view, sourceTexture, _fbHandle );
+	Render( commandList, params, viewDef, sourceTexture, _fbHandle );
 	commandList->endMarker();
 }
 
@@ -237,7 +357,7 @@ void TonemapPass::ResetHistogram( nvrhi::ICommandList* commandList )
 
 void TonemapPass::AddFrameToHistogram( nvrhi::ICommandList* commandList, const viewDef_t* viewDef, nvrhi::ITexture* sourceTexture )
 {
-	size_t renderHash = std::hash< nvrhi::ITexture* >()( sourceTexture );
+	size_t renderHash = std::hash<nvrhi::ITexture*>()( sourceTexture );
 	nvrhi::BindingSetHandle bindingSet;
 	for( int i = histogramBindingHash.First( renderHash ); i != -1; i = histogramBindingHash.Next( i ) )
 	{
@@ -252,14 +372,26 @@ void TonemapPass::AddFrameToHistogram( nvrhi::ICommandList* commandList, const v
 	if( !bindingSet )
 	{
 		nvrhi::BindingSetDesc bindingSetDesc;
-		bindingSetDesc.bindings =
+		if( pcEnabledHistogram )
 		{
-			nvrhi::BindingSetItem::ConstantBuffer( 0, toneMappingCb ),
-			nvrhi::BindingSetItem::Texture_SRV( 0, sourceTexture ),
-			nvrhi::BindingSetItem::TypedBuffer_UAV( 0, histogramBuffer )
-		};
+			bindingSetDesc.bindings =
+			{
+				nvrhi::BindingSetItem::PushConstants( 0, sizeof( ToneMappingConstants ) ),
+				nvrhi::BindingSetItem::Texture_SRV( 0, sourceTexture ),
+				nvrhi::BindingSetItem::TypedBuffer_UAV( 0, histogramBuffer )
+			};
+		}
+		else
+		{
+			bindingSetDesc.bindings =
+			{
+				nvrhi::BindingSetItem::ConstantBuffer( 0, toneMappingCb ),
+				nvrhi::BindingSetItem::Texture_SRV( 0, sourceTexture ),
+				nvrhi::BindingSetItem::TypedBuffer_UAV( 0, histogramBuffer )
+			};
+		}
 
-		bindingSet = device->createBindingSet( bindingSetDesc, histogramBindingLayoutHandle );
+		bindingSet = device->createBindingSet( bindingSetDesc, histogramBindingLayout );
 		histogramBindingSets.Append( bindingSet );
 		histogramBindingHash.Add( renderHash, histogramBindingSets.Num() - 1 );
 	}
@@ -272,7 +404,6 @@ void TonemapPass::AddFrameToHistogram( nvrhi::ICommandList* commandList, const v
 							  viewDef->viewport.zmin,
 							  viewDef->viewport.zmax };
 	viewportState.addViewportAndScissorRect( viewport );
-	//viewportState.addScissorRect( nvrhi::Rect( viewDef->scissor.x1, viewDef->scissor.y1, viewDef->scissor.x2, viewDef->scissor.y2 ) );
 
 	for( uint viewportIndex = 0; viewportIndex < viewportState.scissorRects.size(); viewportIndex++ )
 	{
@@ -285,12 +416,20 @@ void TonemapPass::AddFrameToHistogram( nvrhi::ICommandList* commandList, const v
 		toneMappingConstants.viewSize = idVec2i( scissor.maxX - scissor.minX, scissor.maxY - scissor.minY );
 		toneMappingConstants.sourceSlice = 0;
 
-		commandList->writeBuffer( toneMappingCb, &toneMappingConstants, sizeof( toneMappingConstants ) );
+		if( !pcEnabledHistogram )
+		{
+			commandList->writeBuffer( toneMappingCb, &toneMappingConstants, sizeof( toneMappingConstants ) );
+		}
 
 		nvrhi::ComputeState state;
 		state.pipeline = histogramPipeline;
 		state.bindings = { bindingSet };
 		commandList->setComputeState( state );
+
+		if( pcEnabledHistogram )
+		{
+			commandList->setPushConstants( &toneMappingConstants, sizeof( toneMappingConstants ) );
+		}
 
 		idVec2i numGroups = ( toneMappingConstants.viewSize + idVec2i( 15, 15 ) ) / idVec2i( 16, 16 );
 		commandList->dispatch( numGroups.x, numGroups.y, 1 );
@@ -313,12 +452,20 @@ void TonemapPass::ComputeExposure( nvrhi::ICommandList* commandList, const ToneM
 	toneMappingConstants.maxAdaptedLuminance = r_hdrMaxLuminance.GetFloat();
 	toneMappingConstants.frameTime = Sys_Milliseconds() / 1000.0f;
 
-	commandList->writeBuffer( toneMappingCb, &toneMappingConstants, sizeof( toneMappingConstants ) );
+	if( !pcEnabledExposure )
+	{
+		commandList->writeBuffer( toneMappingCb, &toneMappingConstants, sizeof( toneMappingConstants ) );
+	}
 
 	nvrhi::ComputeState state;
 	state.pipeline = exposurePipeline;
 	state.bindings = { exposureBindingSet };
 	commandList->setComputeState( state );
+
+	if( pcEnabledExposure )
+	{
+		commandList->setPushConstants( &toneMappingConstants, sizeof( toneMappingConstants ) );
+	}
 
 	commandList->dispatch( 1 );
 }

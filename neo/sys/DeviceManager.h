@@ -109,6 +109,9 @@ struct DeviceCreationParameters
 
 	// SRS - Used by idImage::AllocImage() to determine if format D24S8 is supported by device (default = true)
 	bool enableImageFormatD24S8 = true;
+
+	// SRS - Used by RenderProgs to determine maximum push constant size (default = off, override during device init)
+	uint32_t maxPushConstantSize = 0;
 };
 
 struct DefaultMessageCallback : public nvrhi::IMessageCallback
@@ -198,6 +201,11 @@ public:
 	[[nodiscard]] uint32_t GetFrameIndex() const
 	{
 		return m_FrameIndex;
+	}
+
+	uint32_t GetMaxPushConstantSize() const
+	{
+		return m_DeviceParams.maxPushConstantSize;
 	}
 
 	virtual nvrhi::ITexture* GetCurrentBackBuffer() = 0;

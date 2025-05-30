@@ -1,5 +1,6 @@
 
 #include "global_inc.hlsl"
+#include "renderParmSet6.inc.hlsl"
 
 
 // #version 120 // -*- c++ -*-
@@ -159,14 +160,14 @@ float3 reconstructCSPosition( float2 S, float z )
 	float4 P;
 	P.z = z * 2.0 - 1.0;
 	//P.z = reconstructCSZ( z );
-	P.xy = ( S * rpScreenCorrectionFactor.xy ) * 2.0 - 1.0;
+	P.xy = ( S * pc.rpScreenCorrectionFactor.xy ) * 2.0 - 1.0;
 	P.w = 1.0;
 
 	float4 csP;
-	csP.x = dot4( P, rpModelMatrixX );
-	csP.y = dot4( P, rpModelMatrixY );
-	csP.z = dot4( P, rpModelMatrixZ );
-	csP.w = dot4( P, rpModelMatrixW );
+	csP.x = dot4( P, pc.rpModelMatrixX );
+	csP.y = dot4( P, pc.rpModelMatrixY );
+	csP.z = dot4( P, pc.rpModelMatrixZ );
+	csP.w = dot4( P, pc.rpModelMatrixW );
 
 	csP.xyz /= csP.w;
 
@@ -518,12 +519,12 @@ void main( PS_IN fragment, out PS_OUT result )
 	// Hash function used in the HPG12 AlchemyAO paper
 	float randomPatternRotationAngle = float( 3 * ssC.x ^ ssC.y + ssC.x * ssC.y ) * 10.0;
 #if TEMPORALLY_VARY_TAPS
-	randomPatternRotationAngle += rpJitterTexOffset.x;
+	randomPatternRotationAngle += pc.rpJitterTexOffset.x;
 #endif
 
 	float radialJitter = frac( sin( fragment.position.x * 1e2 +
 #if TEMPORALLY_VARY_TAPS
-									rpJitterTexOffset.x +
+									pc.rpJitterTexOffset.x +
 #endif
 									fragment.position.y ) * 1e5 + sin( fragment.position.y * 1e3 ) * 1e3 ) * 0.8 + 0.1;
 

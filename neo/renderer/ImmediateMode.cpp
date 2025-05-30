@@ -182,6 +182,8 @@ void fhImmediateMode::End()
 		state.viewport.addScissorRect( nvrhi::Rect( viewport ) );
 
 		commandList->setGraphicsState( state );
+
+		renderProgManager.CommitPushConstants( commandList, bindingLayoutType );
 	}
 
 	nvrhi::DrawArguments args;

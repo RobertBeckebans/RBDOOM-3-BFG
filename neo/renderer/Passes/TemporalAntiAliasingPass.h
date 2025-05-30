@@ -63,6 +63,8 @@ private:
 
 	idVec2 m_R2Jitter;
 
+	bool pcEnabled = false; // true if push constants are used
+
 public:
 	struct CreateParameters
 	{
