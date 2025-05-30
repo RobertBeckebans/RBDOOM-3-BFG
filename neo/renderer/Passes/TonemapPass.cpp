@@ -36,7 +36,9 @@ TonemapPass::TonemapPass()
 	, colorLut( nullptr )
 	, colorLutSize( 0 )
 	, commonPasses( nullptr )
-	, pcEnabled( false )
+	, pcEnabledHistogram( false )
+	, pcEnabledExposure( false )
+	, pcEnabledTonemap( false )
 {
 }
 
@@ -47,10 +49,6 @@ void TonemapPass::Init( nvrhi::DeviceHandle _device, CommonRenderPasses* _common
 	device = _device;
 	commonPasses = _commonPasses;
 
-	// Determine if push constants can be used
-	size_t pcSize = sizeof( ToneMappingConstants );
-	pcEnabled = pcSize <= deviceManager->GetMaxPushConstantSize();
-
 	auto histogramShaderInfo = ( _params.isTextureArray ) ? renderProgManager.GetProgramInfo( BUILTIN_HISTOGRAM_TEX_ARRAY_CS ) : renderProgManager.GetProgramInfo( BUILTIN_HISTOGRAM_CS );
 	auto exposureShaderInfo = renderProgManager.GetProgramInfo( BUILTIN_EXPOSURE_CS );
 	auto tonemapShaderInfo = renderProgManager.GetProgramInfo( BUILTIN_TONEMAPPING );
@@ -59,7 +57,13 @@ void TonemapPass::Init( nvrhi::DeviceHandle _device, CommonRenderPasses* _common
 	exposureShader = exposureShaderInfo.cs;
 	tonemapShader = tonemapShaderInfo.ps;
 
-	if( !pcEnabled )
+	// Determine if push constants can be used
+	size_t pcSize = sizeof( ToneMappingConstants );
+	pcEnabledHistogram = histogramShaderInfo.usesPushConstants;
+	pcEnabledExposure = exposureShaderInfo.usesPushConstants;
+	pcEnabledTonemap = tonemapShaderInfo.usesPushConstants;
+
+	if( !pcEnabledHistogram || !pcEnabledExposure || !pcEnabledTonemap )
 	{
 		nvrhi::BufferDesc constantBufferDesc;
 		constantBufferDesc.byteSize = pcSize;
@@ -116,7 +120,7 @@ void TonemapPass::Init( nvrhi::DeviceHandle _device, CommonRenderPasses* _common
 	{
 		nvrhi::BindingLayoutDesc histogramLayout;
 		histogramLayout.visibility = nvrhi::ShaderType::Compute;
-		if( pcEnabled )
+		if( pcEnabledHistogram )
 		{
 			histogramLayout.bindings =
 			{
@@ -147,7 +151,7 @@ void TonemapPass::Init( nvrhi::DeviceHandle _device, CommonRenderPasses* _common
 	{
 		nvrhi::BindingLayoutDesc layoutDesc;
 		layoutDesc.visibility = nvrhi::ShaderType::Compute;
-		if( pcEnabled )
+		if( pcEnabledExposure )
 		{
 			layoutDesc.bindings =
 			{
@@ -168,7 +172,7 @@ void TonemapPass::Init( nvrhi::DeviceHandle _device, CommonRenderPasses* _common
 		}
 
 		nvrhi::BindingSetDesc bindingSetDesc;
-		if( pcEnabled )
+		if( pcEnabledExposure )
 		{
 			bindingSetDesc.bindings =
 			{
@@ -198,7 +202,7 @@ void TonemapPass::Init( nvrhi::DeviceHandle _device, CommonRenderPasses* _common
 	{
 		nvrhi::BindingLayoutDesc layoutDesc;
 		layoutDesc.visibility = nvrhi::ShaderType::Pixel;
-		if( pcEnabled )
+		if( pcEnabledTonemap )
 		{
 			layoutDesc.bindings =
 			{
@@ -260,7 +264,7 @@ void TonemapPass::Render(
 	if( !renderBindingSet )
 	{
 		nvrhi::BindingSetDesc bindingSetDesc;
-		if( pcEnabled )
+		if( pcEnabledTonemap )
 		{
 			bindingSetDesc.bindings =
 			{
@@ -311,14 +315,14 @@ void TonemapPass::Render(
 		toneMappingConstants.colorLUTTextureSize = enableColorLUT ? idVec2( colorLutSize * colorLutSize, colorLutSize ) : idVec2( 0.f, 0.f );
 		toneMappingConstants.colorLUTTextureSizeInv = enableColorLUT ? 1.f / toneMappingConstants.colorLUTTextureSize : idVec2( 0.f, 0.f );
 
-		if( !pcEnabled )
+		if( !pcEnabledTonemap )
 		{
 			commandList->writeBuffer( toneMappingCb, &toneMappingConstants, sizeof( toneMappingConstants ) );
 		}
 
 		commandList->setGraphicsState( state );
 
-		if( pcEnabled )
+		if( pcEnabledTonemap )
 		{
 			commandList->setPushConstants( &toneMappingConstants, sizeof( toneMappingConstants ) );
 		}
@@ -368,7 +372,7 @@ void TonemapPass::AddFrameToHistogram( nvrhi::ICommandList* commandList, const v
 	if( !bindingSet )
 	{
 		nvrhi::BindingSetDesc bindingSetDesc;
-		if( pcEnabled )
+		if( pcEnabledHistogram )
 		{
 			bindingSetDesc.bindings =
 			{
@@ -412,7 +416,7 @@ void TonemapPass::AddFrameToHistogram( nvrhi::ICommandList* commandList, const v
 		toneMappingConstants.viewSize = idVec2i( scissor.maxX - scissor.minX, scissor.maxY - scissor.minY );
 		toneMappingConstants.sourceSlice = 0;
 
-		if( !pcEnabled )
+		if( !pcEnabledHistogram )
 		{
 			commandList->writeBuffer( toneMappingCb, &toneMappingConstants, sizeof( toneMappingConstants ) );
 		}
@@ -422,7 +426,7 @@ void TonemapPass::AddFrameToHistogram( nvrhi::ICommandList* commandList, const v
 		state.bindings = { bindingSet };
 		commandList->setComputeState( state );
 
-		if( pcEnabled )
+		if( pcEnabledHistogram )
 		{
 			commandList->setPushConstants( &toneMappingConstants, sizeof( toneMappingConstants ) );
 		}
@@ -448,7 +452,7 @@ void TonemapPass::ComputeExposure( nvrhi::ICommandList* commandList, const ToneM
 	toneMappingConstants.maxAdaptedLuminance = r_hdrMaxLuminance.GetFloat();
 	toneMappingConstants.frameTime = Sys_Milliseconds() / 1000.0f;
 
-	if( !pcEnabled )
+	if( !pcEnabledExposure )
 	{
 		commandList->writeBuffer( toneMappingCb, &toneMappingConstants, sizeof( toneMappingConstants ) );
 	}
@@ -458,7 +462,7 @@ void TonemapPass::ComputeExposure( nvrhi::ICommandList* commandList, const ToneM
 	state.bindings = { exposureBindingSet };
 	commandList->setComputeState( state );
 
-	if( pcEnabled )
+	if( pcEnabledExposure )
 	{
 		commandList->setPushConstants( &toneMappingConstants, sizeof( toneMappingConstants ) );
 	}

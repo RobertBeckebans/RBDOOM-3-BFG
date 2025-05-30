@@ -88,9 +88,8 @@ void TemporalAntiAliasingPass::Init(
 		}
 	}
 
-	// determine if push constants can be used
+	// determine if push constants can be used (with various cases below)
 	size_t pcSize = sizeof( TemporalAntiAliasingConstants );
-	pcEnabled = pcSize <= deviceManager->GetMaxPushConstantSize();
 
 	//switch( r_antiAliasing.GetInteger() )
 	{
@@ -99,6 +98,7 @@ void TemporalAntiAliasingPass::Init(
 		{
 			auto taaResolveShaderInfo = renderProgManager.GetProgramInfo( BUILTIN_TAA_RESOLVE_MSAA_2X );
 			m_TemporalAntiAliasingCS = taaResolveShaderInfo.cs;
+			pcEnabled = taaResolveShaderInfo.usesPushConstants;
 			break;
 		}
 
@@ -106,6 +106,7 @@ void TemporalAntiAliasingPass::Init(
 		{
 			auto taaResolveShaderInfo = renderProgManager.GetProgramInfo( BUILTIN_TAA_RESOLVE_MSAA_4X );
 			m_TemporalAntiAliasingCS = taaResolveShaderInfo.cs;
+			pcEnabled = taaResolveShaderInfo.usesPushConstants;
 			break;
 		}
 #elif defined( _MSC_VER )			// SRS: #pragma warning is MSVC specific
@@ -117,6 +118,7 @@ void TemporalAntiAliasingPass::Init(
 		{
 			auto taaResolveShaderInfo = renderProgManager.GetProgramInfo( BUILTIN_TAA_RESOLVE );
 			m_TemporalAntiAliasingCS = taaResolveShaderInfo.cs;
+			pcEnabled = taaResolveShaderInfo.usesPushConstants;
 			//break;
 		}
 	}

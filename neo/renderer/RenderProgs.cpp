@@ -394,21 +394,33 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 	}
 
 	// RB: isolated render passes can have their own push constant buffer sizes
+	layoutTypeAttributes[BINDING_LAYOUT_MIPMAPGEN].pcEnabled = sizeof( MipmmapGenConstants ) <= deviceManager->GetMaxPushConstantSize();
 	layoutTypeAttributes[BINDING_LAYOUT_TAA_RESOLVE].pcEnabled = sizeof( TemporalAntiAliasingConstants ) <= deviceManager->GetMaxPushConstantSize();
 	layoutTypeAttributes[BINDING_LAYOUT_TONEMAP].pcEnabled = sizeof( ToneMappingConstants ) <= deviceManager->GetMaxPushConstantSize();
 	layoutTypeAttributes[BINDING_LAYOUT_HISTOGRAM].pcEnabled = sizeof( ToneMappingConstants ) <= deviceManager->GetMaxPushConstantSize();
 	layoutTypeAttributes[BINDING_LAYOUT_EXPOSURE].pcEnabled = sizeof( ToneMappingConstants ) <= deviceManager->GetMaxPushConstantSize();
 
-	// SRS - Perform runtime check for Vulkan running on x86-based vs. Apple Silicon hosts since this has to work for Universal Binaries on macOS
-	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN && glConfig.vendor != VENDOR_APPLE )
+	// SRS - Apply push constant workarounds for Vulkan running on AMD vs. other GPUs (and also needs to work for Universal Binaries on macOS)
+	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN && glConfig.vendor == VENDOR_AMD )
 	{
-		// SRS - FIXME: Disable Vulkan push constants for select layout types to reduce GPU Timeout Errors (seen on x86_64/Linux and x86_64/macOS)
-		//     - Possibly due to exceeding pc buffer limits (nvrhi or driver) or imperfect logic for push constant uniforms change detection - TBD
-		//     - Note these correspond to rpNominalSet3LayoutTypes and rpNominalSet4LayoutTypes for rpNominalSet3 and rpNominalSet4 renderparm sets
+		// SRS - FIXME: Workaround 1 - Disable push constants for select shaders to reduce GPU Timeout Errors (seen on Linux+AMD and macOS+AMD)
+		//     - Possibly due to exceeding push constant resource limits or perhaps a driver sync problem with AMD GPUs
+		//     - Note this may not be required on Windows Vulkan and AMD, but being conservative with no negative impact
 		layoutTypeAttributes[BINDING_LAYOUT_GBUFFER].pcEnabled = false;
 		layoutTypeAttributes[BINDING_LAYOUT_GBUFFER_SKINNED].pcEnabled = false;
 		layoutTypeAttributes[BINDING_LAYOUT_TEXTURE].pcEnabled = false;
 		layoutTypeAttributes[BINDING_LAYOUT_TEXTURE_SKINNED].pcEnabled = false;
+
+#if defined(__APPLE__)
+		// SRS - FIXME: Workaround 2 - Disable push constants for additional shaders on macOS/AMD to reduce GPU Timeout and Rendering Errors
+		//     - Possibly due to exceeding push constant resource limits or perhaps a driver sync problem with AMD GPUs and MoltenVK
+		//     - Note these render passes use compute shaders containing GroupMemoryBarrierWithGroupSync() - SSAO2 does not use PCs
+		layoutTypeAttributes[BINDING_LAYOUT_MIPMAPGEN].pcEnabled = false;
+		layoutTypeAttributes[BINDING_LAYOUT_TAA_RESOLVE].pcEnabled = false;
+		layoutTypeAttributes[BINDING_LAYOUT_TONEMAP].pcEnabled = false;
+		layoutTypeAttributes[BINDING_LAYOUT_HISTOGRAM].pcEnabled = false;
+		layoutTypeAttributes[BINDING_LAYOUT_EXPOSURE].pcEnabled = false;
+#endif
 	}
 
 	auto defaultLayoutDesc = nvrhi::BindingLayoutDesc()
@@ -938,6 +950,7 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 		{ BUILTIN_BLIT, "builtin/blit", "", { { "TEXTURE_ARRAY", "0" } }, false, SHADER_STAGE_FRAGMENT, LAYOUT_UNKNOWN, BINDING_LAYOUT_BLIT },
 		{ BUILTIN_RECT, "builtin/rect", "", { }, false, SHADER_STAGE_VERTEX, LAYOUT_DRAW_VERT, BINDING_LAYOUT_BLIT },
 
+		{ BUILTIN_MIPMAPGEN_CS, "builtin/mipmapgen", "", { { "MODE", std::to_string( MipMapGenPass::Mode::MODE_MAX ).c_str() }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_MIPMAPGEN ) } }, false, SHADER_STAGE_COMPUTE, LAYOUT_UNKNOWN, BINDING_LAYOUT_MIPMAPGEN },
 		{ BUILTIN_TONEMAPPING, "builtin/post/tonemapping", "", { { "HISTOGRAM_BINS", "256" }, { "SOURCE_ARRAY", "0" }, { "QUAD_Z", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_TONEMAP ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_UNKNOWN, BINDING_LAYOUT_TONEMAP },
 		{ BUILTIN_TONEMAPPING_TEX_ARRAY, "builtin/post/tonemapping", "_tex_array", { { "HISTOGRAM_BINS", "256" }, { "SOURCE_ARRAY", "1" }, { "QUAD_Z", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_TONEMAP ) } }, false, SHADER_STAGE_DEFAULT, LAYOUT_UNKNOWN, BINDING_LAYOUT_TONEMAP },
 		{ BUILTIN_HISTOGRAM_CS, "builtin/post/histogram", "", { { "HISTOGRAM_BINS", "256" }, { "SOURCE_ARRAY", "0" }, { "USE_PUSH_CONSTANTS", usePushConstants( BINDING_LAYOUT_HISTOGRAM ) } }, false, SHADER_STAGE_COMPUTE, LAYOUT_UNKNOWN, BINDING_LAYOUT_HISTOGRAM },
@@ -1189,6 +1202,8 @@ programInfo_t idRenderProgManager::GetProgramInfo( int index )
 	renderProg_t& prog = renderProgs[index];
 
 	info.bindingLayoutType = prog.bindingLayoutType;
+
+	info.usesPushConstants = layoutTypeAttributes[prog.bindingLayoutType].pcEnabled;
 
 	if( prog.vertexShaderIndex > -1 && prog.vertexShaderIndex < shaders.Num() )
 	{

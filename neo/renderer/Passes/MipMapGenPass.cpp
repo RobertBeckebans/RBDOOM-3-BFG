@@ -119,14 +119,12 @@ MipMapGenPass::MipMapGenPass(
 	// Shader
 	assert( mode >= 0 && mode <= MODE_MINMAX );
 
-	size_t pcSize = sizeof( MipmmapGenConstants );
-	pcEnabled = pcSize <= deviceManager->GetMaxPushConstantSize();
+	auto mipmapShaderInfo = renderProgManager.GetProgramInfo( BUILTIN_MIPMAPGEN_CS );
+	m_Shader = mipmapShaderInfo.cs;
 
-	idList<shaderMacro_t> macros;
-	macros.Append( shaderMacro_t( "MODE", std::to_string( mode ).c_str() ) );
-	macros.Append( shaderMacro_t( "USE_PUSH_CONSTANTS", pcEnabled ? "1" : "0" ) );
-	int index = renderProgManager.FindShader( "builtin/mipmapgen", SHADER_STAGE_COMPUTE, "", macros, true );
-	m_Shader = renderProgManager.GetShader( index );
+	// Determine if push constants can be used
+	size_t pcSize = sizeof( MipmmapGenConstants );
+	pcEnabled = mipmapShaderInfo.usesPushConstants;
 
 	if( !pcEnabled )
 	{
@@ -136,7 +134,7 @@ MipMapGenPass::MipMapGenPass(
 		constantBufferDesc.isConstantBuffer = true;
 		constantBufferDesc.isVolatile = true;
 		constantBufferDesc.debugName = "MipMapGenPass/Constants";
-		constantBufferDesc.maxVersions = c_MaxRenderPassConstantBufferVersions;
+		constantBufferDesc.maxVersions = numConstantBufferVersions;
 		m_ConstantBuffer = m_Device->createBuffer( constantBufferDesc );
 	}
 

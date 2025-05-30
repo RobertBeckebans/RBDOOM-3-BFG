@@ -375,6 +375,7 @@ struct shaderMacro_t
 struct programInfo_t
 {
 	int bindingLayoutType;
+	bool usesPushConstants;
 	nvrhi::ShaderHandle vs;
 	nvrhi::ShaderHandle ps;
 	nvrhi::ShaderHandle cs;
@@ -522,6 +523,7 @@ enum
 	BUILTIN_BLIT,
 	BUILTIN_RECT,
 
+	BUILTIN_MIPMAPGEN_CS,
 	BUILTIN_TONEMAPPING,
 	BUILTIN_TONEMAPPING_TEX_ARRAY,
 	BUILTIN_HISTOGRAM_CS,

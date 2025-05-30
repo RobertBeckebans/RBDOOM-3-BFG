@@ -93,7 +93,9 @@ private:
 	idHashIndex                     histogramBindingHash;
 	idList<nvrhi::BindingSetHandle> renderBindingSets;
 	idHashIndex                     renderBindingHash;
-	bool                            pcEnabled = false; // true if push constants are used
+	bool                            pcEnabledHistogram = false;	// true if push constants are used for Histogram
+	bool                            pcEnabledExposure = false;	// true if push constants are used for Exposure
+	bool                            pcEnabledTonemap = false;	// true if push constants are used for Tonemap
 };
 
 #endif

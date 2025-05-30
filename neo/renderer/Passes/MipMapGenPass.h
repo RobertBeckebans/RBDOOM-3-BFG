@@ -70,6 +70,8 @@ private:
 
 	BindingCache m_BindingCache;
 
+	const uint32_t numConstantBufferVersions = 32;
+
 	bool pcEnabled = false; // true if push constants are used
 };
 
