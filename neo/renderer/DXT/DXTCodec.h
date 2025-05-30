@@ -382,7 +382,7 @@ idDxtEncoder::CompressImageDXT5Fast
 */
 ID_INLINE void idDxtEncoder::CompressImageR11G11B10_BC6Fast( const byte* inBuf, byte* outBuf, int width, int height )
 {
-#if ( defined(USE_INTRINSICS_SSE) || defined(USE_INTRINSICS_NEON) )
+#if ( defined(USE_INTRINSICS_SSE) || defined(USE_INTRINSICS_NEON) ) && !defined(FLATPAK)
 	CompressImageR11G11B10_BC6Fast_SIMD( inBuf, outBuf, width, height );
 #else
 	CompressImageR11G11B10_BC6Fast_Generic( inBuf, outBuf, width, height );
