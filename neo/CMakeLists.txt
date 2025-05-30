@@ -452,7 +452,7 @@ if(USE_INTRINSICS_SSE)
 	set(MASKED_OCCLUSION_LIBRARY MaskedOcclusionCulling)
 endif()
 
-if(USE_INTRINSICS_SSE OR USE_INTRINSICS_NEON)
+if((USE_INTRINSICS_SSE OR USE_INTRINSICS_NEON) AND NOT FLATPAK)
 	add_subdirectory(libs/ispc_texcomp)
 	set(ISPC_TEXCOMP_LIBRARY ispc_texcomp)
 
