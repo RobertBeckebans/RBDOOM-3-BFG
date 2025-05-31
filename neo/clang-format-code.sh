@@ -63,10 +63,20 @@ fi
 
 # Copy different configs because -style=file: did not work
 cp .clang-format-header .clang-format
-find . -regex ".*\.\(h\|hpp\)" ! -path "./libs/*" ! -path "./extern/*" -print0 | xargs -0 -P 16 "$CLANGFMT_BIN" -i
+find . -regex ".*\.\(h\|hpp\)" \
+	! -path "./libs/*" \
+	! -path "./extern/*" \
+	-print0 | xargs -0 -P 16 "$CLANGFMT_BIN" -i
 
 cp .clang-format-cpp .clang-format
-find . -regex ".*\.\(cpp\|cc\|cxx\)" ! -path "./libs/*" ! -path "./extern/*" ! -path "./d3xp/gamesys/SysCvar.cpp" ! -path "./d3xp/gamesys/Callbacks.cpp" ! -path "./sys/win32/win_cpu.cpp" ! -path "./sys/win32/win_main.cpp" -print0 | xargs -0 -P 16 "$CLANGFMT_BIN" -i
+find . -regex ".*\.\(cpp\|cc\|cxx\)" \
+	! -path "./libs/*" \
+	! -path "./extern/*" \
+	! -path "./d3xp/gamesys/SysCvar.cpp" \
+	! -path "./d3xp/gamesys/Callbacks.cpp" \
+	! -path "./sys/win32/win_cpu.cpp" \
+	! -path "./sys/win32/win_main.cpp" \
+	-print0 | xargs -0 -P 16 "$CLANGFMT_BIN" -i
 
 rm .clang-format
 
