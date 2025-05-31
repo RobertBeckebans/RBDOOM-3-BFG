@@ -54,4 +54,4 @@ neo/neo.kdev4
 neo/.idea/
 neo/cmake-build-*/
 neo/bin/
-tools/
+/tools/

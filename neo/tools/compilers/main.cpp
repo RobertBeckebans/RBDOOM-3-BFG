@@ -668,6 +668,44 @@ int Sys_Milliseconds()
 	return timeGetTime() - sys_timeBase;
 }
 
+
+/*
+================
+Sys_Microseconds
+================
+*/
+uint64 Sys_Microseconds()
+{
+	static uint64 ticksPerMicrosecondTimes1024 = 0;
+
+	if( ticksPerMicrosecondTimes1024 == 0 )
+	{
+		ticksPerMicrosecondTimes1024 = ( ( uint64 )Sys_ClockTicksPerSecond() << 10 ) / 1000000;
+		assert( ticksPerMicrosecondTimes1024 > 0 );
+	}
+
+	return ( ( uint64 )( ( int64 )Sys_GetClockTicks() << 10 ) ) / ticksPerMicrosecondTimes1024;
+}
+
+/*
+========================
+Sys_CPUCount
+
+TODO: This is a dummy function;
+If required I recommend using SDL_CpuCount();
+
+numLogicalCPUCores      - the number of logical CPU per core
+numPhysicalCPUCores     - the total number of cores per package
+numCPUPackages          - the total number of packages (physical processors)
+========================
+*/
+void Sys_CPUCount( int& numLogicalCPUCores, int& numPhysicalCPUCores, int& numCPUPackages )
+{
+        numPhysicalCPUCores = 1;
+        numLogicalCPUCores = 1;
+        numCPUPackages = 1;
+}
+
 class idSysCmdline : public idSys
 {
 public:
