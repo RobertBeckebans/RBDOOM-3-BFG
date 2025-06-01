@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.RobertBeckebans.RBDoom3BFG</id>
+  <launchable type="desktop-id">io.github.RobertBeckebans.RBDoom3BFG.desktop</launchable>
+  <name>RBDoom3BFG</name>
+  <summary>A modernization effort of DOOM-3-BFG</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-only</project_license>
+  <developer_name>RobertBeckebans</developer_name>
+  <url type="homepage">https://github.com/RobertBeckebans/RBDOOM-3-BFG</url>
+  <url type="bugtracker">https://github.com/RobertBeckebans/RBDOOM-3-BFG/issues</url>
+  <url type="help">https://github.com/RobertBeckebans/RBDOOM-3-BFG/#readme</url>
+  <description>
+    <p>
+      Experience the ultimate modernization of DOOM-3-BFG with RBDOOM-3-BFG!
+
+      This source port brings cutting-edge technology to the classic, featuring PSX-style and 8/16-bit retro rendering modes, immersive CRT filters, enhanced global illumination PBR lighting, and realistic blood effects. 
+      Designed for both retro enthusiasts and casual gamers, RBDOOM-3-BFG delivers a complete overhaul while staying true to the original gameplay.
+      This version reintroduces the iconic classic flashlight as an option, letting you experience the suspense and atmosphere of DOOM 3 just as you remember it.
+      
+      Now requiring Vulkan and supporting Wayland, it's the definitive way to relive DOOM 3 with a fresh, modern twist.
+    </p>
+  </description>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://camo.githubusercontent.com/8c5ec742320e978305a5b50e9237e4b831a0df523cc7fa75770bb32aa3145b9f/68747470733a2f2f692e696d6775722e636f6d2f6e5357425355422e706e67</image>
+    </screenshot>
+    <screenshot>
+      <image>https://camo.githubusercontent.com/100fe10b41779aaa178de258d1c54ecdd5b1d4ecb3b7e7ab86e552b4b92e39ff/68747470733a2f2f692e696d6775722e636f6d2f475044326149722e706e67</image>
+    </screenshot>
+    <screenshot>
+      <image>https://camo.githubusercontent.com/0061b703de7fc1d716e7fef8d1a6d8f5f4b555c11d0cd89e33fe03d4b5e589ef/68747470733a2f2f692e696d6775722e636f6d2f42644e494538482e706e67</image>
+    </screenshot>
+    <screenshot>
+      <image>https://camo.githubusercontent.com/246c2fbb143bbd406b55dd86c28559ad486e95cfde12797b0b8e1155b079fcfb/68747470733a2f2f692e696d6775722e636f6d2f74476f63654e502e706e67</image>
+    </screenshot>
+    <screenshot>
+      <image>https://camo.githubusercontent.com/e67b48d482b168008ebed00b7aaee96cabc9e32ca09409a8fe5e006e7d7237a3/68747470733a2f2f692e696d6775722e636f6d2f353643547a31772e6a706567</image>
+    </screenshot>
+  </screenshots>
+  <update_contact>robert.beckebans_AT_gmail.com</update_contact>
+  <categories>
+      <category>Game</category>
+      <category>Shooter</category>
+  </categories>
+  <branding>
+      <color type="primary" scheme_preference="light">#999999</color>
+      <color type="primary" scheme_preference="dark">#222222</color>
+  </branding>
+  <content_rating type="oars-1.1">
+    <content_attribute id="violence-fantasy">intense</content_attribute>
+    <content_attribute id="violence-realistic">intense</content_attribute>
+    <content_attribute id="violence-bloodshed">intense</content_attribute>
+  </content_rating>
+  <releases>
+    <release version="v1.6.0" date="2025-05-10">
+      <url>https://github.com/RobertBeckebans/RBDOOM-3-BFG/releases/tag/v1.6.0</url>
+    </release>
+  </releases>
+  <provides>
+    <binary>RBDoom3BFG</binary>
+  </provides>
+</component>
