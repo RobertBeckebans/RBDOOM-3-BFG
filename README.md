@@ -479,11 +479,7 @@ Recommended in this case is `cmake-vs2022-win64-no-ffmpeg.bat`
 
 6. Copy the base folder of your `Steam/steamapps/common/DOOM 3 BFG Edition/base/` over to `DoomCode/base/` See also [Installation](#installation)
 
-7. [`OPTIONAL`] Download https://www.moddb.com/mods/rbdoom-3-bfg/downloads/rbdoom-3-bfg-130 and unpack it over your `DoomCode/` folder and then run in `DoomCode/`
-
-		> git checkout . 
-		
-	With this the local git files are newer for the files that have the same names.
+7. Download the 7z from https://github.com/RobertBeckebans/RBDOOM-3-BFG/releases/tag/v1.6.0 and unpack the base/*.pk4 files into your `DoomCode/base/` folder
 
 8. Copy `DoomCode/build/RBDoom3BFG` to `DoomCode/`
 
@@ -503,8 +499,14 @@ Recommended in this case is `cmake-vs2022-win64-no-ffmpeg.bat`
 	You don't need FFmpeg to be installed. You can turn it off by adding -DFFMPEG=OFF and -DBINKDEC=ON to the CMake options. For debug builds FFmpeg is enabled by default because the bundled libbinkdec is slow during development if compiled for Debug mode.  For release, retail and universal builds FFmpeg is disabled and libbinkdec is enabled by default.
 	
 	The Vulkan SDK 1.3.275.0 or later must be installed and can be obtained from https://vulkan.lunarg.com/sdk/home#mac
+	
+3. Clone the source code into a new `DoomCode` directory and checkout the `rpsubsets-and-pc` branch for optimal performance on macOS with MoltenVK:
 
-3. Generate the Makefiles using CMake:
+		> git clone --recursive https://github.com/RobertBeckebans/RBDOOM-3-BFG.git DoomCode
+		> cd DoomCode
+		> git checkout rpsubsets-and-pc
+
+4. Generate the Makefiles using CMake:
 
 	For command line builds:
 
@@ -522,14 +524,14 @@ Recommended in this case is `cmake-vs2022-win64-no-ffmpeg.bat`
 	
 	For single architecture builds (debug, release, retail) the default openal-soft paths are set for Homebrew, while for universal builds the default paths are set for MacPorts. The single architecture build scripts are now portable and automatically detect Homebrew's openal-soft path prefix for x86 and Apple Silicon.  The universal build script remains portable since MacPorts uses the same openal-soft installation path on x86 and Apple Silicon.
 	
-4. Compile RBDOOM-3-BFG targets:
+5. Compile RBDOOM-3-BFG targets:
 
 	For command line builds:
 
 		> cd ../build
-		> make
+		> make -j<number of your cores>
 	
-	For Xcode builds double click on `DoomCode/xcode-\<buildtype\>/RBDoom3BFG.xcodeproj` and start the build. The generated Xcode project file is pre-configured with the correct targets and build settings.
+	For Xcode builds double click on `DoomCode/xcode-<buildtype>/RBDoom3BFG.xcodeproj` and start the build. The generated Xcode project file is pre-configured with the correct targets and build settings.
 
 ---
 # Installation <a name="installation"></a>
@@ -549,9 +551,9 @@ Recommended in this case is `cmake-vs2022-win64-no-ffmpeg.bat`
 This should also work fine with your GOG installation.
 
 ---
-## The following instructions are primarily intented for `Linux` users and all hackers on other operating systems.
+## The following instructions are primarily intended for `Linux` and `macOS` users and all hackers on other operating systems.
 
-Linux users are advised the compile the engine from the Github source code and to put the `base/` data from the retail game into the `DoomCode/base/` directory.
+Linux users are advised to compile the engine from the Github source code and to put the `base/` data from the retail game into the `DoomCode/base/` directory. macOS users are also advised to compile the engine from the Github source code but to put the `base/` data from the retail game into their `~/Library/Application Support/RBDOOM-3-BFG/base/` directory. For both Linux and macOS you must also copy the `base/*.pk4` files from the unzipped RBDOOM-3-BFG ModDB download (or the [RBDOOM-3-BFG 1.6.0 Release](https://github.com/RobertBeckebans/RBDOOM-3-BFG/releases/download/v1.6.0/RBDOOM-3-BFG-1.6.0.22-full-win64-20250510-git-ba39ba6.7z)) into your `DoomCode/base/` directory.
 
 On Linux and macOS the easiest way to install is with SteamCMD: https://developer.valvesoftware.com/wiki/SteamCMD.
 See the description on https://developer.valvesoftware.com/wiki/SteamCMD#Linux (macOS is directly below that) on how to install SteamCMD on your system. You won't have to create a new user.
