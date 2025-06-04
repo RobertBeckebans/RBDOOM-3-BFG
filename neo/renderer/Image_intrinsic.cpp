@@ -285,9 +285,9 @@ static void R_HDR_RGBA16FImage_ResNative( idImage* image, nvrhi::ICommandList* c
 	image->GenerateImage( NULL, renderSystem->GetWidth(), renderSystem->GetHeight(), TF_NEAREST, TR_CLAMP, TD_RGBA16F, nullptr, true );
 }
 
-static void R_HDR_RGBA16FImage_ResNative_UAV( idImage* image, nvrhi::ICommandList* commandList )
+static void R_HDR_RGBA32FImage_ResNative_UAV( idImage* image, nvrhi::ICommandList* commandList )
 {
-	image->GenerateImage( NULL, renderSystem->GetWidth(), renderSystem->GetHeight(), TF_NEAREST, TR_CLAMP, TD_RGBA16F, nullptr, true, true );
+	image->GenerateImage( NULL, renderSystem->GetWidth(), renderSystem->GetHeight(), TF_NEAREST, TR_CLAMP, TD_RGBA32F, nullptr, true, true );
 }
 
 static void R_HDR_RGBA16SImage_ResNative_UAV( idImage* image, nvrhi::ICommandList* commandList )
@@ -347,7 +347,7 @@ static void R_SMAAImage_ResNative( idImage* image, nvrhi::ICommandList* commandL
 
 static void R_AmbientOcclusionImage_ResNative( idImage* image, nvrhi::ICommandList* commandList )
 {
-	image->GenerateImage( NULL, renderSystem->GetWidth(), renderSystem->GetHeight(), TF_LINEAR, TR_CLAMP, TD_R8F, nullptr, true, true );
+	image->GenerateImage( NULL, renderSystem->GetWidth(), renderSystem->GetHeight(), TF_LINEAR, TR_CLAMP, TD_R32F, nullptr, true, true );
 }
 
 static void R_GeometryBufferImage_ResNative( idImage* image, nvrhi::ICommandList* commandList )
@@ -1091,9 +1091,9 @@ void idImageManager::CreateIntrinsicImages()
 	ldrImage = globalImages->ImageFromFunction( "_currentRenderLDR", R_LdrNativeImage );
 
 	taaMotionVectorsImage = ImageFromFunction( "_taaMotionVectors", R_HDR_RG16FImage_ResNative ); // RB: could be shared with _currentNormals.zw
-	taaResolvedImage = ImageFromFunction( "_taaResolved", R_HDR_RGBA16FImage_ResNative_UAV );
-	taaFeedback1Image = ImageFromFunction( "_taaFeedback1", R_HDR_RGBA16SImage_ResNative_UAV );
-	taaFeedback2Image = ImageFromFunction( "_taaFeedback2", R_HDR_RGBA16SImage_ResNative_UAV );
+	taaResolvedImage = ImageFromFunction( "_taaResolved", R_HDR_RGBA32FImage_ResNative_UAV );
+	taaFeedback1Image = ImageFromFunction( "_taaFeedback1", R_HDR_RGBA32FImage_ResNative_UAV );
+	taaFeedback2Image = ImageFromFunction( "_taaFeedback2", R_HDR_RGBA32FImage_ResNative_UAV );
 
 	envprobeHDRImage = globalImages->ImageFromFunction( "_envprobeHDR", R_EnvprobeImage_HDR );
 	envprobeDepthImage = ImageFromFunction( "_envprobeDepth", R_EnvprobeImage_Depth );
