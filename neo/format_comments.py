@@ -28,13 +28,11 @@ def remove_useless_comments(file_path):
         print(f"Skipping {file_path}: Unable to decode with any supported encoding")
         return
     
-    print(colored(f"\nProcessing {file_path} ...", "cyan"))
+    #print(colored(f"\nProcessing {file_path} ...", "magenta"))
 
     # Main pattern for comments and signatures (human-readable)
-   
-    #wanted_pattern_old = r'/\*\s*=+\s*([\w:]+(?:::[\w~]+|::operator[^\s\(\)]*|::[\w]+))\s*=+\s*([\s\S]*?)\s*\*/\s*\n\s*((?:[\w\s\*&:<>,()\[\]]+\s+)?\1\s*\([^\)]*\)\s*(?:const\s*)?(?:override\s*)?(?:{|\;))'
-    wanted_pattern = r'''(?xms)  # Verbose mode, multi-line, dot-all
-       /\* \s* =+ \s*                     # Opening comment: /* === */
+    main_pattern = r'''(?xms)  # Verbose mode, multi-line, dot-all
+        /\* \s* =+ \s*                    # Opening comment: /* === */
         (?P<method> [\w:]+                # Class name and ::, followed by:
             (?:
                 ::[\w~]+              |   # Method or destructor (e.g., Class::Method, Class::~Method)
@@ -48,13 +46,20 @@ def remove_useless_comments(file_path):
         \s*\n\s*                          # Newline(s) after comment
         (?P<sig>                          # Function signature
             (?:
-                [\w\s\*&:<>,()\[\]]+\s+   # Return type, including pointers and templates
+                [\w\s*\*&:<>,()\[\]]*     # Return type, including pointers and templates
+                (?:
+                    \s*\* |               # Pointer (e.g., char*)
+                    \s*\(\s*\*\s*[^\)]*\)\s*\([^\)]*(?:\([^\)]*\)[^\)]*)*\)  # Function pointer with nested parens
+                )?
+                \s+
             )?                            # Return type is optional
             (?P=method)                   # Match method name again
-            \s* \([^\)]*\)                # Parameter list
+            \s* \(                        # Opening parenthesis for parameter list
+                [^\)]*(?:\([^\)]*\)[^\)]*)*  # Parameters, allowing nested parentheses
+            \)                            # Closing parenthesis
             \s* (?:const\s*)?             # Optional const
             (?:override\s*)?              # Optional override
-            (?:{|\;)                      # Opening brace or semicolon
+            [{;]                          # Opening brace or semicolon
         )
     '''
 
@@ -72,7 +77,6 @@ def remove_useless_comments(file_path):
         \s* =+ \s*                        # Second === line
         (?:\s* =+ \s*)? \*/               # Optional closing === and comment end
     '''
-    #comment_pattern = r'/\*\s*=+\s*([\w:]+(?:::[\w~]+|::operator[^\s\(\)]*|::[\w]+))\s*=+\s*([\s\S]*?)\s*\*/'
 
     # Fallback pattern to catch all comments with '='
     fallback_pattern = r'''(?xms)
@@ -93,7 +97,7 @@ def remove_useless_comments(file_path):
         description = match.group('desc').strip()
         # Check if this comment matches the full pattern
         full_text = match.group(0) + '\n' + content[match.end():match.end()+200]
-        if not re.match(wanted_pattern, full_text):
+        if not re.match(main_pattern, full_text):
             print(colored(f"Unmatched comment in {file_path}:", "red"))
             print(f"  Class::Method: {class_method}")
             print(f"  Description: '{description}'")
@@ -122,15 +126,15 @@ def remove_useless_comments(file_path):
             return f'{full_signature}'
     
     # Search and replace the comments
-    cleaned_content, count = re.subn(wanted_pattern, replacement, content, flags=re.MULTILINE | re.VERBOSE)
+    cleaned_content, count = re.subn(main_pattern, replacement, content, flags=re.MULTILINE | re.VERBOSE)
     
     # If changes were made, overwrite the file
     if count > 0:
         with open(file_path, 'w', encoding='utf-8') as file:
             file.write(cleaned_content)
         print(f"Processed {count} comments in {file_path}")
-    else:
-        print(f"No matching comments found in {file_path}")
+    #else:
+    #    print(f"No matching comments found in {file_path}")
 
 def process_directory():
     """
@@ -156,4 +160,5 @@ def process_directory():
                 remove_useless_comments(file_path)
 
 if __name__ == "__main__":
-    remove_useless_comments('framework/CVarSystem.cpp')
+    #remove_useless_comments('framework/CVarSystem.cpp')
+    process_directory()
