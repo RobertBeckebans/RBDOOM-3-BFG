@@ -31,8 +31,10 @@ def remove_useless_comments(file_path):
     print(colored(f"\nProcessing {file_path} ...", "cyan"))
 
     # Main pattern for comments and signatures (human-readable)
-    pattern = r'''(?xms)  # Verbose mode, multi-line, dot-all
-        /\* \s* =+ \s*                    # Opening comment: /* === */
+   
+    #wanted_pattern_old = r'/\*\s*=+\s*([\w:]+(?:::[\w~]+|::operator[^\s\(\)]*|::[\w]+))\s*=+\s*([\s\S]*?)\s*\*/\s*\n\s*((?:[\w\s\*&:<>,()\[\]]+\s+)?\1\s*\([^\)]*\)\s*(?:const\s*)?(?:override\s*)?(?:{|\;))'
+    wanted_pattern = r'''(?xms)  # Verbose mode, multi-line, dot-all
+       /\* \s* =+ \s*                     # Opening comment: /* === */
         (?P<method> [\w:]+                # Class name and ::, followed by:
             (?:
                 ::[\w~]+              |   # Method or destructor (e.g., Class::Method, Class::~Method)
@@ -40,49 +42,21 @@ def remove_useless_comments(file_path):
                 ::[\w]+                   # Other method names
             )
         )
+        (?P<desc> (?:(?!=+\s*\*/).|\s)*?) # Description, excluding closing ===
         \s* =+ \s*                        # Second === line
-        (?P<desc> (?:(?!=+\s*\*/).|\s)*?) # Description, excluding closing === (non-greedy)
-        (?:\s* =+ \s*)? \*/               # Optional closing === and comment end
-        \s* \r?\n                         # Newline(s) after comment
+        ([\s\S]*?)\s*\*/                  # Optional closing === and comment end
+        \s*\n\s*                          # Newline(s) after comment
         (?P<sig>                          # Function signature
             (?:
-                [\w\s*\*&:<>,()\[\]]*     # Return type, including pointers and templates
-                (?:
-                    \s*\* |               # Pointer (e.g., char*)
-                    \s*\(\s*\*\s*[^\)]*\)\s*\([^\)]*\)  # Function pointer (e.g., void(*)(char*))
-                )?
-                \s+
+                [\w\s\*&:<>,()\[\]]+\s+   # Return type, including pointers and templates
             )?                            # Return type is optional
             (?P=method)                   # Match method name again
             \s* \([^\)]*\)                # Parameter list
             \s* (?:const\s*)?             # Optional const
             (?:override\s*)?              # Optional override
-            [{;]                          # Opening brace or semicolon
+            (?:{|\;)                      # Opening brace or semicolon
         )
     '''
-
-    #wanted_pattern_old = r'/\*\s*=+\s*([\w:]+(?:::[\w~]+|::operator[^\s\(\)]*|::[\w]+))\s*=+\s*([\s\S]*?)\s*\*/\s*\n\s*((?:[\w\s\*&:<>,()\[\]]+\s+)?\1\s*\([^\)]*\)\s*(?:const\s*)?(?:override\s*)?(?:{|\;))'
-    wanted_pattern = r'''/\*\s*=+\s*
-        ([\w:]+
-            (?:::[\w~]+|
-            ::operator[^\s\(\)]*|
-            ::[\w]+
-            )
-        )
-        \s*=+\s*
-        ([\s\S]*?)\s*\*/
-        \s*\n\s*
-        (
-            (?:
-                [\w\s\*&:<>,()\[\]]+\s+
-            )?\1
-            \s*\([^\)]*\)
-            \s*(?:const\s*)?
-            (?:override\s*)?
-            (?:{|\;)
-        )
-    '''
-
 
     # Comment pattern for detecting unmatched comments
     comment_pattern = r'''(?xms)
@@ -94,30 +68,29 @@ def remove_useless_comments(file_path):
                 ::[\w]+
             )
         )
-        \s* =+ \s*                        # Second === line
         (?P<desc> (?:(?!=+\s*\*/).|\s)*?) # Description, excluding closing ===
+        \s* =+ \s*                        # Second === line
         (?:\s* =+ \s*)? \*/               # Optional closing === and comment end
     '''
-    comment_pattern = r'/\*\s*=+\s*([\w:]+(?:::[\w~]+|::operator[^\s\(\)]*|::[\w]+))\s*=+\s*([\s\S]*?)\s*\*/'
+    #comment_pattern = r'/\*\s*=+\s*([\w:]+(?:::[\w~]+|::operator[^\s\(\)]*|::[\w]+))\s*=+\s*([\s\S]*?)\s*\*/'
 
     # Fallback pattern to catch all comments with '='
     fallback_pattern = r'''(?xms)
         /\*+\s*=+[^\n]*\n+[\s\S]*?\s*\*/
     '''
-    fallback_comments = re.finditer(fallback_pattern, content)
-    for match in fallback_comments:
-        comment_text = match.group(0)
-        if 'idCVarSystemLocal' in comment_text:
-            print(colored(f"Fallback comment detected in {file_path}:", "yellow"))
-            print(f"  Raw comment: '{comment_text}'")
-            print(f"  Following text: {content[match.end():match.end()+100][:50]}...")
-
+    if 0:
+        fallback_comments = re.finditer(fallback_pattern, content)
+        for match in fallback_comments:
+            comment_text = match.group(0)
+            if 'idCVarSystemLocal' in comment_text:
+                print(colored(f"Fallback comment detected in {file_path}:", "yellow"))
+                print(f"  Raw comment: '{comment_text}'")
+                print(f"  Following text: {content[match.end():match.end()+100][:50]}...")
+            
     unmatched_comments = re.finditer(comment_pattern, content)
     for match in unmatched_comments:
-        class_method = match.group(1)
-        description = match.group(2).rstrip()
-        #class_method = match.group('method').strip()
-        #description = match.group('desc').rstrip()
+        class_method = match.group('method').strip()
+        description = match.group('desc').strip()
         # Check if this comment matches the full pattern
         full_text = match.group(0) + '\n' + content[match.end():match.end()+200]
         if not re.match(wanted_pattern, full_text):
@@ -127,12 +100,9 @@ def remove_useless_comments(file_path):
             print(f"  Following text: {content[match.end():match.end()+100][:50]}...")
 
     def replacement(match):
-        #class_method = match.group('method')
-        #description = match.group('desc').rstrip()
-        #full_signature = match.group('sig')
-        class_method = match.group(1)
-        description = match.group(2).rstrip()
-        full_signature = match.group(3)
+        class_method = match.group('method')
+        description = match.group('desc').rstrip()
+        full_signature = match.group('sig')
         
         # Debug matched comment
         print(colored(f"Match in {file_path}:", "green"))
