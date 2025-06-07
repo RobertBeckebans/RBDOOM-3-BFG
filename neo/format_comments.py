@@ -28,7 +28,7 @@ def remove_useless_comments(file_path):
         print(f"Skipping {file_path}: Unable to decode with any supported encoding")
         return
     
-    #print(colored(f"\nProcessing {file_path} ...", "magenta"))
+    print(colored(f"\nProcessing {file_path} ...", "magenta"))
 
     # Main pattern for comments and signatures (human-readable)
     main_pattern = r'''(?xms)  # Verbose mode, multi-line, dot-all
@@ -86,10 +86,10 @@ def remove_useless_comments(file_path):
         fallback_comments = re.finditer(fallback_pattern, content)
         for match in fallback_comments:
             comment_text = match.group(0)
-            if 'idCVarSystemLocal' in comment_text:
-                print(colored(f"Fallback comment detected in {file_path}:", "yellow"))
-                print(f"  Raw comment: '{comment_text}'")
-                print(f"  Following text: {content[match.end():match.end()+100][:50]}...")
+            #if 'idCVarSystemLocal' in comment_text:
+            print(colored(f"Fallback comment detected in {file_path}:", "yellow"))
+            print(f"  Raw comment: '{comment_text}'")
+            print(f"  Following text: {content[match.end():match.end()+100][:50]}...")
             
     unmatched_comments = re.finditer(comment_pattern, content)
     for match in unmatched_comments:
@@ -136,29 +136,58 @@ def remove_useless_comments(file_path):
     #else:
     #    print(f"No matching comments found in {file_path}")
 
-def process_directory():
+def process_directory(skip_dirs=None, skip_files=None):
     """
-    Processes all .cpp and .h files in the current directory recursively, skipping 'extern', 'libs', and 'thirdparty' directories.
+    Recursively processes all .cpp and .h files in the current directory,
+    skipping:
+      - directories listed in 'skip_dirs'
+      - files listed in 'skip_files'
     """
-    # Current directory of the script
+    import os
+
+    # Normalize skip_dirs and skip_files
+    if skip_dirs is None:
+        skip_dirs = set()
+    else:
+        skip_dirs = {d.lower() for d in skip_dirs}
+
+    if skip_files is None:
+        skip_files = set()
+    else:
+        skip_files = {os.path.abspath(f).lower() for f in skip_files}
+
     target_directory = os.path.dirname(os.path.abspath(__file__))
     print(f"Processing directory: {target_directory}")
-    
-    # Directories to skip
-    skip_dirs = {'extern', 'libs', 'thirdparty'}
-    
+
     for root, dirs, files in os.walk(target_directory):
-        # Skip specified directories
-        if os.path.basename(root) in skip_dirs:
+        # Skip directories (by name only, not full path)
+        if any(os.path.basename(root).lower() == d for d in skip_dirs):
             print(f"Skipping directory: {root}")
-            dirs[:] = []  # Prevent descending into skipped directories
+            dirs[:] = []  # prevent recursion
             continue
-        
+
         for file in files:
             if file.endswith(('.cpp', '.h')):
-                file_path = os.path.join(root, file)
+                file_path = os.path.abspath(os.path.join(root, file)).lower()
+                if file_path in skip_files:
+                    print(f"Skipping file: {file_path}")
+                    continue
                 remove_useless_comments(file_path)
 
 if __name__ == "__main__":
-    #remove_useless_comments('framework/CVarSystem.cpp')
-    process_directory()
+
+    if 1:
+        # Debugging
+        remove_useless_comments('d3xp/MultiplayerGame.cpp')
+    else:
+        skip_dirs = {'extern', 'libs', 'thirdparty'}
+        skip_files = {
+            'cm/CollisionModel_load.cpp',
+            'cm/CollisionModel_rotate.cpp',
+            'd3xp/Achievements.cpp',
+            'd3xp/Actor.cpp',
+            'd3xp/AFEntity.cpp',
+            'd3xp/EnvironmentProbe.cpp',
+            'd3xp/Game_local.cpp',
+        }
+        process_directory(skip_dirs, skip_files)
