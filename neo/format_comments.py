@@ -1,15 +1,16 @@
 import os
 import re
 from pathlib import Path
+from termcolor import colored
 
 def remove_useless_comments(file_path):
     """
-    Removes useless comments like /* ========= <Class::Method> ========= */ from a C++ file
-    and converts additional descriptions into Doxygen \brief comments.
+    Removes comments like /* ========= <Class::Method> ========= */ from a C++ file
+    and converts descriptions to Doxygen \brief comments.
     Handles constructors, destructors, operators, and multi-line descriptions.
     
     Args:
-        file_path (str): Path to the C++ file.
+        file_path (str): Path to the C++ source or header file.
     """
     # Try reading the file with different encodings
     content = None
@@ -26,37 +27,120 @@ def remove_useless_comments(file_path):
     if content is None:
         print(f"Skipping {file_path}: Unable to decode with any supported encoding")
         return
-
-    # Regex pattern for comments like /* ========= Class::Method ========= */
-    # More permissive to handle complex signatures and method names
-    pattern = r'/\*\s*=+\s*([\w:]+(?:::[\w~]+|::operator[^\s\(\)]*|::[\w]+))\s*=+\s*([\s\S]*?)\s*\*/\s*\n\s*((?:[\w\s\*&:<>,()\[\]]+\s+)?\1\s*\([^\)]*\)\s*(?:const\s*)?(?:override\s*)?(?:{|\;))'
     
-    # Debug all comments resembling the target format
+    print(colored(f"\nProcessing {file_path} ...", "cyan"))
+
+    # Main pattern for comments and signatures (human-readable)
+    pattern = r'''(?xms)  # Verbose mode, multi-line, dot-all
+        /\* \s* =+ \s*                    # Opening comment: /* === */
+        (?P<method> [\w:]+                # Class name and ::, followed by:
+            (?:
+                ::[\w~]+              |   # Method or destructor (e.g., Class::Method, Class::~Method)
+                ::operator[^\s\(\)]*  |   # Operator (e.g., Class::operator+)
+                ::[\w]+                   # Other method names
+            )
+        )
+        \s* =+ \s*                        # Second === line
+        (?P<desc> (?:(?!=+\s*\*/).|\s)*?) # Description, excluding closing === (non-greedy)
+        (?:\s* =+ \s*)? \*/               # Optional closing === and comment end
+        \s* \r?\n                         # Newline(s) after comment
+        (?P<sig>                          # Function signature
+            (?:
+                [\w\s*\*&:<>,()\[\]]*     # Return type, including pointers and templates
+                (?:
+                    \s*\* |               # Pointer (e.g., char*)
+                    \s*\(\s*\*\s*[^\)]*\)\s*\([^\)]*\)  # Function pointer (e.g., void(*)(char*))
+                )?
+                \s+
+            )?                            # Return type is optional
+            (?P=method)                   # Match method name again
+            \s* \([^\)]*\)                # Parameter list
+            \s* (?:const\s*)?             # Optional const
+            (?:override\s*)?              # Optional override
+            [{;]                          # Opening brace or semicolon
+        )
+    '''
+
+    #wanted_pattern_old = r'/\*\s*=+\s*([\w:]+(?:::[\w~]+|::operator[^\s\(\)]*|::[\w]+))\s*=+\s*([\s\S]*?)\s*\*/\s*\n\s*((?:[\w\s\*&:<>,()\[\]]+\s+)?\1\s*\([^\)]*\)\s*(?:const\s*)?(?:override\s*)?(?:{|\;))'
+    wanted_pattern = r'''/\*\s*=+\s*
+        ([\w:]+
+            (?:::[\w~]+|
+            ::operator[^\s\(\)]*|
+            ::[\w]+
+            )
+        )
+        \s*=+\s*
+        ([\s\S]*?)\s*\*/
+        \s*\n\s*
+        (
+            (?:
+                [\w\s\*&:<>,()\[\]]+\s+
+            )?\1
+            \s*\([^\)]*\)
+            \s*(?:const\s*)?
+            (?:override\s*)?
+            (?:{|\;)
+        )
+    '''
+
+
+    # Comment pattern for detecting unmatched comments
+    comment_pattern = r'''(?xms)
+        /\* \s* =+ \s*                    # Opening comment /* ===
+        (?P<method> [\w:]+                # Class::Method or similar
+            (?:
+                ::[\w~]+              |
+                ::operator[^\s\(\)]*  |
+                ::[\w]+
+            )
+        )
+        \s* =+ \s*                        # Second === line
+        (?P<desc> (?:(?!=+\s*\*/).|\s)*?) # Description, excluding closing ===
+        (?:\s* =+ \s*)? \*/               # Optional closing === and comment end
+    '''
     comment_pattern = r'/\*\s*=+\s*([\w:]+(?:::[\w~]+|::operator[^\s\(\)]*|::[\w]+))\s*=+\s*([\s\S]*?)\s*\*/'
+
+    # Fallback pattern to catch all comments with '='
+    fallback_pattern = r'''(?xms)
+        /\*+\s*=+[^\n]*\n+[\s\S]*?\s*\*/
+    '''
+    fallback_comments = re.finditer(fallback_pattern, content)
+    for match in fallback_comments:
+        comment_text = match.group(0)
+        if 'idCVarSystemLocal' in comment_text:
+            print(colored(f"Fallback comment detected in {file_path}:", "yellow"))
+            print(f"  Raw comment: '{comment_text}'")
+            print(f"  Following text: {content[match.end():match.end()+100][:50]}...")
+
     unmatched_comments = re.finditer(comment_pattern, content)
     for match in unmatched_comments:
         class_method = match.group(1)
         description = match.group(2).rstrip()
+        #class_method = match.group('method').strip()
+        #description = match.group('desc').rstrip()
         # Check if this comment matches the full pattern
         full_text = match.group(0) + '\n' + content[match.end():match.end()+200]
-        if not re.match(pattern, full_text):
-            print(f"Unmatched comment in {file_path}:")
+        if not re.match(wanted_pattern, full_text):
+            print(colored(f"Unmatched comment in {file_path}:", "red"))
             print(f"  Class::Method: {class_method}")
             print(f"  Description: '{description}'")
             print(f"  Following text: {content[match.end():match.end()+100][:50]}...")
-    
+
     def replacement(match):
-        class_method = match.group(1)  # Class::Method, Class::~Method, or Class::operatorX
-        description = match.group(2).rstrip()  # Additional description (multi-line)
-        full_signature = match.group(3)  # Full function signature including ()
+        #class_method = match.group('method')
+        #description = match.group('desc').rstrip()
+        #full_signature = match.group('sig')
+        class_method = match.group(1)
+        description = match.group(2).rstrip()
+        full_signature = match.group(3)
         
         # Debug matched comment
-        print(f"Match in {file_path}:")
+        print(colored(f"Match in {file_path}:", "green"))
         print(f"  Class::Method: {class_method}")
         print(f"  Description: '{description}'")
         print(f"  Signature: {full_signature}")
         
-        # If a description is present, convert it to a Doxygen \brief comment
+        # If a description is present, convert to Doxygen \brief comment
         if description and description.strip():
             # Format multi-line description for Doxygen
             lines = description.splitlines()
@@ -68,7 +152,7 @@ def remove_useless_comments(file_path):
             return f'{full_signature}'
     
     # Search and replace the comments
-    cleaned_content, count = re.subn(pattern, replacement, content, flags=re.MULTILINE)
+    cleaned_content, count = re.subn(wanted_pattern, replacement, content, flags=re.MULTILINE | re.VERBOSE)
     
     # If changes were made, overwrite the file
     if count > 0:
