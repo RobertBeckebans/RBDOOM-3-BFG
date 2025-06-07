@@ -28,21 +28,43 @@ def remove_useless_comments(file_path):
         return
 
     # Regex pattern for comments like /* ========= Class::Method ========= */
-    # Handles constructors, destructors (~), operators, and multi-line descriptions
-    pattern = r'/\*\s*=+\s*([\w:]+(?:::[\w~]+|::operator[^\s\(\)]+))\s*=+\s*([\s\S]*?)\s*\*/\s*\n\s*((?:[\w\s\*&:<>]+\s+)?\1\s*\([^)]*\)\s*(?:const\s*)?(?:override\s*)?(?:{|\;))'
+    # More permissive to handle complex signatures and method names
+    pattern = r'/\*\s*=+\s*([\w:]+(?:::[\w~]+|::operator[^\s\(\)]*|::[\w]+))\s*=+\s*([\s\S]*?)\s*\*/\s*\n\s*((?:[\w\s\*&:<>,()\[\]]+\s+)?\1\s*\([^\)]*\)\s*(?:const\s*)?(?:override\s*)?(?:{|\;))'
+    
+    # Debug all comments resembling the target format
+    comment_pattern = r'/\*\s*=+\s*([\w:]+(?:::[\w~]+|::operator[^\s\(\)]*|::[\w]+))\s*=+\s*([\s\S]*?)\s*\*/'
+    unmatched_comments = re.finditer(comment_pattern, content)
+    for match in unmatched_comments:
+        class_method = match.group(1)
+        description = match.group(2).rstrip()
+        # Check if this comment matches the full pattern
+        full_text = match.group(0) + '\n' + content[match.end():match.end()+200]
+        if not re.match(pattern, full_text):
+            print(f"Unmatched comment in {file_path}:")
+            print(f"  Class::Method: {class_method}")
+            print(f"  Description: '{description}'")
+            print(f"  Following text: {content[match.end():match.end()+100][:50]}...")
     
     def replacement(match):
         class_method = match.group(1)  # Class::Method, Class::~Method, or Class::operatorX
-        description = match.group(2).strip()  # Additional description (multi-line)
+        description = match.group(2).rstrip()  # Additional description (multi-line)
         full_signature = match.group(3)  # Full function signature including ()
         
+        # Debug matched comment
+        print(f"Match in {file_path}:")
+        print(f"  Class::Method: {class_method}")
+        print(f"  Description: '{description}'")
+        print(f"  Signature: {full_signature}")
+        
         # If a description is present, convert it to a Doxygen \brief comment
-        if description:
-            # Doxygen comment with indentation (4 spaces per IndentWidth)
-            doxygen_comment = f'/** \\brief {description}\n */\n    '
+        if description and description.strip():
+            # Format multi-line description for Doxygen
+            lines = description.splitlines()
+            doxygen_lines = [f' * {line.strip()}' if line.strip() else ' *' for line in lines]
+            doxygen_comment = '/**\n' + '\n'.join([' * \\brief ' + doxygen_lines[0].lstrip(' *')] + doxygen_lines[1:]) + '\n */\n    '
             return f'{doxygen_comment}{full_signature}'
         else:
-            # Without description, just remove the comment
+            # Without description, remove the comment
             return f'{full_signature}'
     
     # Search and replace the comments
@@ -80,4 +102,4 @@ def process_directory():
                 remove_useless_comments(file_path)
 
 if __name__ == "__main__":
-    process_directory()
+    remove_useless_comments('framework/CVarSystem.cpp')
