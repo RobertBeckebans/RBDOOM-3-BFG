@@ -49,14 +49,14 @@ def remove_useless_comments(file_path):
         try:
             with open(file_path, 'r', encoding=encoding) as file:
                 content = file.read()
-            print(f"Read {file_path} with {encoding} encoding")
+            print(colored(f"Processing {file_path} with {encoding} encoding ...", "magenta"))
             break
         except UnicodeDecodeError:
-            print(f"Failed to read {file_path} with {encoding} encoding")
+            print(colored(f"Failed to read {file_path} with {encoding} encoding", "red"))
             continue
     
     if content is None:
-        print(f"Skipping {file_path}: Unable to decode with any supported encoding")
+        print(colored(f"Skipping {file_path}: Unable to decode with any supported encoding", "red"))
         return
 
     # Main pattern for comments and signatures (human-readable)
@@ -129,8 +129,8 @@ def remove_useless_comments(file_path):
 
     # Wrap re.match with timeout to prevent hanging
     #@timeout(5)
-    #def safe_match(pattern, text):
-    #    return re.match(pattern, text)
+    def safe_match(pattern, text):
+        return re.match(pattern, text)
 
     unmatched_comments = re.finditer(comment_pattern, content)
     for match in unmatched_comments:
@@ -146,8 +146,8 @@ def remove_useless_comments(file_path):
             print(f"  Following text: {content[match.end():match.end()+100][:50]}...")
             print(f"  Full text attempted: {full_text[:100]}...")
         # try:
-        #     #match_result = safe_match(main_pattern, full_text)
-        #     match_result = re.match(main_pattern, full_text)
+        #     match_result = safe_match(main_pattern, full_text)
+        #     #match_result = re.match(main_pattern, full_text)
         #     if not match_result:
         #         print(colored(f"Unmatched comment in {file_path}:", "red"))
         #         print(f"  Class::Method: {class_method}")
@@ -244,7 +244,7 @@ def process_directory(skip_dirs=None, skip_files=None):
 
 if __name__ == "__main__":
 
-    if 1:
+    if 0:
         # Debugging
         remove_useless_comments('d3xp/MultiplayerGame.cpp')
     else:
