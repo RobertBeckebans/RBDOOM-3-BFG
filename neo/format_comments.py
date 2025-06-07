@@ -1,7 +1,38 @@
 import os
 import re
+import threading
 from pathlib import Path
+from functools import wraps
 from termcolor import colored
+
+# Timeout decorator to prevent regex hanging
+def timeout(seconds):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            result = [None]
+            exception = [None]
+            
+            def target():
+                try:
+                    result[0] = func(*args, **kwargs)
+                except Exception as e:
+                    exception[0] = e
+            
+            thread = threading.Thread(target=target)
+            thread.daemon = True
+            thread.start()
+            thread.join(seconds)
+            
+            if thread.is_alive():
+                print(colored(f"Warning: Function {func.__name__} timed out after {seconds} seconds", "yellow"))
+                return None
+            if exception[0]:
+                raise exception[0]
+            return result[0]
+        
+        return wrapper
+    return decorator
 
 def remove_useless_comments(file_path):
     """
@@ -27,8 +58,6 @@ def remove_useless_comments(file_path):
     if content is None:
         print(f"Skipping {file_path}: Unable to decode with any supported encoding")
         return
-    
-    print(colored(f"\nProcessing {file_path} ...", "magenta"))
 
     # Main pattern for comments and signatures (human-readable)
     main_pattern = r'''(?xms)  # Verbose mode, multi-line, dot-all
@@ -40,26 +69,33 @@ def remove_useless_comments(file_path):
                 ::[\w]+                   # Other method names
             )
         )
-        (?P<desc> (?:(?!=+\s*\*/).|\s)*?) # Description, excluding closing ===
         \s* =+ \s*                        # Second === line
-        ([\s\S]*?)\s*\*/                  # Optional closing === and comment end
-        \s*\n\s*                          # Newline(s) after comment
+        (?P<desc> (?:(?!=+\s*\*/).|\s)*?) # Description, excluding closing === (non-greedy)
+        (?:\s* =+ \s*)? \*/               # Optional closing === and comment end
+        \s* \r?\n                         # Newline(s) after comment
         (?P<sig>                          # Function signature
             (?:
-                [\w\s*\*&:<>,()\[\]]*     # Return type, including pointers and templates
-                (?:
-                    \s*\* |               # Pointer (e.g., char*)
-                    \s*\(\s*\*\s*[^\)]*\)\s*\([^\)]*(?:\([^\)]*\)[^\)]*)*\)  # Function pointer with nested parens
-                )?
+                [\w\s*\*&:<>]+            # Return type, including pointers and templates
+                \s*\*?                    # Optional pointer (e.g., char*)
                 \s+
             )?                            # Return type is optional
-            (?P=method)                   # Match method name again
+            (?P<sig_method> [\w:]+        # Signature method name (may differ from comment)
+                (?:
+                    ::[\w~]+          |
+                    ::operator[^\s\(\)]* |
+                    ::[\w]+
+                )
+            )
             \s* \(                        # Opening parenthesis for parameter list
-                [^\)]*(?:\([^\)]*\)[^\)]*)*  # Parameters, allowing nested parentheses
+                (?:
+                    [^()]+ |              # Non-parentheses content
+                    \([^()]*\)            # Balanced parentheses (e.g., for function pointers)
+                )*                        # Zero or more parameters
             \)                            # Closing parenthesis
             \s* (?:const\s*)?             # Optional const
             (?:override\s*)?              # Optional override
-            [{;]                          # Opening brace or semicolon
+            \s* (?:/\*.*?\*/|//[^\n]*)?   # Optional trailing comment (/* */ or //)
+            \s* [{;]                      # Opening brace or semicolon
         )
     '''
 
@@ -73,44 +109,76 @@ def remove_useless_comments(file_path):
                 ::[\w]+
             )
         )
-        (?P<desc> (?:(?!=+\s*\*/).|\s)*?) # Description, excluding closing ===
         \s* =+ \s*                        # Second === line
+        (?P<desc> (?:(?!=+\s*\*/).|\s)*?) # Description, excluding closing ===
         (?:\s* =+ \s*)? \*/               # Optional closing === and comment end
     '''
 
     # Fallback pattern to catch all comments with '='
-    fallback_pattern = r'''(?xms)
-        /\*+\s*=+[^\n]*\n+[\s\S]*?\s*\*/
-    '''
     if 0:
+        fallback_pattern = r'''(?xms)
+            /\*+\s*=+[^\n]*\n+[\s\S]*?\s*\*/
+        '''
         fallback_comments = re.finditer(fallback_pattern, content)
         for match in fallback_comments:
             comment_text = match.group(0)
-            #if 'idCVarSystemLocal' in comment_text:
-            print(colored(f"Fallback comment detected in {file_path}:", "yellow"))
-            print(f"  Raw comment: '{comment_text}'")
-            print(f"  Following text: {content[match.end():match.end()+100][:50]}...")
-            
+            if 'idMultiplayerGame' in comment_text or 'idCVarSystemLocal' in comment_text:
+                print(f"Fallback comment detected in {file_path}:")
+                print(f"  Raw comment: '{comment_text}'")
+                print(f"  Following text: {content[match.end():match.end()+100][:50]}...")
+
+    # Wrap re.match with timeout to prevent hanging
+    #@timeout(5)
+    #def safe_match(pattern, text):
+    #    return re.match(pattern, text)
+
     unmatched_comments = re.finditer(comment_pattern, content)
     for match in unmatched_comments:
         class_method = match.group('method').strip()
-        description = match.group('desc').strip()
+        description = match.group('desc').rstrip()
         # Check if this comment matches the full pattern
         full_text = match.group(0) + '\n' + content[match.end():match.end()+200]
-        if not re.match(main_pattern, full_text):
+        match_result = re.match(main_pattern, full_text)
+        if not match_result:
             print(colored(f"Unmatched comment in {file_path}:", "red"))
             print(f"  Class::Method: {class_method}")
             print(f"  Description: '{description}'")
             print(f"  Following text: {content[match.end():match.end()+100][:50]}...")
+            print(f"  Full text attempted: {full_text[:100]}...")
+        # try:
+        #     #match_result = safe_match(main_pattern, full_text)
+        #     match_result = re.match(main_pattern, full_text)
+        #     if not match_result:
+        #         print(colored(f"Unmatched comment in {file_path}:", "red"))
+        #         print(f"  Class::Method: {class_method}")
+        #         print(f"  Description: '{description}'")
+        #         print(f"  Following text: {content[match.end():match.end()+100][:50]}...")
+        #         print(f"  Full text attempted: {full_text[:100]}...")
+        # except TimeoutError:
+        #     print(colored(f"Regex timeout in {file_path} for comment:", "red"))
+        #     print(f"  Class::Method: {class_method}")
+        #     print(f"  Description: '{description}'")
+        #     print(f"  Full text attempted: {full_text[:100]}...")
 
     def replacement(match):
         class_method = match.group('method')
         description = match.group('desc').rstrip()
+        sig_method = match.group('sig_method')
         full_signature = match.group('sig')
+        
+        # Validate that sig_method is reasonably close to method (same class)
+        class_prefix = class_method.rsplit('::', 1)[0]
+        sig_class_prefix = sig_method.rsplit('::', 1)[0]
+        if class_prefix != sig_class_prefix:
+            print(colored(f"Warning: Class mismatch in {file_path}:", "red"))
+            print(f"  Comment method: {class_method}")
+            print(f"  Signature method: {sig_method}")
+            return match.group(0)  # Skip replacement if class differs
         
         # Debug matched comment
         print(colored(f"Match in {file_path}:", "green"))
         print(f"  Class::Method: {class_method}")
+        print(f"  Signature Method: {sig_method}")
         print(f"  Description: '{description}'")
         print(f"  Signature: {full_signature}")
         
@@ -133,8 +201,8 @@ def remove_useless_comments(file_path):
         with open(file_path, 'w', encoding='utf-8') as file:
             file.write(cleaned_content)
         print(f"Processed {count} comments in {file_path}")
-    #else:
-    #    print(f"No matching comments found in {file_path}")
+    else:
+        print(f"No matching comments found in {file_path}")
 
 def process_directory(skip_dirs=None, skip_files=None):
     """
