@@ -72,6 +72,9 @@ option(RETAIL
 
 option(FLATPAK
 		"Strip certain developer features and cheats from flatpak builds" OFF)
+		
+option(REPRODUCIBLE_BUILD
+		"Replace __DATE__ and __TIME__ by hardcoded values for reproducible builds" OFF)
 
 #set(NVRHI_INSTALL OFF)
 
@@ -296,6 +299,11 @@ endif()
 
 if(RETAIL)
 	add_definitions(-DID_RETAIL)
+endif()
+
+if(REPRODUCIBLE_BUILD OR FLATPAK)
+	# don't use __DATE__ and __TIME__ macros so builds are reproducible
+	add_definitions(-DID_REPRODUCIBLE_BUILD)
 endif()
 
 if(FLATPAK)

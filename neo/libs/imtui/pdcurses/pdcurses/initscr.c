@@ -98,10 +98,11 @@ initscr
 **man-end****************************************************************/
 
 #include <stdlib.h>
+#include "../../../../framework/Licensee.h" // RB: for ID__DATE__ and ID__TIME__
 
 char ttytype[128];
 
-const char* _curses_notice = "PDCurses " PDC_VERDOT " - " __DATE__;
+const char* _curses_notice = "PDCurses " PDC_VERDOT " - " ID__DATE__;
 
 SCREEN* SP = ( SCREEN* )NULL;         /* curses variables */
 WINDOW* curscr = ( WINDOW* )NULL;     /* the current screen image */

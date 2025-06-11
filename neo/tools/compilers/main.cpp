@@ -1374,7 +1374,7 @@ void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
 	}
 
 	//idStr title = va( "RBDMAP version %s %s", ENGINE_VERSION, BUILD_STRING );
-	idStr title = va( "RBDMAP version %s %s %s %s", ENGINE_VERSION, BUILD_STRING, __DATE__, __TIME__ );
+	idStr title = va( "RBDMAP version %s %s %s %s", ENGINE_VERSION, BUILD_STRING, ID__DATE__, ID__TIME__ );
 	ImGui::Begin( title.c_str(), nullptr,
 				  ImGuiWindowFlags_NoCollapse |
 				  ImGuiWindowFlags_NoResize |
