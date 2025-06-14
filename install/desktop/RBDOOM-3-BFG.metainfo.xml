@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>io.github.RobertBeckebans.RBDoom3BFG</id>
-  <launchable type="desktop-id">io.github.RobertBeckebans.RBDoom3BFG.desktop</launchable>
-  <name>RBDoom3BFG</name>
+  <id>io.github.RobertBeckebans.RBDOOM-3-BFG</id>
+  <launchable type="desktop-id">io.github.RobertBeckebans.RBDOOM-3-BFG.desktop</launchable>
+  <name>RBDOOM-3-BFG</name>
   <summary>A modernization effort of DOOM-3-BFG</summary>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-only</project_license>
-  <developer_name>RobertBeckebans</developer_name>
+  <developer id="io.github.robertbeckebans">
+    <name>Robert Beckebans</name>
+  </developer>
   <url type="homepage">https://github.com/RobertBeckebans/RBDOOM-3-BFG</url>
   <url type="bugtracker">https://github.com/RobertBeckebans/RBDOOM-3-BFG/issues</url>
   <url type="help">https://github.com/RobertBeckebans/RBDOOM-3-BFG/#readme</url>
