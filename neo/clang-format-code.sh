@@ -69,7 +69,7 @@ find . -regex ".*\.\(h\|hpp\)" \
 	-print0 | xargs -0 -P 16 "$CLANGFMT_BIN" -i
 
 cp .clang-format-cpp .clang-format
-find . -regex ".*\.\(cpp\|cc\|cxx\)" \
+find . -regex ".*\.\(c\|cpp\)" \
 	! -path "./libs/*" \
 	! -path "./extern/*" \
 	! -path "./d3xp/gamesys/SysCvar.cpp" \
