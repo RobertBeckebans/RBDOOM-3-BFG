@@ -390,7 +390,7 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 			layoutTypeAttributes[layoutType].cbStatic  = false;
 		}
 
-		layoutTypeAttributes[layoutType].pcEnabled = layoutTypeAttributes[layoutType].rpBufSize <= deviceManager->GetMaxPushConstantSize();
+		layoutTypeAttributes[layoutType].pcEnabled = layoutTypeAttributes[layoutType].rpBufSize <= deviceManager->GetMaxPushConstantSize() && layoutTypeAttributes[layoutType].rpSubSet != renderParmNullSet;
 	}
 
 	// RB: isolated render passes can have their own push constant buffer sizes
@@ -403,24 +403,13 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 	// SRS - Apply push constant workarounds for Vulkan running on AMD vs. other GPUs (and also needs to work for Universal Binaries on macOS)
 	if( deviceManager->GetGraphicsAPI() == nvrhi::GraphicsAPI::VULKAN && glConfig.vendor == VENDOR_AMD )
 	{
-		// SRS - FIXME: Workaround 1 - Disable push constants for select shaders to reduce GPU Timeout Errors (seen on Linux+AMD and macOS+AMD)
+		// SRS - FIXME: Workaround - Disable push constants for select shaders to reduce GPU Timeout Errors (seen on Linux+AMD and macOS+AMD)
 		//     - Possibly due to exceeding push constant resource limits or perhaps a driver sync problem with AMD GPUs
-		//     - Note this may not be required on Windows Vulkan and AMD, but being conservative with no negative impact
+		//     - Note this may not be required on Windows Vulkan+AMD, but being conservative with no negative impact
 		layoutTypeAttributes[BINDING_LAYOUT_GBUFFER].pcEnabled = false;
 		layoutTypeAttributes[BINDING_LAYOUT_GBUFFER_SKINNED].pcEnabled = false;
 		layoutTypeAttributes[BINDING_LAYOUT_TEXTURE].pcEnabled = false;
 		layoutTypeAttributes[BINDING_LAYOUT_TEXTURE_SKINNED].pcEnabled = false;
-
-#if defined(__APPLE__)
-		// SRS - FIXME: Workaround 2 - Disable push constants for additional shaders on macOS/AMD to reduce GPU Timeout and Rendering Errors
-		//     - Possibly due to exceeding push constant resource limits or perhaps a driver sync problem with AMD GPUs and MoltenVK
-		//     - Note these render passes use compute shaders containing GroupMemoryBarrierWithGroupSync() - SSAO2 does not use PCs
-		layoutTypeAttributes[BINDING_LAYOUT_MIPMAPGEN].pcEnabled = false;
-		layoutTypeAttributes[BINDING_LAYOUT_TAA_RESOLVE].pcEnabled = false;
-		layoutTypeAttributes[BINDING_LAYOUT_TONEMAP].pcEnabled = false;
-		layoutTypeAttributes[BINDING_LAYOUT_HISTOGRAM].pcEnabled = false;
-		layoutTypeAttributes[BINDING_LAYOUT_EXPOSURE].pcEnabled = false;
-#endif
 	}
 
 	auto defaultLayoutDesc = nvrhi::BindingLayoutDesc()
