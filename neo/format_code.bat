@@ -21,3 +21,4 @@ if %ERRORLEVEL% neq 0 (
 
 echo Done!
 endlocal
+pause
