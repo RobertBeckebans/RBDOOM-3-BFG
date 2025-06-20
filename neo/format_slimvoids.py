@@ -109,6 +109,6 @@ if __name__ == "__main__":
         # Debugging
         simplify_void_parameters_file('engine/client/cl_keys.c')
     else:
-        skip_dirs = {'extern', 'libs', 'thirdparty'}
+        skip_dirs = {'extern', 'libs', 'thirdparty', 'curl'}
         skip_files = {}
         process_directory(skip_dirs, skip_files)

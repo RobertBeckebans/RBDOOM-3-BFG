@@ -80,4 +80,12 @@ find . -regex ".*\.\(c\|cpp\)" \
 
 rm .clang-format
 
+# Post-process files to align method names right (requires Python)
+if command -v python >/dev/null 2>&1; then
+    python format_slimvoids.py
+    echo "Void post-processing completed!"
+else
+    echo "WARNING: Python3 not found, skipping right-alignment post-processing."
+fi
+
 echo "Formatting completed!"
