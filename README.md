@@ -488,7 +488,7 @@ Recommended in this case is `cmake-vs2022-win64-no-ffmpeg.bat`
 ---
 # Compiling on macOS <a name="compile_macos"></a>
 
-1.	Download and install Homebrew (https://brew.sh) for single architecture builds or MacPorts (https://www.macports.org/install.php) for universal architecture builds on macOS Big Sur or later.
+1.	Download and install Homebrew (https://brew.sh) for single architecture builds or MacPorts (https://www.macports.org/install.php) for universal architecture builds on macOS Catalina (10.15) or later.
 
 2.	You need the following dependencies in order to compile RBDoom3BFG with all features:
 
@@ -498,7 +498,7 @@ Recommended in this case is `cmake-vs2022-win64-no-ffmpeg.bat`
 		
 	You don't need FFmpeg to be installed. You can turn it off by adding -DFFMPEG=OFF and -DBINKDEC=ON to the CMake options. For debug builds FFmpeg is enabled by default because the bundled libbinkdec is slow during development if compiled for Debug mode.  For release, retail and universal builds FFmpeg is disabled and libbinkdec is enabled by default.
 	
-	The Vulkan SDK 1.3.275.0 or later must be installed and can be obtained from https://vulkan.lunarg.com/sdk/home#mac
+	The Vulkan SDK 1.3.275.0 (minimum) or 1.3.296.0 (min recommended) or later must be installed and can be obtained from https://vulkan.lunarg.com/sdk/home#mac
 	
 3. Clone the source code into a new `DoomCode` directory and checkout the `rpsubsets-and-pc` branch for optimal performance on macOS with MoltenVK:
 
