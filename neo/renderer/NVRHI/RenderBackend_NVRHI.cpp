@@ -2011,7 +2011,7 @@ void idRenderBackend::GL_StartFrame()
 			globalImages->ambientOcclusionImage[0]->GetTextureHandle() );
 	}
 
-	if( globalImages->hierarchicalZbufferImage->GetTextureID() != textureId || !hiZGenPass )
+	if( ( globalImages->hierarchicalZbufferImage->GetTextureID() != textureId || !hiZGenPass ) && R_UseHiZ() )
 	{
 		if( hiZGenPass )
 		{

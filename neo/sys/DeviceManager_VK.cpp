@@ -1270,10 +1270,14 @@ bool DeviceManager_VK::CreateDeviceAndSwapChain()
 		// 0x609a13b: vertex shader writes to output location X.0 which is not consumed by fragment shader...
 		// 0x609a13b: Vertex attribute at location X not consumed by vertex shader.
 		// 0x609a13b: fragment shader writes to output location X with no matching attachment.
+
+		// SRS - Suppress false-positive descriptor count warning for MipMapGen pass which is by design:
+		// 0x3af3126a: vkCreateComputePipelines(): pCreateInfos[0].stage uses ... with a descriptorCount of X, but requires at least Y in the SPIR-V.
+
 #ifdef _WIN32
-		SetEnvironmentVariable( "VK_LAYER_MESSAGE_ID_FILTER", "0xc81ad50e;0x9805298c;0x609a13b" );
+		SetEnvironmentVariable( "VK_LAYER_MESSAGE_ID_FILTER", "0xc81ad50e;0x9805298c;0x609a13b;0x3af3126a" );
 #else
-		setenv( "VK_LAYER_MESSAGE_ID_FILTER", "0xc81ad50e:0x9805298c:0x609a13b", 1 );
+		setenv( "VK_LAYER_MESSAGE_ID_FILTER", "0xc81ad50e:0x9805298c:0x609a13b:0x3af3126a", 1 );
 #endif
 	}
 

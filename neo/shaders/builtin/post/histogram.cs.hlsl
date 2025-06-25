@@ -23,30 +23,7 @@
 #pragma pack_matrix(row_major)
 
 #include "vulkan.hlsli"
-
-struct ToneMappingConstants
-{
-	uint2 viewOrigin;
-	uint2 viewSize;
-
-	float logLuminanceScale;
-	float logLuminanceBias;
-	float histogramLowPercentile;
-	float histogramHighPercentile;
-
-	float eyeAdaptationSpeedUp;
-	float eyeAdaptationSpeedDown;
-	float minAdaptedLuminance;
-	float maxAdaptedLuminance;
-
-	float frameTime;
-	float exposureScale;
-	float whitePointInvSquared;
-	uint sourceSlice;
-
-	float2 colorLUTTextureSize;
-	float2 colorLUTTextureSizeInv;
-};
+#include "tonemapping_cb.h"
 
 // *INDENT-OFF*
 #if SOURCE_ARRAY
