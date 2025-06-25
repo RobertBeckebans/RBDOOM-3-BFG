@@ -23,6 +23,7 @@
 #pragma pack_matrix(row_major)
 
 #include <global_inc.hlsl>
+#include "vulkan.hlsli"
 
 struct SsaoConstants
 {
@@ -55,7 +56,7 @@ cbuffer c_Ssao : register( b1 )
 };
 
 Texture2D<float> t_InputDepth : register(t0);
-RWTexture2DArray<float> u_DeinterleavedDepth : register(u0);
+VK_IMAGE_FORMAT("r32f") RWTexture2DArray<float> u_DeinterleavedDepth : register(u0);
 // *INDENT-ON*
 
 [numthreads( 8, 8, 1 )]
