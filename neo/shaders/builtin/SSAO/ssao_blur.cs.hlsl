@@ -23,6 +23,7 @@
 #pragma pack_matrix(row_major)
 
 #include <global_inc.hlsl>
+#include "vulkan.hlsli"
 
 struct SsaoConstants
 {
@@ -53,10 +54,10 @@ SamplerState s_Point : register(s0);
 Texture2DArray<float> t_DeinterleavedDepth : register(t0);
 #if DIRECTIONAL_OCCLUSION
 Texture2DArray<float4> t_DeinterleavedSSAO : register(t1);
-RWTexture2D<float4> u_RenderTarget : register(u0);
+VK_IMAGE_FORMAT("rgba8") RWTexture2D<float4> u_RenderTarget : register(u0);
 #else
 Texture2DArray<float> t_DeinterleavedSSAO : register(t1);
-RWTexture2D<float> u_RenderTarget : register(u0);
+VK_IMAGE_FORMAT("r8") RWTexture2D<float> u_RenderTarget : register(u0);
 #endif
 
 cbuffer c_Ssao : register(b1)

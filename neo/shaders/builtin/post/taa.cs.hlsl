@@ -22,6 +22,8 @@
 
 #pragma pack_matrix(row_major)
 
+#include "vulkan.hlsli"
+
 //#include <donut/shaders/taa_cb.h>
 
 struct TemporalAntiAliasingConstants
@@ -73,9 +75,9 @@ Texture2D<float4> t_FeedbackInput :
 register( t2 );
 SamplerState s_Sampler :
 register( s0 );
-RWTexture2D<float4> u_ColorOutput :
+VK_IMAGE_FORMAT("rgba16f") RWTexture2D<float4> u_ColorOutput :
 register( u0 );
-RWTexture2D<float4> u_FeedbackOutput :
+VK_IMAGE_FORMAT("rgba16f") RWTexture2D<float4> u_FeedbackOutput :
 register( u1 );
 
 #define GROUP_X 16

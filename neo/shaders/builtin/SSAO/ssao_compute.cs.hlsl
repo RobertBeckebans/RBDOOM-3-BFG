@@ -23,6 +23,7 @@
 #pragma pack_matrix(row_major)
 
 #include <global_inc.hlsl>
+#include "vulkan.hlsli"
 
 struct SsaoConstants
 {
@@ -56,9 +57,9 @@ Texture2D<uint> t_Normals : register(t1);
 Texture2D<float4> t_Normals : register(t1);
 #endif
 #if DIRECTIONAL_OCCLUSION
-RWTexture2DArray<float4> u_RenderTarget : register(u0);
+VK_IMAGE_FORMAT("rgba8") RWTexture2DArray<float4> u_RenderTarget : register(u0);
 #else
-RWTexture2DArray<float> u_RenderTarget : register(u0);
+VK_IMAGE_FORMAT("r8") RWTexture2DArray<float> u_RenderTarget : register(u0);
 #endif
 
 cbuffer c_Ssao : register(b1)
