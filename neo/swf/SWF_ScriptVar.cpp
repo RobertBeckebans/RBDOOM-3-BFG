@@ -3,6 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2023 Harrie van Ginneken
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -51,6 +52,7 @@ idSWFScriptVar::idSWFScriptVar( const idSWFScriptVar& other )
 	{
 		other.value.function->AddRef();
 	}
+	traitsInfo = other.traitsInfo;
 }
 
 /*
