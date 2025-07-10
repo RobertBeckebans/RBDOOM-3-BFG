@@ -452,7 +452,7 @@ Recommended in this case is `cmake-vs2022-win64-no-ffmpeg.bat`
 	
 	On Fedora
 		
-		> sudo dnf install cmake clang ispc SDL2-devel openal-devel compat-ffmpeg4-devel ncurses-devel vulkan-devel
+		> sudo dnf install cmake clang ispc SDL2-devel openal-soft-devel compat-ffmpeg4-devel ncurses-devel vulkan-devel
 	
 	On ArchLinux 
 	
