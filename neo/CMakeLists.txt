@@ -200,15 +200,18 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 
 	# SRS - Make sure OSX can find system headers and add support for minimum OSX runtime version
     if(APPLE)
+		# SRS - CMAKE_OSX_SYSROOT and CMAKE_OSX_DEPLOYMENT_TARGET are now defined by macOS build scripts prior to execution of CMake's project() statement.
+		#       This approach supports CMake 4.0+ and earlier versions. Note -isysroot and -mmacosx-version-min still required for PCH command line builds.
+		if(USE_PRECOMPILED_HEADERS AND NOT CMAKE_GENERATOR MATCHES "Xcode")
+			if(CMAKE_OSX_SYSROOT)
+				add_compile_options(-isysroot ${CMAKE_OSX_SYSROOT})
+			endif()
+			if(CMAKE_OSX_DEPLOYMENT_TARGET)
+				add_compile_options(-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET})
+			endif()
+		endif()
 		# SRS - Also add -fasm-blocks otherwise Xcode complains and -Qunused-arguments to silence MMX/SSE unused arg warnings when compiling for Apple arm64
 		add_compile_options(-fasm-blocks -Qunused-arguments)
-        if(CMAKE_OSX_SYSROOT)
-            add_compile_options(-isysroot ${CMAKE_OSX_SYSROOT})
-            message(STATUS "Using macOS sysroot: " ${CMAKE_OSX_SYSROOT})
-        endif()
-		if(CMAKE_OSX_DEPLOYMENT_TARGET)
-			add_compile_options(-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET})
-		endif()
 	endif()
 
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -ggdb -D_DEBUG -O0")

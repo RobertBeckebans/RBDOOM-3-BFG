@@ -488,7 +488,7 @@ Recommended in this case is `cmake-vs2022-win64-no-ffmpeg.bat`
 ---
 # Compiling on macOS <a name="compile_macos"></a>
 
-1.	Download and install Homebrew (https://brew.sh) for single architecture builds or MacPorts (https://www.macports.org/install.php) for universal architecture builds on macOS Catalina (10.15) or later.
+1.	Download and install Homebrew (https://brew.sh) for single architecture builds on macOS Catalina (10.15) or later, or MacPorts (https://www.macports.org/install.php) for universal architecture builds on macOS Big Sur (11.0) or later.
 
 2.	You need the following dependencies in order to compile RBDoom3BFG with all features:
 

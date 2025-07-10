@@ -57,13 +57,22 @@ Sys_EXEPath
 */
 const char* Sys_EXEPath()
 {
-	static char path[1024];
-	uint32_t size = sizeof( path );
+	char exe_path[PATH_MAX];
+	static char path[PATH_MAX];
+	uint32_t size = sizeof( exe_path );
 
-	if( _NSGetExecutablePath( path, &size ) != 0 )
+	if( _NSGetExecutablePath( exe_path, &size ) != 0 )
 	{
 		Sys_Printf( "buffer too small to store exe path, need size %u\n", size );
 		path[0] = '\0';
+	}
+	else
+	{
+		if( realpath( exe_path, path ) == NULL )
+		{
+			Sys_Printf( "exe path could not be resolved to a valid absolute path\n" );
+			// path variable contains exe_path on error, so just pass it through
+		}
 	}
 	return path;
 }
@@ -111,7 +120,7 @@ double Sys_ClockTicksPerSecond()
 
 	if( status == -1 )
 	{
-		common->Printf( "couldn't read systclbyname\n" );
+		common->Printf( "couldn't read sysctlbyname\n" );
 		ret = MeasureClockTicks();
 		init = true;
 		common->Printf( "measured CPU frequency: %g MHz\n", ret / 1000000.0 );
