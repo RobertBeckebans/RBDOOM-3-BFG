@@ -41,7 +41,6 @@ If you have questions concerning this license or the applicable additional terms
 
 class idJointMat;
 struct deformInfo_t;
-class ColladaParser;	// RB: Collada support
 struct objModel_t;		// RB: Wavefront OBJ support
 
 class idRenderModelStatic : public idRenderModel

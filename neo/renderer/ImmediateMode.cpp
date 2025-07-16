@@ -147,35 +147,35 @@ void fhImmediateMode::End()
 
 	for( int i = 0; i < layouts->Num(); i++ )
 	{
-		if( !tr.backend.currentBindingSets[i] || *tr.backend.currentBindingSets[i]->getDesc() != tr.backend.pendingBindingSetDescs[bindingLayoutType][i] || bindingLayoutType != tr.backend.prevBindingLayoutType )
+		if( !backEnd.currentBindingSets[i] || *backEnd.currentBindingSets[i]->getDesc() != backEnd.pendingBindingSetDescs[bindingLayoutType][i] || bindingLayoutType != backEnd.prevBindingLayoutType )
 		{
-			tr.backend.currentBindingSets[i] = tr.backend.bindingCache.GetOrCreateBindingSet( tr.backend.pendingBindingSetDescs[bindingLayoutType][i], ( *layouts )[i] );
+			backEnd.currentBindingSets[i] = backEnd.bindingCache.GetOrCreateBindingSet( backEnd.pendingBindingSetDescs[bindingLayoutType][i], ( *layouts )[i] );
 		}
 	}
 
-	uint64 stateBits = tr.backend.glStateBits;
+	uint64 stateBits = backEnd.glStateBits;
 
 	int program = renderProgManager.CurrentProgram();
-	PipelineKey key{ stateBits, program, static_cast<int>( tr.backend.depthBias ), tr.backend.slopeScaleBias, tr.backend.currentFrameBuffer };
-	auto pipeline = tr.backend.pipelineCache.GetOrCreatePipeline( key );
+	PipelineKey key{ stateBits, program, static_cast<int>( backEnd.depthBias ), backEnd.slopeScaleBias, backEnd.currentFrameBuffer };
+	auto pipeline = backEnd.pipelineCache.GetOrCreatePipeline( key );
 
 	{
 		nvrhi::GraphicsState state;
 
 		for( int i = 0; i < layouts->Num(); i++ )
 		{
-			state.bindings.push_back( tr.backend.currentBindingSets[i] );
+			state.bindings.push_back( backEnd.currentBindingSets[i] );
 		}
 
 		state.indexBuffer = { indexBuffer.GetAPIObject(), nvrhi::Format::R16_UINT, 0};
 		state.vertexBuffers = { { vertexBuffer.GetAPIObject(), 0, 0 } };
 		state.pipeline = pipeline;
-		state.framebuffer = tr.backend.currentFrameBuffer->GetApiObject();
+		state.framebuffer = backEnd.currentFrameBuffer->GetApiObject();
 
-		nvrhi::Viewport viewport{ ( float )tr.backend.currentViewport.x1,
-								  ( float )tr.backend.currentViewport.x2,
-								  ( float )tr.backend.currentViewport.y1,
-								  ( float )tr.backend.currentViewport.y2,
+		nvrhi::Viewport viewport{ ( float )backEnd.currentViewport.x1,
+								  ( float )backEnd.currentViewport.x2,
+								  ( float )backEnd.currentViewport.y1,
+								  ( float )backEnd.currentViewport.y2,
 								  0.0f,
 								  1.0f };
 		state.viewport.addViewport( viewport );
@@ -189,8 +189,8 @@ void fhImmediateMode::End()
 	commandList->drawIndexed( args );
 
 	// RB: added stats
-	tr.backend.pc.c_drawElements++;
-	tr.backend.pc.c_drawIndexes += drawVertsUsed;
+	backEnd.pc.c_drawElements++;
+	backEnd.pc.c_drawIndexes += drawVertsUsed;
 
 	// reset
 	drawVertsUsed = 0;

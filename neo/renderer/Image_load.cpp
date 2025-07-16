@@ -498,7 +498,6 @@ void idImage::GenerateShadowArray( int width, int height, textureFilter_t filter
 	repeat = repeatParm;
 	usage = usageParm;
 	cubeFiles = CF_2D_ARRAY;
-	byte* pic = nullptr;
 
 	opts.textureType = DTT_2D_ARRAY;
 	opts.width = width;

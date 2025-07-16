@@ -290,14 +290,19 @@ static void R_HDR_RGBA16FImage_ResNative_UAV( idImage* image, nvrhi::ICommandLis
 	image->GenerateImage( NULL, renderSystem->GetWidth(), renderSystem->GetHeight(), TF_NEAREST, TR_CLAMP, TD_RGBA16F, nullptr, true, true );
 }
 
-static void R_HDR_RGBA16SImage_ResNative_UAV( idImage* image, nvrhi::ICommandList* commandList )
-{
-	image->GenerateImage( NULL, renderSystem->GetWidth(), renderSystem->GetHeight(), TF_NEAREST, TR_CLAMP, TD_RGBA16S, nullptr, true, true );
-}
-
 static void R_HDR_RGBA16FImage_ResGui( idImage* image, nvrhi::ICommandList* commandList )
 {
 	image->GenerateImage( NULL, SCREEN_WIDTH, SCREEN_HEIGHT, TF_NEAREST, TR_CLAMP, TD_RGBA16F, nullptr, true );
+}
+
+static void R_EnvprobeImage_HDR( idImage* image, nvrhi::ICommandList* commandList )
+{
+	image->GenerateImage( NULL, ENVPROBE_CAPTURE_SIZE, ENVPROBE_CAPTURE_SIZE, TF_NEAREST, TR_CLAMP, TD_RGBA16F, nullptr, true );
+}
+
+static void R_EnvprobeImage_Depth( idImage* image, nvrhi::ICommandList* commandList )
+{
+	image->GenerateImage( NULL, ENVPROBE_CAPTURE_SIZE, ENVPROBE_CAPTURE_SIZE, TF_NEAREST, TR_CLAMP, TD_DEPTH_STENCIL, nullptr, true );
 }
 
 static void R_RGBA8Image_ResGui( idImage* image, nvrhi::ICommandList* commandList )
@@ -329,17 +334,6 @@ static void R_HDR_RGBA16FImage_Res64( idImage* image, nvrhi::ICommandList* comma
 {
 	image->GenerateImage( NULL, 64, 64, TF_NEAREST, TR_CLAMP, TD_RGBA16F, nullptr, true );
 }
-
-static void R_EnvprobeImage_HDR( idImage* image, nvrhi::ICommandList* commandList )
-{
-	image->GenerateImage( NULL, ENVPROBE_CAPTURE_SIZE, ENVPROBE_CAPTURE_SIZE, TF_NEAREST, TR_CLAMP, TD_RGBA16F, nullptr, true );
-}
-
-static void R_EnvprobeImage_Depth( idImage* image, nvrhi::ICommandList* commandList )
-{
-	image->GenerateImage( NULL, ENVPROBE_CAPTURE_SIZE, ENVPROBE_CAPTURE_SIZE, TF_NEAREST, TR_CLAMP, TD_DEPTH_STENCIL, nullptr, true );
-}
-
 static void R_SMAAImage_ResNative( idImage* image, nvrhi::ICommandList* commandList )
 {
 	image->GenerateImage( NULL, renderSystem->GetWidth(), renderSystem->GetHeight(), TF_LINEAR, TR_CLAMP, TD_LOOKUP_TABLE_RGBA, nullptr, true );
@@ -1092,8 +1086,8 @@ void idImageManager::CreateIntrinsicImages()
 
 	taaMotionVectorsImage = ImageFromFunction( "_taaMotionVectors", R_HDR_RG16FImage_ResNative ); // RB: could be shared with _currentNormals.zw
 	taaResolvedImage = ImageFromFunction( "_taaResolved", R_HDR_RGBA16FImage_ResNative_UAV );
-	taaFeedback1Image = ImageFromFunction( "_taaFeedback1", R_HDR_RGBA16SImage_ResNative_UAV );
-	taaFeedback2Image = ImageFromFunction( "_taaFeedback2", R_HDR_RGBA16SImage_ResNative_UAV );
+	taaFeedback1Image = ImageFromFunction( "_taaFeedback1", R_HDR_RGBA16FImage_ResNative_UAV );
+	taaFeedback2Image = ImageFromFunction( "_taaFeedback2", R_HDR_RGBA16FImage_ResNative_UAV );
 
 	envprobeHDRImage = globalImages->ImageFromFunction( "_envprobeHDR", R_EnvprobeImage_HDR );
 	envprobeDepthImage = ImageFromFunction( "_envprobeDepth", R_EnvprobeImage_Depth );
@@ -1143,7 +1137,6 @@ void idImageManager::CreateIntrinsicImages()
 	scratchImage2 = ImageFromFunction( "_scratch2", R_RGBA8Image );
 	accumImage = ImageFromFunction( "_accum", R_RGBA8Image_RT );
 	currentRenderImage = globalImages->ImageFromFunction( "_currentRender", R_HDR_RGBA16FImage_ResNative );
-	//currentRenderImage = globalImages->ImageFromFunction( "_currentRender", R_LdrNativeImage );
 	currentDepthImage = ImageFromFunction( "_currentDepth", R_DepthImage );
 
 	// save a copy of this for material comparison, because currentRenderImage may get

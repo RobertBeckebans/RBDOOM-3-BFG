@@ -27,10 +27,12 @@
 #define VK_PUSH_CONSTANT [[vk::push_constant]]
 #define VK_BINDING(reg,dset) [[vk::binding(reg,dset)]]
 #define VK_DESCRIPTOR_SET(dset) ,space##dset
+#define VK_IMAGE_FORMAT(format) [[vk::image_format(format)]]
 #else
 #define VK_PUSH_CONSTANT
 #define VK_BINDING(reg,dset) 
 #define VK_DESCRIPTOR_SET(dset)
+#define VK_IMAGE_FORMAT(format)
 #endif
 
 #endif // VULKAN_HLSLI

@@ -364,10 +364,10 @@ bool R_UseTemporalAA()
 bool R_UseHiZ()
 {
 	// TODO check for driver problems here
-#if defined(__linux__)
+#if defined(__linux__) || defined(__APPLE__)
 	if( glConfig.vendor == VENDOR_INTEL && glConfig.gpuType == GPU_TYPE_OTHER )
 	{
-		// SRS - Disable HiZ to work-around Linux driver issues on Intel iGPUs
+		// SRS - Disable HiZ to work-around Linux/macOS driver issues on Intel iGPUs
 		return false;
 	}
 #endif
@@ -1094,7 +1094,7 @@ void idRenderSystemLocal::TakeScreenshot( int widthIgnored, int heightIgnored, c
 	// discard anything currently on the list (this triggers SwapBuffers)
 	tr.SwapCommandBuffers( NULL, NULL, NULL, NULL, NULL, NULL );
 
-	R_ReadPixelsRGB8( deviceManager->GetDevice(), &tr.backend.GetCommonPasses(), globalImages->ldrImage->GetTextureHandle() , nvrhi::ResourceStates::RenderTarget, fileName );
+	R_ReadPixelsRGB8( deviceManager->GetDevice(), &backEnd.GetCommonPasses(), globalImages->ldrImage->GetTextureHandle() , nvrhi::ResourceStates::RenderTarget, fileName );
 
 	// discard anything currently on the list
 	tr.SwapCommandBuffers( NULL, NULL, NULL, NULL, NULL, NULL );
@@ -2390,7 +2390,7 @@ idRenderSystemLocal::BeginLevelLoad
 void idRenderSystemLocal::BeginLevelLoad()
 {
 	// clear binding sets for previous level images and light data #676
-	backend.ClearCaches();
+	backEnd.ClearCaches();
 
 	globalImages->BeginLevelLoad();
 	renderModelManager->BeginLevelLoad();
@@ -2505,7 +2505,7 @@ void idRenderSystemLocal::InitBackend()
 	// if OpenGL isn't started, start it now
 	if( !IsInitialized() )
 	{
-		backend.Init();
+		backEnd.Init();
 
 		if( !commandList )
 		{
@@ -2532,7 +2532,7 @@ void idRenderSystemLocal::ShutdownOpenGL()
 	// free the context and close the window
 	R_ShutdownFrameData();
 
-	backend.Shutdown();
+	backEnd.Shutdown();
 }
 
 /*

@@ -817,8 +817,8 @@ static idStr PreProcessorTime()
 
 CONSOLE_COMMAND( TestPreprocessorMacros, "check analyze warning", 0 )
 {
-	idLib::Printf( "%s : %s\n", __DATE__, PreProcessorDate().c_str() );
-	idLib::Printf( "%s : %s\n", __TIME__, PreProcessorTime().c_str() );
+	idLib::Printf( "%s : %s\n", ID__DATE__, PreProcessorDate().c_str() );
+	idLib::Printf( "%s : %s\n", ID__TIME__, PreProcessorTime().c_str() );
 }
 
 /*
@@ -1150,6 +1150,7 @@ int idParser::Directive_include( idToken* token, bool supressWarning )
 		// try relative to the current file
 		path = scriptstack->GetFileName();
 		path.StripFilename();
+
 		// first remove any trailing path overlap with token
 		idStr token_path = *token;
 		if( !path.StripTrailingOnce( token_path.StripFilename() ) )
@@ -1158,6 +1159,7 @@ int idParser::Directive_include( idToken* token, bool supressWarning )
 			path += "/";
 		}
 		path += *token;
+
 		// try assuming a full os path from GetFileName()
 		if( !script->LoadFile( path, true ) )
 		{

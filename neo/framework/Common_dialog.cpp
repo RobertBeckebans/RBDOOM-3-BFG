@@ -1557,7 +1557,6 @@ idCommonDialog::HandleDialogEvent
 */
 bool idCommonDialog::HandleDialogEvent( const sysEvent_t* sev )
 {
-
 	if( dialog != NULL && dialog->IsLoaded() && dialog->IsActive() )
 	{
 		if( saveIndicator->IsActive() )

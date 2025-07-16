@@ -99,7 +99,7 @@ void Framebuffer::Shutdown()
 
 void Framebuffer::ResizeFramebuffers( bool reloadImages )
 {
-	tr.backend.ClearCaches();
+	backEnd.ClearCaches();
 
 	// RB: FIXME I think allocating new Framebuffers lead to a memory leak
 	framebuffers.DeleteContents( true );
@@ -219,55 +219,55 @@ void Framebuffer::ResizeFramebuffers( bool reloadImages )
 
 void Framebuffer::ReloadImages()
 {
-	tr.backend.commandList->open();
-	globalImages->ldrImage->Reload( false, tr.backend.commandList );
-	globalImages->currentRenderImage->Reload( false, tr.backend.commandList );
-	globalImages->currentDepthImage->Reload( false, tr.backend.commandList );
-	globalImages->currentRenderHDRImage->Reload( false, tr.backend.commandList );
+	backEnd.commandList->open();
+	globalImages->ldrImage->Reload( false, backEnd.commandList );
+	globalImages->currentRenderImage->Reload( false, backEnd.commandList );
+	globalImages->currentDepthImage->Reload( false, backEnd.commandList );
+	globalImages->currentRenderHDRImage->Reload( false, backEnd.commandList );
 	for( int i = 0; i < MAX_SSAO_BUFFERS; i++ )
 	{
-		globalImages->ambientOcclusionImage[i]->Reload( false, tr.backend.commandList );
+		globalImages->ambientOcclusionImage[i]->Reload( false, backEnd.commandList );
 	}
-	globalImages->hierarchicalZbufferImage->Reload( false, tr.backend.commandList );
-	globalImages->gbufferNormalsRoughnessImage->Reload( false, tr.backend.commandList );
-	globalImages->taaMotionVectorsImage->Reload( false, tr.backend.commandList );
-	globalImages->taaFeedback1Image->Reload( false, tr.backend.commandList );
-	globalImages->taaFeedback2Image->Reload( false, tr.backend.commandList );
-	globalImages->taaResolvedImage->Reload( false, tr.backend.commandList );
+	globalImages->hierarchicalZbufferImage->Reload( false, backEnd.commandList );
+	globalImages->gbufferNormalsRoughnessImage->Reload( false, backEnd.commandList );
+	globalImages->taaMotionVectorsImage->Reload( false, backEnd.commandList );
+	globalImages->taaFeedback1Image->Reload( false, backEnd.commandList );
+	globalImages->taaFeedback2Image->Reload( false, backEnd.commandList );
+	globalImages->taaResolvedImage->Reload( false, backEnd.commandList );
 
-	globalImages->smaaInputImage->Reload( false, tr.backend.commandList );
-	globalImages->smaaEdgesImage->Reload( false, tr.backend.commandList );
-	globalImages->smaaBlendImage->Reload( false, tr.backend.commandList );
+	globalImages->smaaInputImage->Reload( false, backEnd.commandList );
+	globalImages->smaaEdgesImage->Reload( false, backEnd.commandList );
+	globalImages->smaaBlendImage->Reload( false, backEnd.commandList );
 
-	globalImages->shadowAtlasImage->Reload( false, tr.backend.commandList );
+	globalImages->shadowAtlasImage->Reload( false, backEnd.commandList );
 	for( int i = 0; i < MAX_SHADOWMAP_RESOLUTIONS; i++ )
 	{
-		globalImages->shadowImage[i]->Reload( false, tr.backend.commandList );
+		globalImages->shadowImage[i]->Reload( false, backEnd.commandList );
 	}
 	for( int i = 0; i < MAX_BLOOM_BUFFERS; i++ )
 	{
-		globalImages->bloomRenderImage[i]->Reload( false, tr.backend.commandList );
+		globalImages->bloomRenderImage[i]->Reload( false, backEnd.commandList );
 	}
-	globalImages->guiEdit->Reload( false, tr.backend.commandList );
-	globalImages->accumImage->Reload( false, tr.backend.commandList );
-	tr.backend.commandList->close();
-	deviceManager->GetDevice()->executeCommandList( tr.backend.commandList );
+	globalImages->guiEdit->Reload( false, backEnd.commandList );
+	globalImages->accumImage->Reload( false, backEnd.commandList );
+	backEnd.commandList->close();
+	deviceManager->GetDevice()->executeCommandList( backEnd.commandList );
 }
 
 void Framebuffer::Bind()
 {
-	if( tr.backend.currentFrameBuffer != this )
+	if( backEnd.currentFrameBuffer != this )
 	{
-		tr.backend.currentPipeline = nullptr;
+		backEnd.currentPipeline = nullptr;
 	}
 
-	tr.backend.lastFrameBuffer = tr.backend.currentFrameBuffer;
-	tr.backend.currentFrameBuffer = this;
+	backEnd.lastFrameBuffer = backEnd.currentFrameBuffer;
+	backEnd.currentFrameBuffer = this;
 }
 
 bool Framebuffer::IsBound()
 {
-	return tr.backend.currentFrameBuffer == this;
+	return backEnd.currentFrameBuffer == this;
 }
 
 void Framebuffer::Unbind()
@@ -277,12 +277,12 @@ void Framebuffer::Unbind()
 
 bool Framebuffer::IsDefaultFramebufferActive()
 {
-	return tr.backend.currentFrameBuffer == globalFramebuffers.swapFramebuffers[deviceManager->GetCurrentBackBufferIndex()];
+	return backEnd.currentFrameBuffer == globalFramebuffers.swapFramebuffers[deviceManager->GetCurrentBackBufferIndex()];
 }
 
 Framebuffer* Framebuffer::GetActiveFramebuffer()
 {
-	return tr.backend.currentFrameBuffer;
+	return backEnd.currentFrameBuffer;
 }
 
 void Framebuffer::AddColorBuffer( int format, int index, int multiSamples )

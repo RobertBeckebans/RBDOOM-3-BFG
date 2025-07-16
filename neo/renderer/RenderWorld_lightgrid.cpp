@@ -1301,7 +1301,7 @@ CONSOLE_COMMAND_SHIP( bakeLightGrids, "Bake irradiance/vis light grid data", NUL
 							}
 #endif
 							//bool validCapture =
-							R_ReadPixelsRGB16F( deviceManager->GetDevice(), &tr.backend.GetCommonPasses(), globalImages->envprobeHDRImage->GetTextureHandle() , nvrhi::ResourceStates::RenderTarget, &floatRGB16F, captureSize, captureSize );
+							R_ReadPixelsRGB16F( deviceManager->GetDevice(), &backEnd.GetCommonPasses(), globalImages->envprobeHDRImage->GetTextureHandle() , nvrhi::ResourceStates::RenderTarget, &floatRGB16F, captureSize, captureSize );
 
 							// release all in-flight references to the render targets
 							//deviceManager->GetDevice()->runGarbageCollection();

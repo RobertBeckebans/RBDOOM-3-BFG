@@ -69,6 +69,8 @@ private:
 	std::shared_ptr<NullTextures> m_NullTextures;
 
 	BindingCache m_BindingCache;
+
+	const uint32_t numConstantBufferVersions = 32;
 };
 
 #endif

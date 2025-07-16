@@ -40,6 +40,7 @@ extern DeviceManager* deviceManager;
 
 
 idRenderSystemLocal	tr;
+idRenderBackend		backEnd;
 idRenderSystem* renderSystem = &tr;
 
 /*
@@ -56,9 +57,9 @@ void idRenderSystemLocal::PrintPerformanceCounters()
 	{
 		common->Printf( "views:%i draws:%i tris:%i (shdw:%i)\n",
 						pc.c_numViews,
-						backend.pc.c_drawElements + backend.pc.c_shadowElements,
-						( backend.pc.c_drawIndexes + backend.pc.c_shadowIndexes ) / 3,
-						backend.pc.c_shadowIndexes / 3
+						backEnd.pc.c_drawElements + backEnd.pc.c_shadowElements,
+						( backEnd.pc.c_drawIndexes + backEnd.pc.c_shadowIndexes ) / 3,
+						backEnd.pc.c_shadowIndexes / 3
 					  );
 	}
 
@@ -99,7 +100,7 @@ void idRenderSystemLocal::PrintPerformanceCounters()
 	}
 
 	memset( &pc, 0, sizeof( pc ) );
-	memset( &backend.pc, 0, sizeof( backend.pc ) );
+	memset( &backEnd.pc, 0, sizeof( backEnd.pc ) );
 }
 
 /*
@@ -134,7 +135,7 @@ void idRenderSystemLocal::RenderCommandBuffers( const emptyCommand_t* const cmdH
 	// draw 2D graphics
 	if( !r_skipBackEnd.GetBool() )
 	{
-		backend.ExecuteBackEndCommands( cmdHead );
+		backEnd.ExecuteBackEndCommands( cmdHead );
 	}
 
 	// pass in null for now - we may need to do some map specific hackery in the future
@@ -652,12 +653,12 @@ void idRenderSystemLocal::SwapCommandBuffers_FinishRendering(
 	{
 		// wait for our fence to hit, which means the swap has actually happened
 		// We must do this before clearing any resources the GPU may be using
-		backend.GL_BlockingSwapBuffers();
+		backEnd.GL_BlockingSwapBuffers();
 	}
 
 	if( gpuMicroSec != NULL )
 	{
-		*gpuMicroSec = backend.pc.gpuMicroSec;
+		*gpuMicroSec = backEnd.pc.gpuMicroSec;
 	}
 
 	//------------------------------
@@ -670,7 +671,7 @@ void idRenderSystemLocal::SwapCommandBuffers_FinishRendering(
 
 	if( backEndMicroSec != NULL )
 	{
-		*backEndMicroSec = backend.pc.cpuTotalMicroSec;
+		*backEndMicroSec = backEnd.pc.cpuTotalMicroSec;
 	}
 
 	if( mocMicroSec != NULL )
@@ -681,7 +682,7 @@ void idRenderSystemLocal::SwapCommandBuffers_FinishRendering(
 	// RB: TODO clean up the above and just pass entire backend and performance stats before they get cleared
 	if( bc != NULL )
 	{
-		*bc = backend.pc;
+		*bc = backEnd.pc;
 	}
 
 	if( pc != NULL )
@@ -693,7 +694,7 @@ void idRenderSystemLocal::SwapCommandBuffers_FinishRendering(
 	PrintPerformanceCounters();
 
 	// check for dynamic changes that require some initialization
-	backend.CheckCVars();
+	backEnd.CheckCVars();
 
 	// RB: resize HDR buffers
 	Framebuffer::CheckFramebuffers();
@@ -725,10 +726,10 @@ const emptyCommand_t* idRenderSystemLocal::SwapCommandBuffers_FinishCommandBuffe
 
 	// copy the code-used drawsurfs that were
 	// allocated at the start of the buffer memory to the backEnd referenced locations
-	backend.unitSquareSurface = tr.unitSquareSurface_;
-	backend.zeroOneCubeSurface = tr.zeroOneCubeSurface_;
-	backend.zeroOneSphereSurface = tr.zeroOneSphereSurface_;
-	backend.testImageSurface = tr.testImageSurface_;
+	backEnd.unitSquareSurface = tr.unitSquareSurface_;
+	backEnd.zeroOneCubeSurface = tr.zeroOneCubeSurface_;
+	backEnd.zeroOneSphereSurface = tr.zeroOneSphereSurface_;
+	backEnd.testImageSurface = tr.testImageSurface_;
 
 	// use the other buffers next frame, because another CPU
 	// may still be rendering into the current buffers

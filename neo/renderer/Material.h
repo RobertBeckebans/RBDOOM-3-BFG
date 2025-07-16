@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2014-2023 Robert Beckebans
+Copyright (C) 2014-2025 Robert Beckebans
 Copyright (C) 2014-2016 Kot in Action Creative Artel
 Copyright (C) 2022 Stephen Pridham
 
@@ -31,10 +31,6 @@ If you have questions concerning this license or the applicable additional terms
 
 #ifndef __MATERIAL_H__
 #define __MATERIAL_H__
-
-
-// RB: define this to use the id Tech 4.5 UI interface for ImGui instead of OpenGL or Vulkan
-// this allows to have the com_showFPS stats in screenshots
 
 /*
 ===============================================================================
@@ -164,7 +160,7 @@ typedef enum
 	TG_EXPLICIT,
 	TG_DIFFUSE_CUBE,
 	TG_REFLECT_CUBE,
-	TG_REFLECT_CUBE2,	// RB interpolates 3 octahedrons like for ambient lighting
+	TG_REFLECT_CUBE2,	// RB: used for new blood effects, interpolates 3 env_probes + SSR
 	TG_SKYBOX_CUBE,
 	TG_WOBBLESKY_CUBE,
 	TG_SCREEN,			// screen aligned, for mirrorRenders and screen space temporaries
@@ -236,11 +232,11 @@ struct stencilStage_t
 	// (if either Pass, Fail or ZFail is set to replace).
 	byte ref = 0;
 
-	// An 8 bit mask as an 0�255 integer, used when comparing the reference value with the contents of the buffer
+	// An 8 bit mask as an 0–255 integer, used when comparing the reference value with the contents of the buffer
 	// (referenceValue & readMask) comparisonFunction (stencilBufferValue & readMask).
 	byte readMask = 255;
 
-	// An 8 bit mask as an 0�255 integer, used when writing to the buffer.Note that, like other write masks,
+	// An 8 bit mask as an 0–255 integer, used when writing to the buffer.Note that, like other write masks,
 	// it specifies which bits of stencil buffer will be affected by write
 	// (i.e.WriteMask 0 means that no bits are affected and not that 0 will be written).
 	byte writeMask = 255;

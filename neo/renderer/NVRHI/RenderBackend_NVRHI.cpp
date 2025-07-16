@@ -269,7 +269,7 @@ void idRenderBackend::Shutdown()
 	// SRS - Clean up NVRHI resources before Sys_Quit(), otherwise non-zero exit code (destructors too late)
 
 	// Clear all cached pipeline data
-	tr.backend.ClearCaches();
+	backEnd.ClearCaches();
 	pipelineCache.Shutdown();
 
 	// Delete all renderpass resources
@@ -2021,7 +2021,7 @@ void idRenderBackend::GL_StartFrame()
 			globalImages->ambientOcclusionImage[0]->GetTextureHandle() );
 	}
 
-	if( globalImages->hierarchicalZbufferImage->GetTextureID() != textureId || !hiZGenPass )
+	if( ( globalImages->hierarchicalZbufferImage->GetTextureID() != textureId || !hiZGenPass ) && R_UseHiZ() )
 	{
 		if( hiZGenPass )
 		{

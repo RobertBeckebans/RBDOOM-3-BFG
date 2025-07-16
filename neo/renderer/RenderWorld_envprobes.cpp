@@ -1098,7 +1098,7 @@ CONSOLE_COMMAND_SHIP( bakeEnvironmentProbes, "Bake environment probes", NULL )
 			//}
 
 			//bool validCapture =
-			R_ReadPixelsRGB16F( deviceManager->GetDevice(), &tr.backend.GetCommonPasses(), globalImages->envprobeHDRImage->GetTextureHandle(), nvrhi::ResourceStates::RenderTarget, &floatRGB16F, captureSize, captureSize );
+			R_ReadPixelsRGB16F( deviceManager->GetDevice(), &backEnd.GetCommonPasses(), globalImages->envprobeHDRImage->GetTextureHandle(), nvrhi::ResourceStates::RenderTarget, &floatRGB16F, captureSize, captureSize );
 
 #if 0
 			idStr testName;

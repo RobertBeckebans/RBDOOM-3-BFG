@@ -950,38 +950,6 @@ void idRenderBackend::DBG_ShowLights()
 			RB_SetMVP( invProjectMVPMatrix );
 			DrawElementsWithCounters( &zeroOneCubeSurface );
 		}
-
-		/*
-		if( r_singleLight.GetInteger() > 0 )
-		{
-			// draw line from center to global light origin
-			RB_SetMVP( viewDef->worldSpace.mvp );
-
-			GL_State( GLS_POLYMODE_LINE | GLS_DEPTHFUNC_ALWAYS );
-
-			idRenderWorldLocal& world = *viewDef->renderWorld;
-
-			fhImmediateMode im( tr.backend.GL_GetCommandList() );
-
-			im.Begin( GFX_LINES );
-			for( ; j < w->GetNumPoints(); j++ )
-			{
-				// draw a triangle for each line
-				if( j >= 1 )
-				{
-					im.Vertex3fv( ( *w )[ j - 1 ].ToFloatPtr() );
-					im.Vertex3fv( ( *w )[ j ].ToFloatPtr() );
-					im.Vertex3fv( ( *w )[ j ].ToFloatPtr() );
-				}
-			}
-
-			im.Vertex3fv( ( *w )[ 0 ].ToFloatPtr() );
-			im.Vertex3fv( ( *w )[ 0 ].ToFloatPtr() );
-			im.Vertex3fv( ( *w )[ j - 1 ].ToFloatPtr() );
-
-			im.End();
-		}
-		*/
 	}
 }
 
@@ -1677,7 +1645,7 @@ void idRenderBackend::DBG_ShowPortals()
 
 	idRenderWorldLocal& world = *viewDef->renderWorld;
 
-	fhImmediateMode im( tr.backend.GL_GetCommandList() );
+	fhImmediateMode im( backEnd.GL_GetCommandList() );
 
 	// flood out through portals, setting area viewCount
 	for( int i = 0; i < world.numPortalAreas; i++ )
@@ -1859,9 +1827,9 @@ RB_DrawText
 static void RB_DrawText( const char* text, const idVec3& origin, float scale, const idVec4& color, const idMat3& viewAxis, const int align )
 {
 	renderProgManager.BindShader_Color();
-	renderProgManager.CommitUniforms( tr.backend.GL_GetCurrentState() );
+	renderProgManager.CommitUniforms( backEnd.GL_GetCurrentState() );
 
-	fhImmediateMode im( tr.backend.GL_GetCommandList() );
+	fhImmediateMode im( backEnd.GL_GetCommandList() );
 
 	int i, j, len, num, index, charIndex, line;
 	float textLen = 1.0f, spacing = 1.0f;
@@ -2119,7 +2087,7 @@ void idRenderBackend::DBG_ShowDebugLines()
 		GL_State( GLS_POLYMODE_LINE );
 	}
 
-	fhImmediateMode im( tr.backend.GL_GetCommandList() );
+	fhImmediateMode im( backEnd.GL_GetCommandList() );
 
 	im.Begin( GFX_LINES );
 	line = rb_debugLines;

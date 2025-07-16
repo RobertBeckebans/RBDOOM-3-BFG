@@ -443,7 +443,6 @@ void idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::LoadData
 	originalBrightness = r_exposure.GetFloat();
 	originalVolume = s_volume_dB.GetFloat();
 	// RB begin
-	//originalShadowMapping = r_useShadowMapping.GetInteger();
 	originalRenderMode = r_renderMode.GetInteger();
 	originalAmbientBrightness = r_forceAmbient.GetFloat();
 	originalSSAO = r_useSSAO.GetInteger();
@@ -475,12 +474,6 @@ bool idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::IsRestar
 	{
 		return true;
 	}
-
-	if( originalShadowMapping != r_useShadowMapping.GetInteger() )
-	{
-		return true;
-	}
-
 	*/
 
 	if( idStr::Icmp( r_graphicsAPI.GetString(), originalRenderAPI ) != 0 )
@@ -644,13 +637,7 @@ void idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::AdjustFi
 			break;
 		}
 		/*
-		case SYSTEM_FIELD_SHADOWMAPPING:
-		{
-			static const int numValues = 2;
-			static const int values[numValues] = { 0, 1 };
-			r_useShadowMapping.SetInteger( AdjustOption( r_useShadowMapping.GetInteger(), values, numValues, adjustAmount ) );
-			break;
-		}
+		RB: this should be the texture quality field
 		case SYSTEM_FIELD_LODBIAS:
 		{
 			const float percent = LinearAdjust( r_lodBias.GetFloat(), -1.0f, 1.0f, 0.0f, 100.0f );
@@ -918,11 +905,6 @@ bool idMenuScreen_Shell_SystemOptions::idMenuDataSource_SystemSettings::IsDataCh
 	{
 		return true;
 	}
-
-	//if( originalShadowMapping != r_useShadowMapping.GetInteger() )
-	//{
-	//	return true;
-	//}
 
 	if( originalRenderMode != r_renderMode.GetInteger() )
 	{

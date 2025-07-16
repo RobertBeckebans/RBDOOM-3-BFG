@@ -460,9 +460,9 @@ void LoadSTB_RGBA8( const char* filename, unsigned char** pic, int* width, int* 
 
 	Mem_Free( ( void* )fbuffer );
 
-	//if( numChannels != 3 )
+	//if( numChannels != 4 )
 	//{
-	//	common->Error( "LoadHDR( %s ): HDR has not 3 channels\n", filename );
+	//	common->Error( "LoadSTB_RGBA8( %s ): HDR has not 4 channels\n", filename );
 	//}
 
 	if( !rgba )

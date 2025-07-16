@@ -424,7 +424,7 @@ void R_SetupProjectionMatrix( viewDef_t* viewDef, bool doJitter )
 
 	if( R_UseTemporalAA() && doJitter && !( viewDef->renderView.rdflags & RDF_IRRADIANCE ) )
 	{
-		idVec2 jitter = tr.backend.GetCurrentPixelOffset( viewDef->taaFrameCount );
+		idVec2 jitter = backEnd.GetCurrentPixelOffset( viewDef->taaFrameCount );
 		jitterx = jitter.x;
 		jittery = jitter.y;
 	}
@@ -610,9 +610,6 @@ create a matrix with similar functionality like gluUnproject, project from windo
 */
 void R_SetupUnprojection( viewDef_t* viewDef )
 {
-	// RB: I don't like that this doesn't work
-	//idRenderMatrix::Inverse( *( idRenderMatrix* ) viewDef->projectionMatrix, viewDef->unprojectionToCameraRenderMatrix );
-
 	R_MatrixFullInverse( viewDef->projectionMatrix, viewDef->unprojectionToCameraMatrix );
 	idRenderMatrix::Transpose( *( idRenderMatrix* )viewDef->unprojectionToCameraMatrix, viewDef->unprojectionToCameraRenderMatrix );
 

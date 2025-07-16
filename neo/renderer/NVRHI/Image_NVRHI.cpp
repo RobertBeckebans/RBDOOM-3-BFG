@@ -251,7 +251,7 @@ Automatically enables 2D mapping or cube mapping if needed
 */
 void idImage::Bind()
 {
-	tr.backend.SetCurrentImage( this );
+	backEnd.SetCurrentImage( this );
 }
 
 /*
@@ -261,7 +261,7 @@ CopyFramebuffer
 */
 void idImage::CopyFramebuffer( int x, int y, int imageWidth, int imageHeight )
 {
-	tr.backend.pc.c_copyFrameBuffer++;
+	backEnd.pc.c_copyFrameBuffer++;
 }
 
 /*
@@ -271,7 +271,7 @@ CopyDepthbuffer
 */
 void idImage::CopyDepthbuffer( int x, int y, int imageWidth, int imageHeight )
 {
-	tr.backend.pc.c_copyFrameBuffer++;
+	backEnd.pc.c_copyFrameBuffer++;
 }
 
 /*

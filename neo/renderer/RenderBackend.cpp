@@ -207,12 +207,6 @@ void RB_LoadShaderTextureMatrix( const float* shaderRegisters, const textureStag
 		texT[1] = matrix[1 * 4 + 1];
 		texT[2] = matrix[2 * 4 + 1];
 		texT[3] = matrix[3 * 4 + 1];
-
-		//RENDERLOG_PRINTF( "Setting Texture Matrix\n" );
-		//renderLog.Indent();
-		//RENDERLOG_PRINTF( "Texture Matrix S : %4.3f, %4.3f, %4.3f, %4.3f\n", texS[0], texS[1], texS[2], texS[3] );
-		//RENDERLOG_PRINTF( "Texture Matrix T : %4.3f, %4.3f, %4.3f, %4.3f\n", texT[0], texT[1], texT[2], texT[3] );
-		//renderLog.Outdent();
 	}
 
 	SetVertexParm( RENDERPARM_TEXTUREMATRIX_S, texS );
@@ -4253,7 +4247,6 @@ int idRenderBackend::DrawShaderPasses( const drawSurf_t* const* const drawSurfs,
 
 			// see if we are a new-style stage
 			newShaderStage_t* newStage = pStage->newStage;
-
 			if( newStage != NULL )
 			{
 				//--------------------------
@@ -5660,14 +5653,12 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		globalFramebuffers.ldrFBO->Bind();
 	}
 
-	// Clear the depth buffer and clear the stencil to 128 for stencil shadows as well as gui masking
+	// Clear the depth buffer and clear the stencil to 128 for gui masking
 	{
 		OPTICK_GPU_EVENT( "Render_ClearDepthStencil" );
 
 		GL_Clear( clearColor, true, true, STENCIL_SHADOW_TEST_VALUE, 0.0f, 0.0f, 0.0f, 0.0f );
 	}
-
-	// RB end
 
 	//------------------------------------
 	// sets variables that can be used by all programs

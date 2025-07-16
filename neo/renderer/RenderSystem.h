@@ -314,10 +314,10 @@ public:
 
 	virtual void			PrintMemInfo( MemInfo_t* mi ) = 0;
 
-	virtual void				DrawSmallChar( int x, int y, int ch ) = 0;
-	virtual void				DrawSmallStringExt( int x, int y, const char* string, const idVec4& setColor, bool forceColor ) = 0;
-	virtual void				DrawBigChar( int x, int y, int ch ) = 0;
-	virtual void				DrawBigStringExt( int x, int y, const char* string, const idVec4& setColor, bool forceColor ) = 0;
+	virtual void			DrawSmallChar( int x, int y, int ch ) = 0;
+	virtual void			DrawSmallStringExt( int x, int y, const char* string, const idVec4& setColor, bool forceColor ) = 0;
+	virtual void			DrawBigChar( int x, int y, int ch ) = 0;
+	virtual void			DrawBigStringExt( int x, int y, const char* string, const idVec4& setColor, bool forceColor ) = 0;
 
 	virtual void			DrawCRTPostFX() = 0; // RB
 

@@ -622,6 +622,71 @@ int Sys_Milliseconds()
 	// DG end
 }
 
+/*
+================
+Sys_Microseconds
+================
+*/
+static uint64 sys_microTimeBase = 0;
+
+uint64 Sys_Microseconds()
+{
+#if 0
+	static uint64 ticksPerMicrosecondTimes1024 = 0;
+
+	if( ticksPerMicrosecondTimes1024 == 0 )
+	{
+		ticksPerMicrosecondTimes1024 = ( ( uint64 )Sys_ClockTicksPerSecond() << 10 ) / 1000000;
+		assert( ticksPerMicrosecondTimes1024 > 0 );
+	}
+
+	return ( ( uint64 )( ( int64 )Sys_GetClockTicks() << 10 ) ) / ticksPerMicrosecondTimes1024;
+#elif 0
+	uint64 curtime;
+	struct timespec ts;
+
+	clock_gettime( CLOCK_MONOTONIC, &ts );
+
+	curtime = ts.tv_sec * 1000000 + ts.tv_nsec / 1000;
+
+	return curtime;
+#else
+	uint64 curtime;
+	struct timespec ts;
+
+	clock_gettime( D3_CLOCK_TO_USE, &ts );
+
+	if( !sys_microTimeBase )
+	{
+		sys_microTimeBase = ts.tv_sec;
+		return ts.tv_nsec / 1000;
+	}
+
+	curtime = ( ts.tv_sec - sys_microTimeBase ) * 1000000 + ts.tv_nsec / 1000;
+
+	return curtime;
+#endif
+}
+
+/*
+========================
+Sys_CPUCount
+
+TODO: This is a dummy function;
+If required I recommend using SDL_CpuCount();
+
+numLogicalCPUCores      - the number of logical CPU per core
+numPhysicalCPUCores     - the total number of cores per package
+numCPUPackages          - the total number of packages (physical processors)
+========================
+*/
+void Sys_CPUCount( int& numLogicalCPUCores, int& numPhysicalCPUCores, int& numCPUPackages )
+{
+	numPhysicalCPUCores = 1;
+	numLogicalCPUCores = 1;
+	numCPUPackages = 1;
+}
+
 class idSysCmdline : public idSys
 {
 public:
@@ -1290,7 +1355,7 @@ void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
 	}
 
 	//idStr title = va( "RBDMAP version %s %s", ENGINE_VERSION, BUILD_STRING );
-	idStr title = va( "RBDMAP version %s %s %s %s", ENGINE_VERSION, BUILD_STRING, __DATE__, __TIME__ );
+	idStr title = va( "RBDMAP version %s %s %s %s", ENGINE_VERSION, BUILD_STRING, ID__DATE__, ID__TIME__ );
 	ImGui::Begin( title.c_str(), nullptr,
 				  ImGuiWindowFlags_NoCollapse |
 				  ImGuiWindowFlags_NoResize |

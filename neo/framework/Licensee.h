@@ -43,6 +43,19 @@ If you have questions concerning this license or the applicable additional terms
 #define ENGINE_VERSION					"RBDOOM 3 BFG 1.6.0"	// printed in console
 // RB end
 
+// DG begin
+#ifdef ID_REPRODUCIBLE_BUILD
+	// for reproducible builds we hardcode values that would otherwise come from __DATE__ and __TIME__
+	// NOTE: remember to update esp. the date for (pre-) releases and RCs and the like
+	#define ID__DATE__  "May 10 2025"
+	#define ID__TIME__  "18:35:17"
+
+#else // not reproducible build, use __DATE__ and __TIME__ macros
+	#define ID__DATE__  __DATE__
+	#define ID__TIME__  __TIME__
+#endif
+// DG end
+
 // jmarshall
 #define ENGINE_BRANCH					"master"
 // jmarshall end

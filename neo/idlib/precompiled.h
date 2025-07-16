@@ -167,8 +167,6 @@ constexpr uint32 NUM_FRAME_DATA	= 3;
 
 	#else
 
-		#include "../framework/DemoChecksum.h"
-
 		// framework
 		#include "../framework/Compressor.h"
 		#include "../framework/EventLoop.h"

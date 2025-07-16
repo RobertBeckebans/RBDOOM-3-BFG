@@ -188,9 +188,6 @@ private:
 
 	void				ShadowAtlasPass( const viewDef_t* _viewDef );
 
-	void				StencilShadowPass( const drawSurf_t* drawSurfs, const viewLight_t* vLight );
-	void				StencilSelectLight( const viewLight_t* vLight );
-
 	void				DrawMotionVectors();
 	void				TemporalAAPass( const viewDef_t* _viewDef );
 
@@ -340,7 +337,7 @@ public:
 	float				depthBias;
 
 private:
-	uint64				glStateBits;
+	uint64				glStateBits;			// for all render APIs
 
 	const viewDef_t* 	viewDef;
 

@@ -127,7 +127,7 @@ MipMapGenPass::MipMapGenPass(
 	constantBufferDesc.isConstantBuffer = true;
 	constantBufferDesc.isVolatile = true;
 	constantBufferDesc.debugName = "MipMapGenPass/Constants";
-	constantBufferDesc.maxVersions = c_MaxRenderPassConstantBufferVersions;
+	constantBufferDesc.maxVersions = numConstantBufferVersions;
 	m_ConstantBuffer = m_Device->createBuffer( constantBufferDesc );
 
 	// BindingLayout

@@ -110,7 +110,6 @@ struct srfTriangles_t
 	// data in vertex object space, not directly readable by the CPU
 	vertCacheHandle_t			indexCache;				// GL_INDEX_TYPE
 	vertCacheHandle_t			ambientCache;			// idDrawVert
-//	vertCacheHandle_t			shadowCache;			// idVec4
 
 	DISALLOW_COPY_AND_ASSIGN( srfTriangles_t );
 };

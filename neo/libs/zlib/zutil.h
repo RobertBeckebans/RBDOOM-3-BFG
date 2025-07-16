@@ -118,7 +118,8 @@ extern const char* const z_errmsg[10];  /* indexed by 2-zlib_error */
 	#endif
 #endif
 
-#if defined(MACOS) || defined(TARGET_OS_MAC)
+// SRS - Apple clang 17 defines target conditionals by default which incorrectly enables ancient code here
+#if defined(MACOS) //|| defined(TARGET_OS_MAC)
 	#define OS_CODE  0x07
 	#ifndef Z_SOLO
 		#if defined(__MWERKS__) && __dest_os != __be_os && __dest_os != __win32_os
