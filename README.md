@@ -441,7 +441,7 @@ Recommended in this case is `cmake-vs2022-win64-no-ffmpeg.bat`
 	
 	E.g. Unpack linux_dxc_2024_05_24.x86_64.tar.gz to `~/.local` and make `~/.local/bin/dxc` as executable with chmod +x
 
-	As an alternative you can add `-DDXC_CUSTOM_PATH=<path-to-dxc-binary>` to the CMake options.
+	As an alternative you can add `-DDXC_CUSTOM_PATH=<path-to-dxc-binary>` to the CMake options.  Please make sure to specify only the **directory path** to dxc, and don't include the binary name itself.
 
 2. You need the following dependencies in order to compile RBDoom3BFG with all features:
 
