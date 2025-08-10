@@ -1609,6 +1609,7 @@ idPlayer::idPlayer():
 	focusCharacter			= NULL;
 	talkCursor				= 0;
 	focusVehicle			= NULL;
+	focusDoor				= NULL; // SE2 vehicles
 	cursor					= NULL;
 
 	oldMouseX				= 0;
@@ -1668,6 +1669,13 @@ idPlayer::idPlayer():
 	memset( pdaHasBeenRead, 0, sizeof( pdaHasBeenRead ) );
 	memset( videoHasBeenViewed, 0, sizeof( videoHasBeenViewed ) );
 	memset( audioHasBeenHeard, 0, sizeof( audioHasBeenHeard ) );
+
+	// ################################################### SR
+
+	buggy_thirdPerson = false;
+	currentVehicle = NULL;
+
+	// ################################################### END
 }
 
 /*
@@ -1747,6 +1755,25 @@ void idPlayer::Init()
 {
 	const char*			value;
 	const idKeyValue*	kv;
+
+	// ################################################### SR begin
+	buggy_thirdPerson = false;
+	currentVehicle = NULL;
+	maxBuggyYaw = spawnArgs.GetFloat("max_buggy_viewangle", "100");
+
+	maxViewDist = spawnArgs.GetFloat("maxViewDist", "400");	// zoomed-out distance
+	minViewDist = spawnArgs.GetFloat("minViewDist", "230");	// zoomed-in distance
+	maxViewHeight = spawnArgs.GetFloat("maxViewHeight", "85");	// zoomed-out height
+	minViewHeight = spawnArgs.GetFloat("minViewHeight", "50");
+	zoomStep = spawnArgs.GetFloat("zoomStep", "15");
+
+	zooming = false;
+	viewStep = (maxViewDist - minViewDist) / zoomStep;
+	viewStepH = (maxViewHeight - minViewHeight) / zoomStep;
+
+	viewDist = minViewDist;
+	viewHeight = minViewHeight;
+	// ################################################### SR end
 
 	noclip					= false;
 	godmode					= false;
@@ -5763,6 +5790,38 @@ void idPlayer::Weapon_NPC()
 	}
 }
 
+void idPlayer::Weapon_VEHICLE()
+{
+	StopFiring();
+	bool wasUseDown = (oldButtons & (BUTTON_USE)) != 0;
+	bool isUseDown = (usercmd.buttons & (BUTTON_USE)) != 0;
+	if (currentVehicle) {
+		if (isUseDown && !wasUseDown) {
+			if (currentVehicle.IsValid())
+			{
+				currentVehicle->Use(this);
+			}
+			currentVehicle = NULL;
+
+			physicsObj.EnableClip();
+			Show();
+			Event_EnableWeapon();
+		}
+	}
+	else
+	{
+		//weapon.GetEntity()->LowerWeapon();
+		if (isUseDown && !wasUseDown) {
+			focusVehicle->Use(this);
+			SetPhysics(&physicsObj);
+			physicsObj.DisableClip();
+			Hide();
+			Event_DisableWeapon();
+			currentVehicle = focusVehicle;
+		}
+	}
+}
+
 /*
 ===============
 idPlayer::LowerWeapon
@@ -7270,6 +7329,103 @@ void idPlayer::UpdateViewAngles()
 		viewAngles.pitch = Max( viewAngles.pitch, pm_minviewpitch.GetFloat() * restrict );
 	}
 
+	// ######################################################################## SR
+
+	if (currentVehicle.IsValid()) {
+		// don't let the player aim too high or low while driving
+		if (viewAngles.pitch > 10.0f) {
+			viewAngles.pitch = 10.0f;
+		}
+		else if (viewAngles.pitch < -25.0f) {
+			viewAngles.pitch = -25.0f;
+		}
+		// don't let the player look more than 'maxBuggyYaw' degrees left/right while driving
+
+		//idVec3 dir = buggy->GetPhysics()->GetAxis().ToAngles().ToForward();
+		//float bugyaw = buggy->GetPhysics()->GetAxis().ToAngles().yaw;
+		//delta = viewAngles;
+		//float playerang = delta.Normalize360().yaw;
+		//float bugang = 0;
+		//playerang.Normalize360();	
+		/*
+		if ( ( playerang > bugyaw && playerang - bugyaw < 180.0f ) || (	playerang < bugyaw && bugyaw - playerang > 180.0f ) ) {// looking right
+			bugang = bugyaw + maxBuggyYaw;
+			if ( bugang > 360.0f ) {
+				bugang -= 360.0f;
+			}
+			if ( playerang > bugang ) {
+				gameLocal.Printf( "Player ang  %.1f\n", playerang );
+				gameLocal.Printf( "Buggy ang %.1f\n", bugang );
+				viewAngles.yaw = bugang;	// idMath::AngleNormalize180( bugang );
+			}
+		} else if ( ( playerang < bugyaw && bugyaw - playerang < 180.0f ) || (	playerang > bugyaw && playerang - bugyaw > 180.0f ) ){
+			bugang = bugyaw - maxBuggyYaw;
+			if ( bugang < 0.0f ) {
+				bugang += 360.0f;
+			}
+			if ( playerang < bugang ) {
+				viewAngles.yaw = bugang;	//idMath::AngleNormalize180( bugang );
+			}
+		}
+		*/
+		/*
+		idRotation turretRotation;
+		idVec3 origin;
+		idMat3 axis;
+		buggy->GetAnimator()->GetJointTransform( buggy->eyesJoint, gameLocal.time, origin, axis );
+		float gunang = axis.ToAngles().yaw;
+
+		if ( gunang > maxBuggyYaw ) {
+			turretRotation.SetAngle( maxBuggyYaw );
+			turretRotation.SetVec( -1, 0, 0 );
+			animator.SetJointAxis( buggy->eyesJoint, JOINTMOD_LOCAL, turretRotation.ToMat3() );
+		}
+		if ( gunang < -maxBuggyYaw ) {
+			turretRotation.SetAngle( -maxBuggyYaw );
+			turretRotation.SetVec( -1, 0, 0 );
+			animator.SetJointAxis( buggy->eyesJoint, JOINTMOD_LOCAL, turretRotation.ToMat3() );
+		}
+		// buggy->GetPhysics()->GetAxis().ToAngles().yaw;
+		float ang = 0;
+		delta = viewAngles;
+		//delta.Normalize360();		// 0-360
+		float playeryaw = delta.yaw;
+		idAngles bugang = buggy->GetPhysics()->GetAxis().ToAngles();
+		bugang.Normalize180();
+		float buggyyaw = bugang.yaw;
+		//delta = axis.ToAngles();
+		*/
+
+		/*
+		if ( zoomStep < gameLocal.time ) {
+			zoomStep = gameLocal.time + 200;
+			gameLocal.Printf( "Buggy yaw %.1f\n", buggyyaw );
+			gameLocal.Printf( "Player yaw %.1f\n\n", playeryaw );
+		}
+		*/
+
+		/*
+		if ( playeryaw >= 0.0f || buggyyaw < 0.0f ) {
+			if ( buggyyaw - playeryaw > maxBuggyYaw ) {	// looking right
+				viewAngles.yaw = buggyyaw - maxBuggyYaw;
+			}
+		} else if ( buggyyaw >= 0.0f && playeryaw < 0.0f ) {	// looking right
+			if ( buggyyaw - playeryaw > maxBuggyYaw ) {
+				viewAngles.yaw = buggyyaw - maxBuggyYaw;
+			}
+
+			if ( playeryaw - buggyyaw > maxBuggyYaw ) {
+				//ang = idMath::AngleNormalize180( ang );
+				viewAngles.yaw = buggyyaw + maxBuggyYaw;
+				//gameLocal.Printf( "Gun ang << %.1f\n", gunang );
+				//gameLocal.Printf( "Buggy %.1f\n", buggyyaw );
+				//gameLocal.Printf( "Player %.1f\n\n", playeryaw );
+			}
+		}*/
+	}
+
+	// ######################################################################### END SR	
+
 	UpdateDeltaViewAngles( viewAngles );
 
 	// orient the model towards the direction we're looking
@@ -7679,6 +7835,51 @@ void idPlayer::SetClipModel()
 	}
 }
 
+// ############################################################################## SR
+
+/*
+==============
+idPlayer::SwapView	// Swap first person / third person views (IMPULSE_16)
+==============
+*/
+void idPlayer::SwapView(void) {
+	if (currentVehicle.IsValid()) {
+		if (buggy_thirdPerson) {
+			buggy_thirdPerson = false;
+		}
+		else {
+			buggy_thirdPerson = true;
+		}
+	}
+}
+
+/*
+==============
+idPlayer::ZoomView	// change view pos in buggy third person  (IMPULSE_21)
+==============
+*/
+void idPlayer::ZoomView(void) {
+	if (buggy_thirdPerson && !zooming) {
+		if ((viewDist >= maxViewDist && viewStep > 0) || (viewDist <= minViewDist && viewStep < 0)) {
+			viewStep *= -1.0f;
+		}
+		zooming = true;
+	}
+}
+/*
+==============
+idPlayer::Flashlight	// buggy headlight (IMPULSE_24)
+==============
+*/
+void idPlayer::Flashlight(void)
+{
+	if (currentVehicle.IsValid()) {
+		currentVehicle->LightOnOff(!currentVehicle->lightOn);
+	}
+}
+
+// ############################################################################## SR
+
 /*
 ==============
 idPlayer::UseVehicle
@@ -7790,6 +7991,31 @@ void idPlayer::PerformImpulse( int impulse )
 			}
 			break;
 		}
+
+		// ########################## SR
+
+		case IMPULSE_32: {
+			SwapView();
+			break;
+		}
+		case IMPULSE_21: {
+			ZoomView();
+			break;
+		}
+		case IMPULSE_23: {		// ALT FIRE
+			if (currentVehicle.IsValid())
+			{
+				currentVehicle->FireBomb();
+			}			
+			break;
+		}
+		case IMPULSE_24: {
+			Flashlight();
+			break;
+		}
+
+		// ##################### END
+
 		case IMPULSE_19:
 		{
 			// when we're not in single player, IMPULSE_19 is used for showScores
@@ -9328,6 +9554,42 @@ void idPlayer::Think()
 	}
 }
 
+// ################################################################### SR
+
+/*
+==============
+idPlayer::BuggyThink
+==============
+*/
+void idPlayer::BuggyThink(void) {
+
+	// If the player is driving a vehicle, aim the vehicle's weapon
+	// and do camera zoom if needed
+	if (currentVehicle.IsValid()) {
+		currentVehicle->Aim();
+		if (zooming) {
+			viewDist += viewStep;
+			if (viewStep > 0) {
+				viewHeight += viewStepH;
+			}
+			else {
+				viewHeight -= viewStepH;
+			}
+			if (viewDist >= maxViewDist) {
+				viewDist = maxViewDist;
+				viewHeight = maxViewHeight;
+				zooming = false;
+			}
+			else if (viewDist <= minViewDist) {
+				viewDist = minViewDist;
+				viewHeight = minViewHeight;
+				zooming = false;
+			}
+		}
+	}
+}
+// ######################################################################### END SR
+
 /*
 =================
 idPlayer::StartHealthRecharge
@@ -10371,9 +10633,24 @@ float idPlayer::CalcFov( bool honorZoom )
 		return influenceFov;
 	}
 
-	if( zoomFov.IsDone( gameLocal.time ) )
+	if (zoomFov.IsDone(gameLocal.time))
 	{
-		fov = ( honorZoom && usercmd.buttons & BUTTON_ZOOM ) && weapon.GetEntity() ? weapon.GetEntity()->GetZoomFov() : DefaultFov();
+		fov = g_fov.GetFloat();	//( honorZoom && usercmd.buttons & BUTTON_ZOOM ) && weapon.GetEntity() ? weapon.GetEntity()->GetZoomFov() : DefaultFov();
+		if (honorZoom && usercmd.buttons & BUTTON_ZOOM) {
+
+			// ######################### SR
+
+			if (currentVehicle.IsValid()) {
+				fov = currentVehicle->GetZoomFov();
+			}
+			else {
+				if (weapon.GetEntity()) {
+					fov = weapon.GetEntity()->GetZoomFov();
+				}
+			}
+
+			// ######################## END SR
+		}
 	}
 	else
 	{

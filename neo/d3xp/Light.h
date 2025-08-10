@@ -73,7 +73,7 @@ ID_INLINE void iceLightStyleState_t::Reset()
 // jmarshall end
 
 
-//class idStaticEntity;
+class idStaticEntity; //SE2 vehicles compiling fix
 
 class idLight : public idEntity
 {

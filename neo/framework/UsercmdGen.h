@@ -67,15 +67,20 @@ const int IMPULSE_13			= 13;			// weap reload
 const int IMPULSE_14			= 14;			// weap next
 const int IMPULSE_15			= 15;			// weap prev
 const int IMPULSE_16			= 16;			// toggle flashlight on/off
+const int IMPULSE_17			= 17;			// use vehicle, doors, etc		##### SR
 const int IMPULSE_18			= 18;			// center view
 const int IMPULSE_19			= 19;			// show PDA/SCORES
+const int IMPULSE_21			= 21;			// Zoom view SE2 vehicles
 const int IMPULSE_22			= 22;			// spectate
+const int IMPULSE_23			= 23;			// Alt fire SE2 vehicle
+const int IMPULSE_24			= 24;			// Headlights SE2 vehicle
 const int IMPULSE_25			= 25;			// Envirosuit light
 const int IMPULSE_27			= 27;			// Chainsaw
 const int IMPULSE_28			= 28;			// quick 0
 const int IMPULSE_29			= 29;			// quick 1
 const int IMPULSE_30			= 30;			// quick 2
 const int IMPULSE_31			= 31;			// quick 3
+const int IMPULSE_32			= 32;			// SwapView SE2 vehicles
 
 class usercmd_t
 {

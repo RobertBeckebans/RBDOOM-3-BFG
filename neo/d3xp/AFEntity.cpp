@@ -31,6 +31,9 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "Game_local.h"
 
+#include "physics/Physics_AF.h"	// ## SR
+#include "Weapon.h"				// ## SR
+#include "Sound.h"				// ## SR
 
 /*
 ===============================================================================
@@ -639,6 +642,13 @@ void idAFEntity_Base::Restore( idRestoreGame* savefile )
 
 	af.Restore( savefile );
 }
+
+//ivan start
+void idAFEntity_Base::RecreateDynamicConstraints(idList<idAFConstraint*, TAG_IDLIB_LIST_PHYSICS>* constraints) {	// #### + , TAG_IDLIB_LIST_PHYSICS ## SR
+	//meant to be overridden
+}
+
+//ivan end
 
 /*
 ================
@@ -1879,7 +1889,17 @@ void idAFEntity_WithAttachedHead::Event_Activate( idEntity* activator )
 ===============================================================================
 */
 
+const idEventDef EV_Vehicle_headLightsOn("headLightsOn", "d");
+const idEventDef EV_Vehicle_getAutoDriveWaypoint("getAutoDriveWaypoint", NULL, 'e');
+const idEventDef EV_Vehicle_setAutoDriveWaypoint("setAutoDriveWaypoint", "e");
+const idEventDef EV_Vehicle_setAutoDriveSteerSpeed("setAutoDriveSteerSpeed", "f");
+
 CLASS_DECLARATION( idAFEntity_Base, idAFEntity_Vehicle )
+	EVENT(EV_PostSpawn, idAFEntity_Vehicle::PostSpawn)
+	EVENT(EV_Vehicle_headLightsOn, idAFEntity_Vehicle::Event_HeadLightsOn)
+	EVENT(EV_Vehicle_getAutoDriveWaypoint, idAFEntity_Vehicle::Event_GetAutoDriveWaypoint)
+	EVENT(EV_Vehicle_setAutoDriveWaypoint, idAFEntity_Vehicle::Event_SetAutoDriveWaypoint)
+	EVENT(EV_Vehicle_setAutoDriveSteerSpeed, idAFEntity_Vehicle::Event_SetAutoDriveSteerSpeed)
 END_CLASS
 
 /*
@@ -1896,6 +1916,53 @@ idAFEntity_Vehicle::idAFEntity_Vehicle()
 	steerAngle			= 0.0f;
 	steerSpeed			= 0.0f;
 	dustSmoke			= NULL;
+
+	// ############################################## SR	
+
+	aimJoint = INVALID_JOINT;
+	turnJoint = INVALID_JOINT;
+	fireJoint = INVALID_JOINT;
+	headlightJoint = INVALID_JOINT;
+	exhaustJoint1 = INVALID_JOINT;
+	exhaustJoint2 = INVALID_JOINT;
+	exhaustJoint3 = INVALID_JOINT;
+	exhaustJoint4 = INVALID_JOINT;
+	//barrelJointView		= INVALID_JOINT;	
+	vehicleDef = NULL;
+	dustSmoke2 = NULL;
+	muzzleOrigin.Zero();
+	oldOrigin.Zero();
+	fireTime = 0.0f;
+	fireDelay = 0.0f;
+	nextTrackTime = 0.0f;
+	maxSteerAngle = 0.0f;
+	currentBrakes = 0.0f;
+
+	vehicleVelocity = 0.0f;
+	vehicleForce = 0.0f;
+	vehicleSuspensionUp = 0.0f;
+	vehicleSuspensionDown = 0.0f;
+	vehicleSuspensionKCompress = 0.0f;
+	vehicleSuspensionDamping = 0.0f;
+	vehicleTireFriction = 0.0f;
+
+	fl.networkSync = true;
+	netSyncPhysics = true;
+
+	isAccelerating = false;
+	isDecelerating = false;
+	accelTime = 0;
+
+	headlight = NULL;
+	headlighta = NULL;
+
+	// ############################################	
+
+	autoDriveWaypoint = NULL;;
+	autoDriveSteerSpeed = 0.0f;
+	autoDriveIdealSteer = 0.0f;
+	autoDriveSpeed = 256.f;
+	autoDriveReachTolerance = 0.0f;
 }
 
 /*
@@ -1916,6 +1983,196 @@ void idAFEntity_Vehicle::Spawn()
 
 	fl.takedamage = true;
 
+	// ################################################################################################### SR
+
+	const char* aimJointName = spawnArgs.GetString("gunAimJoint", "turret_aim");
+	const char* turnJointName = spawnArgs.GetString("gunTurnJoint", "turret_turn");
+	const char* fireJointName = spawnArgs.GetString("gunFireJoint", "gun_rotate");
+	const char* barrelJointName = spawnArgs.GetString("gunBarrel", "barrel");
+	const char* headlightJointName = spawnArgs.GetString("headlightJoint", "headLights");
+	const char* exhaustJointR1Name = spawnArgs.GetString("exhaust_R1", "");
+	const char* exhaustJointR2Name = spawnArgs.GetString("exhaust_R2", "");
+	const char* exhaustJointL1Name = spawnArgs.GetString("exhaust_L1", "");
+	const char* exhaustJointL2Name = spawnArgs.GetString("exhaust_L2", "");
+	const char* exhaustsmokeName = spawnArgs.GetString("exhaust_smoke", "");
+
+	// motorsep 03-07-2015; if no exhaust joints preset, make a flag saying there is no exhaust
+	if ((exhaustJointR1Name[0] == NULL &&
+		exhaustJointR2Name[0] == NULL &&
+		exhaustJointL1Name[0] == NULL &&
+		exhaustJointL2Name[0] == NULL) ||
+		exhaustsmokeName[0] == NULL)
+	{
+		noExhaust = true;
+	}
+
+	if (!aimJointName[0]) {
+		gameLocal.Error("SteelStorm2_Vehicle '%s' no Turret Aim joint specified", name.c_str());
+	}
+	aimJoint = animator.GetJointHandle(aimJointName);
+
+	if (!turnJointName[0]) {
+		gameLocal.Error("SteelStorm2_Vehicle '%s' no Turret Turn joint specified", name.c_str());
+	}
+	turnJoint = animator.GetJointHandle(turnJointName);
+
+	if (!fireJointName[0]) {
+		gameLocal.Error("SteelStorm2_Vehicle '%s' no Gun Rotate joint specified", name.c_str());
+	}
+	fireJoint = animator.GetJointHandle(fireJointName);
+
+	if (!barrelJointName[0]) {
+		gameLocal.Error("SteelStorm2_Vehicle '%s' no Gun barrel joint specified", name.c_str());
+	}
+	barrelJoint = animator.GetJointHandle(barrelJointName);
+
+	if (!headlightJointName[0]) {
+		gameLocal.Error("SteelStorm2_Vehicle '%s' no headlight joint specified", name.c_str());
+	}
+	headlightJoint = animator.GetJointHandle(headlightJointName);
+
+	// motorsep 03-07-2015; if no exhaust bones preset, don't bother assigning joints
+	if (!noExhaust)
+	{
+		exhaustJoint1 = animator.GetJointHandle(exhaustJointR1Name);
+		exhaustJoint2 = animator.GetJointHandle(exhaustJointR2Name);
+		exhaustJoint3 = animator.GetJointHandle(exhaustJointL1Name);
+		exhaustJoint4 = animator.GetJointHandle(exhaustJointL2Name);
+
+		// motorsep 03-07-2015; only print error message when "developer" cvar is set to 1
+		if (com_developer.GetBool())
+		{
+			if (exhaustJoint1 == INVALID_JOINT)
+			{
+				gameLocal.Error("SteelStorm2_Vehicle '%s' no exhaust joint specified", name.c_str());
+			}
+
+			if (exhaustJoint2 == INVALID_JOINT)
+			{
+				gameLocal.Error("SteelStorm2_Vehicle '%s' no exhaust joint specified", name.c_str());
+			}
+
+			if (exhaustJoint3 == INVALID_JOINT)
+			{
+				gameLocal.Error("SteelStorm2_Vehicle '%s' no exhaust joint specified", name.c_str());
+			}
+
+			if (exhaustJoint4 == INVALID_JOINT)
+			{
+				gameLocal.Error("SteelStorm2_Vehicle '%s' no exhaust joint specified", name.c_str());
+			}
+		}
+	}
+
+	// motorsep 04-01-2015; it seems that "exhaustSmoke" was getting something assigned event if def wasn't present. This should set it to NULL when there is no smoke, and prevent autosave crash on map load
+	if (*exhaustsmokeName != '\0' && !noExhaust) {
+		exhaustSmoke = static_cast<const idDeclParticle*>(declManager->FindType(DECL_PARTICLE, exhaustsmokeName));
+	}
+	else {
+		exhaustSmoke = NULL;
+	}
+
+	//const char *tDecal = spawnArgs.GetString( "tire_track", "" ); 
+	trackDecal = declManager->FindMaterial(spawnArgs.GetString("tire_track", ""));
+
+
+	physicsObj.SetSelf(this);
+	barrelRotation.SetAngle(0);
+	muzzleOrigin.Zero();
+	oldOrigin.Zero();
+	fireTime = 0.0f;
+	nextTrackTime = 0.0f;
+
+	const char* smokeName = spawnArgs.GetString("vehicle_dust", "muzzlesmoke");
+	if (*smokeName != '\0') {
+		dustSmoke = static_cast<const idDeclParticle*>(declManager->FindType(DECL_PARTICLE, smokeName));
+	}
+	const char* smokeName2 = spawnArgs.GetString("vehicle_acc_dust", "muzzlesmoke");
+	if (*smokeName2 != '\0') {
+		dustSmoke2 = static_cast<const idDeclParticle*>(declManager->FindType(DECL_PARTICLE, smokeName2));
+	}
+	const char* gunSmokeName = spawnArgs.GetString("def_laser", "muzzlesmoke");
+	if (*gunSmokeName != '\0') {
+		gunSmoke = static_cast<const idDeclParticle*>(declManager->FindType(DECL_PARTICLE, gunSmokeName));
+	}
+
+	const idDeclEntityDef* bulletDef = gameLocal.FindEntityDef(spawnArgs.GetString("def_bullet"), false);
+	if (bulletDef) {
+		bulletDict = bulletDef->dict;
+	}
+	else {
+		bulletDict.Clear();
+	}
+	const idDeclEntityDef* bombDef = gameLocal.FindEntityDef(spawnArgs.GetString("def_rocket"), false);
+	if (bombDef) {
+		bombDict = bombDef->dict;
+	}
+	else {
+		bombDict.Clear();
+	}
+
+	spawnArgs.GetInt("zoomFOV", "70", zoomFov);
+	spawnArgs.GetFloat("maxSteerAngle", "30", maxSteerAngle);
+	spawnArgs.GetFloat("brakes", "0.02", currentBrakes);
+
+	spawnArgs.GetFloat("vehicleSuspensionUp", "32", vehicleSuspensionUp);
+	spawnArgs.GetFloat("vehicleSuspensionDown", "20", vehicleSuspensionDown);
+	spawnArgs.GetFloat("vehicleSuspensionKCompress", "200", vehicleSuspensionKCompress);
+	spawnArgs.GetFloat("vehicleSuspensionDamping", "400", vehicleSuspensionDamping);
+	spawnArgs.GetFloat("vehicleTireFriction", "0.8", vehicleTireFriction);
+	spawnArgs.GetFloat("vehicleVelocity", "1000", vehicleVelocity);
+	spawnArgs.GetFloat("vehicleForce", "50000", vehicleForce);
+
+	// Lights
+	idVec3	origin, ang;
+	idMat3 	axis;
+	idAngles angles;
+	idEntity* lite1;
+	idEntity* lite2;
+	idDict 	args;
+	animator.GetJointTransform(headlightJoint, gameLocal.time, origin, axis);
+	origin = renderEntity.origin + origin * renderEntity.axis;
+	angles = renderEntity.axis.ToAngles();
+
+	const idDeclEntityDef* headlightDef = gameLocal.FindEntityDef(spawnArgs.GetString("def_headlight_beam"), false);
+	args = headlightDef->dict;
+	args.Set("light_origin", origin.ToString());
+	args.Set("angle", idStr(angles[1]));
+	lite1 = gameLocal.SpawnEntityType(idLight::Type, &args);
+	lite1->BindToJoint(this, headlightJoint, BFL_ORIENTED);
+	headlight = static_cast<idLight*>(lite1);
+
+	// ambient
+	args.Clear();
+	const idDeclEntityDef* headlightambDef = gameLocal.FindEntityDef(spawnArgs.GetString("def_headlight_ambient"), false);
+	args = headlightambDef->dict;
+	args.Set("light_origin", origin.ToString());
+	args.Set("angle", angles.ToString());
+	lite2 = gameLocal.SpawnEntityType(idLight::Type, &args);
+	lite2->BindToJoint(this, headlightJoint, BFL_ORIENTED);
+	headlighta = static_cast<idLight*>(lite2);
+
+	LightOnOff(spawnArgs.GetBool("headlight_starton", false));
+
+	// eject brass
+	const char* brassDefName;
+	brassDict.Clear();
+	spawnArgs.GetInt("ejectBrassDelay", "0", brassDelay);
+	brassDefName = spawnArgs.GetString("def_ejectBrass", "debris_brass");
+
+	const idDeclEntityDef* brassDef = gameLocal.FindEntityDef(brassDefName, false);
+	if (!brassDef) {
+		gameLocal.Warning("Unknown brass '%s'", brassDefName);
+	}
+	else {
+		brassDict = brassDef->dict;
+	}
+
+	const char* ejectJointName = spawnArgs.GetString("ejectJoint", "eject");
+	ejectJointView = animator.GetJointHandle(ejectJointName);
+
+	// #################################################################################################### END
+
 	if( !eyesJointName[0] )
 	{
 		gameLocal.Error( "idAFEntity_Vehicle '%s' no eyes joint specified", name.c_str() );
@@ -1933,11 +2190,24 @@ void idAFEntity_Vehicle::Spawn()
 	player = NULL;
 	steerAngle = 0.0f;
 
-	const char* smokeName = spawnArgs.GetString( "smoke_vehicle_dust", "muzzlesmoke" );
-	if( *smokeName != '\0' )
-	{
-		dustSmoke = static_cast<const idDeclParticle*>( declManager->FindType( DECL_PARTICLE, smokeName ) );
-	}
+	autoDriveSteerSpeed = spawnArgs.GetFloat("autoDriveSteerSpeed", 45.f);
+	autoDriveSpeed = spawnArgs.GetFloat("autoDriveSpeed", 256.0f);
+	autoDriveReachTolerance = spawnArgs.GetFloat("autoDriveReachTolerance", 80.f);
+	autoDriveIdealSteer = 0.0f;
+
+	PostEventMS(&EV_PostSpawn, 0);	
+}
+
+/*
+================
+idAFEntity_Vehicle::PostSpawn
+================
+*/
+void idAFEntity_Vehicle::PostSpawn()
+{
+	autoDriveWaypoint = ChooseRandomTarget(NULL);
+	if (autoDriveWaypoint != NULL)
+		af.GetPhysics()->Activate();
 }
 
 /*
@@ -1947,49 +2217,782 @@ idAFEntity_Vehicle::Use
 */
 void idAFEntity_Vehicle::Use( idPlayer* other )
 {
-	idVec3 origin;
+	idVec3 vecForward, vecRight, origin, target, spawnpos;	// ########## SR
 	idMat3 axis;
 
-	if( player )
-	{
-		if( player == other )
-		{
-			other->Unbind();
-			player = NULL;
+	if (player) {
+		headlight->FadeOut(0.5f);
+		// headlight.GetSpawnId()
+		if (player == other) {
+			// ############################ SR
+			StopSound(SND_CHANNEL_ANY, false);
+			StartSound("snd_shutdown", 0, 0, false, NULL);
 
-			af.GetPhysics()->SetComeToRest( true );
+			idRotation rot;
+			trace_t obstacle;
+			origin = renderEntity.origin;
+			vecForward = renderEntity.axis.ToAngles().ToForward();
+			vecRight = renderEntity.axis.ToAngles().ToRight();
+			spawnpos = other->GetPhysics()->GetOrigin();
+			origin.z += 40;		// 
+			target = origin - vecRight * 140; // check left
+			gameLocal.clip.Translation(obstacle, origin, target, NULL, mat3_identity, CONTENTS_SOLID, this);
+			if (obstacle.fraction == 1.0f) {
+				spawnpos = origin - vecRight * 120;
+			}
+			else {
+				target = origin + vecRight * 140; // check right
+				gameLocal.clip.Translation(obstacle, origin, target, NULL, mat3_identity, CONTENTS_SOLID, this);
+				if (obstacle.fraction == 1.0f) {
+					spawnpos = origin + vecRight * 120;
+				}
+				else {
+					target = origin + vecForward * 220; // check front
+					gameLocal.clip.Translation(obstacle, origin, target, NULL, mat3_identity, CONTENTS_SOLID, this);
+					if (obstacle.fraction == 1.0f) {
+						spawnpos = origin + vecForward * 200;
+					}
+					else {
+						target = origin - vecForward * 220; // check back
+						gameLocal.clip.Translation(obstacle, origin, target, NULL, mat3_identity, CONTENTS_SOLID, this);
+						if (obstacle.fraction == 1.0f) {
+							spawnpos = origin - vecForward * 200;
+						}
+					}
+				}
+			}
+			other->Unbind();
+			other->GetPhysics()->SetOrigin(spawnpos);
+
+			// Reset turret angles
+			rot.SetAngle(0);
+			rot.SetVec(-1, 0, 0);
+			animator.SetJointAxis(turnJoint, JOINTMOD_LOCAL, rot.ToMat3());
+			animator.SetJointAxis(aimJoint, JOINTMOD_LOCAL, rot.ToMat3());
+
+			// ############################ END
+
+			player = NULL;
 		}
 	}
 	else
 	{
 		player = other;
-		animator.GetJointTransform( eyesJoint, gameLocal.time, origin, axis );
+		animator.GetJointTransform(eyesJoint, gameLocal.time, origin, axis);
 		origin = renderEntity.origin + origin * renderEntity.axis;
-		player->GetPhysics()->SetOrigin( origin );
-		player->BindToBody( this, 0, true );
+		player->GetPhysics()->SetOrigin(origin);
 
-		af.GetPhysics()->SetComeToRest( false );
+		// ################# SR
+		StartSound("snd_startup", 0, 0, false, NULL);
+		StartSound("snd_idle", 1, 0, false, NULL);
+		//StartSound( "snd_drive", 2, 0, false, NULL );
+		idVec3 dir = renderEntity.axis.ToAngles().ToForward();
+		idAngles ang(0, dir.ToYaw(), 0);
+		player->SetViewAngles(ang);
+		// ################# END
+
+		player->BindToBody(this, 0, BFL_ORIENTED);
+
 		af.GetPhysics()->Activate();
+		GetPhysics()->SetOrigin(GetPhysics()->GetOrigin() + renderEntity.axis.ToAngles().ToUp() * 15); // ############### SR
+
+		BecomeActive(TH_THINK);
+	}
+}
+
+//ivan start
+/*
+==================
+idAFEntity_Vehicle::Save
+==================
+*/
+void idAFEntity_Vehicle::Save(idSaveGame* savefile) const {
+	player.Save(savefile);
+	savefile->WriteBool(lightOn);
+	savefile->WriteBool(noExhaust); // motorsep 04-01-2015; seems like the bool that controls exhaust stuff needs to be saved too
+	savefile->WriteJoint(eyesJoint);
+	savefile->WriteJoint(aimJoint);
+	savefile->WriteJoint(turnJoint);
+	savefile->WriteJoint(fireJoint);
+	savefile->WriteJoint(steeringWheelJoint);
+	savefile->WriteJoint(headlightJoint);
+	// motorsep 03-07-2015; don't save exhaust stuff if it's not present
+	if (!noExhaust) {
+		savefile->WriteJoint(exhaustJoint1);
+		savefile->WriteJoint(exhaustJoint2);
+		savefile->WriteJoint(exhaustJoint3);
+		savefile->WriteJoint(exhaustJoint4);
+	}
+	savefile->WriteFloat(wheelRadius);
+	savefile->WriteFloat(steerAngle);
+	savefile->WriteFloat(steerSpeed);
+	savefile->WriteParticle(dustSmoke);
+	if (!noExhaust) {
+		savefile->WriteParticle(exhaustSmoke);
+	}
+	savefile->WriteMaterial(trackDecal);
+
+	savefile->WriteFloat(vehicleVelocity);
+	savefile->WriteFloat(vehicleForce);
+	savefile->WriteFloat(vehicleSuspensionUp);
+	savefile->WriteFloat(vehicleSuspensionDown);
+	savefile->WriteFloat(vehicleSuspensionKCompress);
+	savefile->WriteFloat(vehicleSuspensionDamping);
+	savefile->WriteFloat(vehicleTireFriction);
+
+	savefile->WriteParticle(dustSmoke2);
+	savefile->WriteParticle(gunSmoke);
+	savefile->WriteFloat(fireTime);
+	savefile->WriteFloat(nextTrackTime);
+	savefile->WriteFloat(maxSteerAngle);
+	savefile->WriteFloat(currentBrakes);
+
+	savefile->WriteJoint(barrelJoint);
+	savefile->WriteVec3(muzzleOrigin);
+	savefile->WriteVec3(oldOrigin);
+
+	headlight.Save(savefile);
+	headlighta.Save(savefile);
+
+	savefile->WriteObject(autoDriveWaypoint);
+	savefile->WriteFloat(autoDriveSteerSpeed);
+	savefile->WriteFloat(autoDriveIdealSteer);
+	savefile->WriteFloat(autoDriveSpeed);
+	savefile->WriteFloat(autoDriveReachTolerance);
+}
+
+/*
+==================
+idAFEntity_Vehicle::Restore
+==================
+*/
+void idAFEntity_Vehicle::Restore(idRestoreGame* savefile) {
+	player.Restore(savefile);
+	savefile->ReadBool(lightOn);
+	savefile->ReadBool(noExhaust); // motorsep 04-01-2015; seems like the bool that controls exhaust stuff needs to be restored too
+	savefile->ReadJoint(eyesJoint);
+	savefile->ReadJoint(aimJoint);
+	savefile->ReadJoint(turnJoint);
+	savefile->ReadJoint(fireJoint);
+	savefile->ReadJoint(steeringWheelJoint);
+	savefile->ReadJoint(headlightJoint);
+	// motorsep 03-07-2015; don't save exhaust stuff if it's not present
+	if (!noExhaust) {
+		savefile->ReadJoint(exhaustJoint1);
+		savefile->ReadJoint(exhaustJoint2);
+		savefile->ReadJoint(exhaustJoint3);
+		savefile->ReadJoint(exhaustJoint4);
+	}
+	savefile->ReadFloat(wheelRadius);
+	savefile->ReadFloat(steerAngle);
+	savefile->ReadFloat(steerSpeed);
+	savefile->ReadParticle(dustSmoke);
+	// motorsep 03-07-2015; don't save exhaust stuff if it's not present
+	if (!noExhaust) {
+		savefile->ReadParticle(exhaustSmoke);
+	}
+	savefile->ReadMaterial(trackDecal);
+
+	savefile->ReadFloat(vehicleVelocity);
+	savefile->ReadFloat(vehicleForce);
+	savefile->ReadFloat(vehicleSuspensionUp);
+	savefile->ReadFloat(vehicleSuspensionDown);
+	savefile->ReadFloat(vehicleSuspensionKCompress);
+	savefile->ReadFloat(vehicleSuspensionDamping);
+	savefile->ReadFloat(vehicleTireFriction);
+
+	savefile->ReadParticle(dustSmoke2);
+	savefile->ReadParticle(gunSmoke);
+	savefile->ReadFloat(fireTime);
+	savefile->ReadFloat(nextTrackTime);
+	savefile->ReadFloat(maxSteerAngle);
+	savefile->ReadFloat(currentBrakes);
+
+	savefile->ReadJoint(barrelJoint);
+	savefile->ReadVec3(muzzleOrigin);
+	savefile->ReadVec3(oldOrigin);
+
+	headlight.Restore(savefile);
+	headlighta.Restore(savefile);
+
+	idEntity* autoWaypoint = NULL;
+	savefile->ReadObject(reinterpret_cast<idClass*&>(autoWaypoint));
+	autoDriveWaypoint = autoWaypoint;
+	savefile->ReadFloat(autoDriveSteerSpeed);
+	savefile->ReadFloat(autoDriveIdealSteer);
+	savefile->ReadFloat(autoDriveSpeed);
+	savefile->ReadFloat(autoDriveReachTolerance);
+
+	barrelRotation.SetAngle(0);
+
+	const idDeclEntityDef* bulletDef = gameLocal.FindEntityDef(spawnArgs.GetString("def_bullet"), false);
+	if (bulletDef) {
+		bulletDict = bulletDef->dict;
+	}
+	else {
+		bulletDict.Clear();
+	}
+	const idDeclEntityDef* bombDef = gameLocal.FindEntityDef(spawnArgs.GetString("def_rocket"), false);
+	if (bombDef) {
+		bombDict = bombDef->dict;
+	}
+	else {
+		bombDict.Clear();
+	}
+
+	const char* brassDefName;
+	brassDict.Clear();
+	spawnArgs.GetInt("ejectBrassDelay", "0", brassDelay);
+	brassDefName = spawnArgs.GetString("def_ejectBrass", "debris_brass");
+
+	const idDeclEntityDef* brassDef = gameLocal.FindEntityDef(brassDefName, false);
+	if (!brassDef) {
+		gameLocal.Warning("Unknown brass '%s'", brassDefName);
+	}
+	else {
+		brassDict = brassDef->dict;
+	}
+
+	const char* ejectJointName = spawnArgs.GetString("ejectJoint", "eject");
+	ejectJointView = animator.GetJointHandle(ejectJointName);
+
+
+
+	SetCombatModel();
+	LinkCombat();
+
+	//activate Physics for a frame just to avoid GetJointTransform errors in Use function after reload
+	af.GetPhysics()->Activate();
+
+	LightOnOff(lightOn);
+}
+//ivan end
+
+// ############################################################################################ SR
+
+
+/*
+================
+idAFEntity_Vehicle::LightOnOff
+================
+*/
+void idAFEntity_Vehicle::LightOnOff(bool on) {
+	if (on) {
+		lightOn = true;
+		headlight->FadeIn(0.2f);
+		headlighta->FadeIn(0.2f);
+
+	}
+	else {
+		lightOn = false;
+		headlight->FadeOut(0.5f);
+		headlighta->FadeOut(0.5f);
 	}
 }
 
 /*
 ================
-idAFEntity_Vehicle::GetSteerAngle
+idAFEntity_Vehicle::GetZoomFov
 ================
 */
-float idAFEntity_Vehicle::GetSteerAngle()
+int	idAFEntity_Vehicle::GetZoomFov(void) {
+	return zoomFov;
+}
+
+
+/*
+================
+idAFEntity_Vehicle::Aim
+================
+*/
+void idAFEntity_Vehicle::Aim(void) {
+	idRotation turretRotation, turretAim;
+	idAngles ang;
+
+	idVec3	dir, muzzle_pos;
+	trace_t results;
+
+	// Rotate and tilt turret
+	ang = renderEntity.axis.ToAngles();
+	turretRotation.SetAngle(player->viewAngles.yaw - ang.yaw);
+	turretRotation.SetVec(-1, 0, 0);
+	animator.SetJointAxis(turnJoint, JOINTMOD_LOCAL, turretRotation.ToMat3());
+	turretAim.SetAngle(player->viewAngles.pitch - ang.pitch);
+	turretAim.SetVec(-1, 0, 0);
+
+	// constrain turret pitch
+	if (turretAim.GetAngle() > 15) {
+		turretAim.SetAngle(15);
+	}
+	if (turretAim.GetAngle() < -25) {
+		turretAim.SetAngle(-25);
+	}
+	animator.SetJointAxis(aimJoint, JOINTMOD_LOCAL, turretAim.ToMat3());
+
+	// project crosshair
+
+	animator.GetJointTransform(barrelJoint, gameLocal.time, muzzleOrigin, muzzleAxis);
+	muzzle_pos = (renderEntity.origin + muzzleOrigin * renderEntity.axis);
+
+	muzzleAxis = muzzleAxis * renderEntity.axis;
+	dir = muzzleAxis[0];
+	dir.Normalize();
+	muzzle_pos = muzzle_pos + dir * 220.0f;	// avoid hitting buggy
+	//gameLocal.clip.TracePoint( results, muzzle_pos, muzzle_pos + dir * 8192.0f, MASK_SHOT_RENDERMODEL, this );
+	gameLocal.clip.Translation(results, muzzle_pos, muzzle_pos + dir * 8192.0f, NULL, mat3_identity, CONTENTS_SOLID, NULL);
+	if (results.fraction < 1.0f) {
+		idVec3 crosshair = results.endpos - dir * 2.0;
+		//int type = results.c.material->GetSurfaceType();
+		//if ( type == SURFTYPE_NONE ) {
+		//	type = GetDefaultSurfaceType();
+		//}
+		//gameLocal.smokeParticles->EmitSmoke( gunSmoke, gameLocal.time, gameLocal.random.RandomFloat(), muzzle_pos, renderEntity.axis, 0 );
+		gameLocal.smokeParticles->EmitSmoke(gunSmoke, gameLocal.time, gameLocal.random.RandomFloat(), crosshair, renderEntity.axis, 0);
+	}
+}
+
+
+/*
+================
+idAFEntity_Vehicle::FireBullet
+================
+*/
+void idAFEntity_Vehicle::FireBullet(void) {
+	if (!common->IsClient()) {
+		projectileDict = bulletDict;
+		fireDelay = projectileDict.GetFloat("fire_delay");
+		float spread = projectileDict.GetFloat("spread");
+		LaunchProjectile(spread, "snd_bullet");
+	}
+}
+
+/*
+================
+idAFEntity_Vehicle::FireBomb
+================
+*/
+void idAFEntity_Vehicle::FireBomb(void) {
+	if (!common->IsClient()) {
+		projectileDict = bombDict;
+		fireDelay = projectileDict.GetFloat("fire_delay");
+		float spread = projectileDict.GetFloat("spread");
+		LaunchProjectile(spread, "snd_rocket");
+	}
+}
+
+
+
+/*
+================
+idAFEntity_Vehicle::LaunchProjectile
+================
+*/
+
+void idAFEntity_Vehicle::LaunchProjectile(float spread, const char* projSound) {
+	idProjectile* proj;
+	idEntity* projectileEnt;
+	idVec3			dir;
+	float			ang;
+	float			spin;
+	trace_t			tr;
+	idVec3			muzzle_pos;
+	idVec3			pushVelocity;
+	idMat3			playerViewAxis;
+	idRotation 		turretAim;
+	//idDict			args;
+	int				i;
+	int				num_projectiles;
+
+	if (!projectileDict.GetNumKeyVals()) {
+		const char* classname = vehicleDef->dict.GetString("classname");
+		gameLocal.Warning("No projectile defined on '%s'", classname);
+	}
+
+	num_projectiles = projectileDict.GetInt("num_projectiles", "1");
+
+	// rotate gun barrel
+	barrelRotation.SetAngle(barrelRotation.GetAngle() + 18);
+	barrelRotation.SetVec(-1, 0, 0);
+	animator.SetJointAxis(fireJoint, JOINTMOD_LOCAL, barrelRotation.ToMat3());
+
+	if (fireTime < gameLocal.time) {
+		fireTime = gameLocal.time + fireDelay;
+		float spreadRad = DEG2RAD(spread);
+
+		// Shader FX 
+		renderEntity.shaderParms[SHADERPARM_DIVERSITY] = gameLocal.random.CRandomFloat();
+		renderEntity.shaderParms[SHADERPARM_TIMEOFFSET] = -MS2SEC(gameLocal.realClientTime);
+
+		for (i = 0; i < num_projectiles; i++) {
+			ang = idMath::Sin(spreadRad * gameLocal.random.RandomFloat());
+			spin = (float)DEG2RAD(360.0f) * gameLocal.random.RandomFloat();
+			animator.GetJointTransform(barrelJoint, gameLocal.time, muzzleOrigin, muzzleAxis);
+			muzzle_pos = (renderEntity.origin + muzzleOrigin * renderEntity.axis);
+			muzzleAxis = muzzleAxis * renderEntity.axis;
+			dir = muzzleAxis[0] + muzzleAxis[2] * (ang * idMath::Sin(spin)) - muzzleAxis[1] * (ang * idMath::Cos(spin));
+			dir.Normalize();
+
+			if (common->IsClient()) {
+				// predict instant hit projectiles
+				if (projectileDict.GetBool("net_instanthit")) {
+					gameLocal.clip.Translation(tr, muzzle_pos, muzzle_pos + dir * 4096.0f, NULL, mat3_identity, MASK_SHOT_RENDERMODEL, this);
+					if (tr.fraction < 1.0f) {
+						idProjectile::ClientPredictionCollide(this, projectileDict, tr, vec3_origin, true);
+					}
+				}
+			}
+			else {
+				//player->AddProjectilesFired( 1 ); // already assigned in projectile code
+				gameLocal.AlertAI(player);
+
+				// Compensate for buggy velocity 
+				pushVelocity = GetPhysics()->GetLinearVelocity();
+
+				// Create Missile
+				projectileEnt = NULL;
+				//if ( i == 4 ) {
+				//	projectileDict.Set( "random", "25 45 15" );
+				//}
+				gameLocal.SpawnEntityDef(projectileDict, &projectileEnt, false);
+				projectileEnt->Hide();
+				if (projectileDict.GetBool("net_instanthit")) {
+					// don't synchronize this on top of the already predicted effect
+					projectileEnt->fl.networkSync = false;
+				}
+
+				proj = static_cast<idProjectile*>(projectileEnt);
+				proj->Create(this, muzzle_pos, dir);
+				proj->Launch(muzzle_pos, dir, pushVelocity, 0, 1.0f, 1.0f);
+				proj->Show();
+
+
+				// eject brass ?
+				//PostEventMS( &EV_Vehicle_EjectBrass, brassDelay );
+
+				idMat3 axis;
+				idVec3 origin, linear_velocity, angular_velocity;
+				idEntity* ent;
+
+				animator.GetJointTransform(ejectJointView, 0, origin, axis);
+				origin = renderEntity.origin + origin * renderEntity.axis;
+				gameLocal.SpawnEntityDef(brassDict, &ent, false);
+				if (!ent || !ent->IsType(idDebris::Type)) {
+					gameLocal.Error("is not an idDebris\n");
+				}
+				idDebris* debris = static_cast<idDebris*>(ent);
+				debris->Create(this, origin, axis);
+				debris->Launch();
+
+				playerViewAxis = player->firstPersonViewAxis;
+				idVec3 dir = playerViewAxis.ToAngles().ToRight();
+				idVec3 dirup = playerViewAxis.ToAngles().ToUp();
+				linear_velocity = (dir * 500 + dirup * 120);	//( playerViewAxis[0] + playerViewAxis[1] + playerViewAxis[2] );
+				//angular_velocity.Set( 10 * gameLocal.random.CRandomFloat(), 10 * gameLocal.random.CRandomFloat(), 10 * gameLocal.random.CRandomFloat() );
+
+				debris->GetPhysics()->SetOrigin(origin);
+				debris->GetPhysics()->SetLinearVelocity(linear_velocity + pushVelocity);
+				//debris->GetPhysics()->SetAngularVelocity( angular_velocity );
+
+			}
+		}
+		StartSound(projSound, SND_CHANNEL_BODY, 0, false, NULL);
+
+	}
+
+
+}
+
+
+/*
+===============
+idAFEntity_Vehicle::HitObject
+===============
+*/
+
+void idAFEntity_Vehicle::HitObject(void) {
+
+	idEntity* ent;
+	idVec3		start, front, back, frontleft, frontright, rearleft, rearright;
+	idVec3		vecForward, vecRight, pushDir, speed;
+	trace_t 	collision;
+	float 		probe, probe_hit, force;
+	const char* damageDef = spawnArgs.GetString("def_damage", "");
+	//const char *instaGib = spawnArgs.GetString( "def_gib_damage", "" );
+
+	start = GetPhysics()->GetOrigin();
+	force = idMath::Sqrt((oldOrigin.x - start.x) * (oldOrigin.x - start.x) + (oldOrigin.y - start.y) * (oldOrigin.y - start.y));
+	oldOrigin = start;
+	speed = GetPhysics()->GetLinearVelocity();
+
+	probe = 150.0f + force * 7;
+	vecForward = renderEntity.axis.ToAngles().ToForward();
+	vecRight = renderEntity.axis.ToAngles().ToRight();
+	frontleft = start + vecForward * probe - vecRight * 40.0f;
+	frontleft.z = start.z - 10.0f;
+	frontright = start + vecForward * probe + vecRight * 40.0f;
+	frontright.z = start.z - 10.0f;
+	rearleft = start - vecForward * probe - vecRight * 40.0f;
+	rearleft.z = start.z - 10.0f;
+	rearright = start - vecForward * probe + vecRight * 40.0f;
+	rearright.z = start.z - 10.0f;
+	front = start + vecForward * probe;
+	front.z = start.z - 10.0f;
+	back = start - vecForward * probe;
+	back.z = start.z - 10.0f;
+
+	//idBounds bounds( frontleft );
+	//bounds.AddPoint( frontright );
+	//bounds.AddPoint( rearright );
+	//bounds.AddPoint( rearleft );	
+	//gameRenderWorld->DebugBounds( colorGreen, bounds, vec3_zero, 1 );
+
+
+	//listedClipModels = gameLocal.clip.ClipModelsTouchingBounds( bounds, -1, clipModelList, MAX_GENTITIES );
+	/*for ( int i = 0; i < listedClipModels; i++ ) {
+		clip = clipModelList[ i ];
+		ent = clip->GetEntity();
+		*/
+
+	pushDir = speed + vecForward * 300;
+
+	// check front	
+	probe_hit = 1;
+	gameLocal.clip.Translation(collision, start, back, NULL, mat3_identity, MASK_SHOT_RENDERMODEL, this);
+	if (collision.fraction == 1.0f) {
+		probe_hit = 2;
+		gameLocal.clip.Translation(collision, start, rearleft, NULL, mat3_identity, MASK_SHOT_RENDERMODEL, this);
+		if (collision.fraction == 1.0f) {
+			probe_hit = 3;
+			gameLocal.clip.Translation(collision, start, rearright, NULL, mat3_identity, MASK_SHOT_RENDERMODEL, this);
+			if (collision.fraction == 1.0f) {
+				probe_hit = 0;
+			}
+		}
+	}
+	if (probe_hit) {
+		ent = gameLocal.entities[collision.c.entityNum];
+		if (!ent->IsType(idPlayer::Type)) {
+			ent->Damage(this, this, pushDir, damageDef, 1.0f, INVALID_JOINT);
+			if (ent->IsType(idActor::Type) || (ent->IsType(idMoveable::Type) && collision.fraction < 0.8f)) {
+				ent->GetPhysics()->SetLinearVelocity(pushDir * -1);
+			}
+		}
+	}
+	// check rear
+	probe_hit = 1;
+	gameLocal.clip.Translation(collision, GetPhysics()->GetOrigin(), front, NULL, mat3_identity, MASK_SHOT_RENDERMODEL, this);
+	if (collision.fraction == 1.0f) {
+		probe_hit = 2;
+		gameLocal.clip.Translation(collision, GetPhysics()->GetOrigin(), frontleft, NULL, mat3_identity, MASK_SHOT_RENDERMODEL, this);
+		if (collision.fraction == 1.0f) {
+			probe_hit = 3;
+			gameLocal.clip.Translation(collision, GetPhysics()->GetOrigin(), frontright, NULL, mat3_identity, MASK_SHOT_RENDERMODEL, this);
+			if (collision.fraction == 1.0f) {
+				probe_hit = 0;
+			}
+		}
+	}
+	if (probe_hit) {
+		ent = gameLocal.entities[collision.c.entityNum];
+		if (!ent->IsType(idPlayer::Type)) {
+			//pushDir = speed + vecForward * 300;
+			ent->Damage(this, this, pushDir, damageDef, 1.0f, INVALID_JOINT);
+			if (ent->IsType(idActor::Type) || (ent->IsType(idMoveable::Type) && collision.fraction < 0.8f)) {
+				ent->GetPhysics()->SetLinearVelocity(pushDir);
+			}
+			//lastHitTime = gameLocal.time;
+		}
+	}
+}
+
+/*
+==============
+idAFEntity_Vehicle::TireTrack
+==============
+*/
+void idAFEntity_Vehicle::TireTrack(const idVec3& origin, float angle, const idMaterial* material) {
+	float s, c;
+	idVec3	angles, target;
+	idMat3 axis, axistemp;
+	idFixedWinding winding;
+	idVec3 windingOrigin, projectionOrigin;
+
+	float halfSize = 12.0f;
+	float depth = 48.0f;
+
+	idVec3 verts[] = { idVec3(0.0f, +halfSize, +halfSize),
+						idVec3(0.0f, +halfSize, -halfSize),
+						idVec3(0.0f, -halfSize, -halfSize),
+						idVec3(0.0f, -halfSize, +halfSize) };
+	idTraceModel trm;
+	idClipModel mdl;
+	trace_t results;
+	idVec3 dir = idVec3(0.0f, 0.0f, -1.0f);	//renderEntity.axis.ToAngles().ToUp() * -1.0f;
+	//gameLocal.Printf( "DIR VEC: %s\n", dir.ToString() );
+	trm.SetupPolygon(verts, 4);
+	mdl.LoadModel(trm);
+	target = origin + dir * 2.0;
+	gameLocal.clip.Translation(results, origin, target, &mdl, mat3_identity, CONTENTS_SOLID, NULL);
+	idVec3 decpos = results.endpos;
+
+	static idVec3 decalWinding[4] = {
+		idVec3(1.0f,  1.0f, 0.0f),
+		idVec3(-1.0f,  1.0f, 0.0f),
+		idVec3(-1.0f, -1.0f, 0.0f),
+		idVec3(1.0f, -1.0f, 0.0f)
+	};
+
+	// rotate the decal winding
+	//angles = renderEntity.axis.ToAngles().ToForward();	// buggy angle
+	//angles.Normalize();
+
+	idMath::SinCos16(angle, s, c);
+
+	// winding orientation
+	axis[2] = dir;
+	axis[2].Normalize();
+	axis[2].NormalVectors(axistemp[0], axistemp[1]);
+	axis[0] = axistemp[0] * c + axistemp[1] * -s;
+	axis[1] = axistemp[0] * -s + axistemp[1] * -c;
+
+	windingOrigin = decpos + depth * axis[2];
+	projectionOrigin = decpos - depth * axis[2];
+
+	winding.Clear();
+	winding += idVec5(windingOrigin + (axis * decalWinding[0]) * halfSize, idVec2(1, 1));
+	winding += idVec5(windingOrigin + (axis * decalWinding[1]) * halfSize, idVec2(0, 1));
+	winding += idVec5(windingOrigin + (axis * decalWinding[2]) * halfSize, idVec2(0, 0));
+	winding += idVec5(windingOrigin + (axis * decalWinding[3]) * halfSize, idVec2(1, 0));
+	gameRenderWorld->ProjectDecalOntoWorld(winding, projectionOrigin, true, 48.0f, material, gameLocal.time);
+}
+
+
+// ################################################################################################################ SR END
+
+/*
+================
+idAFEntity_Vehicle::GetCurrentSteerAngle
+================
+*/
+float idAFEntity_Vehicle::GetAutoDriveSpeed() const
 {
-	float idealSteerAngle, angleDelta;
+	float driveSpeed = autoDriveSpeed;
+	if (autoDriveWaypoint != NULL)
+		autoDriveWaypoint->spawnArgs.GetFloat("autoDriveSpeed", driveSpeed, driveSpeed);
+	return driveSpeed;
+}
 
-	idealSteerAngle = player->usercmd.rightmove * ( 30.0f / 128.0f );
-	angleDelta = idealSteerAngle - steerAngle;
+/*
+================
+idAFEntity_Vehicle::GetCurrentSteerAngle
+================
+*/
+float idAFEntity_Vehicle::GetCurrentSteerAngle() const
+{
+	return steerAngle;
+}
 
-	if( angleDelta > steerSpeed )
+/*
+================
+idAFEntity_Vehicle::GetIdealSteerAngle
+================
+*/
+float idAFEntity_Vehicle::GetIdealSteerAngle() const
+{
+	float idealSteerAngle = 0.0f;
+	if (autoDriveWaypoint)
+	{
+		return autoDriveIdealSteer;
+	}
+	else if (player)
+	{
+		idealSteerAngle = player->usercmd.rightmove * (30.0f / 128.0f);
+	}
+	return idealSteerAngle;
+}
+
+/*
+================
+idAFEntity_Vehicle::Event_HeadLightsOn
+================
+*/
+void idAFEntity_Vehicle::UpdateSteerAngle()
+{
+	if (autoDriveWaypoint != NULL)
+	{
+		// update the steer angle to the auto drive waypoint
+		idVec3 waypoint_origin, vehicle_origin;
+		idVec3 travel_vector;
+		float distance_from_waypoint;
+
+		// Set up the vector from the vehicle origin(at 'ground level', to the waypoint
+		vehicle_origin = GetPhysics()->GetOrigin();
+		//vehicle_origin.z = GetPhysics()->GetBounds()[0].z; // bottom of bounds
+
+		waypoint_origin = autoDriveWaypoint->GetPhysics()->GetOrigin();
+
+		travel_vector = waypoint_origin - vehicle_origin;
+		distance_from_waypoint = travel_vector.Length();
+
+		gameRenderWorld->DebugArrow(colorGreen, vehicle_origin, waypoint_origin, 1);
+
+		if (distance_from_waypoint <= autoDriveReachTolerance)
+		{
+			idStr				callfunc;
+
+			// Waypoints can call script functions
+			autoDriveWaypoint->spawnArgs.GetString("autoDriveArriveCall", "", callfunc);
+			if (callfunc.Length())
+			{
+				const function_t* func = gameLocal.program.FindFunction(callfunc);
+				if (func != NULL)
+				{
+					idThread* thread = new idThread(func);
+					thread->DelayedStart(0);
+				}
+			}
+
+			// Get next waypoint if available
+			autoDriveWaypoint = autoDriveWaypoint->ChooseRandomTarget(NULL);
+
+			// waypoint switched abort until next frame
+			return;
+		}
+
+		idAngles vehicle_angles, travel_angles;
+
+		// Get the angles we need to steer towards
+		travel_angles = travel_vector.ToAngles().Normalize360();
+		vehicle_angles = this->GetPhysics()->GetAxis().ToAngles().Normalize360();
+
+		// Get the shortest steering angle towards the travel angles
+		float delta_yaw = vehicle_angles.yaw - travel_angles.yaw;
+		if (idMath::Fabs(delta_yaw) > 180.f)
+		{
+			if (delta_yaw > 0)
+			{
+				delta_yaw = delta_yaw - 360;
+			}
+			else
+			{
+				delta_yaw = delta_yaw + 360;
+			}
+		}
+
+		// Maximum steering angle is 35 degrees
+		delta_yaw = idMath::ClampFloat(-35.f, 35.f, delta_yaw);
+
+		autoDriveIdealSteer = delta_yaw;
+	}
+
+	float idealSteerAngle = GetIdealSteerAngle();
+	float angleDelta = idealSteerAngle - steerAngle;
+
+	if (angleDelta > steerSpeed)
 	{
 		steerAngle += steerSpeed;
 	}
-	else if( angleDelta < -steerSpeed )
+	else if (angleDelta < -steerSpeed)
 	{
 		steerAngle -= steerSpeed;
 	}
@@ -1997,8 +3000,46 @@ float idAFEntity_Vehicle::GetSteerAngle()
 	{
 		steerAngle = idealSteerAngle;
 	}
+}
 
-	return steerAngle;
+/*
+================
+idAFEntity_Vehicle::Event_HeadLightsOn
+================
+*/
+void idAFEntity_Vehicle::Event_HeadLightsOn(int on)
+{
+	LightOnOff(on != 0);
+}
+
+/*
+================
+idAFEntity_Vehicle::Event_GetAutoDriveWaypoint
+================
+*/
+void idAFEntity_Vehicle::Event_GetAutoDriveWaypoint()
+{
+	idThread::ReturnEntity(autoDriveWaypoint);
+}
+
+/*
+================
+idAFEntity_Vehicle::Event_SetAutoDriveWaypoint
+================
+*/
+void idAFEntity_Vehicle::Event_SetAutoDriveWaypoint(idEntity* entity)
+{
+	autoDriveWaypoint = entity;
+}
+
+/*
+================
+idAFEntity_Vehicle::Event_SetAutoDriveSteerSpeed
+================
+*/
+void idAFEntity_Vehicle::Event_SetAutoDriveSteerSpeed(float steer)
+{
+	autoDriveSteerSpeed = steer;
 }
 
 
@@ -2052,46 +3093,47 @@ void idAFEntity_VehicleSimple::Spawn()
 		"wheelJointRearLeft",
 		"wheelJointRearRight"
 	};
-	static idVec3 wheelPoly[4] = { idVec3( 2, 2, 0 ), idVec3( 2, -2, 0 ), idVec3( -2, -2, 0 ), idVec3( -2, 2, 0 ) };
+	static idVec3 wheelPoly[4] = { idVec3(2, 2, 0), idVec3(2, -2, 0), idVec3(-2, -2, 0), idVec3(-2, 2, 0) };
 
 	int i;
 	idVec3 origin;
 	idMat3 axis;
 	idTraceModel trm;
 
-	trm.SetupPolygon( wheelPoly, 4 );
-	trm.Translate( idVec3( 0, 0, -wheelRadius ) );
-	wheelModel = new( TAG_PHYSICS_CLIP_AF ) idClipModel( trm );
+	trm.SetupPolygon(wheelPoly, 4);
+	trm.Translate(idVec3(0, 0, -wheelRadius));
+	wheelModel = new(TAG_PHYSICS_CLIP_AF) idClipModel(trm);
 
-	for( i = 0; i < 4; i++ )
+	for (i = 0; i < 4; i++)
 	{
-		const char* wheelJointName = spawnArgs.GetString( wheelJointKeys[i], "" );
-		if( !wheelJointName[0] )
+		const char* wheelJointName = spawnArgs.GetString(wheelJointKeys[i], "");
+		if (!wheelJointName[0])
 		{
-			gameLocal.Error( "idAFEntity_VehicleSimple '%s' no '%s' specified", name.c_str(), wheelJointKeys[i] );
+			gameLocal.Error("idAFEntity_VehicleSimple '%s' no '%s' specified", name.c_str(), wheelJointKeys[i]);
 		}
-		wheelJoints[i] = animator.GetJointHandle( wheelJointName );
-		if( wheelJoints[i] == INVALID_JOINT )
+		wheelJoints[i] = animator.GetJointHandle(wheelJointName);
+		if (wheelJoints[i] == INVALID_JOINT)
 		{
-			gameLocal.Error( "idAFEntity_VehicleSimple '%s' can't find wheel joint '%s'", name.c_str(), wheelJointName );
+			gameLocal.Error("idAFEntity_VehicleSimple '%s' can't find wheel joint '%s'", name.c_str(), wheelJointName);
 		}
 
-		GetAnimator()->GetJointTransform( wheelJoints[i], 0, origin, axis );
+		GetAnimator()->GetJointTransform(wheelJoints[i], 0, origin, axis);
 		origin = renderEntity.origin + origin * renderEntity.axis;
 
-		suspension[i] = new( TAG_PHYSICS_AF ) idAFConstraint_Suspension();
-		suspension[i]->Setup( va( "suspension%d", i ), af.GetPhysics()->GetBody( 0 ), origin, af.GetPhysics()->GetAxis( 0 ), wheelModel );
-		suspension[i]->SetSuspension(	g_vehicleSuspensionUp.GetFloat(),
-										g_vehicleSuspensionDown.GetFloat(),
-										g_vehicleSuspensionKCompress.GetFloat(),
-										g_vehicleSuspensionDamping.GetFloat(),
-										g_vehicleTireFriction.GetFloat() );
+		suspension[i] = new(TAG_PHYSICS_AF) idAFConstraint_Suspension();
+		//suspension[i]->Setup( va( "suspension%d", i ), af.GetPhysics()->GetBody( 0 ), origin, af.GetPhysics()->GetAxis( 0 ), wheelModel ); IVAN
+		suspension[i]->Setup(va("suspension%d", i), af.GetPhysics()->GetBody(0), wheelModel);	// Ivan
+		suspension[i]->SetSuspension(g_vehicleSuspensionUp.GetFloat(),
+			g_vehicleSuspensionDown.GetFloat(),
+			g_vehicleSuspensionKCompress.GetFloat(),
+			g_vehicleSuspensionDamping.GetFloat(),
+			g_vehicleTireFriction.GetFloat());
 
-		af.GetPhysics()->AddConstraint( suspension[i] );
+		af.GetPhysics()->AddConstraint(suspension[i]);
 	}
 
-	memset( wheelAngles, 0, sizeof( wheelAngles ) );
-	BecomeActive( TH_THINK );
+	memset(wheelAngles, 0, sizeof(wheelAngles));
+	BecomeActive(TH_THINK);
 }
 
 /*
@@ -2102,99 +3144,105 @@ idAFEntity_VehicleSimple::Think
 void idAFEntity_VehicleSimple::Think()
 {
 	int i;
-	float force = 0.0f, velocity = 0.0f, steerAngle = 0.0f;
+	float force = 0.0f, velocity = 0.0f;
 	idVec3 origin;
 	idMat3 axis;
 	idRotation wheelRotation, steerRotation;
 
-	if( thinkFlags & TH_THINK )
+	if (thinkFlags & TH_THINK)
 	{
+		UpdateSteerAngle();
 
-		if( player )
+		const float steerAngle = GetCurrentSteerAngle();
+
+		if (autoDriveWaypoint != NULL)
+		{
+			velocity = GetAutoDriveSpeed();
+			force = vehicleForce;
+		}
+		else if (player)
 		{
 			// capture the input from a player
 			velocity = g_vehicleVelocity.GetFloat();
-			if( player->usercmd.forwardmove < 0 )
+			if (player->usercmd.forwardmove < 0)
 			{
 				velocity = -velocity;
 			}
-			force = idMath::Fabs( player->usercmd.forwardmove * g_vehicleForce.GetFloat() ) * ( 1.0f / 128.0f );
-			steerAngle = GetSteerAngle();
+			force = idMath::Fabs(player->usercmd.forwardmove * g_vehicleForce.GetFloat()) * (1.0f / 128.0f);
 		}
 
 		// update the wheel motor force and steering
-		for( i = 0; i < 2; i++ )
+		for (i = 0; i < 2; i++)
 		{
-
 			// front wheel drive
-			if( velocity != 0.0f )
+			if (velocity != 0.0f)
 			{
-				suspension[i]->EnableMotor( true );
+				suspension[i]->EnableMotor(true);
 			}
 			else
 			{
-				suspension[i]->EnableMotor( false );
+				suspension[i]->EnableMotor(false);
 			}
-			suspension[i]->SetMotorVelocity( velocity );
-			suspension[i]->SetMotorForce( force );
+			suspension[i]->SetMotorVelocity(velocity);
+			suspension[i]->SetMotorForce(force);
 
 			// update the wheel steering
-			suspension[i]->SetSteerAngle( steerAngle );
+			suspension[i]->SetSteerAngle(steerAngle);
 		}
 
 		// adjust wheel velocity for better steering because there are no differentials between the wheels
-		if( steerAngle < 0.0f )
+		if (steerAngle < 0.0f)
 		{
-			suspension[0]->SetMotorVelocity( velocity * 0.5f );
+			suspension[0]->SetMotorVelocity(velocity * 0.5f);
 		}
-		else if( steerAngle > 0.0f )
+		else if (steerAngle > 0.0f)
 		{
-			suspension[1]->SetMotorVelocity( velocity * 0.5f );
+			suspension[1]->SetMotorVelocity(velocity * 0.5f);
 		}
 
 		// update suspension with latest cvar settings
-		for( i = 0; i < 4; i++ )
+		for (i = 0; i < 4; i++)
 		{
-			suspension[i]->SetSuspension(	g_vehicleSuspensionUp.GetFloat(),
-											g_vehicleSuspensionDown.GetFloat(),
-											g_vehicleSuspensionKCompress.GetFloat(),
-											g_vehicleSuspensionDamping.GetFloat(),
-											g_vehicleTireFriction.GetFloat() );
+			suspension[i]->SetSuspension(g_vehicleSuspensionUp.GetFloat(),
+				g_vehicleSuspensionDown.GetFloat(),
+				g_vehicleSuspensionKCompress.GetFloat(),
+				g_vehicleSuspensionDamping.GetFloat(),
+				g_vehicleTireFriction.GetFloat());
 		}
 
 		// run the physics
 		RunPhysics();
 
 		// move and rotate the wheels visually
-		for( i = 0; i < 4; i++ )
+		for (i = 0; i < 4; i++)
 		{
-			idAFBody* body = af.GetPhysics()->GetBody( 0 );
+			idAFBody* body = af.GetPhysics()->GetBody(0);
 
 			origin = suspension[i]->GetWheelOrigin();
-			velocity = body->GetPointVelocity( origin ) * body->GetWorldAxis()[0];
-			wheelAngles[i] += velocity * MS2SEC( gameLocal.time - gameLocal.previousTime ) / wheelRadius;
+			velocity = body->GetPointVelocity(origin) * body->GetWorldAxis()[0];
+			wheelAngles[i] += velocity * MS2SEC(gameLocal.time - gameLocal.previousTime) / wheelRadius;
 
 			// additional rotation about the wheel axis
-			wheelRotation.SetAngle( RAD2DEG( wheelAngles[i] ) );
-			wheelRotation.SetVec( 0, -1, 0 );
+			wheelRotation.SetAngle(RAD2DEG(wheelAngles[i]));
+			wheelRotation.SetVec(0, -1, 0);
 
-			if( i < 2 )
+			if (i < 2)
 			{
 				// rotate the wheel for steering
-				steerRotation.SetAngle( steerAngle );
-				steerRotation.SetVec( 0, 0, 1 );
+				steerRotation.SetAngle(steerAngle);
+				steerRotation.SetVec(0, 0, 1);
 				// set wheel rotation
-				animator.SetJointAxis( wheelJoints[i], JOINTMOD_WORLD, wheelRotation.ToMat3() * steerRotation.ToMat3() );
+				animator.SetJointAxis(wheelJoints[i], JOINTMOD_WORLD, wheelRotation.ToMat3() * steerRotation.ToMat3());
 			}
 			else
 			{
 				// set wheel rotation
-				animator.SetJointAxis( wheelJoints[i], JOINTMOD_WORLD, wheelRotation.ToMat3() );
+				animator.SetJointAxis(wheelJoints[i], JOINTMOD_WORLD, wheelRotation.ToMat3());
 			}
 
 			// set wheel position for suspension
-			origin = ( origin - renderEntity.origin ) * renderEntity.axis.Transpose();
-			GetAnimator()->SetJointPos( wheelJoints[i], JOINTMOD_WORLD_OVERRIDE, origin );
+			origin = (origin - renderEntity.origin) * renderEntity.axis.Transpose();
+			GetAnimator()->SetJointPos(wheelJoints[i], JOINTMOD_WORLD_OVERRIDE, origin);
 		}
 		/*
 				// spawn dust particle effects
@@ -2212,13 +3260,694 @@ void idAFEntity_VehicleSimple::Think()
 	}
 
 	UpdateAnimation();
-	if( thinkFlags & TH_UPDATEVISUALS )
+	if (thinkFlags & TH_UPDATEVISUALS)
 	{
 		Present();
 		LinkCombat();
 	}
 }
 
+// ############ SR
+
+/*
+===============================================================================
+
+  idAFEntity_VehicleSimple_4wd
+
+===============================================================================
+*/
+
+CLASS_DECLARATION(idAFEntity_Vehicle, idAFEntity_VehicleSimple_4wd)
+END_CLASS
+
+/*
+================
+idAFEntity_VehicleSimple_4wd::idAFEntity_VehicleSimple_4wd
+================
+*/
+idAFEntity_VehicleSimple_4wd::idAFEntity_VehicleSimple_4wd(void) {
+	for (int i = 0; i < 4; i++) {
+		suspension[i] = NULL;
+	}
+
+	fl.networkSync = true;
+}
+
+/*
+================
+idAFEntity_VehicleSimple_4wd::~idAFEntity_VehicleSimple_4wd
+================
+*/
+idAFEntity_VehicleSimple_4wd::~idAFEntity_VehicleSimple_4wd(void) {
+	delete wheelModel;
+	wheelModel = NULL;
+}
+
+/*
+================
+idAFEntity_VehicleSimple_4wd::Spawn
+================
+*/
+void idAFEntity_VehicleSimple_4wd::Spawn(void) {
+	static const char* wheelJointKeys[] = {
+		"wheelJointFrontLeft",
+		"wheelJointFrontRight",
+		"wheelJointRearLeft",
+		"wheelJointRearRight"
+	};
+	static idVec3 wheelPoly[4] = { idVec3(2, 2, 0), idVec3(2, -2, 0), idVec3(-2, -2, 0), idVec3(-2, 2, 0) };
+
+	int i;
+	idVec3 origin;
+	idMat3 axis;
+	idTraceModel trm;
+
+	trm.SetupPolygon(wheelPoly, 4);
+	trm.Translate(idVec3(0, 0, -wheelRadius));
+	wheelModel = new idClipModel(trm);
+
+	for (i = 0; i < 4; i++) {
+		const char* wheelJointName = spawnArgs.GetString(wheelJointKeys[i], "");
+		if (!wheelJointName[0]) {
+			gameLocal.Error("idAFEntity_VehicleSimple_4wd '%s' no '%s' specified", name.c_str(), wheelJointKeys[i]);
+		}
+		wheelJoints[i] = animator.GetJointHandle(wheelJointName);
+		if (wheelJoints[i] == INVALID_JOINT) {
+			gameLocal.Error("idAFEntity_VehicleSimple_4wd '%s' can't find wheel joint '%s'", name.c_str(), wheelJointName);
+		}
+
+		GetAnimator()->GetJointTransform(wheelJoints[i], 0, origin, axis);
+		origin = renderEntity.origin + origin * renderEntity.axis;
+
+		suspension[i] = new idAFConstraint_Suspension();
+		//suspension[i]->Setup( va( "suspension%d", i ), af.GetPhysics()->GetBody( 0 ), origin, af.GetPhysics()->GetAxis( 0 ), wheelModel );
+		suspension[i]->Setup(va("suspension%d", i), af.GetPhysics()->GetBody(0), wheelModel);
+		suspension[i]->SetPosition(origin, af.GetPhysics()->GetAxis(0));
+
+		suspension[i]->SetSuspension(vehicleSuspensionUp,
+			vehicleSuspensionDown,
+			vehicleSuspensionKCompress,
+			vehicleSuspensionDamping,
+			vehicleTireFriction);
+
+		wheelConstraints[i] = af.GetPhysics()->GetNumConstraints();
+
+		af.GetPhysics()->AddConstraint(suspension[i]);
+
+		tempAngles[i] = 0.0f;	// ################## SR
+	}
+
+	memset(wheelAngles, 0, sizeof(wheelAngles));
+	BecomeActive(TH_THINK);
+
+	af.GetPhysics()->SetComeToRest(false);
+	af.GetPhysics()->Activate();
+	RunPhysics();
+	//GetPhysics()->SetLinearVelocity( renderEntity.axis.ToAngles().ToUp() * 150 );
+}
+
+
+
+//ivan start
+/*
+============
+idAFEntity_VehicleSimple_4wd::Save
+============
+*/
+void idAFEntity_VehicleSimple_4wd::Save(idSaveGame* savefile) const {
+	savefile->WriteClipModel(wheelModel);
+
+	for (int wheel = 0; wheel < 4; wheel++)
+	{
+		savefile->WriteJoint(wheelJoints[wheel]);
+		savefile->WriteFloat(wheelAngles[wheel]);
+		savefile->WriteString(af.GetPhysics()->GetConstraint(wheelConstraints[wheel])->GetName().c_str());
+	}
+}
+
+/*
+============
+idAFEntity_VehicleSimple_4wd::Restore
+============
+*/
+void idAFEntity_VehicleSimple_4wd::Restore(idRestoreGame* savefile)
+{
+	savefile->ReadClipModel(wheelModel);
+
+	for (int wheel = 0; wheel < 4; wheel++)
+	{
+		savefile->ReadJoint(wheelJoints[wheel]);
+		savefile->ReadFloat(wheelAngles[wheel]);
+		idStr constraintName;
+		savefile->ReadString(constraintName);
+
+		wheelConstraints[wheel] = af.GetPhysics()->GetConstraintId(constraintName.c_str());
+
+		idVec3 origin;
+		idMat3 axis;
+		animator.GetJointTransform(wheelJoints[wheel], 0, origin, axis);
+		origin = renderEntity.origin + origin * renderEntity.axis;
+
+		suspension[wheel] = static_cast<idAFConstraint_Suspension*>(af.GetPhysics()->GetConstraint(wheelConstraints[wheel]));
+		suspension[wheel]->Setup(va("suspension%d", wheel), af.GetPhysics()->GetBody(0), wheelModel);
+		suspension[wheel]->SetPosition(origin, af.GetPhysics()->GetAxis(0));
+
+		suspension[wheel]->SetSuspension(
+			vehicleSuspensionUp,
+			vehicleSuspensionDown,
+			vehicleSuspensionKCompress,
+			vehicleSuspensionDamping,
+			vehicleTireFriction);
+
+		tempAngles[wheel] = 0.0f;
+	}
+
+	memset(wheelAngles, 0, sizeof(wheelAngles));
+	BecomeActive(TH_THINK);
+
+	af.GetPhysics()->SetComeToRest(false);
+	af.GetPhysics()->Activate();
+	RunPhysics();
+}
+
+
+void idAFEntity_VehicleSimple_4wd::RecreateDynamicConstraints(idList<idAFConstraint*, TAG_IDLIB_LIST_PHYSICS>* constraints) {	// #### + , TAG_IDLIB_LIST_PHYSICS ## SR
+	int i;
+	for (i = 0; i < 4; i++) {
+		idAFConstraint_Suspension* constraint = new idAFConstraint_Suspension();
+		constraint->Setup(va("suspension%d", i), NULL, NULL);
+		//constraint->physics = af.GetPhysics();
+		constraints->Append(constraint);
+
+		//af.GetPhysics()->AddConstraint( constraint );
+	}
+	//gameLocal.Printf("RecreateDynamicConstraints\n");
+	if (af.GetPhysics() != NULL) {
+		gameLocal.Printf("af.GetPhysics() ok\n");
+	}
+}
+//ivan end
+
+
+
+// ############################################# SR
+
+/*
+================
+idAFEntity_VehicleSimple_4wd::Collide
+================
+*/
+bool idAFEntity_VehicleSimple_4wd::Collide(const trace_t& collision, const idVec3& velocity) {
+	float v, f;
+	idEntity* ent;
+
+	if (af.IsActive()) {
+		v = -(velocity * collision.c.normal);
+		if (v > BOUNCE_SOUND_MIN_VELOCITY && gameLocal.time > nextSoundTime) {
+			f = v > BOUNCE_SOUND_MAX_VELOCITY ? 1.0f : idMath::Sqrt(v - BOUNCE_SOUND_MIN_VELOCITY) * (1.0f / idMath::Sqrt(BOUNCE_SOUND_MAX_VELOCITY - BOUNCE_SOUND_MIN_VELOCITY));
+			if (StartSound("snd_bounce", SND_CHANNEL_ANY, 0, false, NULL)) {
+				// don't set the volume unless there is a bounce sound as it overrides the entire channel
+				// which causes footsteps on ai's to not honor their shader parms
+				SetSoundVolume(f);
+			}
+			nextSoundTime = gameLocal.time + 500;
+		}
+	}
+	idVec3 pushDir = renderEntity.axis.ToAngles().ToForward() + GetPhysics()->GetLinearVelocity();
+	ent = gameLocal.entities[collision.c.entityNum];
+	if (!ent->IsType(idPlayer::Type)) {
+		if (ent->IsType(idActor::Type)) {
+			const char* instaGib = spawnArgs.GetString("def_gib_damage", "");
+			ent->Damage(this, this, pushDir, instaGib, 1.0f, INVALID_JOINT);
+		}
+		else {
+			ent->GetPhysics()->SetLinearVelocity(pushDir);
+		}
+		return false;
+	}
+	return false;
+}
+
+
+/*
+================
+idAFEntity_VehicleSimple_4wd::WriteToSnapshot
+================
+*/
+void idAFEntity_VehicleSimple_4wd::WriteToSnapshot(idBitMsg& msg) const {
+	physicsObj.WriteToSnapshot(msg);
+	const idVec3& origin = af.GetPhysics()->GetOrigin();
+	const idMat3& axis = af.GetPhysics()->GetAxis();
+	msg.WriteFloat(origin.x);
+	msg.WriteFloat(origin.y);
+	msg.WriteFloat(origin.z);
+	msg.WriteFloat(axis[0][0]);
+	msg.WriteFloat(axis[0][1]);
+	msg.WriteFloat(axis[0][2]);
+	msg.WriteFloat(axis[1][0]);
+	msg.WriteFloat(axis[1][1]);
+	msg.WriteFloat(axis[1][2]);
+	msg.WriteFloat(axis[2][0]);
+	msg.WriteFloat(axis[2][1]);
+	msg.WriteFloat(axis[2][2]);
+	msg.WriteFloat(steerAngle);
+	msg.WriteFloat(bvelocity);
+	msg.WriteFloat(bforce);
+	for (int i = 0; i < 4; i++) {
+		msg.WriteFloat(wheelAngles[i]);
+		msg.WriteFloat(wheelorigin[i][0]);
+		msg.WriteFloat(wheelorigin[i][1]);
+		msg.WriteFloat(wheelorigin[i][2]);
+	}
+
+	msg.WriteBits(headlight.GetSpawnId(), 32);
+	msg.WriteBits(headlighta.GetSpawnId(), 32);
+
+	msg.WriteBool(lightOn);
+}
+
+/*
+================
+idAFEntity_VehicleSimple_4wd::ReadFromSnapshot
+================
+*/
+void idAFEntity_VehicleSimple_4wd::ReadFromSnapshot(const idBitMsg& msg) {
+	idVec3 origin;
+	idMat3 axis;
+	float ang = 0.0f, velocity = 0.0f, force = 0.0f;
+	idRotation wheelRotation, steerRotation;
+
+	physicsObj.ReadFromSnapshot(msg);
+	origin.x = msg.ReadFloat();
+	origin.y = msg.ReadFloat();
+	origin.z = msg.ReadFloat();
+	axis[0][0] = msg.ReadFloat();
+	axis[0][1] = msg.ReadFloat();
+	axis[0][2] = msg.ReadFloat();
+	axis[1][0] = msg.ReadFloat();
+	axis[1][1] = msg.ReadFloat();
+	axis[1][2] = msg.ReadFloat();
+	axis[2][0] = msg.ReadFloat();
+	axis[2][1] = msg.ReadFloat();
+	axis[2][2] = msg.ReadFloat();
+	ang = msg.ReadFloat();
+	velocity = msg.ReadFloat();
+	force = msg.ReadFloat();
+
+	af.GetPhysics()->SetOrigin(origin);
+	af.GetPhysics()->SetAxis(axis);
+	for (int i = 0; i < 4; i++) {
+		wheelAngles[i] = msg.ReadFloat();
+		wheelorigin[i][0] = msg.ReadFloat();
+		wheelorigin[i][1] = msg.ReadFloat();
+		wheelorigin[i][2] = msg.ReadFloat();
+		wheelRotation.SetAngle(RAD2DEG(wheelAngles[i]));
+		wheelRotation.SetVec(0, -1, 0);
+		if (velocity != 0.0f) {
+			suspension[i]->EnableMotor(true);
+		}
+		else {
+			suspension[i]->EnableMotor(false);
+		}
+		suspension[i]->SetMotorVelocity(velocity);
+		suspension[i]->SetMotorForce(force);
+		if (i < 2) {
+			suspension[i]->SetSteerAngle(ang);
+			steerRotation.SetAngle(ang);
+			steerRotation.SetVec(0, 0, 1);
+			animator.SetJointAxis(wheelJoints[i], JOINTMOD_WORLD, wheelRotation.ToMat3() * steerRotation.ToMat3());
+		}
+		else {
+			animator.SetJointAxis(wheelJoints[i], JOINTMOD_WORLD, wheelRotation.ToMat3());
+		}
+		GetAnimator()->SetJointPos(wheelJoints[i], JOINTMOD_WORLD_OVERRIDE, wheelorigin[i]);
+	}
+
+	headlight.SetSpawnId(msg.ReadBits(32));
+	headlighta.SetSpawnId(msg.ReadBits(32));
+
+	bool snapshotLightsOn = msg.ReadBool();
+	if (snapshotLightsOn != lightOn)
+		LightOnOff(snapshotLightsOn);
+
+	if (msg.HasChanged()) {
+		UpdateVisuals();
+	}
+}
+
+/*
+================
+idAFEntity_VehicleSimple_4wd::ClientPredictionThink
+================
+*/
+void idAFEntity_VehicleSimple_4wd::ClientPredictionThink(void) {
+	RunPhysics();
+	Present();
+	//UpdateVisuals();
+}
+
+
+// ############################################# END
+
+/*
+================
+idAFEntity_VehicleSimple_4wd::Think
+================
+*/
+void idAFEntity_VehicleSimple_4wd::Think(void) {
+	int i;
+	idVec3 origin, dorigin;
+	idMat3 axis;
+	idRotation wheelRotation, steerRotation;
+
+	// #### SR
+	float ang;
+	int vol;
+	idAngles angle;
+
+	// #### END SR
+
+	idAFBody* body = af.GetPhysics()->GetBody(0);
+	if (thinkFlags & TH_THINK) {
+		UpdateSteerAngle();
+
+		// todo: make this a member if we want more control over idling with engine on?
+		bool engineRunning = true;
+		bool canComeToRest = false;
+		currentBrakes = 0.005f;
+		const float steerAngle = GetCurrentSteerAngle();
+
+		if (autoDriveWaypoint != NULL) {
+			bvelocity = GetAutoDriveSpeed();
+			bforce = vehicleForce;
+		}
+		else if (player) {
+			// capture the input from a player
+			bvelocity = vehicleVelocity;
+			if (player->usercmd.forwardmove < 0) {
+				bvelocity = -bvelocity;
+			}
+
+			bforce = idMath::Fabs(player->usercmd.forwardmove * vehicleForce) * (1.0f / 128.0f);		//g_vehicleForce.GetFloat()
+		}
+		else
+		{
+			engineRunning = false;
+			//canComeToRest = true; // motorsep 02-23-2015; canComeToRest = true prevents vehicle to initialize on spawn (prevents physics running). However with that being false
+									// vehicle might roll down the hills and run away from player (haven't tested yet). Potentially we need a way to prevent that without having 
+									// vehicle uninitialized (physics wise).
+			currentBrakes = spawnArgs.GetFloat("brakes", "0.02");
+			bvelocity = 0.0f;
+			bforce = 0.0f;
+		}
+
+		// adjust the brakes so we can handle autodrive, with and without player
+		af.GetPhysics()->GetBody(0)->SetFriction(currentBrakes, 0.0f, 0.0f);
+		af.GetPhysics()->SetComeToRest(canComeToRest);
+
+		// ### SR
+		int bvel = vol = int((body->GetPointVelocity(renderEntity.origin) * body->GetWorldAxis()[0]) / 8);
+		int purebvel = bvel;
+
+		if (bvel < 0)
+		{
+			bvel = -bvel;
+		}
+		idStr strvel = idStr(bvel);
+		if (bvel < 100)
+		{
+			strvel = "0" + strvel;
+		}
+		if (bvel < 10)
+		{
+			strvel = "0" + strvel;
+		}
+		//player->hud->SetStateString( "buggy_speed", strvel );
+
+		if (isAccelerating && !(bforce > 0))
+		{
+			//StopSound( 2, false );
+			StartSound("snd_decel", 2, 0, false, NULL);
+			StartSound("snd_idle", 1, 0, false, NULL);
+			isAccelerating = false;
+		}
+
+		if (!isAccelerating && bforce > 0)
+		{
+			accelTime = StartSound("snd_accel", 2, 0, false, NULL);	//  + gameLocal.time;
+			//gameLocal.Printf("ACCELTIME %d\n", accelTime );
+			isAccelerating = true;
+			accelTime = gameLocal.time + 1200;
+			StopSound(1, false);
+
+			//gameLocal.Printf("GAMETIME %d\n", gameLocal.time );
+		}
+
+		if (isAccelerating && bforce > 0 && accelTime < gameLocal.time)
+		{
+			accelTime = gameLocal.time + 99999;
+			//StopSound( 2, false );
+			StartSound("snd_drive", 2, 0, false, NULL);
+			//gameLocal.Printf("FULL SPEED\n" );
+		}
+
+		if (isDecelerating && !(bforce < 0))
+		{
+			//StopSound( 2, false );
+			StartSound("snd_decel", 2, 0, false, NULL);
+			isDecelerating = false;
+		}
+		if (isDecelerating && (bforce < 0) && accelTime < gameLocal.time)
+		{
+			accelTime = gameLocal.time + 99999;
+			StartSound("snd_drive", 2, 0, false, NULL);
+
+		}
+		if (!isDecelerating && bforce < 0 && purebvel < 0)
+		{
+			StartSound("snd_accel", 2, 0, false, NULL);
+			accelTime = gameLocal.time + 1200;
+			isDecelerating = true;
+		}
+
+		if (engineRunning && !noExhaust)
+		{
+			GetAnimator()->GetJointTransform(exhaustJoint1, 0, origin, axis);
+			origin = renderEntity.origin + origin * renderEntity.axis;
+			gameLocal.smokeParticles->EmitSmoke(exhaustSmoke, gameLocal.time, gameLocal.random.RandomFloat(), origin, renderEntity.axis, 0);
+			GetAnimator()->GetJointTransform(exhaustJoint2, 0, origin, axis);
+			origin = renderEntity.origin + origin * renderEntity.axis;
+			gameLocal.smokeParticles->EmitSmoke(exhaustSmoke, gameLocal.time, gameLocal.random.RandomFloat(), origin, renderEntity.axis, 0);
+			GetAnimator()->GetJointTransform(exhaustJoint3, 0, origin, axis);
+			origin = renderEntity.origin + origin * renderEntity.axis;
+			gameLocal.smokeParticles->EmitSmoke(exhaustSmoke, gameLocal.time, gameLocal.random.RandomFloat(), origin, renderEntity.axis, 0);
+			GetAnimator()->GetJointTransform(exhaustJoint4, 0, origin, axis);
+			origin = renderEntity.origin + origin * renderEntity.axis;
+			gameLocal.smokeParticles->EmitSmoke(exhaustSmoke, gameLocal.time, gameLocal.random.RandomFloat(), origin, renderEntity.axis, 0);
+		}
+
+		/*
+		const idSoundShader *driveshader;
+		const char *dsound;
+		spawnArgs.GetString( "snd_drive", "", &dsound );
+		driveshader = declManager->FindSound( dsound );
+		soundShaderParms_t	chanParms;
+		chanParms = driveshader->parms;
+		soundShaderParms_t	newParms = chanParms;
+		newParms.volume = vol;
+		OverrideParms( &chanParms, newParms, &chanParms );
+		*/
+
+		// ### END SR
+
+
+
+		// update the wheel motor force and steering.  
+		for (i = 0; i < 4; i++)
+		{
+			//Aww heck, make it 4wd by default!  By Steve
+
+			// front wheel drive
+			if (bvelocity != 0.0f)
+			{
+				suspension[i]->EnableMotor(true);
+			}
+			else
+			{
+				suspension[i]->EnableMotor(false);
+			}
+			suspension[i]->SetMotorVelocity(bvelocity);
+			suspension[i]->SetMotorForce(bforce);
+			//suspension[i]->DebugDraw();
+		}
+		//Now, just have the front wheels steer.  By Steve.
+		// update the wheel steering
+		suspension[0]->SetSteerAngle(steerAngle);
+		suspension[1]->SetSteerAngle(steerAngle);
+
+		// motorsep 01-24-2015; steering wheel turning animation		
+
+		// update the steering wheel
+		animator.GetJointTransform(steeringWheelJoint, gameLocal.time, origin, axis);
+		steerRotation.SetVec(axis[2]);
+		steerRotation.SetAngle(-steerAngle);
+		animator.SetJointAxis(steeringWheelJoint, JOINTMOD_WORLD, steerRotation.ToMat3());
+
+		// motorsep end
+
+		// run the physics
+		RunPhysics();
+
+		// ############### SR
+
+		// anti-roll bars
+		angle = renderEntity.axis.ToAngles();
+		if (angle.roll > 55.0f)
+		{
+			angle.roll = 55.0f;
+			SetAxis(angle.ToMat3());
+		}
+		if (angle.roll < -55.0f)
+		{
+			angle.roll = -55.0f;
+			SetAxis(angle.ToMat3());
+		}
+		if (angle.pitch > 60.0f)
+		{
+			angle.pitch = 60.0f;
+			SetAxis(angle.ToMat3());
+		}
+		if (angle.pitch < -60.0f)
+		{
+			angle.pitch = -60.0f;
+			SetAxis(angle.ToMat3());
+		}
+		// ############## END SR
+
+		// move and rotate the wheels visually
+		for (i = 0; i < 4; i++)
+		{
+			idAFBody* body = af.GetPhysics()->GetBody(0);
+
+			wheelorigin[i] = origin = suspension[i]->GetWheelOrigin();
+			bvelocity = body->GetPointVelocity(origin) * body->GetWorldAxis()[0];
+			wheelAngles[i] += bvelocity * MS2SEC(gameLocal.time - gameLocal.previousTime) / wheelRadius;
+
+			// additional rotation about the wheel axis
+			wheelRotation.SetAngle(RAD2DEG(wheelAngles[i]));
+			wheelRotation.SetVec(0, -1, 0);
+
+			// ############################## SR	
+
+			// spawn motion dust particle effects ( all wheels )
+			dorigin = origin;
+			dorigin.z -= wheelRadius;
+			if ((bvelocity > 45.0f || bvelocity < -45.0f) && !(gameLocal.framenum & 3))
+			{
+				gameLocal.smokeParticles->EmitSmoke(dustSmoke, gameLocal.time, gameLocal.random.RandomFloat(), dorigin, renderEntity.axis, 0);
+			}
+			// spawn accelerate/brake dust particle effects 
+			if (player)
+			{
+				if (player->usercmd.forwardmove != 0 && !(gameLocal.framenum & 7))
+				{
+					gameLocal.smokeParticles->EmitSmoke(dustSmoke2, gameLocal.time, gameLocal.random.RandomFloat(), dorigin, renderEntity.axis, 0);
+				}
+			}
+			// ############################## END SR	
+
+			if (i < 2)
+			{
+				// rotate the wheel for steering
+				steerRotation.SetAngle(steerAngle);
+				steerRotation.SetVec(0, 0, 1);
+				// set wheel rotation
+				animator.SetJointAxis(wheelJoints[i], JOINTMOD_WORLD, wheelRotation.ToMat3() * steerRotation.ToMat3());
+			}
+			else
+			{
+				// set wheel rotation
+				animator.SetJointAxis(wheelJoints[i], JOINTMOD_WORLD, wheelRotation.ToMat3());
+			}
+
+			// set wheel position for suspension
+			wheelorigin[i] = (wheelorigin[i] - renderEntity.origin) * renderEntity.axis.Transpose();
+			GetAnimator()->SetJointPos(wheelJoints[i], JOINTMOD_WORLD_OVERRIDE, wheelorigin[i]);
+
+			// ############################## SR	
+
+			// Place tire tracks
+			float offset = bvelocity;
+			if (offset < 0.0f)
+			{
+				offset *= -1.0f;
+			}
+
+			//if ( i < 2 ) {
+			float diff = 1.4f - offset / 1000.0f;	// adjust decal placement to speed
+			// adjust decal placement for differential while turning
+			offset = (steerAngle / maxSteerAngle) * 0.17f;
+			if (steerAngle > 0.0f)
+			{
+				diff -= offset;
+			}
+			if (steerAngle < 0.0f)
+			{
+				diff += offset;
+			}
+			if (wheelAngles[i] - tempAngles[i] >= diff || tempAngles[i] - wheelAngles[i] >= diff)
+			{
+				tempAngles[i] = wheelAngles[i];
+				origin = suspension[i]->GetWheelOrigin();
+				idVec3 vecRight = renderEntity.axis.ToAngles().ToRight();
+				if (i == 0 || i == 2)
+				{
+					origin += vecRight * 5;
+				}
+				else
+				{
+					origin -= vecRight * 5;
+				}
+				angle = renderEntity.axis.ToAngles();
+				ang = DEG2RAD(angle[1] * -1.0f);
+				if (i < 2)
+				{
+					ang += DEG2RAD(steerAngle);
+				}
+				TireTrack(origin, ang, trackDecal);
+			}
+		}
+
+		// if our physics goes to sleep, let's stop thinking
+		if (af.GetPhysics()->IsAtRest())
+			BecomeInactive(TH_THINK);
+	}
+
+	HitObject();	// Collision prediction	
+
+	// ############################ END SR			
+
+	UpdateAnimation();
+	if (thinkFlags & TH_UPDATEVISUALS) {
+		Present();
+		LinkCombat();
+	}
+}
+
+
+/*
+================
+idAFEntity_VehicleSimple_4wd::Pain
+================
+*/
+bool idAFEntity_VehicleSimple_4wd::Pain(idEntity* inflictor, idEntity* attacker, int damage, const idVec3& dir, int location)
+{
+	// wake up the vehicle to respond to a pain impulse
+	static float impulseStrength = 32.0f;
+	ApplyImpulse(inflictor, 0, GetPhysics()->GetOrigin(), dir * impulseStrength);
+	BecomeActive(TH_THINK);
+	return true;
+}
 
 /*
 ===============================================================================
@@ -2338,6 +4067,7 @@ void idAFEntity_VehicleFourWheels::Think()
 
 	if( thinkFlags & TH_THINK )
 	{
+		UpdateSteerAngle();
 
 		if( player )
 		{
@@ -2348,7 +4078,6 @@ void idAFEntity_VehicleFourWheels::Think()
 				velocity = -velocity;
 			}
 			force = idMath::Fabs( player->usercmd.forwardmove * g_vehicleForce.GetFloat() ) * ( 1.0f / 128.0f );
-			steerAngle = GetSteerAngle();
 		}
 
 		// update the wheel motor force
@@ -2549,6 +4278,7 @@ void idAFEntity_VehicleSixWheels::Think()
 
 	if( thinkFlags & TH_THINK )
 	{
+		UpdateSteerAngle();
 
 		if( player )
 		{
@@ -2559,7 +4289,6 @@ void idAFEntity_VehicleSixWheels::Think()
 				velocity = -velocity;
 			}
 			force = idMath::Fabs( player->usercmd.forwardmove * g_vehicleForce.GetFloat() ) * ( 1.0f / 128.0f );
-			steerAngle = GetSteerAngle();
 		}
 
 		// update the wheel motor force

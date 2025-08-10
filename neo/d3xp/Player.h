@@ -30,6 +30,7 @@ If you have questions concerning this license or the applicable additional terms
 #define __GAME_PLAYER_H__
 
 #include "PredictedValue.h"
+#include "Mover.h"
 
 /*
 ===============================================================================
@@ -42,6 +43,10 @@ If you have questions concerning this license or the applicable additional terms
 class idMenuHandler_PDA;
 class idMenuHandler_HUD;
 class idMenuScreen_HUD;
+
+class idMenuHandler_Cinematic;	// ########################## SR
+class idMenuScreen_Cinematic;	// ########################## SR
+
 class idTarget_SetPrimaryObjective;
 
 extern const idEventDef EV_Player_GetButtons;
@@ -349,6 +354,15 @@ public:
 	idSWF* 					mpMessages;
 	bool					objectiveSystemOpen;
 	int						quickSlot[ NUM_QUICK_SLOTS ];
+
+	// ################################## SR
+
+	idMenuScreen_Cinematic* cinema;
+	idMenuHandler_Cinematic* cinematicManager;
+
+	idUserInterface* hudgui;
+
+	// ################################## END SR
 
 	int						weapon_soulcube;
 	int						weapon_pda;
@@ -872,7 +886,9 @@ private:
 	idAI* 					focusCharacter;
 	int						talkCursor;				// show the state of the focusCharacter (0 == can't talk/dead, 1 == ready to talk, 2 == busy talking)
 	int						focusTime;
-	idAFEntity_Vehicle* 	focusVehicle;
+	//idAFEntity_Vehicle* 	focusVehicle;
+	idEntityPtr<idAFEntity_Vehicle>		focusVehicle; // SE2 vehicles
+	idEntityPtr<idDoor>					focusDoor; // SE2 vehicles
 	idUserInterface* 		cursor;
 
 	// full screen guis track mouse movements directly
@@ -926,11 +942,24 @@ private:
 	void					Weapon_Combat();
 	void					Weapon_NPC();
 	void					Weapon_GUI();
+	void					Weapon_VEHICLE(); // SE2 vehicles
 	void					UpdateWeapon();
 	bool					UsesClassicFlashlight();
 	void					UpdateFlashlight();
 	void					FlashlightOn();
 	void					FlashlightOff();
+	// SE2 vehicles begin
+	bool					zooming;
+	bool					buggy_thirdPerson;
+	float					viewDist, maxViewDist, minViewDist, viewStep, maxBuggyYaw;
+	float					viewHeight, maxViewHeight, minViewHeight, viewStepH, zoomStep;
+	void 					SwapView(void);
+	void 					ZoomView(void);
+	void 					Flashlight(void);
+	void 					BuggyThink(void);
+	int						zoomBuggyFov;
+	idEntityPtr<idAFEntity_Vehicle>	currentVehicle;
+	// SE2 vehicles end
 	void					UpdateSpectating();
 	void					SpectateFreeFly( bool force );	// ignore the timeout to force when followed spec is no longer valid
 	void					SpectateCycle();

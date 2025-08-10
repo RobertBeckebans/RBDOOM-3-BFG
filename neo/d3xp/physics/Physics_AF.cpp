@@ -4397,8 +4397,12 @@ idAFConstraint_Suspension::idAFConstraint_Suspension()
 idAFConstraint_Suspension::Setup
 ================
 */
-void idAFConstraint_Suspension::Setup( const char* name, idAFBody* body, const idVec3& origin, const idMat3& axis, idClipModel* clipModel )
-{
+
+//ivan start
+
+/*
+//was:
+void idAFConstraint_Suspension::Setup( const char *name, idAFBody *body, const idVec3 &origin, const idMat3 &axis, idClipModel *clipModel ) {
 	this->name = name;
 	body1 = body;
 	body2 = NULL;
@@ -4406,6 +4410,83 @@ void idAFConstraint_Suspension::Setup( const char* name, idAFBody* body, const i
 	localAxis = axis * body->GetWorldAxis().Transpose();
 	wheelModel = clipModel;
 }
+*/
+
+
+void idAFConstraint_Suspension::Setup(const char* name, idAFBody* body, idClipModel* clipModel) {
+	this->name = name;
+	body1 = body;
+	body2 = NULL;
+	wheelModel = clipModel;
+}
+
+void idAFConstraint_Suspension::SetPosition(const idVec3& origin, const idMat3& axis) {
+	localOrigin = (origin - body1->GetWorldOrigin()) * body1->GetWorldAxis().Transpose();
+	localAxis = axis * body1->GetWorldAxis().Transpose();
+}
+
+
+
+/*
+================
+idAFConstraint_Suspension::GetLastContactPosition
+================
+*/
+const idVec3 idAFConstraint_Suspension::GetLastContactPosition(void) const {
+	return lastContactPosition;
+}
+
+/*
+================
+idAFConstraint_Suspension::Save
+================
+*/
+void idAFConstraint_Suspension::Save(idSaveGame* savefile) const {
+	idAFConstraint::Save(savefile);
+
+	savefile->WriteVec3(localOrigin);
+	savefile->WriteMat3(localAxis);
+	savefile->WriteFloat(suspensionUp);
+	savefile->WriteFloat(suspensionDown);
+	savefile->WriteFloat(suspensionKCompress);
+	savefile->WriteFloat(suspensionDamping);
+	savefile->WriteFloat(steerAngle);
+	savefile->WriteFloat(friction);
+	savefile->WriteBool(motorEnabled);
+	savefile->WriteFloat(motorForce);
+	savefile->WriteFloat(motorVelocity);
+	savefile->WriteClipModel(wheelModel);
+	savefile->WriteVec3(wheelOffset);
+	savefile->WriteTrace(trace);
+	savefile->WriteFloat(epsilon);
+}
+
+/*
+================
+idAFConstraint_Suspension::Restore
+================
+*/
+void idAFConstraint_Suspension::Restore(idRestoreGame* savefile) {
+	idAFConstraint::Restore(savefile);
+
+	savefile->ReadVec3(localOrigin);
+	savefile->ReadMat3(localAxis);
+	savefile->ReadFloat(suspensionUp);
+	savefile->ReadFloat(suspensionDown);
+	savefile->ReadFloat(suspensionKCompress);
+	savefile->ReadFloat(suspensionDamping);
+	savefile->ReadFloat(steerAngle);
+	savefile->ReadFloat(friction);
+	savefile->ReadBool(motorEnabled);
+	savefile->ReadFloat(motorForce);
+	savefile->ReadFloat(motorVelocity);
+	savefile->ReadClipModel(wheelModel);
+	savefile->ReadVec3(wheelOffset);
+	savefile->ReadTrace(trace);
+	savefile->ReadFloat(epsilon);
+}
+//ivan end
+
 
 /*
 ================

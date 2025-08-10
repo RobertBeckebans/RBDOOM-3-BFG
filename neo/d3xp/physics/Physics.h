@@ -73,6 +73,14 @@ typedef struct impactInfo_s
 	idVec3						velocity;			// velocity at the impact position
 } impactInfo_t;
 
+// SE2 vehicles begin
+enum BindFlags
+{
+	BFL_NONE,
+	BFL_ORIENTED = (1 << 0),	// orient to the bind parent
+	BFL_SNAPXFORM = (1 << 1),	// clear the local transform on bind
+};
+// SE2 vehicles end
 
 class idPhysics : public idClass
 {

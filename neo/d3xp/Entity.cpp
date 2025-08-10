@@ -4774,32 +4774,40 @@ void idEntity::Event_GetTarget( float index )
 	}
 }
 
+// SE2 vehicles begin
 /*
 ================
 idEntity::Event_RandomTarget
 ================
 */
-void idEntity::Event_RandomTarget( const char* ignore )
+void idEntity::Event_RandomTarget(const char* ignore)
+{
+	idThread::ReturnEntity(ChooseRandomTarget(ignore));
+}
+
+/*
+================
+idEntity::Event_BindToJoint
+================
+*/
+idEntity* idEntity::ChooseRandomTarget(const char* ignore)
 {
 	int			num;
-	idEntity*	ent;
 	int			i;
 	int			ignoreNum;
 
 	RemoveNullTargets();
-	if( !targets.Num() )
-	{
-		idThread::ReturnEntity( NULL );
-		return;
+	if (!targets.Num()) {
+		return NULL;
 	}
 
 	ignoreNum = -1;
-	if( ignore && ( ignore[ 0 ] != 0 ) && ( targets.Num() > 1 ) )
+	if (ignore && (ignore[0] != 0) && (targets.Num() > 1))
 	{
-		for( i = 0; i < targets.Num(); i++ )
+		for (i = 0; i < targets.Num(); i++)
 		{
-			ent = targets[ i ].GetEntity();
-			if( ent && ( ent->name == ignore ) )
+			idEntity* ent = targets[i].GetEntity();
+			if (ent && (ent->name == ignore))
 			{
 				ignoreNum = i;
 				break;
@@ -4807,22 +4815,22 @@ void idEntity::Event_RandomTarget( const char* ignore )
 		}
 	}
 
-	if( ignoreNum >= 0 )
+	if (ignoreNum >= 0)
 	{
-		num = gameLocal.random.RandomInt( targets.Num() - 1 );
-		if( num >= ignoreNum )
+		num = gameLocal.random.RandomInt(targets.Num() - 1);
+		if (num >= ignoreNum)
 		{
 			num++;
 		}
 	}
 	else
 	{
-		num = gameLocal.random.RandomInt( targets.Num() );
+		num = gameLocal.random.RandomInt(targets.Num());
 	}
 
-	ent = targets[ num ].GetEntity();
-	idThread::ReturnEntity( ent );
+	return targets[num].GetEntity();
 }
+// SE2 vehicles end
 
 /*
 ================
