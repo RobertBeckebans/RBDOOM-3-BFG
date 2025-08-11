@@ -446,7 +446,7 @@ public:
 	void					FindTargets();
 	void					RemoveNullTargets();
 	void					ActivateTargets( idEntity* activator ) const;
-	idEntity*				ChooseRandomTarget(const char* ignore); // SE2 vehicles
+	idEntity*				ChooseRandomTarget( const char* ignore ); // SE2 vehicles
 
 	// misc
 	virtual void			Teleport( const idVec3& origin, const idAngles& angles, idEntity* destination );

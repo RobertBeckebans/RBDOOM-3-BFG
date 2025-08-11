@@ -682,8 +682,8 @@ public:
 
 	//ivan start
 	//was: void					Setup( const char *name, idAFBody *body, const idVec3 &origin, const idMat3 &axis, idClipModel *clipModel );
-	void					Setup(const char* name, idAFBody* body, idClipModel* clipModel);
-	void					SetPosition(const idVec3& origin, const idMat3& axis);
+	void					Setup( const char* name, idAFBody* body, idClipModel* clipModel );
+	void					SetPosition( const idVec3& origin, const idMat3& axis );
 	//ivan end
 	void					SetSuspension( const float up, const float down, const float k, const float d, const float f );
 
@@ -714,9 +714,9 @@ public:
 	virtual void			Rotate( const idRotation& rotation );
 
 	//ivan start
-	const idVec3			GetLastContactPosition(void) const;
-	virtual void			Save(idSaveGame* savefile) const;
-	virtual void			Restore(idRestoreGame* savefile);
+	const idVec3			GetLastContactPosition( void ) const;
+	virtual void			Save( idSaveGame* savefile ) const;
+	virtual void			Restore( idRestoreGame* savefile );
 
 	//ivan end
 

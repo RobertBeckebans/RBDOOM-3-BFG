@@ -77,8 +77,8 @@ typedef struct impactInfo_s
 enum BindFlags
 {
 	BFL_NONE,
-	BFL_ORIENTED = (1 << 0),	// orient to the bind parent
-	BFL_SNAPXFORM = (1 << 1),	// clear the local transform on bind
+	BFL_ORIENTED = ( 1 << 0 ),	// orient to the bind parent
+	BFL_SNAPXFORM = ( 1 << 1 ),	// clear the local transform on bind
 };
 // SE2 vehicles end
 

@@ -4780,9 +4780,9 @@ void idEntity::Event_GetTarget( float index )
 idEntity::Event_RandomTarget
 ================
 */
-void idEntity::Event_RandomTarget(const char* ignore)
+void idEntity::Event_RandomTarget( const char* ignore )
 {
-	idThread::ReturnEntity(ChooseRandomTarget(ignore));
+	idThread::ReturnEntity( ChooseRandomTarget( ignore ) );
 }
 
 /*
@@ -4790,24 +4790,25 @@ void idEntity::Event_RandomTarget(const char* ignore)
 idEntity::Event_BindToJoint
 ================
 */
-idEntity* idEntity::ChooseRandomTarget(const char* ignore)
+idEntity* idEntity::ChooseRandomTarget( const char* ignore )
 {
 	int			num;
 	int			i;
 	int			ignoreNum;
 
 	RemoveNullTargets();
-	if (!targets.Num()) {
+	if( !targets.Num() )
+	{
 		return NULL;
 	}
 
 	ignoreNum = -1;
-	if (ignore && (ignore[0] != 0) && (targets.Num() > 1))
+	if( ignore && ( ignore[0] != 0 ) && ( targets.Num() > 1 ) )
 	{
-		for (i = 0; i < targets.Num(); i++)
+		for( i = 0; i < targets.Num(); i++ )
 		{
 			idEntity* ent = targets[i].GetEntity();
-			if (ent && (ent->name == ignore))
+			if( ent && ( ent->name == ignore ) )
 			{
 				ignoreNum = i;
 				break;
@@ -4815,17 +4816,17 @@ idEntity* idEntity::ChooseRandomTarget(const char* ignore)
 		}
 	}
 
-	if (ignoreNum >= 0)
+	if( ignoreNum >= 0 )
 	{
-		num = gameLocal.random.RandomInt(targets.Num() - 1);
-		if (num >= ignoreNum)
+		num = gameLocal.random.RandomInt( targets.Num() - 1 );
+		if( num >= ignoreNum )
 		{
 			num++;
 		}
 	}
 	else
 	{
-		num = gameLocal.random.RandomInt(targets.Num());
+		num = gameLocal.random.RandomInt( targets.Num() );
 	}
 
 	return targets[num].GetEntity();

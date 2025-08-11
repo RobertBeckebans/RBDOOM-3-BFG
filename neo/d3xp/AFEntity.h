@@ -162,8 +162,8 @@ public:
 
 	//ivan start
 	//recreate dynamically-added constraints to 'constraints' while physics obejct is being restored
-	virtual void			RecreateDynamicConstraints(idList<idAFConstraint*, TAG_IDLIB_LIST_PHYSICS>* constraints); // ##  TAG_IDLIB_LIST_PHYSICS
-	//ivan end	
+	virtual void			RecreateDynamicConstraints( idList<idAFConstraint*, TAG_IDLIB_LIST_PHYSICS>* constraints ); // ##  TAG_IDLIB_LIST_PHYSICS
+	//ivan end
 
 	virtual void			Think();
 	virtual void			AddDamageEffect( const trace_t& collision, const idVec3& velocity, const char* damageDefName );
@@ -360,18 +360,18 @@ public:
 	void					Spawn();
 	void					Use( idPlayer* player );
 
-	// ########################################################## SR	
+	// ########################################################## SR
 
 	//virtual void			Init();
 
-	void 					HitObject(void);	// const trace_t &collision, const idVec3 &velocity  );
-	void					FireBullet(void);
-	void					FireBomb(void);
-	void 					Aim(void);
-	void					Save(idSaveGame* savefile) const;
-	void					Restore(idRestoreGame* savefile);
-	int						GetZoomFov(void);
-	void 					LightOnOff(bool on);
+	void 					HitObject( void );	// const trace_t &collision, const idVec3 &velocity  );
+	void					FireBullet( void );
+	void					FireBomb( void );
+	void 					Aim( void );
+	void					Save( idSaveGame* savefile ) const;
+	void					Restore( idRestoreGame* savefile );
+	int						GetZoomFov( void );
+	void 					LightOnOff( bool on );
 	bool					lightOn;
 
 	jointHandle_t			aimJoint;
@@ -398,14 +398,14 @@ public:
 
 protected:
 
-	// ############################################################# SR	
+	// ############################################################# SR
 
 	bool					netSyncPhysics;
 	bool					isAccelerating;
 	bool					isDecelerating;
 
-	void 					TireTrack(const idVec3& origin, float angle, const idMaterial* material);
-	void 					LaunchProjectile(float spread, const char* projSound);
+	void 					TireTrack( const idVec3& origin, float angle, const idMaterial* material );
+	void 					LaunchProjectile( float spread, const char* projSound );
 
 	int						zoomFov;
 	int 					accelTime;
@@ -448,7 +448,7 @@ protected:
 
 
 	// ######################################################## SR END
-	
+
 	//idPlayer* 				player;
 	//jointHandle_t			eyesJoint;
 	//jointHandle_t			steeringWheelJoint;
@@ -472,10 +472,10 @@ protected:
 
 	void					UpdateSteerAngle();
 
-	void					Event_HeadLightsOn(int on);
+	void					Event_HeadLightsOn( int on );
 	void					Event_GetAutoDriveWaypoint();
-	void					Event_SetAutoDriveWaypoint(idEntity* entity);
-	void					Event_SetAutoDriveSteerSpeed(float);
+	void					Event_SetAutoDriveWaypoint( idEntity* entity );
+	void					Event_SetAutoDriveSteerSpeed( float );
 
 	void					PostSpawn();
 
@@ -517,31 +517,32 @@ idAFEntity_VehicleSimple_4wd
 ===============================================================================
 */
 
-class idAFEntity_VehicleSimple_4wd : public idAFEntity_Vehicle {
+class idAFEntity_VehicleSimple_4wd : public idAFEntity_Vehicle
+{
 public:
-	CLASS_PROTOTYPE(idAFEntity_VehicleSimple_4wd);
+	CLASS_PROTOTYPE( idAFEntity_VehicleSimple_4wd );
 
-	idAFEntity_VehicleSimple_4wd(void);
-	~idAFEntity_VehicleSimple_4wd(void);
+	idAFEntity_VehicleSimple_4wd( void );
+	~idAFEntity_VehicleSimple_4wd( void );
 
-	void					Spawn(void);
-	virtual void			Think(void);
+	void					Spawn( void );
+	virtual void			Think( void );
 
 	// ############### SR
-	virtual void			WriteToSnapshot(idBitMsg& msg) const;
-	virtual void			ReadFromSnapshot(const idBitMsg& msg);
-	virtual void			ClientPredictionThink(void);
+	virtual void			WriteToSnapshot( idBitMsg& msg ) const;
+	virtual void			ReadFromSnapshot( const idBitMsg& msg );
+	virtual void			ClientPredictionThink( void );
 	float					bvelocity;
 	float					bforce;
-	// ############### END	
+	// ############### END
 
 	//ivan start
-	void					Save(idSaveGame* savefile) const;
-	void					Restore(idRestoreGame* savefile);
-	virtual void			RecreateDynamicConstraints(idList<idAFConstraint*, TAG_IDLIB_LIST_PHYSICS>* constraints); // ##  TAG_IDLIB_LIST_PHYSICS
+	void					Save( idSaveGame* savefile ) const;
+	void					Restore( idRestoreGame* savefile );
+	virtual void			RecreateDynamicConstraints( idList<idAFConstraint*, TAG_IDLIB_LIST_PHYSICS>* constraints ); // ##  TAG_IDLIB_LIST_PHYSICS
 	//ivan end
 
-	bool					Pain(idEntity* inflictor, idEntity* attacker, int damage, const idVec3& dir, int location);
+	bool					Pain( idEntity* inflictor, idEntity* attacker, int damage, const idVec3& dir, int location );
 protected:
 	//idAFBody *				wheels[4];
 	idClipModel* wheelModel;
@@ -553,7 +554,7 @@ protected:
 	float						tempAngles[4];	// #### SR
 	idVec3 						wheelorigin[4];	// #### SR
 
-	virtual bool			Collide(const trace_t& collision, const idVec3& velocity); // #########  SR
+	virtual bool			Collide( const trace_t& collision, const idVec3& velocity ); // #########  SR
 
 };
 

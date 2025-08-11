@@ -953,10 +953,10 @@ private:
 	bool					buggy_thirdPerson;
 	float					viewDist, maxViewDist, minViewDist, viewStep, maxBuggyYaw;
 	float					viewHeight, maxViewHeight, minViewHeight, viewStepH, zoomStep;
-	void 					SwapView(void);
-	void 					ZoomView(void);
-	void 					Flashlight(void);
-	void 					BuggyThink(void);
+	void 					SwapView( void );
+	void 					ZoomView( void );
+	void 					Flashlight( void );
+	void 					BuggyThink( void );
 	int						zoomBuggyFov;
 	idEntityPtr<idAFEntity_Vehicle>	currentVehicle;
 	// SE2 vehicles end

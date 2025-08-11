@@ -100,8 +100,8 @@ public:
 	float* 			ToFloatPtr();
 	const char* 	ToString( int precision = 2 ) const;
 
-	idVec3 			ToRight(void) const;	// ########### SR
-	idVec3 			ToUp(void) const;		// ########### SR
+	idVec3 			ToRight( void ) const;	// ########### SR
+	idVec3 			ToUp( void ) const;		// ########### SR
 };
 
 extern idAngles ang_zero;
