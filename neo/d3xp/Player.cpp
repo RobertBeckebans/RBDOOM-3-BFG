@@ -6006,6 +6006,10 @@ void idPlayer::UpdateWeapon()
 	{
 		Weapon_NPC();
 	}
+	else if( ( focusVehicle && ( focusVehicle->health > 0 ) ) || currentVehicle.IsValid() )
+	{
+		Weapon_VEHICLE();
+	}
 	else
 	{
 		Weapon_Combat();
