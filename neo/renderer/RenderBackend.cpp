@@ -2265,14 +2265,11 @@ void idRenderBackend::AmbientPass( const drawSurf_t* const* drawSurfs, int numDr
 	// force MVP change on first surface
 	currentSpace = NULL;
 
-	// draw all the subview surfaces, which will already be at the start of the sorted list,
-	// with the general purpose path
-	GL_State( GLS_DEFAULT );
-
 #define BLEND_NORMALS 1
 
-	// RB: even use additive blending to blend the normals
-	//GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHMASK | GLS_DEPTHFUNC_EQUAL );
+	// draw all the subview surfaces, which will already be at the start of the sorted list,
+	// with the general purpose path
+	//GL_State( GLS_DEFAULT );
 
 	GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_DEPTHMASK | GLS_DEPTHFUNC_EQUAL );
 
@@ -2333,9 +2330,26 @@ void idRenderBackend::AmbientPass( const drawSurf_t* const* drawSurfs, int numDr
 
 		// translucent surfaces don't put anything in the depth buffer and don't
 		// test against it, which makes them fail the mirror clip plane operation
-		if( surfaceMaterial->Coverage() == MC_TRANSLUCENT )
+		if( fillGbuffer )
 		{
-			continue;
+			if( surfaceMaterial->Coverage() == MC_TRANSLUCENT )
+			{
+				continue;
+			}
+		}
+		else
+		{
+			if( surfaceMaterial->Coverage() == MC_TRANSLUCENT )
+			{
+				// The depth buffer wasn't filled in for translucent surfaces, so they
+				// can never be constrained to perforated surfaces with the depthfunc equal.
+
+				GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHMASK | GLS_DEPTHFUNC_LESS );
+			}
+			else
+			{
+				GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHMASK | GLS_DEPTHFUNC_EQUAL );
+			}
 		}
 
 		// get the expressions for conditionals / color / texcoords
@@ -2504,14 +2518,17 @@ void idRenderBackend::AmbientPass( const drawSurf_t* const* drawSurfs, int numDr
 					if( inter.bumpImage != NULL )
 					{
 #if BLEND_NORMALS
-						if( inter.vertexColor == SVC_IGNORE )
+						if( fillGbuffer )
 						{
-							GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_DEPTHMASK | GLS_DEPTHFUNC_EQUAL );
-						}
-						else
-						{
-							// RB: this is a bit hacky: use additive blending to blend the normals
-							GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHMASK | GLS_DEPTHFUNC_EQUAL );
+							if( inter.vertexColor == SVC_IGNORE )
+							{
+								GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_DEPTHMASK | GLS_DEPTHFUNC_EQUAL );
+							}
+							else
+							{
+								// RB: this is a bit hacky: use additive blending to blend the normals
+								GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHMASK | GLS_DEPTHFUNC_EQUAL );
+							}
 						}
 #endif
 
@@ -2537,14 +2554,17 @@ void idRenderBackend::AmbientPass( const drawSurf_t* const* drawSurfs, int numDr
 					if( inter.diffuseImage != NULL )
 					{
 #if BLEND_NORMALS
-						if( inter.vertexColor == SVC_IGNORE )
+						if( fillGbuffer )
 						{
-							GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_DEPTHMASK | GLS_DEPTHFUNC_EQUAL );
-						}
-						else
-						{
-							// RB: this is a bit hacky: use additive blending to blend the normals
-							GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHMASK | GLS_DEPTHFUNC_EQUAL );
+							if( inter.vertexColor == SVC_IGNORE )
+							{
+								GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_DEPTHMASK | GLS_DEPTHFUNC_EQUAL );
+							}
+							else
+							{
+								// RB: this is a bit hacky: use additive blending to blend the normals
+								GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHMASK | GLS_DEPTHFUNC_EQUAL );
+							}
 						}
 #endif
 
@@ -2569,14 +2589,17 @@ void idRenderBackend::AmbientPass( const drawSurf_t* const* drawSurfs, int numDr
 					if( inter.specularImage != NULL )
 					{
 #if BLEND_NORMALS
-						if( inter.vertexColor == SVC_IGNORE )
+						if( fillGbuffer )
 						{
-							GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_DEPTHMASK | GLS_DEPTHFUNC_EQUAL );
-						}
-						else
-						{
-							// RB: this is a bit hacky: use additive blending to blend the normals
-							GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHMASK | GLS_DEPTHFUNC_EQUAL );
+							if( inter.vertexColor == SVC_IGNORE )
+							{
+								GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_DEPTHMASK | GLS_DEPTHFUNC_EQUAL );
+							}
+							else
+							{
+								// RB: this is a bit hacky: use additive blending to blend the normals
+								GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHMASK | GLS_DEPTHFUNC_EQUAL );
+							}
 						}
 #endif
 
@@ -2593,14 +2616,17 @@ void idRenderBackend::AmbientPass( const drawSurf_t* const* drawSurfs, int numDr
 
 		// draw the final interaction
 #if BLEND_NORMALS
-		if( inter.vertexColor == SVC_IGNORE )
+		if( fillGbuffer )
 		{
-			GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_DEPTHMASK | GLS_DEPTHFUNC_EQUAL );
-		}
-		else
-		{
-			// RB: this is a bit hacky: use additive blending to blend the normals
-			GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHMASK | GLS_DEPTHFUNC_EQUAL );
+			if( inter.vertexColor == SVC_IGNORE )
+			{
+				GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ZERO | GLS_DEPTHMASK | GLS_DEPTHFUNC_EQUAL );
+			}
+			else
+			{
+				// RB: this is a bit hacky: use additive blending to blend the normals
+				GL_State( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE | GLS_DEPTHMASK | GLS_DEPTHFUNC_EQUAL );
+			}
 		}
 #endif
 
