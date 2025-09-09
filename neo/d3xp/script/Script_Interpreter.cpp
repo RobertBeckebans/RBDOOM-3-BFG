@@ -910,9 +910,10 @@ void idInterpreter::CallEvent( const function_t* func, int argsize )
 		{
 			case D_EVENT_INTEGER :
 				var.intPtr = ( int* )&localstack[ start + pos ];
+				// SRS - restore intptr_t alignment to match callback signatures
+				data[ i ] = int( *var.floatPtr );
 				// RB: fixed data alignment
-				//data[ i ] = int( *var.floatPtr );
-				( *( int* )&data[ i ] ) = int( *var.floatPtr );
+				//( *( int* )&data[ i ] ) = int( *var.floatPtr );
 				// RB end
 				break;
 
@@ -1062,7 +1063,9 @@ void idInterpreter::CallSysEvent( const function_t* func, int argsize )
 		{
 			case D_EVENT_INTEGER :
 				source.intPtr = ( int* )&localstack[ start + pos ];
-				*( int* )&data[ i ] = int( *source.floatPtr );
+				// SRS - restore intptr_t alignment to match callback signatures
+				data[ i ] = int( *source.floatPtr );
+				//*( int* )&data[ i ] = int( *source.floatPtr );
 				break;
 
 			case D_EVENT_FLOAT :

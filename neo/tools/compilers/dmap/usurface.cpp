@@ -3,7 +3,7 @@
 
 Doom 3 GPL Source Code
 Copyright (C) 1999-2011 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2015 Robert Beckebans
+Copyright (C) 2015-2025 Robert Beckebans
 
 This file is part of the Doom 3 GPL Source Code (?Doom 3 Source Code?).
 
@@ -289,6 +289,7 @@ mapTri_t* TriListForSide( const side_t* s, const idWinding* w )
 				dv = tri->v + j;
 				dv->xyz = *vec;
 
+				// calculate texture s/t from brush primitive texture matrix
 				idVec2 st;
 				st.x = ( dv->xyz * s->texVec.v[0].ToVec3() ) + s->texVec.v[0][3];
 				st.y = ( dv->xyz * s->texVec.v[1].ToVec3() ) + s->texVec.v[1][3];
@@ -667,10 +668,12 @@ void AddMapTriToAreas( mapTri_t* tri, uEntity_t* e )
 	w = WindingForTri( tri );
 	area = CheckWindingInAreas_r( w, e->tree->headnode );
 	delete w;
+
 	if( area == -1 )
 	{
 		return;
 	}
+
 	if( area >= 0 )
 	{
 		mapTri_t*	newTri;
@@ -725,20 +728,18 @@ void PutPrimitivesInAreas( uEntity_t* e )
 		if( !b )
 		{
 			// add curve triangles
-			for( tri = prim->tris ; tri ; tri = tri->next )
+			for( tri = prim->curveTris ; tri ; tri = tri->next )
 			{
 				AddMapTriToAreas( tri, e );
 			}
 
 			// RB: add new polygon mesh
-			for( tri = prim->bsptris ; tri ; tri = tri->next )
+			for( tri = prim->polyTris ; tri ; tri = tri->next )
 			{
-#if 1
-				// FIXME reverse vertex order for drawing
+				// we reversed the order for the BSP builder in ParsePolygonMesh, so put it back
 				idDrawVert tmp = tri->v[0];
 				tri->v[0] = tri->v[2];
 				tri->v[2] = tmp;
-#endif
 
 				AddMapTriToAreas( tri, e );
 			}
@@ -763,45 +764,143 @@ void PutPrimitivesInAreas( uEntity_t* e )
 	// optionally inline some of the func_static models
 	if( dmapGlobals.entityNum == 0 )
 	{
-		bool inlineAll = dmapGlobals.uEntities[0].mapEntity->epairs.GetBool( "inlineAllStatics" );
+		bool inlineAll = dmapGlobals.uEntities[0].mapEntity->epairs.GetBool( "inlineAllStatics" ) || dmapGlobals.inlineStatics;
 
-		for( int eNum = 1 ; eNum < dmapGlobals.num_entities ; eNum++ )
+		for( int eNum = 1 ; eNum < dmapGlobals.numEntities ; eNum++ )
 		{
 			uEntity_t* entity = &dmapGlobals.uEntities[eNum];
 			const char* className = entity->mapEntity->epairs.GetString( "classname" );
-			if( idStr::Icmp( className, "func_static" ) )
+
+			if( idStr::Icmp( className, "func_static" ) != 0 && idStr::Icmp( className, "misc_model" ) != 0 )
 			{
 				continue;
 			}
+
 			if( !entity->mapEntity->epairs.GetBool( "inline" ) && !inlineAll )
 			{
 				continue;
 			}
-			const char* modelName = entity->mapEntity->epairs.GetString( "model" );
-			if( !modelName )
+
+			idStr modelName = entity->mapEntity->epairs.GetString( "model" );
+			if( modelName.IsEmpty() )
 			{
 				continue;
 			}
-			idRenderModel*	model = renderModelManager->FindModel( modelName );
 
-			common->Printf( "inlining %s.\n", entity->mapEntity->epairs.GetString( "name" ) );
+			const char* entityName = entity->mapEntity->epairs.GetString( "name" );
+			//common->Printf( "testing %s.%s\n", entityName, modelName.c_str() );
 
-			idMat3	axis;
-			// get the rotation matrix in either full form, or single angle form
-			if( !entity->mapEntity->epairs.GetMatrix( "rotation", "1 0 0 0 1 0 0 0 1", axis ) )
+			if( inlineAll )
 			{
-				float angle = entity->mapEntity->epairs.GetFloat( "angle" );
-				if( angle != 0.0f )
+				idStr extension;
+				modelName.ExtractFileExtension( extension );
+
+				if( extension.IsEmpty() )
 				{
-					axis = idAngles( 0.0f, angle, 0.0f ).ToMat3();
+					continue;
 				}
-				else
+
+				if( ( extension.Icmp( GLTF_GLB_EXT ) != 0 ) &&
+						( extension.Icmp( GLTF_EXT ) != 0 ) &&
+						( extension.Icmp( "lwo" ) != 0 ) &&
+						( extension.Icmp( "ase" ) != 0 ) &&
+						( extension.Icmp( "ma" ) != 0 ) &&
+						( extension.Icmp( "obj" ) != 0 ) )
 				{
-					axis.Identity();
+					continue;	// not a supported model format
+				}
+
+				//if( idStr::Icmp( modelName.c_str(), "models/mapobjects/mc_underground/mcucave.ASE" ) == 0 )
+				//{
+				//	int a = 1;	// place for debugger breakpoint
+				//	continue;
+				//}
+
+				// don't break interactive GUIs
+				if( entity->mapEntity->epairs.GetString( "gui", NULL ) != NULL )
+				{
+					continue;
+				}
+
+				if( entity->mapEntity->epairs.GetString( "gui2", NULL ) != NULL )
+				{
+					continue;
+				}
+
+				if( entity->mapEntity->epairs.GetString( "gui3", NULL ) != NULL )
+				{
+					continue;
 				}
 			}
 
+			idRenderModel*	model = renderModelManager->FindModel( modelName );
+
+			common->Printf( "inlining %s.%s\n", entityName, modelName.c_str() );
+			dmapGlobals.totalInlinedModels++;
+
+			idMat3	axis;
+			axis.Identity();
+
+			// get the rotation matrix in either full form, or single angle form
+			if( !entity->mapEntity->epairs.GetMatrix( "rotation", "1 0 0 0 1 0 0 0 1", axis ) )
+			{
+				// RB: TrenchBroom interop
+				// support "angles", "modelscale" and "modelscale_vec" like in Quake 3
+				idAngles angles;
+				idMat3 rotMat;
+				idMat3 scaleMat;
+
+				rotMat.Identity();
+				scaleMat.Identity();
+
+				if( entity->mapEntity->epairs.GetAngles( "angles", "0 0 0", angles ) )
+				{
+					if( angles.pitch != 0.0f || angles.yaw != 0.0f || angles.roll != 0.0f )
+					{
+						rotMat = angles.ToMat3();
+					}
+				}
+				else
+				{
+					float angle = entity->mapEntity->epairs.GetFloat( "angle" );
+					if( angle != 0.0f )
+					{
+						rotMat = idAngles( 0.0f, angle, 0.0f ).ToMat3();
+					}
+					else
+					{
+						rotMat.Identity();
+					}
+				}
+
+				idVec3 scaleVec;
+				if( entity->mapEntity->epairs.GetVector( "modelscale_vec", "1 1 1", scaleVec ) )
+				{
+					// don't allow very small and negative values
+					if( ( scaleVec.x != 1.0f || scaleVec.y != 1.0f || scaleVec.z != 1.0f ) && ( scaleVec.x > 0.01f && scaleVec.y > 0.01f && scaleVec.z > 0.01f ) )
+					{
+						scaleMat[0][0] = scaleVec.x;
+						scaleMat[1][1] = scaleVec.y;
+						scaleMat[2][2] = scaleVec.z;
+					}
+				}
+				else
+				{
+					float scale = entity->mapEntity->epairs.GetFloat( "modelscale", 1.0f );
+					if( scale != 1.0f && scale > 0.01f )
+					{
+						scaleMat[0][0] = scale;
+						scaleMat[1][1] = scale;
+						scaleMat[2][2] = scale;
+					}
+				}
+
+				axis = scaleMat * rotMat;
+			}
+
 			idVec3	origin = entity->mapEntity->epairs.GetVector( "origin" );
+
+			// TODO support skins
 
 			for( i = 0 ; i < model->NumSurfaces() ; i++ )
 			{
@@ -811,11 +910,22 @@ void PutPrimitivesInAreas( uEntity_t* e )
 				mapTri_t	mapTri;
 				memset( &mapTri, 0, sizeof( mapTri ) );
 				mapTri.material = surface->shader;
+
 				// don't let discretes (autosprites, etc) merge together
 				if( mapTri.material->IsDiscrete() )
 				{
 					mapTri.mergeGroup = ( void* )surface;
 				}
+
+				if( inlineAll )
+				{
+					const char* materialName = mapTri.material->GetName();
+					if( !mapTri.material->IsValid() || idStr::Cmp( materialName, "_default" ) == 0 )
+					{
+						continue;
+					}
+				}
+
 				for( int j = 0 ; j < tri->numIndexes ; j += 3 )
 				{
 					for( int k = 0 ; k < 3 ; k++ )
@@ -827,6 +937,7 @@ void PutPrimitivesInAreas( uEntity_t* e )
 						mapTri.v[k].SetNormal( tri->verts[tri->indexes[j + k]].GetNormal() * axis );
 						mapTri.v[k].SetTexCoord( tri->verts[tri->indexes[j + k]].GetTexCoord() );
 					}
+
 					AddMapTriToAreas( &mapTri, e );
 				}
 			}
@@ -912,7 +1023,7 @@ void FilterMeshesIntoTree( uEntity_t* e )
 		if( !b )
 		{
 			// add BSP triangles
-			for( tri = prim->bsptris ; tri ; tri = tri->next )
+			for( tri = prim->polyTris ; tri ; tri = tri->next )
 			{
 				idWinding* w = WindingForTri( tri );
 
@@ -1163,7 +1274,7 @@ void Prelight( uEntity_t* e )
 		return;
 	}
 
-	if( dmapGlobals.shadowOptLevel > 0 )
+	if( !dmapGlobals.noMerge )
 	{
 		common->VerbosePrintf( "----- BuildLightShadows -----\n" );
 		start = Sys_Milliseconds();

@@ -1675,10 +1675,43 @@ void idStaticEntity::Spawn()
 	bool hidden;
 
 	// an inline static model will not do anything at all
-	if( spawnArgs.GetBool( "inline" ) || gameLocal.world->spawnArgs.GetBool( "inlineAllStatics" ) )
+	if( spawnArgs.GetBool( "inline" ) )
 	{
 		Hide();
 		return;
+	}
+
+	idStr model = spawnArgs.GetString( "model" );
+	if( gameLocal.world->spawnArgs.GetBool( "inlineAllStatics" ) )
+	{
+		// RB: this wasn't used in Doom 3 BFG
+
+		// don't break interactive GUIs
+		bool isGUI = false;
+		if( spawnArgs.GetString( "gui", NULL ) != NULL ||
+				spawnArgs.GetString( "gui2", NULL ) != NULL ||
+				spawnArgs.GetString( "gui3", NULL ) != NULL )
+		{
+			isGUI = true;
+		}
+
+		idStr extension;
+		model.ExtractFileExtension( extension );
+
+		// only support real model formats and no brush models
+		if( ( extension.Icmp( GLTF_GLB_EXT ) == 0 ) ||
+				( extension.Icmp( GLTF_EXT ) == 0 ) ||
+				( extension.Icmp( "lwo" ) == 0 ) ||
+				( extension.Icmp( "ase" ) == 0 ) ||
+				( extension.Icmp( "ma" ) == 0 ) ||
+				( extension.Icmp( "obj" ) == 0 ) )
+		{
+			if( !isGUI )
+			{
+				Hide();
+				return;
+			}
+		}
 	}
 
 	solid = spawnArgs.GetBool( "solid" );
@@ -1696,7 +1729,6 @@ void idStaticEntity::Spawn()
 	spawnTime = gameLocal.time;
 	active = false;
 
-	idStr model = spawnArgs.GetString( "model" );
 	if( model.Find( ".prt" ) >= 0 )
 	{
 		// we want the parametric particles out of sync with each other

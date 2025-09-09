@@ -41,21 +41,20 @@ dmapGlobals_t	dmapGlobals;
 ProcessModel
 ============
 */
-bool ProcessModel( uEntity_t* e, bool floodFill )
+bool ProcessModel( uEntity_t* e, bool floodFillWorld )
 {
-	bspface_t*	faces;
+	bspFace_t*	faces;
+
+	faces = MakeStructuralBspFaceList( e->primitives );
+
+	// RB: dump input faces for debugging
+	if( dmapGlobals.exportDebugVisuals )
+	{
+		WriteGLViewFacelist( faces, "facelist" );
+	}
 
 	// build a bsp tree using all of the sides
 	// of all of the structural brushes
-	faces = MakeStructuralBspFaceList( e->primitives );
-
-	// RB: dump BSP for debugging
-	if( dmapGlobals.glview )
-	{
-		WriteGLView( faces, "facelist" );
-	}
-	// RB end
-
 	e->tree = FaceBSP( faces );
 
 	// create portals at every leaf intersection
@@ -63,16 +62,37 @@ bool ProcessModel( uEntity_t* e, bool floodFill )
 	MakeTreePortals( e->tree );
 
 	// RB: calculate node numbers for split plane analysis
-	NumberNodes_r( e->tree->headnode, 0 );
+	int numLeafs = 0;
+	int numNodes = NumberNodes_r( e->tree->headnode, 0, numLeafs );
+	int depth = log2f( numLeafs + 1 );
 
 	// classify the leafs as opaque or areaportal
 	FilterBrushesIntoTree( e );
 
 	// RB: use mapTri_t by MapPolygonMesh primitives in case we don't use brushes
-	FilterMeshesIntoTree( e );
+	if( dmapGlobals.entityNum == 0 )
+	{
+		FilterMeshesIntoTree( e );
+	}
 
 	// see if the bsp is completely enclosed
-	if( floodFill && !dmapGlobals.noFlood )
+	bool floodFillEntity = ( e->tree->simpleBSP && dmapGlobals.entityNum != 0 );
+	if( floodFillEntity )
+	{
+		// mark center of entity as occupied so FillOutside works
+		idVec3 center = e->tree->bounds.GetCenter();
+		if( PlaceOccupant( e->tree->headnode, center, e ) )
+		{
+			bool inside = true;
+		}
+
+		//if( inside ) // should always work
+		{
+			// set the outside leafs to opaque
+			FillOutside( e );
+		}
+	}
+	else if( ( floodFillWorld && !dmapGlobals.noFlood ) )
 	{
 		if( FloodEntities( e->tree ) )
 		{
@@ -85,10 +105,15 @@ bool ProcessModel( uEntity_t* e, bool floodFill )
 			common->Warning( "******* leaked *******" );
 			common->Printf( "**********************\n" );
 			LeakFile( e->tree );
+			WriteGLViewBSP( e->tree, "leaked", dmapGlobals.entityNum, dmapGlobals.verboseentities );
+
 			// bail out here.  If someone really wants to
 			// process a map that leaks, they should use
 			// -noFlood
-			return false;
+			if( floodFillWorld && !dmapGlobals.noFlood )
+			{
+				return false;
+			}
 		}
 	}
 
@@ -117,7 +142,7 @@ bool ProcessModel( uEntity_t* e, bool floodFill )
 	{
 		OptimizeEntity( e );
 	}
-	else  if( !dmapGlobals.noTJunc )
+	else if( !dmapGlobals.noTJunc )
 	{
 		FixEntityTjunctions( e );
 	}
@@ -137,11 +162,11 @@ bool ProcessModels()
 {
 	bool oldVerbose = dmap_verbose.GetBool();
 
-	common->DmapPacifierCompileProgressTotal( dmapGlobals.num_entities );
+	common->DmapPacifierCompileProgressTotal( dmapGlobals.numEntities );
 
 	idStrStatic<128> entityInfo;
 
-	for( dmapGlobals.entityNum = 0; dmapGlobals.entityNum < dmapGlobals.num_entities; dmapGlobals.entityNum++, common->DmapPacifierCompileProgressIncrement( 1 ) )
+	for( dmapGlobals.entityNum = 0; dmapGlobals.entityNum < dmapGlobals.numEntities; dmapGlobals.entityNum++, common->DmapPacifierCompileProgressIncrement( 1 ) )
 	{
 		uEntity_t* entity = &dmapGlobals.uEntities[dmapGlobals.entityNum];
 		if( !entity->primitives )
@@ -167,6 +192,14 @@ bool ProcessModels()
 			return false;
 		}
 
+		// RB: dump BSP after nodes being pruned and optimized
+		if( dmapGlobals.exportDebugVisuals )
+		{
+			uEntity_t* world = entity;
+
+			WriteGLViewBSP( world->tree, "unpruned", dmapGlobals.entityNum, dmapGlobals.verboseentities );
+		}
+
 		// we usually don't want to see output for submodels unless
 		// something strange is going on
 		if( !dmapGlobals.verboseentities )
@@ -188,13 +221,16 @@ DmapHelp
 void DmapHelp()
 {
 	common->Printf(
-
 		"Usage: dmap [options] mapfile\n"
 		"Options:\n"
-		"noCurves          = don't process curves\n"
-		"noCM              = don't create collision map\n"
-		"noAAS             = don't create AAS files\n"
-
+		"noCurves               = don't process curves\n"
+		"noCM                   = don't create collision map\n"
+		"noAAS                  = don't create AAS files\n"
+		"noFlood                = skip area flooding = bad performance\n"
+		"blockSize <x> <y> <z>  = cut BSP along these dimensions or disable with 0 0 0\n"
+		"obj                    = export BSP render surfaces as .obj file\n"
+		"debug                  = export BSP portals and other details as .obj files\n"
+		""
 	);
 }
 
@@ -208,11 +244,13 @@ void ResetDmapGlobals()
 	dmapGlobals.mapFileBase[0] = '\0';
 	dmapGlobals.dmapFile = NULL;
 	dmapGlobals.mapPlanes.Clear();
-	dmapGlobals.num_entities = 0;
+	dmapGlobals.splitPlanesCounter.Clear();
+	dmapGlobals.numEntities = 0;
 	dmapGlobals.uEntities = NULL;
 	dmapGlobals.entityNum = 0;
 	dmapGlobals.mapLights.Clear();
-	dmapGlobals.glview = false;
+	dmapGlobals.exportDebugVisuals = false;
+	dmapGlobals.exportObj = false;
 	dmapGlobals.asciiTree = false;
 	dmapGlobals.noOptimize = false;
 	dmapGlobals.verboseentities = false;
@@ -220,16 +258,16 @@ void ResetDmapGlobals()
 	dmapGlobals.fullCarve = false;
 	dmapGlobals.noModelBrushes = false;
 	dmapGlobals.noTJunc = false;
-	dmapGlobals.nomerge = false;
+	dmapGlobals.noMerge = false;
 	dmapGlobals.noFlood = false;
 	dmapGlobals.noClipSides = false;
 	dmapGlobals.noLightCarve = false;
-	dmapGlobals.noShadow = false;
-	dmapGlobals.shadowOptLevel = SO_NONE;
 	dmapGlobals.drawBounds.Clear();
 	dmapGlobals.drawflag = false;
-	dmapGlobals.totalShadowTriangles = 0;
-	dmapGlobals.totalShadowVerts = 0;
+	dmapGlobals.bspAlternateSplitWeights = false;
+	dmapGlobals.blockSize = idVec3( 1024.0f, 1024.0f, 1024.0f );	// default block size for splitting
+	dmapGlobals.inlineStatics = false;
+	dmapGlobals.totalInlinedModels = 0;
 }
 
 /*
@@ -258,11 +296,6 @@ void Dmap( const idCmdArgs& args )
 	common->Printf( "---- dmap ----\n" );
 
 	dmapGlobals.fullCarve = true;
-	dmapGlobals.shadowOptLevel = SO_MERGE_SURFACES;		// create shadows by merging all surfaces, but no super optimization
-//	dmapGlobals.shadowOptLevel = SO_CLIP_OCCLUDERS;		// remove occluders that are completely covered
-//	dmapGlobals.shadowOptLevel = SO_SIL_OPTIMIZE;
-//	dmapGlobals.shadowOptLevel = SO_CULL_OCCLUDED;
-
 	dmapGlobals.noLightCarve = true;
 
 	for( i = 1 ; i < args.Argc() ; i++ )
@@ -279,9 +312,13 @@ void Dmap( const idCmdArgs& args )
 			}
 		}
 
-		if( !idStr::Icmp( s, "glview" ) )
+		if( !idStr::Icmp( s, "glview" ) || !idStr::Icmp( s, "debug" ) )
 		{
-			dmapGlobals.glview = true;
+			dmapGlobals.exportDebugVisuals = true;
+		}
+		else if( !idStr::Icmp( s, "obj" ) )
+		{
+			dmapGlobals.exportObj = true;
 		}
 		else if( !idStr::Icmp( s, "asciiTree" ) )
 		{
@@ -294,8 +331,35 @@ void Dmap( const idCmdArgs& args )
 		}
 		else if( !idStr::Icmp( s, "draw" ) )
 		{
-			common->Printf( "drawflag = true\n" );
+			common->Printf( "draw = true\n" );
 			dmapGlobals.drawflag = true;
+		}
+		else if( !idStr::Icmp( s, "altsplit" ) )
+		{
+			common->Printf( "bspAlternateSplitWeights = true\n" );
+			dmapGlobals.bspAlternateSplitWeights = true;
+		}
+		else if( !idStr::Icmp( s, "blockSize" ) )
+		{
+			if( i + 3 >= args.Argc() )
+			{
+				common->Error( "usage: dmap blockSize <x> <y> <z>" );
+			}
+			dmapGlobals.blockSize[0] = atof( args.Argv( i + 1 ) );
+			dmapGlobals.blockSize[1] = atof( args.Argv( i + 2 ) );
+			dmapGlobals.blockSize[2] = atof( args.Argv( i + 3 ) );
+			common->Printf( "blockSize = %f %f %f\n", dmapGlobals.blockSize[0], dmapGlobals.blockSize[1], dmapGlobals.blockSize[2] );
+			i += 3;
+		}
+		else if( !idStr::Icmp( s, "inlineAll" ) )
+		{
+			common->Printf( "inlineAll = true\n" );
+			dmapGlobals.inlineStatics = true;
+		}
+		else if( !idStr::Icmp( s, "noMerge" ) )
+		{
+			common->Printf( "noMerge = true\n" );
+			dmapGlobals.noMerge = true;
 		}
 		else if( !idStr::Icmp( s, "noFlood" ) )
 		{
@@ -341,12 +405,6 @@ void Dmap( const idCmdArgs& args )
 		{
 			common->Printf( "noCarve = true\n" );
 			dmapGlobals.fullCarve = false;
-		}
-		else if( !idStr::Icmp( s, "shadowOpt" ) )
-		{
-			dmapGlobals.shadowOptLevel = ( shadowOptLevel_t )atoi( args.Argv( i + 1 ) );
-			common->Printf( "shadowOpt = %i\n", dmapGlobals.shadowOptLevel );
-			i += 1;
 		}
 		else if( !idStr::Icmp( s, "noTjunc" ) )
 		{
@@ -434,15 +492,6 @@ void Dmap( const idCmdArgs& args )
 	if( ProcessModels() )
 	{
 		WriteOutputFile();
-
-		// RB: dump BSP after nodes being pruned and optimized
-		if( dmapGlobals.glview )
-		{
-			uEntity_t* world = &dmapGlobals.uEntities[0];
-
-			WriteGLView( world->tree, "pruned", 0, true );
-		}
-		// RB end
 	}
 	else
 	{
@@ -451,8 +500,7 @@ void Dmap( const idCmdArgs& args )
 
 	FreeDMapFile();
 
-	common->Printf( "%i total shadow triangles\n", dmapGlobals.totalShadowTriangles );
-	common->Printf( "%i total shadow verts\n", dmapGlobals.totalShadowVerts );
+	common->Printf( "%i static models merged\n", dmapGlobals.totalInlinedModels );
 
 	end = Sys_Milliseconds();
 	common->Printf( "-----------------------\n" );

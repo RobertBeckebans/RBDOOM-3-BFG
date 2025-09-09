@@ -2523,6 +2523,10 @@ void MapPolygonMesh::ConvertFromPatch( const idMapPatch* patch, int entityNum, i
 	delete cp;
 
 	SetContents();
+
+	// RB: patch meshes are not opaque
+	// avoid BSP splits caused by patches
+	opaque = false;
 }
 
 bool MapPolygonMesh::Write( idFile* fp, int primitiveNum, const idVec3& origin ) const

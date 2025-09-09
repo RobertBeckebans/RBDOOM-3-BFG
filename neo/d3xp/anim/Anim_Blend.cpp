@@ -4247,7 +4247,7 @@ void idAnimator::PushAnims( int channelNum, int currentTime, int blendTime )
 	idAnimBlend* channel;
 
 	channel = channels[ channelNum ];
-	if( !channel[ 0 ].GetWeight( currentTime ) || ( channel[ 0 ].starttime == currentTime ) )
+	if( ( channel[ 0 ].GetWeight( currentTime ) == 0.0 ) || ( channel[ 0 ].starttime == currentTime ) )
 	{
 		return;
 	}

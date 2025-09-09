@@ -80,7 +80,7 @@ Portal_Passable
 Returns true if the portal has non-opaque leafs on both sides
 =============
 */
-static bool Portal_Passable( uPortal_t*  p )
+bool Portal_Passable( uPortal_t*  p )
 {
 	if( !p->onnode )
 	{
@@ -226,7 +226,7 @@ static void MakeHeadnodePortals( tree_t* tree )
 	}
 
 	// pad with some space so there will never be null volume leafs
-	for( i = 0 ; i < 3 ; i++ )
+	for( i = 0; i < 3; i++ )
 	{
 		bounds[0][i] = tree->bounds[0][i] - SIDESPACE;
 		bounds[1][i] = tree->bounds[1][i] + SIDESPACE;
@@ -236,9 +236,9 @@ static void MakeHeadnodePortals( tree_t* tree )
 		}
 	}
 
-	for( i = 0 ; i < 3 ; i++ )
+	for( i = 0; i < 3; i++ )
 	{
-		for( j = 0 ; j < 2 ; j++ )
+		for( j = 0; j < 2; j++ )
 		{
 			n = j * 3 + i;
 
@@ -264,9 +264,9 @@ static void MakeHeadnodePortals( tree_t* tree )
 	}
 
 	// clip the basewindings by all the other planes
-	for( i = 0 ; i < 6 ; i++ )
+	for( i = 0; i < 6; i++ )
 	{
-		for( j = 0 ; j < 6 ; j++ )
+		for( j = 0; j < 6; j++ )
 		{
 			if( j == i )
 			{
@@ -338,7 +338,7 @@ static void MakeNodePortal( node_t* node )
 	w = BaseWindingForNode( node );
 
 	// clip the portal by all the other portals in the node
-	for( p = node->portals ; p && w; p = p->next[side] )
+	for( p = node->portals; p && w; p = p->next[side] )
 	{
 		idPlane	plane;
 
@@ -604,7 +604,7 @@ void FloodPortals_r( node_t* node, int dist )
 	c_floodedleafs++;
 	node->occupied = dist;
 
-	for( p = node->portals ; p ; p = p->next[s] )
+	for( p = node->portals; p; p = p->next[s] )
 	{
 		s = ( p->nodes[1] == node );
 		FloodPortals_r( p->nodes[!s], dist + 1 );
@@ -671,7 +671,7 @@ bool FloodEntities( tree_t* tree )
 
 	c_floodedleafs = 0;
 	bool errorShown = false;
-	for( i = 1 ; i < dmapGlobals.num_entities ; i++ )
+	for( i = 1 ; i < dmapGlobals.numEntities ; i++ )
 	{
 		idMapEntity*	mapEnt;
 
@@ -902,7 +902,7 @@ void FloodAreas_r( node_t* node )
 
 	if( node->area != -1 )
 	{
-		return;		// allready got it
+		return;		// already got it
 	}
 	if( node->opaque )
 	{
@@ -912,7 +912,7 @@ void FloodAreas_r( node_t* node )
 	c_areaFloods++;
 	node->area = c_areas;
 
-	for( p = node->portals ; p ; p = p->next[s] )
+	for( p = node->portals; p; p = p->next[s] )
 	{
 		node_t*	other;
 
@@ -964,7 +964,7 @@ void FindAreas_r( node_t* node )
 
 	if( node->area != -1 )
 	{
-		return;		// allready got it
+		return;		// already got it
 	}
 
 	c_areaFloods = 0;
@@ -1279,9 +1279,18 @@ void FillOutside( uEntity_t* e )
 	c_outside = 0;
 	c_inside = 0;
 	c_solid = 0;
-	common->Printf( "--- FillOutside ---\n" );
+
 	FillOutside_r( e->tree->headnode );
-	common->Printf( "%5i solid leafs\n", c_solid );
-	common->Printf( "%5i leafs filled\n", c_outside );
-	common->Printf( "%5i inside leafs\n", c_inside );
+
+	if( dmapGlobals.entityNum == 0 )
+	{
+		common->Printf( "--- FillOutside ---\n" );
+		common->Printf( "%5i solid leafs\n", c_solid );
+		common->Printf( "%5i leafs filled\n", c_outside );
+		common->Printf( "%5i inside leafs\n", c_inside );
+	}
+	else
+	{
+		common->VerbosePrintf( "entity %i: %i solid leafs, %i leafs filled, %i inside leafs\n", dmapGlobals.entityNum, c_solid, c_outside, c_inside );
+	}
 }

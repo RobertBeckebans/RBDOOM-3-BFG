@@ -441,7 +441,7 @@ Recommended in this case is `cmake-vs2022-win64-no-ffmpeg.bat`
 	
 	E.g. Unpack linux_dxc_2024_05_24.x86_64.tar.gz to `~/.local` and make `~/.local/bin/dxc` as executable with chmod +x
 
-	As an alternative you can add `-DDXC_CUSTOM_PATH=<path-to-dxc-binary>` to the CMake options.
+	As an alternative you can add `-DDXC_CUSTOM_PATH=<path-to-dxc-binary>` to the CMake options.  Please make sure to specify only the **directory path** to dxc, and don't include the binary name itself.
 
 2. You need the following dependencies in order to compile RBDoom3BFG with all features:
 
@@ -452,7 +452,7 @@ Recommended in this case is `cmake-vs2022-win64-no-ffmpeg.bat`
 	
 	On Fedora
 		
-		> sudo dnf install cmake clang ispc SDL2-devel openal-devel compat-ffmpeg4-devel ncurses-devel vulkan-devel
+		> sudo dnf install cmake clang ispc SDL2-devel openal-soft-devel compat-ffmpeg4-devel ncurses-devel vulkan-devel
 	
 	On ArchLinux 
 	
@@ -488,7 +488,7 @@ Recommended in this case is `cmake-vs2022-win64-no-ffmpeg.bat`
 ---
 # Compiling on macOS <a name="compile_macos"></a>
 
-1.	Download and install Homebrew (https://brew.sh) for single architecture builds or MacPorts (https://www.macports.org/install.php) for universal architecture builds on macOS Catalina (10.15) or later.
+1.	Download and install Homebrew (https://brew.sh) for single architecture builds on macOS Catalina (10.15) or later, or MacPorts (https://www.macports.org/install.php) for universal architecture builds on macOS Big Sur (11.0) or later.
 
 2.	You need the following dependencies in order to compile RBDoom3BFG with all features:
 
@@ -553,7 +553,7 @@ This should also work fine with your GOG installation.
 ---
 ## The following instructions are primarily intended for `Linux` and `macOS` users and all hackers on other operating systems.
 
-Linux users are advised to compile the engine from the Github source code and to put the `base/` data from the retail game into the `DoomCode/base/` directory. macOS users are also advised to compile the engine from the Github source code but to put the `base/` data from the retail game into their `~/Library/Application Support/RBDOOM-3-BFG/base/` directory. For both Linux and macOS you must also copy the `base/*.pk4` files from the unzipped RBDOOM-3-BFG ModDB download (or the [RBDOOM-3-BFG 1.6.0 Release](https://github.com/RobertBeckebans/RBDOOM-3-BFG/releases/download/v1.6.0/RBDOOM-3-BFG-1.6.0.22-full-win64-20250510-git-ba39ba6.7z)) into your `DoomCode/base/` directory.
+Linux users are advised to compile the engine from the Github source code and to put the `base/` data from the retail game into the `DoomCode/base/` or `$XDG_DATA_HOME/rbdoom3bfg/base` directory. macOS users are also advised to compile the engine from the Github source code but to put the `base/` data from the retail game into their `~/Library/Application Support/RBDOOM-3-BFG/base/` directory. For both Linux and macOS you must also copy the `base/*.pk4` files from the unzipped RBDOOM-3-BFG ModDB download (or the [RBDOOM-3-BFG 1.6.0 Release](https://github.com/RobertBeckebans/RBDOOM-3-BFG/releases/download/v1.6.0/RBDOOM-3-BFG-1.6.0.22-full-win64-20250510-git-ba39ba6.7z)) into your `DoomCode/base/` directory.
 
 On Linux and macOS the easiest way to install is with SteamCMD: https://developer.valvesoftware.com/wiki/SteamCMD.
 See the description on https://developer.valvesoftware.com/wiki/SteamCMD#Linux (macOS is directly below that) on how to install SteamCMD on your system. You won't have to create a new user.

@@ -661,11 +661,12 @@ void	FixGlobalTjunctions( uEntity_t* e )
 	// optionally inline some of the func_static models
 	if( dmapGlobals.entityNum == 0 )
 	{
-		for( int eNum = 1 ; eNum < dmapGlobals.num_entities ; eNum++ )
+		for( int eNum = 1 ; eNum < dmapGlobals.numEntities ; eNum++ )
 		{
 			uEntity_t* entity = &dmapGlobals.uEntities[eNum];
 			const char* className = entity->mapEntity->epairs.GetString( "classname" );
-			if( idStr::Icmp( className, "func_static" ) )
+
+			if( idStr::Icmp( className, "func_static" ) != 0 && idStr::Icmp( className, "misc_model" ) != 0 )
 			{
 				continue;
 			}
@@ -678,14 +679,28 @@ void	FixGlobalTjunctions( uEntity_t* e )
 			idStrStatic< MAX_OSPATH > extension;
 			modelName.ExtractFileExtension( extension );
 
-			// RB: glTF2 and OBJ support
-			bool isGLTF = false;
-			if( ( extension.Icmp( GLTF_GLB_EXT ) == 0 ) || ( extension.Icmp( GLTF_EXT ) == 0 ) )
+			if( ( extension.Icmp( GLTF_GLB_EXT ) != 0 ) &&
+					( extension.Icmp( GLTF_EXT ) != 0 ) &&
+					( extension.Icmp( "lwo" ) != 0 ) &&
+					( extension.Icmp( "ase" ) != 0 ) &&
+					( extension.Icmp( "ma" ) != 0 ) &&
+					( extension.Icmp( "obj" ) != 0 ) )
 			{
-				isGLTF = true;
+				continue;	// not a supported model format
 			}
 
-			if( !isGLTF && !strstr( modelName, ".lwo" ) && !strstr( modelName, ".ase" ) && !strstr( modelName, ".ma" ) && !strstr( modelName, ".obj" ) )
+			// don't break interactive GUIs
+			if( entity->mapEntity->epairs.GetString( "gui", NULL ) != NULL )
+			{
+				continue;
+			}
+
+			if( entity->mapEntity->epairs.GetString( "gui2", NULL ) != NULL )
+			{
+				continue;
+			}
+
+			if( entity->mapEntity->epairs.GetString( "gui3", NULL ) != NULL )
 			{
 				continue;
 			}
@@ -695,18 +710,63 @@ void	FixGlobalTjunctions( uEntity_t* e )
 //			common->Printf( "adding T junction verts for %s.\n", entity->mapEntity->epairs.GetString( "name" ) );
 
 			idMat3	axis;
+			axis.Identity();
+
 			// get the rotation matrix in either full form, or single angle form
 			if( !entity->mapEntity->epairs.GetMatrix( "rotation", "1 0 0 0 1 0 0 0 1", axis ) )
 			{
-				float angle = entity->mapEntity->epairs.GetFloat( "angle" );
-				if( angle != 0.0f )
+				// RB: TrenchBroom interop
+				// support "angles", "modelscale" and "modelscale_vec" like in Quake 3
+				idAngles angles;
+				idMat3 rotMat;
+				idMat3 scaleMat;
+
+				rotMat.Identity();
+				scaleMat.Identity();
+
+				if( entity->mapEntity->epairs.GetAngles( "angles", "0 0 0", angles ) )
 				{
-					axis = idAngles( 0.0f, angle, 0.0f ).ToMat3();
+					if( angles.pitch != 0.0f || angles.yaw != 0.0f || angles.roll != 0.0f )
+					{
+						rotMat = angles.ToMat3();
+					}
 				}
 				else
 				{
-					axis.Identity();
+					float angle = entity->mapEntity->epairs.GetFloat( "angle" );
+					if( angle != 0.0f )
+					{
+						rotMat = idAngles( 0.0f, angle, 0.0f ).ToMat3();
+					}
+					else
+					{
+						rotMat.Identity();
+					}
 				}
+
+				idVec3 scaleVec;
+				if( entity->mapEntity->epairs.GetVector( "modelscale_vec", "1 1 1", scaleVec ) )
+				{
+					// don't allow very small and negative values
+					if( ( scaleVec.x != 1.0f || scaleVec.y != 1.0f || scaleVec.z != 1.0f ) && ( scaleVec.x > 0.01f && scaleVec.y > 0.01f && scaleVec.z > 0.01f ) )
+					{
+						scaleMat[0][0] = scaleVec.x;
+						scaleMat[1][1] = scaleVec.y;
+						scaleMat[2][2] = scaleVec.z;
+					}
+				}
+				else
+				{
+					float scale = entity->mapEntity->epairs.GetFloat( "modelscale", 1.0f );
+					if( scale != 1.0f && scale > 0.01f )
+					{
+						scaleMat[0][0] = scale;
+						scaleMat[1][1] = scale;
+						scaleMat[2][2] = scale;
+					}
+				}
+
+				axis = scaleMat * rotMat;
 			}
 
 			idVec3	origin = entity->mapEntity->epairs.GetVector( "origin" );
@@ -719,11 +779,13 @@ void	FixGlobalTjunctions( uEntity_t* e )
 				mapTri_t	mapTri;
 				memset( &mapTri, 0, sizeof( mapTri ) );
 				mapTri.material = surface->shader;
+
 				// don't let discretes (autosprites, etc) merge together
 				if( mapTri.material->IsDiscrete() )
 				{
 					mapTri.mergeGroup = ( void* )surface;
 				}
+
 				for( int j = 0 ; j < tri->numVerts ; j += 3 )
 				{
 					idVec3 v = tri->verts[j].xyz * axis + origin;
