@@ -36,15 +36,19 @@ If you have questions concerning this license or the applicable additional terms
 #include "SMAA.inc.hlsl"
 
 // *INDENT-OFF*
-Texture2D t_CurrentRender	: register( t0 VK_DESCRIPTOR_SET( 1 ) );
-Texture2D t_PredictColor	: register( t1 VK_DESCRIPTOR_SET( 1 ));
+Texture2D t_CurrentRender	: register( t0 VK_DESCRIPTOR_SET( 0 ) );
 
-SamplerState samp0		: register( s0 VK_DESCRIPTOR_SET( 2 ) );		// _currentColor
-SamplerState samp1		: register( s1 VK_DESCRIPTOR_SET( 2 ) );		// TODO _predictColor
+SamplerState samp0			: register( s0 VK_DESCRIPTOR_SET( 1 ) );		// _currentColor
+SamplerState samp1			: register( s1 VK_DESCRIPTOR_SET( 1 ) );		// TODO _predictColor
+
+#if SMAA_PREDICATION
+	Texture2D t_PredictColor	: register( t1 VK_DESCRIPTOR_SET( 0 ));
+#endif
+
 
 struct PS_IN
 {
-	float4 position : VPOS;
+	float4 position : SV_Position;
 	float2 texcoord0 : TEXCOORD0_centroid;
 	float4 texcoord1 : TEXCOORD1_centroid;
 	float4 texcoord2 : TEXCOORD2_centroid;

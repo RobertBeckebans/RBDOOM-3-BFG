@@ -172,6 +172,7 @@ extern const idRenderMatrix renderMatrix_flipToOpenGL;
 extern const idRenderMatrix renderMatrix_windowSpaceToClipSpace;
 // RB begin
 extern const idRenderMatrix renderMatrix_clipSpaceToWindowSpace;
+extern const idRenderMatrix renderMatrix_fullscreen;
 // RB end
 
 /*

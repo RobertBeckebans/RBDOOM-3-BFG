@@ -71,11 +71,13 @@ void idMenuScreen_Shell_Settings::Initialize( idMenuHandler* data )
 	menuOptions.Append( option );
 	option.Clear();
 
-	if( renderSystem->IsStereoScopicRenderingSupported() )
+#if VR_OPTIONS
+	//if( renderSystem->IsStereoScopicRenderingSupported() )
 	{
 		option.Append( "#str_swf_stereoscopics" );	// Stereoscopic Rendering
 		menuOptions.Append( option );
 	}
+#endif
 
 	options->SetListData( menuOptions );
 	options->SetNumVisibleOptions( NUM_SETTING_OPTIONS );

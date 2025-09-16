@@ -4,7 +4,8 @@
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
 Copyright (C) 2022 Stephen Pridham
-Copyright (C) 2022 Robert Beckebans
+Copyright (C) 2022-2023 Harrie van Ginneken
+Copyright (C) 2022-2025 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -364,7 +365,15 @@ idRenderModel* idRenderModelManagerLocal::GetModel( const char* _modelName, bool
 				{
 					idFileLocal file( fileSystem->OpenFileReadMemory( generatedFileName ) );
 					model->PurgeModel();
-					if( !model->LoadBinaryModel( file, sourceTimeStamp ) )
+
+					// RB: .bglb also stores the timestamp of the modelDef .def file so changing the modelDef will trigger a reimport
+					ID_TIME_T declSourceTimeStamp = 0;
+					if( options != NULL )
+					{
+						declSourceTimeStamp = options->declSourceTimeStamp;
+					}
+
+					if( !model->LoadBinaryModel( file, sourceTimeStamp, declSourceTimeStamp ) )
 					{
 						if( isGLTF )
 						{
@@ -465,7 +474,19 @@ idRenderModel* idRenderModelManagerLocal::GetModel( const char* _modelName, bool
 		}
 		else
 		{
-			if( !model->LoadBinaryModel( file, sourceTimeStamp ) )
+			if( options != NULL )
+			{
+				idLib::Printf( "Trying to load with options %s\n", generatedFileName.c_str() );
+			}
+
+			// RB: .bglb also stores the timestamp of the modelDef .def file so changing the modelDef will trigger a reimport
+			ID_TIME_T declSourceTimeStamp = 0;
+			if( options != NULL )
+			{
+				declSourceTimeStamp = options->declSourceTimeStamp;
+			}
+
+			if( !model->LoadBinaryModel( file, sourceTimeStamp, declSourceTimeStamp ) )
 			{
 				model->InitFromFile( canonical, options );
 
@@ -669,6 +690,8 @@ void idRenderModelManagerLocal::RemoveModel( idRenderModel* model )
 idRenderModelManagerLocal::ReloadModels
 =================
 */
+#include "../d3xp/anim/Anim.h" // RB: required for idDeclModelDef
+
 void idRenderModelManagerLocal::ReloadModels( bool forceAll )
 {
 #if !defined( DMAP )
@@ -700,6 +723,8 @@ void idRenderModelManagerLocal::ReloadModels( bool forceAll )
 		idStr assetName = filename;
 		assetName.ExtractFileExtension( extension );
 		isGLTF = extension.Icmp( "glb" ) == 0 || extension.Icmp( "gltf" ) == 0;
+		const idDeclModelDef* modelDef = NULL;
+
 		if( !forceAll )
 		{
 			// check timestamp
@@ -712,19 +737,42 @@ void idRenderModelManagerLocal::ReloadModels( bool forceAll )
 				gltfManager::ExtractIdentifier( filename, meshID, meshName );
 			}
 
-			fileSystem->ReadFile( filename, NULL, &current );
-			if( current <= model->Timestamp() )
+			const char* modelDefName = model->GetModelDefName();
+			if( idStr::Cmp( modelDefName, "" ) != 0 )
 			{
-				continue;
+				modelDef = static_cast<const idDeclModelDef*>( declManager->FindType( DECL_MODELDEF, modelDefName, false ) );
+				if( modelDef != NULL )
+				{
+					ID_TIME_T defCurrent = modelDef->GetSourceFileTimestamp();
+
+					fileSystem->ReadFile( filename, NULL, &current );
+					if( current <= model->Timestamp() && defCurrent <= model->DeclTimestamp() )
+					{
+						continue;
+					}
+				}
 			}
+			else
+			{
+				fileSystem->ReadFile( filename, NULL, &current );
+				if( current <= model->Timestamp() )
+				{
+					continue;
+				}
+			}
+		}
+
+		const idImportOptions* options = NULL;
+		if( modelDef != NULL )
+		{
+			options = modelDef->GetImportOptions();
 		}
 
 		common->DPrintf( "^1Reloading %s.\n", model->Name() );
 
 		if( isGLTF )
 		{
-			// RB: we don't have the options here so make sure this only applies to static models
-			model->InitFromFile( model->Name(), NULL );
+			model->InitFromFile( model->Name(), options );
 		}
 		else
 		{
@@ -1171,18 +1219,14 @@ const char* idTokenizer::NextToken( const char* errorstring )
 #define DEFAULT_ANIM_EPSILON	0.125f
 #define DEFAULT_QUAT_EPSILON	( 1.0f / 8192.0f )
 
-void idImportOptions::Init( const char* commandline, const char* ospath )
+idImportOptions::idImportOptions()
 {
-	idStr		token;
-	idNamePair	joints;
-	int			i;
-	idAnimGroup*	group;
-	idStr		sourceDir;
-	idStr		destDir;
+	Reset();
+}
 
-	//Reset( commandline );
+void idImportOptions::Reset()
+{
 	scale				= 1.0f;
-	//type				= WRITE_MESH;
 	startframe			= -1;
 	endframe			= -1;
 	ignoreMeshes		= false;
@@ -1193,7 +1237,7 @@ void idImportOptions::Init( const char* commandline, const char* ospath )
 	framerate			= 24;
 	align				= "";
 	rotate				= 0.0f;
-	commandLine			= commandline;
+	commandLine			= "";
 	prefix				= "";
 	jointThreshold		= 0.05f;
 	ignoreScale			= false;
@@ -1203,12 +1247,10 @@ void idImportOptions::Init( const char* commandline, const char* ospath )
 	reOrient			= ang_zero;
 	armature			= "";
 	noMikktspace		= false;
+	declSourceTimeStamp	= FILE_NOT_FOUND_TIMESTAMP;
 
 	src.Clear();
 	dest.Clear();
-
-	idTokenizer tokens;
-	tokens.SetTokens( commandline );
 
 	keepjoints.Clear();
 	renamejoints.Clear();
@@ -1217,6 +1259,23 @@ void idImportOptions::Init( const char* commandline, const char* ospath )
 	skipmeshes.Clear();
 	keepmeshes.Clear();
 	groups.Clear();
+}
+
+void idImportOptions::Init( const char* commandline, const char* ospath )
+{
+	idStr		token;
+	idNamePair	joints;
+	int			i;
+	idAnimGroup*	group;
+	idStr		sourceDir;
+	idStr		destDir;
+
+	Reset();
+
+	idTokenizer tokens;
+	tokens.SetTokens( commandline );
+
+	commandLine = commandline;
 
 	/*
 	token = tokens.NextToken( "Missing export command" );

@@ -48,11 +48,11 @@ struct VS_IN
 
 struct VS_OUT
 {
-	float4 position : POSITION;
-	float2 texcoord0 : TEXCOORD0;
-	float4 texcoord1 : TEXCOORD1;
-	float4 texcoord2 : TEXCOORD2;
-	float4 texcoord3 : TEXCOORD3;
+	float4 position : SV_Position;
+	float2 texcoord0 : TEXCOORD0_centroid;
+	float4 texcoord1 : TEXCOORD1_centroid;
+	float4 texcoord2 : TEXCOORD2_centroid;
+	float4 texcoord3 : TEXCOORD3_centroid;
 };
 // *INDENT-ON*
 
@@ -60,9 +60,8 @@ void main( VS_IN vertex, out VS_OUT result )
 {
 	result.position = vertex.position;
 
-	float2 texcoord = vertex.texcoord;
-	//float2 texcoord = float2( vertex.texcoord.s, 1.0 - vertex.texcoord.t );
-
+	// RB: flip Y for DX12 / Vulkan
+	float2 texcoord = float2( vertex.texcoord.x, 1.0 - vertex.texcoord.y );
 	result.texcoord0 = texcoord;
 
 	float4 offset[3];

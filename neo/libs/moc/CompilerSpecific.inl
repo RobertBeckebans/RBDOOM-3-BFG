@@ -36,12 +36,12 @@ FORCE_INLINE unsigned long find_clear_lsb( unsigned int* mask )
 	return idx;
 }
 
-FORCE_INLINE void* aligned_alloc( size_t alignment, size_t size )
+FORCE_INLINE void* moc_aligned_alloc( size_t alignment, size_t size )
 {
 	return _aligned_malloc( size, alignment );
 }
 
-FORCE_INLINE void aligned_free( void* ptr )
+FORCE_INLINE void moc_aligned_free( void* ptr )
 {
 	_aligned_free( ptr );
 }
@@ -77,14 +77,15 @@ FORCE_INLINE unsigned long find_clear_lsb( unsigned int* mask )
 	return idx;
 }
 
-FORCE_INLINE void* aligned_alloc( size_t alignment, size_t size )
+// RB: renamed to avoid conflict with C++17 aligned_alloc used by VMA
+FORCE_INLINE void* moc_aligned_alloc( size_t alignment, size_t size )
 {
 	void* ret;
 	posix_memalign( &ret, alignment, size );
 	return ret;
 }
 
-FORCE_INLINE void aligned_free( void* ptr )
+FORCE_INLINE void moc_aligned_free( void* ptr )
 {
 	free( ptr );
 }

@@ -183,10 +183,10 @@ static uBrush_t* FinishBrush()
 
 	if( buildBrush->contents & CONTENTS_AREAPORTAL )
 	{
-		if( dmapGlobals.num_entities != 1 )
+		if( dmapGlobals.numEntities != 1 )
 		{
 			common->Printf( "Entity %i, Brush %i: areaportals only allowed in world\n"
-							,  dmapGlobals.num_entities - 1, entityPrimitive );
+							,  dmapGlobals.numEntities - 1, entityPrimitive );
 			FreeBuildBrush();
 			return NULL;
 		}
@@ -197,7 +197,7 @@ static uBrush_t* FinishBrush()
 
 	FreeBuildBrush();
 
-	b->entitynum = dmapGlobals.num_entities - 1;
+	b->entitynum = dmapGlobals.numEntities - 1;
 	b->brushnum = entityPrimitive;
 
 	b->original = b;
@@ -332,7 +332,7 @@ static void ParseBrush( const idMapBrush* mapBrush, int primitiveNum )
 	int			i;
 	bool		fixedDegeneracies = false;
 
-	buildBrush->entitynum = dmapGlobals.num_entities - 1;
+	buildBrush->entitynum = dmapGlobals.numEntities - 1;
 	buildBrush->brushnum = entityPrimitive;
 	buildBrush->numsides = mapBrush->GetNumSides();
 	for( i = 0 ; i < mapBrush->GetNumSides() ; i++ )
@@ -418,15 +418,15 @@ static void ParseSurface( const idMapPatch* patch, const idSurface* surface, con
 		tri->v[2] = ( *surface )[surface->GetIndexes()[i + 0]];
 
 		tri->material = material;
-		tri->next = prim->tris;
-		prim->tris = tri;
+		tri->next = prim->curveTris;
+		prim->curveTris = tri;
 	}
 
 	// set merge groups if needed, to prevent multiple sides from being
 	// merged into a single surface in the case of gui shaders, mirrors, and autosprites
 	if( material->IsDiscrete() )
 	{
-		for( tri = prim->tris ; tri ; tri = tri->next )
+		for( tri = prim->curveTris ; tri ; tri = tri->next )
 		{
 			tri->mergeGroup = ( void* )patch;
 		}
@@ -475,6 +475,7 @@ static int ParsePolygonMesh( const MapPolygonMesh* mesh, int primitiveNum, int n
 	memset( prim, 0, sizeof( *prim ) );
 	prim->next = uEntity->primitives;
 	uEntity->primitives = prim;
+	uEntity->hasPolyTris = true;
 
 	const idList<idDrawVert>& verts = mesh->GetDrawVerts();
 
@@ -501,6 +502,7 @@ static int ParsePolygonMesh( const MapPolygonMesh* mesh, int primitiveNum, int n
 			// RB: glTF2 workflow insists to use triangles instead of n-gons or quads
 			mapTri_t* tri = AllocTri();
 
+			// reverse order because Doom 3 can't handle inside facing polygons for BSP building
 			tri->v[0] = verts[ indexes[ 2 ] ];
 			tri->v[1] = verts[ indexes[ 1 ] ];
 			tri->v[2] = verts[ indexes[ 0 ] ];
@@ -523,8 +525,8 @@ static int ParsePolygonMesh( const MapPolygonMesh* mesh, int primitiveNum, int n
 			tri->polygonId = numPolygons + i;
 
 			tri->material = mat;
-			tri->next = prim->bsptris;
-			prim->bsptris = tri;
+			tri->next = prim->polyTris;
+			prim->polyTris = tri;
 
 			tri->originalMapMesh = mesh;
 
@@ -532,7 +534,7 @@ static int ParsePolygonMesh( const MapPolygonMesh* mesh, int primitiveNum, int n
 			// merged into a single surface in the case of gui shaders, mirrors, and autosprites
 			if( mat->IsDiscrete() )
 			{
-				for( tri = prim->bsptris ; tri ; tri = tri->next )
+				for( tri = prim->polyTris ; tri ; tri = tri->next )
 				{
 					tri->mergeGroup = ( void* )mesh;
 				}
@@ -557,8 +559,8 @@ static int ParsePolygonMesh( const MapPolygonMesh* mesh, int primitiveNum, int n
 				tri->polygonId = numPolygons + i;
 
 				tri->material = mat;
-				tri->next = prim->bsptris;
-				prim->bsptris = tri;
+				tri->next = prim->polyTris;
+				prim->polyTris = tri;
 
 				tri->originalMapMesh = mesh;
 
@@ -566,7 +568,7 @@ static int ParsePolygonMesh( const MapPolygonMesh* mesh, int primitiveNum, int n
 				// merged into a single surface in the case of gui shaders, mirrors, and autosprites
 				if( mat->IsDiscrete() )
 				{
-					for( tri = prim->bsptris ; tri ; tri = tri->next )
+					for( tri = prim->polyTris ; tri ; tri = tri->next )
 					{
 						tri->mergeGroup = ( void* )mesh;
 					}
@@ -588,10 +590,10 @@ static bool	ProcessMapEntity( idMapEntity* mapEnt )
 {
 	idMapPrimitive*	prim;
 
-	uEntity = &dmapGlobals.uEntities[dmapGlobals.num_entities];
+	uEntity = &dmapGlobals.uEntities[dmapGlobals.numEntities];
 	memset( uEntity, 0, sizeof( *uEntity ) );
 	uEntity->mapEntity = mapEnt;
-	dmapGlobals.num_entities++;
+	dmapGlobals.numEntities++;
 
 	int numPolygons = 0;
 
@@ -616,7 +618,7 @@ static bool	ProcessMapEntity( idMapEntity* mapEnt )
 	}
 
 	// never put an origin on the world, even if the editor left one there
-	if( dmapGlobals.num_entities != 1 )
+	if( dmapGlobals.numEntities != 1 )
 	{
 		uEntity->mapEntity->epairs.GetVector( "origin", "", uEntity->origin );
 	}
@@ -863,7 +865,7 @@ bool LoadDMapFile( const char* filename )
 	dmapGlobals.mapPlanes.SetGranularity( 1024 );
 
 	// process the canonical form into utility form
-	dmapGlobals.num_entities = 0;
+	dmapGlobals.numEntities = 0;
 	c_numMapPatches = 0;
 	c_areaportals = 0;
 
@@ -893,14 +895,14 @@ bool LoadDMapFile( const char* filename )
 			brushes++;
 			mapBounds.AddBounds( prim->brush->bounds );
 		}
-		else if( prim->tris )
+		else if( prim->curveTris )
 		{
 			triSurfs++;
 		}
 		// RB begin
-		else if( prim->bsptris )
+		else if( prim->polyTris )
 		{
-			for( mapTri_t* tri = prim->bsptris ; tri ; tri = tri->next )
+			for( mapTri_t* tri = prim->polyTris ; tri ; tri = tri->next )
 			{
 				mapBounds.AddPoint( tri->v[0].xyz );
 				mapBounds.AddPoint( tri->v[1].xyz );
@@ -915,7 +917,7 @@ bool LoadDMapFile( const char* filename )
 	common->Printf( "%5i total world brushes\n", brushes );
 	common->Printf( "%5i total world triSurfs\n", triSurfs );
 	common->Printf( "%5i patches\n", c_numMapPatches );
-	common->Printf( "%5i entities\n", dmapGlobals.num_entities );
+	common->Printf( "%5i entities\n", dmapGlobals.numEntities );
 	common->Printf( "%5i planes\n", dmapGlobals.mapPlanes.Num() );
 	common->Printf( "%5i areaportals\n", c_areaportals );
 	common->Printf( "size: %5.0f,%5.0f,%5.0f to %5.0f,%5.0f,%5.0f\n", mapBounds[0][0], mapBounds[0][1], mapBounds[0][2],
@@ -954,7 +956,7 @@ void FreeDMapFile()
 	buildBrush = NULL;
 
 	// free the entities and brushes
-	for( i = 0 ; i < dmapGlobals.num_entities ; i++ )
+	for( i = 0 ; i < dmapGlobals.numEntities ; i++ )
 	{
 		uEntity_t*	ent;
 		primitive_t*	prim, *nextPrim;
@@ -973,14 +975,14 @@ void FreeDMapFile()
 				FreeBrush( prim->brush );
 			}
 
-			if( prim->tris )
+			if( prim->curveTris )
 			{
-				FreeTriList( prim->tris );
+				FreeTriList( prim->curveTris );
 			}
 
-			if( prim->bsptris )
+			if( prim->polyTris )
 			{
-				FreeTriList( prim->bsptris );
+				FreeTriList( prim->polyTris );
 			}
 
 			Mem_Free( prim );
@@ -1003,7 +1005,7 @@ void FreeDMapFile()
 
 	Mem_Free( dmapGlobals.uEntities );
 
-	dmapGlobals.num_entities = 0;
+	dmapGlobals.numEntities = 0;
 
 	// free the map lights
 	for( i = 0; i < dmapGlobals.mapLights.Num(); i++ )

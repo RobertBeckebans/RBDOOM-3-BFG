@@ -157,7 +157,7 @@ void main( VS_IN vertex, out VS_OUT result )
 	//result.texcoord1.z = dot3( toEye, rpModelMatrixZ );
 
 #if 1
-	// rotate into world space
+	// rotate from tangent space into world space
 	result.texcoord2.x = dot3( tangent, rpModelMatrixX );
 	result.texcoord3.x = dot3( tangent, rpModelMatrixY );
 	result.texcoord4.x = dot3( tangent, rpModelMatrixZ );
@@ -171,7 +171,7 @@ void main( VS_IN vertex, out VS_OUT result )
 	result.texcoord4.z = dot3( normal, rpModelMatrixZ );
 
 #else
-	// rotate into view space
+	// rotate from tangent space into view space
 	result.texcoord2.x = dot3( tangent, rpModelViewMatrixX );
 	result.texcoord3.x = dot3( tangent, rpModelViewMatrixY );
 	result.texcoord4.x = dot3( tangent, rpModelViewMatrixZ );

@@ -45,7 +45,7 @@ idCVar idRenderModelStatic::r_slopTexCoord( "r_slopTexCoord", "0.001", CVAR_REND
 idCVar idRenderModelStatic::r_slopNormal( "r_slopNormal", "0.02", CVAR_RENDERER, "merge normals that dot less than this" );
 
 static const byte BRM_VERSION_BFG = 108;
-static const byte BRM_VERSION_MOC_DATA = 109;
+static const byte BRM_VERSION_MOC_DATA = 110;
 static const byte BRM_VERSION = BRM_VERSION_MOC_DATA;
 
 static const unsigned int BRM_MAGIC_BFG = ( 'B' << 24 ) | ( 'R' << 16 ) | ( 'M' << 8 ) | BRM_VERSION_BFG;
@@ -73,6 +73,7 @@ idRenderModelStatic::idRenderModelStatic()
 	hasInteractingSurfaces = true;
 	hasShadowCastingSurfaces = true;
 	timeStamp = 0;
+	declTimeStamp = 0;
 	numInvertedJoints = 0;
 	jointsInverted = NULL;
 	jointsInvertedBuffer = 0;
@@ -382,7 +383,7 @@ void idRenderModelStatic::InitFromFile( const char* fileName, const idImportOpti
 idRenderModelStatic::LoadBinaryModel
 ========================
 */
-bool idRenderModelStatic::LoadBinaryModel( idFile* file, const ID_TIME_T sourceTimeStamp )
+bool idRenderModelStatic::LoadBinaryModel( idFile* file, const ID_TIME_T sourceTimeStamp, const ID_TIME_T declSourceTimeStampUnused )
 {
 	if( file == NULL )
 	{
@@ -441,7 +442,7 @@ bool idRenderModelStatic::LoadBinaryModel( idFile* file, const ID_TIME_T sourceT
 
 			if( magic == BRM_MAGIC_BFG )
 			{
-				int ambientViewCount = 0;	// FIXME: remove
+				int ambientViewCount = 0;
 				file->ReadBig( ambientViewCount );
 			}
 			file->ReadBig( tri.generateNormals );
@@ -575,19 +576,23 @@ bool idRenderModelStatic::LoadBinaryModel( idFile* file, const ID_TIME_T sourceT
 				tri.mocVerts = NULL;
 				tri.mocIndexes = NULL;
 
-				if( tri.numVerts > 0 )
+				int numMocVerts;
+				file->ReadBig( numMocVerts );
+				if( numMocVerts > 0 )
 				{
-					R_AllocStaticTriSurfMocVerts( &tri, tri.numVerts );
-					for( int j = 0; j < tri.numVerts; j++ )
+					R_AllocStaticTriSurfMocVerts( &tri, numMocVerts );
+					for( int j = 0; j < numMocVerts; j++ )
 					{
 						file->ReadVec4( tri.mocVerts[j] );
 					}
 				}
 
-				if( tri.numIndexes > 0 )
+				int numMocIndexes;
+				file->ReadBig( numMocIndexes );
+				if( numMocIndexes > 0 )
 				{
-					R_AllocStaticTriSurfMocIndexes( &tri, tri.numIndexes );
-					file->ReadBigArray( tri.mocIndexes, tri.numIndexes );
+					R_AllocStaticTriSurfMocIndexes( &tri, numMocIndexes );
+					file->ReadBigArray( tri.mocIndexes, numMocIndexes );
 				}
 			}
 			// RB end
@@ -740,17 +745,27 @@ void idRenderModelStatic::WriteBinaryModel( idFile* file, ID_TIME_T* _timeStamp 
 			}
 
 			// RB: write Masked Occlusion data
-			if( tri.numVerts > 0 && tri.mocVerts != NULL )
+			if( tri.mocVerts != NULL )
 			{
+				file->WriteBig( tri.numVerts );
 				for( int j = 0; j < tri.numVerts; j++ )
 				{
 					file->WriteVec4( tri.mocVerts[ j ] );
 				}
 			}
-
-			if( tri.numIndexes > 0 && tri.mocIndexes != NULL )
+			else
 			{
+				file->WriteBig( ( int ) 0 );
+			}
+
+			if( tri.mocIndexes != NULL )
+			{
+				file->WriteBig( tri.numIndexes );
 				file->WriteBigArray( tri.mocIndexes, tri.numIndexes );
+			}
+			else
+			{
+				file->WriteBig( ( int ) 0 );
 			}
 			// RB end
 		}
@@ -952,6 +967,18 @@ ID_TIME_T idRenderModelStatic::Timestamp() const
 {
 	return timeStamp;
 }
+
+// RB begin
+ID_TIME_T idRenderModelStatic::DeclTimestamp() const
+{
+	return declTimeStamp;
+}
+
+const char* idRenderModelStatic::GetModelDefName() const
+{
+	return declModelDefName;
+}
+// RB end
 
 /*
 ================

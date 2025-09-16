@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1999-2011 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2024 Robert Beckebans
+Copyright (C) 2024-2025 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 #include "precompiled.h"
 #pragma hdrstop
+
+#include <shlwapi.h>  // for PathMatchSpecW
 
 #include "../sys/sys_local.h"
 #include "../framework/EventLoop.h"
@@ -230,6 +232,69 @@ void Sys_VPrintf( const char* fmt, va_list arg )
 	tuiLog.AddLog( "%s", msg );
 }
 
+// RB: Returns absolute path with \\?\ prefix for long path support
+wchar_t* MakeWindowsLongPathW( const char* utf8Path )
+{
+	if( !utf8Path || !utf8Path[0] )
+	{
+		return NULL;
+	}
+
+	int utf16Len = MultiByteToWideChar( CP_UTF8, 0, utf8Path, -1, NULL, 0 );
+	if( utf16Len == 0 )
+	{
+		return NULL;
+	}
+
+	// Allocate temporary buffer for initial conversion
+	wchar_t* tempPath = ( wchar_t* )malloc( utf16Len * sizeof( wchar_t ) );
+	if( !tempPath )
+	{
+		return NULL;
+	}
+
+	// Perform UTF-8 to UTF-16 conversion
+	if( MultiByteToWideChar( CP_UTF8, 0, utf8Path, -1, tempPath, utf16Len ) == 0 )
+	{
+		free( tempPath );
+		return NULL;
+	}
+
+	// Replace forward slashes with backslashes
+	for( int i = 0; tempPath[i]; i++ )
+	{
+		if( tempPath[i] == L'/' )
+		{
+			tempPath[i] = L'\\';
+		}
+	}
+
+	// Convert to absolute path
+	wchar_t fullPath[MAX_OSPATH];
+	if( GetFullPathNameW( tempPath, MAX_OSPATH, fullPath, NULL ) == 0 )
+	{
+		free( tempPath );
+		return NULL;
+	}
+	free( tempPath );
+
+	// +4 for \\?\ prefix +1 for null terminator
+	size_t fullPathLen = wcslen( fullPath );
+	wchar_t* wPath = ( wchar_t* )malloc( ( fullPathLen + 5 ) * sizeof( wchar_t ) );
+	if( !wPath )
+	{
+		return NULL;
+	}
+
+	// Add \\?\ prefix for long path support
+	swprintf( wPath, fullPathLen + 5, L"\\\\?\\%s", fullPath );
+	//wcscpy( wPath, L"\\\\?\\" );
+	//wcscat( wPath, fullPath );
+
+	return wPath;
+}
+// RB end
+
 /*
 ==============
 Sys_Mkdir
@@ -237,7 +302,34 @@ Sys_Mkdir
 */
 void Sys_Mkdir( const char* path )
 {
-	_mkdir( path );
+	// RB: support paths longer than 260 characters
+
+	// ignore pure drive-letter paths like "C:"
+	if( strlen( path ) == 2 && path[1] == ':' && isalpha( path[0] ) )
+	{
+		return;
+	}
+
+	wchar_t* wPath = MakeWindowsLongPathW( path );
+	if( !wPath )
+	{
+		common->FatalError( "Failed to convert path to wide string: '%s'", path );
+		return;
+	}
+
+	if( !CreateDirectoryW( wPath, NULL ) )
+	{
+		DWORD err = GetLastError();
+
+		// don't fatal if directory already exists
+		if( err != ERROR_ALREADY_EXISTS )
+		{
+			common->FatalError( "CreateDirectoryW failed (error %lu)", err );
+		}
+	}
+
+	free( wPath );
+	// RB end
 }
 
 
@@ -248,7 +340,23 @@ Sys_Rmdir
 */
 bool Sys_Rmdir( const char* path )
 {
-	return _rmdir( path ) == 0;
+	// RB: support paths longer than 260 characters
+	wchar_t* wPath = MakeWindowsLongPathW( path );
+	if( !wPath )
+	{
+		common->FatalError( "Failed to convert path to wide string: '%s'", path );
+		return false;
+	}
+
+	BOOL success = RemoveDirectoryW( wPath );
+	if( success == 0 )
+	{
+		DWORD err = GetLastError();
+		common->FatalError( "RemoveDirectoryW failed (error %lu)", err );
+	}
+
+	free( wPath );
+	return success != 0;
 }
 
 /*
@@ -268,8 +376,53 @@ const char* Sys_EXEPath()
 Sys_ListFiles
 ==============
 */
+static void ListFilesRecursive( const wchar_t* baseDir, const wchar_t* pattern, idStrList& list, size_t baseLen )
+{
+	wchar_t searchPath[MAX_OSPATH];
+	swprintf( searchPath, MAX_OSPATH, L"%s\\*", baseDir );
+
+	WIN32_FIND_DATAW findData;
+	HANDLE hFind = FindFirstFileW( searchPath, &findData );
+	if( hFind == INVALID_HANDLE_VALUE )
+	{
+		return;
+	}
+
+	do
+	{
+		if( wcscmp( findData.cFileName, L"." ) == 0 || wcscmp( findData.cFileName, L".." ) == 0 )
+		{
+			continue;
+		}
+
+		wchar_t fullPath[MAX_OSPATH];
+		swprintf( fullPath, MAX_OSPATH, L"%s\\%s", baseDir, findData.cFileName );
+
+		bool isDir = ( findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) != 0;
+
+		if( isDir )
+		{
+			ListFilesRecursive( fullPath, pattern, list, baseLen );
+		}
+		else if( PathMatchSpecW( findData.cFileName, pattern ) )
+		{
+			char utf8Name[MAX_OSPATH];
+			int len = WideCharToMultiByte( CP_UTF8, 0, fullPath + baseLen, -1, utf8Name, sizeof( utf8Name ), NULL, NULL );
+			if( len > 0 )
+			{
+				list.Append( utf8Name );
+			}
+		}
+	}
+	while( FindNextFileW( hFind, &findData ) );
+
+	FindClose( hFind );
+}
+
+
 int Sys_ListFiles( const char* directory, const char* extension, idStrList& list )
 {
+#if 0
 	idStr		search;
 	struct _finddata_t findinfo;
 	// RB: 64 bit fixes, changed int to intptr_t
@@ -316,6 +469,47 @@ int Sys_ListFiles( const char* directory, const char* extension, idStrList& list
 	_findclose( findhandle );
 
 	return list.Num();
+#else
+	// RB: support paths longer than 260 characters
+	wchar_t* wDir = MakeWindowsLongPathW( directory );
+	if( !wDir )
+	{
+		common->FatalError( "Failed to convert path to wide string: '%s'", directory );
+		return -1;
+	}
+
+	idStr extPattern = "*";
+	if( extension && extension[0] )
+	{
+		extPattern += extension;
+	}
+
+	// convert extension pattern to wide string
+	int extLen = MultiByteToWideChar( CP_UTF8, 0, extPattern.c_str(), -1, NULL, 0 );
+	wchar_t* wPattern = ( wchar_t* )malloc( extLen * sizeof( wchar_t ) );
+	if( !wPattern )
+	{
+		free( wDir );
+		return -1;
+	}
+	MultiByteToWideChar( CP_UTF8, 0, extPattern.c_str(), -1, wPattern, extLen );
+
+	idStrList tempList;
+	size_t baseLen = wcslen( wDir );
+	ListFilesRecursive( wDir, wPattern, tempList, baseLen + 1 ); // +1 to skip path separator
+
+	// convert to forward slashes to tab completion works
+	for( auto& s : tempList )
+	{
+		s.BackSlashesToSlashes();
+		list.Append( s.c_str() );
+	}
+
+	free( wDir );
+	free( wPattern );
+	return list.Num();
+	// RB end
+#endif
 }
 
 
@@ -332,8 +526,17 @@ Sys_IsFolder
 */
 sysFolder_t Sys_IsFolder( const char* path )
 {
+	wchar_t* wPath = MakeWindowsLongPathW( path );
+	if( !wPath )
+	{
+		return FOLDER_ERROR;
+	}
+
 	struct _stat buffer;
-	if( _stat( path, &buffer ) < 0 )
+	int result = _wstat( wPath, &buffer );
+	free( wPath );
+
+	if( result < 0 )
 	{
 		return FOLDER_ERROR;
 	}
@@ -463,6 +666,44 @@ int Sys_Milliseconds()
 {
 	static DWORD sys_timeBase = timeGetTime();
 	return timeGetTime() - sys_timeBase;
+}
+
+
+/*
+================
+Sys_Microseconds
+================
+*/
+uint64 Sys_Microseconds()
+{
+	static uint64 ticksPerMicrosecondTimes1024 = 0;
+
+	if( ticksPerMicrosecondTimes1024 == 0 )
+	{
+		ticksPerMicrosecondTimes1024 = ( ( uint64 )Sys_ClockTicksPerSecond() << 10 ) / 1000000;
+		assert( ticksPerMicrosecondTimes1024 > 0 );
+	}
+
+	return ( ( uint64 )( ( int64 )Sys_GetClockTicks() << 10 ) ) / ticksPerMicrosecondTimes1024;
+}
+
+/*
+========================
+Sys_CPUCount
+
+TODO: This is a dummy function;
+If required I recommend using SDL_CpuCount();
+
+numLogicalCPUCores      - the number of logical CPU per core
+numPhysicalCPUCores     - the total number of cores per package
+numCPUPackages          - the total number of packages (physical processors)
+========================
+*/
+void Sys_CPUCount( int& numLogicalCPUCores, int& numPhysicalCPUCores, int& numCPUPackages )
+{
+	numPhysicalCPUCores = 1;
+	numLogicalCPUCores = 1;
+	numCPUPackages = 1;
 }
 
 class idSysCmdline : public idSys
@@ -1133,7 +1374,7 @@ void idCommonLocal::UpdateScreen( bool captureToImage, bool releaseMouse )
 	}
 
 	//idStr title = va( "RBDMAP version %s %s", ENGINE_VERSION, BUILD_STRING );
-	idStr title = va( "RBDMAP version %s %s %s %s", ENGINE_VERSION, BUILD_STRING, __DATE__, __TIME__ );
+	idStr title = va( "RBDMAP version %s %s %s %s", ENGINE_VERSION, BUILD_STRING, ID__DATE__, ID__TIME__ );
 	ImGui::Begin( title.c_str(), nullptr,
 				  ImGuiWindowFlags_NoCollapse |
 				  ImGuiWindowFlags_NoResize |
@@ -1234,11 +1475,11 @@ int main( int argc, char** argv )
 
 	Dmap_f( args );
 
-#if 0
+#if 1
+	// maybe only do this if dmap has a leaked BSP
 	while( true )
 	{
-		bool captureToImage = false;
-		common->UpdateScreen( captureToImage );
+		common->UpdateScreen( false );
 	}
 #endif
 

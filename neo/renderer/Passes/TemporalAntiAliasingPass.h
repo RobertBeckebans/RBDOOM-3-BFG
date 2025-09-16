@@ -22,7 +22,6 @@
 
 #pragma once
 
-
 #include <nvrhi/nvrhi.h>
 #include <memory>
 
@@ -45,43 +44,14 @@ struct TemporalAntiAliasingParameters
 	bool enableHistoryClamping = true;
 };
 
-struct TemporalAntiAliasingConstants
-{
-	idRenderMatrix reprojectionMatrix;
-
-	idVec2 inputViewOrigin;
-	idVec2 inputViewSize;
-
-	idVec2 outputViewOrigin;
-	idVec2 outputViewSize;
-
-	idVec2 inputPixelOffset;
-	idVec2 outputTextureSizeInv;
-
-	idVec2 inputOverOutputViewSize;
-	idVec2 outputOverInputViewSize;
-
-	float clampingFactor;
-	float newFrameWeight;
-	float pqC;
-	float invPqC;
-
-	uint stencilMask;
-};
-
 class TemporalAntiAliasingPass
 {
 private:
 	CommonRenderPasses* m_CommonPasses;
 
-	nvrhi::ShaderHandle m_MotionVectorPS;
 	nvrhi::ShaderHandle m_TemporalAntiAliasingCS;
 	nvrhi::SamplerHandle m_BilinearSampler;
 	nvrhi::BufferHandle m_TemporalAntiAliasingCB;
-
-	nvrhi::BindingLayoutHandle m_MotionVectorsBindingLayout;
-	nvrhi::BindingSetHandle m_MotionVectorsBindingSet;
-	nvrhi::GraphicsPipelineHandle m_MotionVectorsPso;
 
 	nvrhi::BindingLayoutHandle m_ResolveBindingLayout;
 	nvrhi::BindingSetHandle m_ResolveBindingSet;
@@ -111,16 +81,9 @@ public:
 
 	void Init(
 		nvrhi::IDevice* device,
-		//std::shared_ptr<engine::ShaderFactory> shaderFactory,
 		CommonRenderPasses* commonPasses,
 		const viewDef_t* viewDef,
 		const CreateParameters& params );
-
-	void RenderMotionVectors(
-		nvrhi::ICommandList* commandList,
-		const viewDef_t* viewDef,
-		const viewDef_t* viewDefPrevious,
-		idVec3 preViewTranslationDifference = vec3_zero );
 
 	void TemporalResolve(
 		nvrhi::ICommandList* commandList,
@@ -129,7 +92,7 @@ public:
 		const viewDef_t* viewDef );
 
 	void AdvanceFrame();
-	idVec2 GetCurrentPixelOffset();
+	idVec2 GetCurrentPixelOffset( int frameIndex );
 
 	uint32_t GetFrameIndex() const
 	{

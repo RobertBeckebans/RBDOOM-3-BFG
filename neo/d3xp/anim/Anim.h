@@ -348,6 +348,11 @@ public:
 
 	const idVec3& 				GetVisualOffset() const;
 
+	const idImportOptions* 		GetImportOptions() const
+	{
+		return &importOptions;
+	}
+
 private:
 	void						CopyDecl( const idDeclModelDef* decl );
 	bool						ParseAnim( idLexer& src, int numDefaultAnims, const idStr& defaultCommands );
@@ -360,6 +365,8 @@ private:
 	idRenderModel* 				modelHandle;
 	idList<idAnim*, TAG_ANIM>			anims;
 	const idDeclSkin* 			skin;
+
+	idImportOptions				importOptions; // RB
 };
 
 /*

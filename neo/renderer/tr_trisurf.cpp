@@ -2242,6 +2242,28 @@ idVec3 R_ClosestPointPointTriangle( const idVec3& point, const idVec3& vertex1, 
 	return result;
 }
 
+idVec3 R_ClosestPointOnLineSegment( const idVec3& point, const idVec3& lineStart, const idVec3& lineEnd, float& t )
+{
+	idVec3 lineDirection = lineEnd - lineStart;
+	float lineLengthSquared = lineDirection.LengthSqr();
+
+	if( lineLengthSquared == 0.0f )
+	{
+		// the line segment is actually a point
+		t = 0.0f;
+		return lineStart;
+	}
+
+	// calculate the projection of the point onto the line
+	t = ( ( point - lineStart ) * lineDirection ) / lineLengthSquared;
+
+	// clamp t to the range [0, 1] to ensure the closest point is on the line segment
+	t = idMath::ClampFloat( 0, 1, t );
+
+	// calculate the closest point on the line segment
+	return lineStart + t * lineDirection;
+}
+
 void R_CreateMaskedOcclusionCullingTris( srfTriangles_t* tri )
 {
 	//assert( tri->mocVerts == NULL );

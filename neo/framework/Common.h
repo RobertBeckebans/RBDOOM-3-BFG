@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2014-2016 Robert Beckebans
+Copyright (C) 2014-2025 Robert Beckebans
 Copyright (C) 2014-2016 Kot in Action Creative Artel
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
@@ -41,7 +41,7 @@ If you have questions concerning this license or the applicable additional terms
 
 extern idCVar com_engineHz;
 extern float com_engineHz_latched;
-extern int64 com_engineHz_numerator;
+extern const int64 com_engineHz_numerator;
 extern int64 com_engineHz_denominator;
 
 // Returns the msec the frame starts on

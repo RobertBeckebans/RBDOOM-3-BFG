@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2022 Robert Beckebans
+Copyright (C) 2022-2025 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -54,10 +54,6 @@ public:
 
 class idImportOptions
 {
-private:
-	//idTokenizer				tokens;
-	//void					Reset( const char* commandline );
-
 public:
 	idStr					commandLine;
 	idStr					src;
@@ -65,7 +61,6 @@ public:
 	idStr					game;
 	idStr					prefix;
 	float					scale;
-	//exportType_t			type;
 	bool					ignoreMeshes;
 	bool					clearOrigin;
 	bool					clearOriginAxis;
@@ -89,12 +84,18 @@ public:
 	float					jointThreshold;
 	int						cycleStart;
 	idAngles				reOrient;
+
+	// RB begin
 	idStr					armature;
 	bool					noMikktspace;
+	idStr					modelDefName;
+	idStr					modelDefFileName;
+	ID_TIME_T				declSourceTimeStamp;	// timestamp of the .def where this modelDef option comes from
+	// RB end
 
-	void Init( const char* commandline, const char* ospath );
-
-	//bool					JointInExportGroup( const char* jointname );
+	idImportOptions();
+	void					Reset();
+	void					Init( const char* commandline, const char* ospath );
 };
 
 /*

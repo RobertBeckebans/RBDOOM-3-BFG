@@ -4,7 +4,6 @@
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
 Copyright (C) 2014-2021 Robert Beckebans
-Copyright (C) 2014-2016 Kot in Action Creative Artel
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -249,7 +248,7 @@ public:
 	idBlockAlloc<areaReference_t, 1024> areaReferenceAllocator;
 	idBlockAlloc<idInteraction, 256>	interactionAllocator;
 
-#ifdef ID_PC
+#if 1 //def ID_PC
 	static const int MAX_DECAL_SURFACES = 32;
 #else
 	static const int MAX_DECAL_SURFACES = 16;
@@ -272,7 +271,6 @@ public:
 	// RenderWorld_load.cpp
 
 	idRenderModel* 			ParseModel( idLexer* src, const char* mapName, ID_TIME_T mapTimeStamp, idFile* fileOut );
-	idRenderModel* 			ParseShadowModel( idLexer* src, idFile* fileOut );
 	void					SetupAreaRefs();
 	void					ParseInterAreaPortals( idLexer* src, idFile* fileOut );
 	void					ParseNodes( idLexer* src, idFile* fileOut );
@@ -286,7 +284,6 @@ public:
 	void					ReadBinaryAreaPortals( idFile* file );
 	void					ReadBinaryNodes( idFile* file );
 	idRenderModel* 			ReadBinaryModel( idFile* file );
-	idRenderModel* 			ReadBinaryShadowModel( idFile* file );
 
 	//--------------------------
 	// RenderWorld_portals.cpp

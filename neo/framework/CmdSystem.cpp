@@ -858,6 +858,13 @@ void idCmdSystemLocal::ArgCompletion_FolderExtension( const idCmdArgs& args, voi
 				{
 					name.Strip( "/" );
 				}
+
+				// RB: skip entries that we don't need
+				if( idStr::FindText( name, "autosave" ) != -1 || idStr::FindText( name, "_extra_ents" ) != -1 )
+				{
+					continue;
+				}
+
 				name = args.Argv( 0 ) + ( " " + name );
 				completionParms.Append( name );
 			}

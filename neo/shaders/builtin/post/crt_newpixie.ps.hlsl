@@ -113,7 +113,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	Params params;
 	params.curvature = rpWindowCoord.x;
 	params.ghosting = 0.0;
-	params.scanroll = 1.0;
+	params.scanroll = 0.0;
 	params.wiggle_toggle = 0.0;
 	params.vignette = rpWindowCoord.y;
 	params.FrameCount = int( rpJitterTexOffset.w );

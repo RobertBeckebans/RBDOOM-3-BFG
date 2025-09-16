@@ -923,3 +923,17 @@ Version 3
 "origin" "-3043 1475 297"
 "spawnclass" "EnvironmentProbe"
 }
+// entity 124
+{
+"classname" "light"
+"name" "light_4233"
+"light_center" "-202 -66 404"
+"parallel" "1"
+}
+// entity 125
+{
+"classname" "light"
+"name" "light_outdoor_area2_1"
+"light_center" "-108 -20 516"
+"parallel" "1"
+}

@@ -1,14 +1,19 @@
 cmake_minimum_required(VERSION 3.10)
 
 project(RBDoom3BFG-LibreCoop)
+	# RB: This sets the name of the .exe and is the only line needed for a different mod executable.
+	# If you want to make a different game then you also need to change neo/framework/Licensee.h
+    set(APP_NAME DoomCoop)
+endif()
+project(${APP_NAME})
 
 set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-if(CMAKE_MAJOR_VERSION EQUAL 3 AND CMAKE_MINOR_VERSION GREATER_EQUAL 6)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.6")
 	# set MSVC startup project
-	set_property (DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT DoomCoop)
+	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${APP_NAME})
 endif()
 	
 option(STANDALONE
@@ -65,7 +70,13 @@ option(OPTICK
 option(RETAIL
 		"Strip certain developer features and cheats from shipping builds" OFF)
 
-set(NVRHI_INSTALL OFF)
+option(FLATPAK
+		"Strip certain developer features and cheats from flatpak builds" OFF)
+		
+option(REPRODUCIBLE_BUILD
+		"Replace __DATE__ and __TIME__ by hardcoded values for reproducible builds" OFF)
+
+#set(NVRHI_INSTALL OFF)
 
 set(CPU_TYPE "" CACHE STRING "When set, passes this string as CPU-ID which will be embedded into the binary.")
 
@@ -79,6 +90,13 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)|(e2k)|(E2K)" AND 
 	option(USE_INTRINSICS_SSE "Compile using x86 MMX/SSE intrinsics (e.g SSE SIMD instructions)" ON)
 else()
 	option(USE_INTRINSICS_SSE "Compile using x86 MMX/SSE intrinsics (e.g SSE SIMD instructions)" OFF)
+endif()
+
+# SRS - Turn on NEON intrinsics for arm but not when cross-compiling from Apple arm64 to x86_64
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "(arm64)|(ARM64)|(aarch64)|(AArch64)" AND NOT CMAKE_OSX_ARCHITECTURES MATCHES "x86_64")
+	option(USE_INTRINSICS_NEON "Compile using arm NEON intrinsics (e.g NEON SIMD instructions)" ON)
+else()
+	option(USE_INTRINSICS_NEON "Compile using arm NEON intrinsics (e.g NEON SIMD instructions)" OFF)
 endif()
 
 if(FFMPEG AND BINKDEC)
@@ -182,15 +200,18 @@ if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 
 	# SRS - Make sure OSX can find system headers and add support for minimum OSX runtime version
     if(APPLE)
+		# SRS - CMAKE_OSX_SYSROOT and CMAKE_OSX_DEPLOYMENT_TARGET are now defined by macOS build scripts prior to execution of CMake's project() statement.
+		#       This approach supports CMake 4.0+ and earlier versions. Note -isysroot and -mmacosx-version-min still required for PCH command line builds.
+		if(USE_PRECOMPILED_HEADERS AND NOT CMAKE_GENERATOR MATCHES "Xcode")
+			if(CMAKE_OSX_SYSROOT)
+				add_compile_options(-isysroot ${CMAKE_OSX_SYSROOT})
+			endif()
+			if(CMAKE_OSX_DEPLOYMENT_TARGET)
+				add_compile_options(-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET})
+			endif()
+		endif()
 		# SRS - Also add -fasm-blocks otherwise Xcode complains and -Qunused-arguments to silence MMX/SSE unused arg warnings when compiling for Apple arm64
 		add_compile_options(-fasm-blocks -Qunused-arguments)
-        if(CMAKE_OSX_SYSROOT)
-            add_compile_options(-isysroot ${CMAKE_OSX_SYSROOT})
-            message(STATUS "Using macOS sysroot: " ${CMAKE_OSX_SYSROOT})
-        endif()
-		if(CMAKE_OSX_DEPLOYMENT_TARGET)
-			add_compile_options(-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET})
-		endif()
 	endif()
 
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -ggdb -D_DEBUG -O0")
@@ -268,6 +289,11 @@ if (USE_INTRINSICS_SSE)
 	add_definitions(-DUSE_INTRINSICS_SSE)
 endif()
 
+if (USE_INTRINSICS_NEON)
+	add_definitions(-DUSE_INTRINSICS_NEON)
+	add_definitions(-DSTBI_NEON)
+endif()
+
 if(STANDALONE)
 	add_definitions(-DSTANDALONE)
 
@@ -276,6 +302,11 @@ endif()
 
 if(RETAIL)
 	add_definitions(-DID_RETAIL)
+endif()
+
+if(REPRODUCIBLE_BUILD OR FLATPAK)
+	# don't use __DATE__ and __TIME__ macros so builds are reproducible
+	add_definitions(-DID_REPRODUCIBLE_BUILD)
 endif()
 
 # SRS - on Apple set find_package() to prefer dylibs over macOS frameworks and xcframeworks
@@ -297,16 +328,16 @@ else()
 endif()
 
 #SRS - move rapidjson before vulkan and other includes to prioritize bundled iterator fixes
-if (USE_SYSTEM_RAPIDJSON)
+if(USE_SYSTEM_RAPIDJSON)
 	find_package(rapidjson)
-endif (USE_SYSTEM_RAPIDJSON)
+endif()
 
-if (RAPIDJSON_FOUND)
+if(RAPIDJSON_FOUND)
 	include_directories("${RAPIDJSON_INCLUDE_DIRS}")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${RAPIDJSON_CXX_FLAGS}")
-else (RAPIDJSON_FOUND)
+else()
 	include_directories("libs/rapidjson/include")
-endif (RAPIDJSON_FOUND)
+endif()
 
 include_directories("libs/imgui")
 include_directories("libs/mikktspace")
@@ -340,8 +371,8 @@ if(USE_VULKAN)
 		include_directories(${Vulkan_INCLUDE_DIRS})
 
 		# SRS - ShaderMake uses DXC_CUSTOM_PATH as fallback if dxc for SPIRV not found by other means
-		if(Vulkan_dxc_exe_FOUND AND NOT DEFINED DXC_CUSTOM_PATH)
-			set(DXC_CUSTOM_PATH ${Vulkan_dxc_EXECUTABLE})
+		if(Vulkan_dxc_exe_FOUND AND NOT DXC_CUSTOM_PATH)
+			get_filename_component(DXC_CUSTOM_PATH ${Vulkan_dxc_EXECUTABLE} DIRECTORY)
 		endif()
 
         if(APPLE)
@@ -423,15 +454,23 @@ endif()
 
 add_subdirectory(idlib)
 
-# RB: there haven't been requests for a separate map compiler executable by macOS users
-# and it is ok to not support it until someone also supports TrenchBroomBFG on macOS
-if(NOT APPLE)
-	add_subdirectory(tools/compilers)
-endif()
-
 if(USE_INTRINSICS_SSE)
 	add_subdirectory(libs/moc)
 	set(MASKED_OCCLUSION_LIBRARY MaskedOcclusionCulling)
+endif()
+
+if(USE_INTRINSICS_SSE OR USE_INTRINSICS_NEON)
+	add_subdirectory(libs/ispc_texcomp)
+	set(ISPC_TEXCOMP_LIBRARY ispc_texcomp)
+
+	#set(ISPC_TEXCOMP_LIBRARY Compressonator_MD)
+	#link_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/compressonator/lib)
+endif()
+
+# RB: there haven't been requests for a separate map compiler executable by macOS users
+# and it is ok to not support it until someone also supports TrenchBroomBFG on macOS
+if(NOT APPLE AND NOT FLATPAK)
+	add_subdirectory(tools/compilers)
 endif()
 
 file(GLOB NATVIS_SOURCES .natvis)
@@ -439,11 +478,17 @@ file(GLOB NATVIS_SOURCES .natvis)
 file(GLOB AAS_INCLUDES aas/*.h)
 file(GLOB AAS_SOURCES aas/*.cpp)
 
-file(GLOB_RECURSE CM_INCLUDES cm/*.h)
-file(GLOB_RECURSE CM_SOURCES cm/*.cpp)
+file(GLOB CM_INCLUDES cm/*.h)
+file(GLOB CM_SOURCES cm/*.cpp)
 
 file(GLOB FRAMEWORK_INCLUDES framework/*.h)
 file(GLOB FRAMEWORK_SOURCES framework/*.cpp)
+
+file(GLOB FRAMEWORK_DECLS_INCLUDES framework/Decl*.h)
+file(GLOB FRAMEWORK_DECLS_SOURCES framework/Decl*.cpp)
+
+list(REMOVE_ITEM FRAMEWORK_INCLUDES ${FRAMEWORK_DECLS_INCLUDES})
+list(REMOVE_ITEM FRAMEWORK_SOURCES ${FRAMEWORK_DECLS_SOURCES})
 
 file(GLOB FRAMEWORK_IMGUI_INCLUDES imgui/*.h)
 file(GLOB FRAMEWORK_IMGUI_SOURCES imgui/*.cpp)
@@ -454,13 +499,14 @@ file(GLOB RENDERER_COLOR_INCLUDES renderer/Color/*.h)
 file(GLOB RENDERER_COLOR_SOURCES renderer/Color/*.cpp)
 file(GLOB RENDERER_DXT_INCLUDES renderer/DXT/*.h)
 file(GLOB RENDERER_DXT_SOURCES renderer/DXT/*.cpp)
-file(GLOB RENDERER_PASSES_INCLUDES renderer/Passes/*.h)
-file(GLOB RENDERER_PASSES_SOURCES renderer/Passes/*.cpp)
+
 
 file(GLOB RENDERER_SMAA_INCLUDES renderer/SMAA/*.h)
 
 file(GLOB RENDERER_NVRHI_INCLUDES renderer/NVRHI/*.h)
 file(GLOB RENDERER_NVRHI_SOURCES renderer/NVRHI/*.cpp)
+file(GLOB RENDERER_PASSES_INCLUDES renderer/Passes/*.h)
+file(GLOB RENDERER_PASSES_SOURCES renderer/Passes/*.cpp)
 
 file(GLOB IRRXML_INCLUDES libs/irrxml/src/*.h)
 file(GLOB IRRXML_SOURCES libs/irrxml/src/*.cpp)
@@ -496,42 +542,6 @@ endif()
 file(GLOB MINIZIP_INCLUDES libs/zlib/minizip/*.h)
 file(GLOB MINIZIP_SOURCES libs/zlib/minizip/*.c libs/zlib/minizip/*.cpp)
 
-set(FREETYPE_SOURCES
-	libs/freetype/src/autofit/autofit.c
-	libs/freetype/src/bdf/bdf.c
-	libs/freetype/src/cff/cff.c
-	libs/freetype/src/base/ftbase.c
-	libs/freetype/src/base/ftbitmap.c
-	libs/freetype/src/cache/ftcache.c
-	libs/freetype/src/base/ftdebug.c
-	libs/freetype/src/base/ftgasp.c
-	libs/freetype/src/base/ftglyph.c
-	libs/freetype/src/gzip/ftgzip.c
-	libs/freetype/src/base/ftinit.c
-	libs/freetype/src/lzw/ftlzw.c
-	libs/freetype/src/base/ftstroke.c
-	libs/freetype/src/base/ftsystem.c
-	libs/freetype/src/smooth/smooth.c
-	libs/freetype/src/base/ftbbox.c
-	libs/freetype/src/base/ftmm.c
-	libs/freetype/src/base/ftpfr.c
-	libs/freetype/src/base/ftsynth.c
-	libs/freetype/src/base/fttype1.c
-	libs/freetype/src/base/ftwinfnt.c
-	libs/freetype/src/pcf/pcf.c
-	libs/freetype/src/pfr/pfr.c
-	libs/freetype/src/psaux/psaux.c
-	libs/freetype/src/pshinter/pshinter.c
-	libs/freetype/src/psnames/psmodule.c
-	libs/freetype/src/raster/raster.c
-	libs/freetype/src/sfnt/sfnt.c
-	libs/freetype/src/truetype/truetype.c
-	libs/freetype/src/type1/type1.c
-	libs/freetype/src/cid/type1cid.c
-	libs/freetype/src/type42/type42.c
-	libs/freetype/src/winfonts/winfnt.c)
-	
-	
 set(SOUND_INCLUDES
 	sound/snd_local.h
 	sound/sound.h
@@ -738,104 +748,7 @@ file(GLOB COMPILER_AAS_SOURCES tools/compilers/aas/*.cpp)
 file(GLOB COMPILER_DMAP_INCLUDES tools/compilers/dmap/*.h)
 file(GLOB COMPILER_DMAP_SOURCES tools/compilers/dmap/*.cpp)
 
-file(GLOB COMPILER_ROQVQ_INCLUDES tools/compilers/roqvq/*.h)
-file(GLOB COMPILER_ROQVQ_SOURCES tools/compilers/roqvq/*.cpp)
-
 set(TOOLS_INCLUDES tools/edit_public.h)
-
-file(GLOB TOOLS_COMAFX_INCLUDES tools/comafx/*.h)
-file(GLOB TOOLS_COMAFX_SOURCES tools/comafx/*.cpp)
-
-set(TOOLS_COMMON_INCLUDES
-	tools/common/ColorButton.h
-	tools/common/DialogHelpers.h
-	tools/common/MaskEdit.h
-	tools/common/OpenFileDialog.h
-	tools/common/PropertyGrid.h
-	tools/common/RegistryOptions.h
-	#tools/common/RenderBumpFlatDialog.h
-	tools/common/RollupPanel.h
-	tools/common/SpinButton.h)
-
-set(TOOLS_COMMON_SOURCES
-	tools/common/AlphaPopup.cpp
-	tools/common/ColorButton.cpp
-	tools/common/MaskEdit.cpp
-	tools/common/OpenFileDialog.cpp
-	tools/common/PropertyGrid.cpp
-	tools/common/RegistryOptions.cpp
-	#tools/common/RenderBumpFlatDialog.cpp
-	tools/common/RollupPanel.cpp
-	tools/common/SpinButton.cpp)
-
-file(GLOB TOOLS_COMMON_PROPTREE_INCLUDES tools/common/PropTree/*.h)
-file(GLOB TOOLS_COMMON_PROPTREE_SOURCES tools/common/PropTree/*.cpp)
-
-file(GLOB EDITOR_AF_INCLUDES tools/af/*.h)
-file(GLOB EDITOR_AF_SOURCES tools/af/*.cpp)
-
-set(EDITOR_DECL_INCLUDES
-	tools/decl/DialogDeclBrowser.h
-	tools/decl/DialogDeclEditor.h
-	tools/decl/DialogDeclNew.h)
-	
-set(EDITOR_DECL_SOURCES
-	tools/decl/DialogDeclBrowser.cpp
-	tools/decl/DialogDeclEditor.cpp
-	tools/decl/DialogDeclNew.cpp)
-	
-file(GLOB EDITOR_DEBUGGER_INCLUDES tools/debugger/*.h)
-file(GLOB EDITOR_DEBUGGER_SOURCES tools/debugger/*.cpp)
-
-file(GLOB EDITOR_GUIED_INCLUDES tools/guied/*.h)
-set(EDITOR_GUIED_SOURCES
-	tools/guied/GEApp.cpp
-	tools/guied/GECheckInDlg.cpp
-	tools/guied/GEDeleteModifier.cpp
-	tools/guied/GEHideModifier.cpp
-	tools/guied/GEInsertModifier.cpp
-	tools/guied/GEItemPropsDlg.cpp
-	tools/guied/GEItemScriptsDlg.cpp
-	tools/guied/GEKeyValueModifier.cpp
-	tools/guied/GEModifier.cpp
-	tools/guied/GEModifierGroup.cpp
-	tools/guied/GEModifierStack.cpp
-	tools/guied/GEMoveModifier.cpp
-	tools/guied/GENavigator.cpp
-	tools/guied/GEOptions.cpp
-	tools/guied/GEOptionsDlg.cpp
-	tools/guied/GEProperties.cpp
-	tools/guied/GEPropertyPage.cpp
-	tools/guied/GESelectionMgr.cpp
-	tools/guied/GESizeModifier.cpp
-	tools/guied/GEStateModifier.cpp
-	tools/guied/GEStatusBar.cpp
-	tools/guied/GETransformer.cpp
-	tools/guied/GEViewer.cpp
-	tools/guied/GEWindowWrapper.cpp
-	#tools/guied/GEWindowWrapper_stub.cpp
-	tools/guied/GEWorkspace.cpp
-	tools/guied/GEWorkspaceFile.cpp
-	tools/guied/GEZOrderModifier.cpp
-	tools/guied/guied.cpp)
-
-file(GLOB EDITOR_MATERIALEDITOR_INCLUDES tools/materialeditor/*.h)
-file(GLOB EDITOR_MATERIALEDITOR_SOURCES tools/materialeditor/*.cpp)
-
-file(GLOB EDITOR_PARTICLE_INCLUDES tools/particle/*.h)
-file(GLOB EDITOR_PARTICLE_SOURCES tools/particle/*.cpp)
-
-file(GLOB EDITOR_PDA_INCLUDES tools/pda/*.h)
-file(GLOB EDITOR_PDA_SOURCES tools/pda/*.cpp)
-
-file(GLOB EDITOR_RADIANT_INCLUDES tools/radiant/*.h)
-file(GLOB EDITOR_RADIANT_SOURCES tools/radiant/*.cpp)
-
-file(GLOB EDITOR_SCRIPT_INCLUDES tools/script/*.h)
-file(GLOB EDITOR_SCRIPT_SOURCES tools/script/*.cpp)
-
-file(GLOB EDITOR_SOUND_INCLUDES tools/sound/*.h)
-file(GLOB EDITOR_SOUND_SOURCES tools/sound/*.cpp)
 
 file(GLOB IMGUI_EDITOR_INCLUDES tools/imgui/*.h)
 file(GLOB IMGUI_EDITOR_SOURCES tools/imgui/*.cpp)
@@ -861,8 +774,6 @@ file(GLOB TIMIDITY_INCLUDES libs/timidity/*.h)
 file(GLOB TIMIDITY_SOURCES libs/timidity/*.cpp)
 
 file(GLOB_RECURSE WIN32_INCLUDES sys/win32/*.h)
-#file(GLOB_RECURSE WIN32_SOURCES sys/win32/*.cpp)
-
 set(WIN32_SOURCES
 	sys/win32/win_glimp.cpp
 	sys/win32/win_input.cpp
@@ -878,71 +789,9 @@ if(MSVC)
 endif()
 
 set(WIN32_RESOURCES
-	# sys/win32/rc/res/BEVEL.BMP
-	# sys/win32/rc/res/BITMAP2.BMP
-	# sys/win32/rc/res/BMP00001.BMP
-	# sys/win32/rc/res/BMP0002.BMP
-	# sys/win32/rc/res/DEFTEX.WAL
-	# sys/win32/rc/res/ENDCAP.BMP
-	# sys/win32/rc/res/GetString.htm
-	# sys/win32/rc/res/IBEVEL.BMP
-	# sys/win32/rc/res/IENDCAP.BMP
-	# sys/win32/rc/res/MEFileToolbar.bmp
-	# sys/win32/rc/res/MEtoolbar.bmp
-	# sys/win32/rc/res/MaterialEditor.ico
-	# sys/win32/rc/res/PropTree.rc2
-	# sys/win32/rc/res/Q.BMP
-	# sys/win32/rc/res/RADIANT3.GIF
-	# sys/win32/rc/res/Radiant.ico
-	# sys/win32/rc/res/RadiantDoc.ico
-	# sys/win32/rc/res/TOOLBAR1.BMP
-	# sys/win32/rc/res/TOOLBAR2.BMP
-	# sys/win32/rc/res/Toolbar.bmp
-	# sys/win32/rc/res/VIEWDEFA.BMP
-	# sys/win32/rc/res/VIEWOPPO.BMP
-	# sys/win32/rc/res/bmp00002.bmp
-	# sys/win32/rc/res/bmp00003.bmp
-	# sys/win32/rc/res/bmp00004.bmp
-	# sys/win32/rc/res/bmp00005.bmp
-	# sys/win32/rc/res/cchsb.bmp
-	# sys/win32/rc/res/ccrgb.bmp
-	# sys/win32/rc/res/dbg_back.bmp
-	# sys/win32/rc/res/dbg_breakpoint.ico
-	# sys/win32/rc/res/dbg_current.ico
-	# sys/win32/rc/res/dbg_currentline.ico
-	# sys/win32/rc/res/dbg_empty.ico
-	# sys/win32/rc/res/dbg_open.bmp
-	# sys/win32/rc/res/dbg_toolbar.bmp
 	sys/win32/rc/res/doom.ico
 	sys/win32/rc/doom.rc
-	# sys/win32/rc/res/fpoint.cur
-	# sys/win32/rc/res/fxed_link.ico
-	# sys/win32/rc/res/fxed_toolbar.bmp
-	# sys/win32/rc/res/fxeditor.ico
-	# sys/win32/rc/res/guied.ico
-	# sys/win32/rc/res/guied_collapse.ico
-	# sys/win32/rc/res/guied_expand.ico
-	# sys/win32/rc/res/guied_hand.cur
-	# sys/win32/rc/res/guied_nav_visible.ico
-	# sys/win32/rc/res/guied_nav_visibledisabled.ico
-	# sys/win32/rc/res/guied_scripts.ico
-	# sys/win32/rc/res/guied_scripts_white.ico
-	# sys/win32/rc/res/guied_viewer_toolbar.bmp
-	# sys/win32/rc/res/icon2.ico
-	# sys/win32/rc/res/logo_sm3dfx.bmp
-	# sys/win32/rc/res/matedtree.bmp
-	# sys/win32/rc/res/me_disabled_icon.ico
-	# sys/win32/rc/res/me_enabled.ico
-	# sys/win32/rc/res/me_off_icon.ico
-	# sys/win32/rc/res/me_on_icon.ico
-	# sys/win32/rc/res/qe3.ico
-	# sys/win32/rc/res/shaderbar.bmp
-	# sys/win32/rc/res/shaderdoc.ico
-	# sys/win32/rc/res/shaderframe.ico
-	# sys/win32/rc/res/spliter.cur
 	)
-
-
 
 file(GLOB POSIX_INCLUDES sys/posix/*.h)
 file(GLOB POSIX_SOURCES sys/posix/*.cpp)
@@ -953,34 +802,71 @@ file(GLOB COMMON_SOURCES sys/common/*.cpp)
 file(GLOB SDL_INCLUDES sys/sdl/*.h)
 file(GLOB SDL_SOURCES sys/sdl/*.cpp)
 
-source_group("aas" FILES ${AAS_INCLUDES})
-source_group("aas" FILES ${AAS_SOURCES})
+source_group("engine\\aas" FILES ${AAS_INCLUDES})
+source_group("engine\\aas" FILES ${AAS_SOURCES})
 
-source_group("cm" FILES ${CM_INCLUDES})
-source_group("cm" FILES ${CM_SOURCES})
+source_group("engine\\cm" FILES ${CM_INCLUDES})
+source_group("engine\\cm" FILES ${CM_SOURCES})
 
-source_group("framework" FILES ${FRAMEWORK_INCLUDES})
-source_group("framework" FILES ${FRAMEWORK_SOURCES})
+source_group("engine\\framework" FILES ${FRAMEWORK_INCLUDES})
+source_group("engine\\framework" FILES ${FRAMEWORK_SOURCES})
 
-source_group("imgui" FILES ${FRAMEWORK_IMGUI_INCLUDES})
-source_group("imgui" FILES ${FRAMEWORK_IMGUI_SOURCES})
+source_group("engine\\decls" FILES ${FRAMEWORK_DECLS_INCLUDES})
+source_group("engine\\decls" FILES ${FRAMEWORK_DECLS_SOURCES})
 
-source_group("renderer" FILES ${RENDERER_INCLUDES})
-source_group("renderer" FILES ${RENDERER_SOURCES})
+source_group("engine\\imgui" FILES ${FRAMEWORK_IMGUI_INCLUDES})
+source_group("engine\\imgui" FILES ${FRAMEWORK_IMGUI_SOURCES})
 
-source_group("renderer\\Color" FILES ${RENDERER_COLOR_INCLUDES})
-source_group("renderer\\Color" FILES ${RENDERER_COLOR_SOURCES})
+source_group("engine\\renderer" FILES ${RENDERER_INCLUDES})
+source_group("engine\\renderer" FILES ${RENDERER_SOURCES})
 
-source_group("renderer\\Passes" FILES ${RENDERER_PASSES_INCLUDES})
-source_group("renderer\\Passes" FILES ${RENDERER_PASSES_SOURCES})
+source_group("engine\\renderer\\Color" FILES ${RENDERER_COLOR_INCLUDES})
+source_group("engine\\renderer\\Color" FILES ${RENDERER_COLOR_SOURCES})
 
-source_group("renderer\\DXT" FILES ${RENDERER_DXT_INCLUDES})
-source_group("renderer\\DXT" FILES ${RENDERER_DXT_SOURCES})
+source_group("engine\\renderer\\DXT" FILES ${RENDERER_DXT_INCLUDES})
+source_group("engine\\renderer\\DXT" FILES ${RENDERER_DXT_SOURCES})
 
-source_group("renderer\\NVRHI" FILES ${RENDERER_NVRHI_INCLUDES})
-source_group("renderer\\NVRHI" FILES ${RENDERER_NVRHI_SOURCES})
+source_group("engine\\renderer\\NVRHI" FILES ${RENDERER_NVRHI_INCLUDES})
+source_group("engine\\renderer\\NVRHI" FILES ${RENDERER_NVRHI_SOURCES})
 
-source_group("renderer\\SMAA" FILES ${RENDERER_SMAA_INCLUDES})
+source_group("engine\\renderer\\Passes" FILES ${RENDERER_PASSES_INCLUDES})
+source_group("engine\\renderer\\Passes" FILES ${RENDERER_PASSES_SOURCES})
+
+source_group("engine\\renderer\\SMAA" FILES ${RENDERER_SMAA_INCLUDES})
+
+source_group("engine\\sys\\win32" FILES ${WIN32_INCLUDES})
+source_group("engine\\sys\\win32" FILES ${WIN32_SOURCES})
+source_group("engine\\sys\\win32\\Resources" FILES ${WIN32_RESOURCES})
+
+source_group("engine\\sys\\posix" FILES ${POSIX_INCLUDES})
+source_group("engine\\sys\\posix" FILES ${POSIX_SOURCES})
+
+source_group("engine\\sys\\common" FILES ${COMMON_INCLUDES})
+source_group("engine\\sys\\common" FILES ${COMMON_SOURCES})
+
+source_group("engine\\sys\\sdl" FILES ${SDL_INCLUDES})
+source_group("engine\\sys\\sdl" FILES ${SDL_SOURCES})
+
+source_group("engine\\sound" FILES ${SOUND_INCLUDES})
+source_group("engine\\sound" FILES ${SOUND_SOURCES})
+
+source_group("engine\\sound\\XAudio2" FILES ${XAUDIO2_INCLUDES})
+source_group("engine\\sound\\XAudio2" FILES ${XAUDIO2_SOURCES})
+
+source_group("engine\\sound\\OpenAL" FILES ${OPENAL_INCLUDES})
+source_group("engine\\sound\\OpenAL" FILES ${OPENAL_SOURCES})
+
+source_group("engine\\sound\\stub" FILES ${STUBAUDIO_INCLUDES})
+source_group("engine\\sound\\stub" FILES ${STUBAUDIO_SOURCES})
+
+source_group("engine\\ui" FILES ${UI_INCLUDES})
+source_group("engine\\ui" FILES ${UI_SOURCES})
+
+source_group("engine\\ui-flash" FILES ${SWF_INCLUDES})
+source_group("engine\\ui-flash" FILES ${SWF_SOURCES})
+
+source_group("engine\\sys" FILES ${SYS_INCLUDES})
+source_group("engine\\sys" FILES ${SYS_SOURCES})
 
 source_group("libs\\irrxml" FILES ${IRRXML_INCLUDES})
 source_group("libs\\irrxml" FILES ${IRRXML_SOURCES})
@@ -1008,31 +894,11 @@ source_group("libs\\zlib\\minizip" FILES ${MINIZIP_SOURCES})
 
 source_group("libs\\rapidjson" FILES ${RAPIDJSON_INCLUDES})
 
-source_group("libs\\freetype" FILES ${FREETYPE_SOURCES})
-
-source_group("sound" FILES ${SOUND_INCLUDES})
-source_group("sound" FILES ${SOUND_SOURCES})
-
-source_group("sound\\XAudio2" FILES ${XAUDIO2_INCLUDES})
-source_group("sound\\XAudio2" FILES ${XAUDIO2_SOURCES})
-
-source_group("sound\\OpenAL" FILES ${OPENAL_INCLUDES})
-source_group("sound\\OpenAL" FILES ${OPENAL_SOURCES})
-
-source_group("sound\\stub" FILES ${STUBAUDIO_INCLUDES})
-source_group("sound\\stub" FILES ${STUBAUDIO_SOURCES})
-
 source_group("libs\\oggvorbis" FILES ${OGGVORBIS_INCLUDES})
 source_group("libs\\oggvorbis" FILES ${OGGVORBIS_SOURCES})
 
-source_group("ui" FILES ${UI_INCLUDES})
-source_group("ui" FILES ${UI_SOURCES})
-
-source_group("swf" FILES ${SWF_INCLUDES})
-source_group("swf" FILES ${SWF_SOURCES})
-
-source_group("sys" FILES ${SYS_INCLUDES})
-source_group("sys" FILES ${SYS_SOURCES})
+source_group("libs\\timidity" FILES ${TIMIDITY_INCLUDES})
+source_group("libs\\timidity" FILES ${TIMIDITY_SOURCES})
 
 source_group("doomclassic" FILES ${DOOMCLASSIC_INCLUDES})
 source_group("doomclassic" FILES ${DOOMCLASSIC_SOURCES})
@@ -1040,10 +906,6 @@ source_group("doomclassic" FILES ${DOOMCLASSIC_SOURCES})
 source_group("doomclassic" FILES ${DOOMCLASSIC_STUBAUDIO_SOURCES})
 source_group("doomclassic" FILES ${DOOMCLASSIC_OPENAL_SOURCES})
 source_group("doomclassic" FILES ${DOOMCLASSIC_XAUDIO2_SOURCES})
-
-source_group("libs\\timidity" FILES ${TIMIDITY_INCLUDES})
-source_group("libs\\timidity" FILES ${TIMIDITY_SOURCES})
-
 
 source_group("game-d3xp" FILES ${GAMED3XP_INCLUDES})
 source_group("game-d3xp" FILES ${GAMED3XP_SOURCES})
@@ -1066,74 +928,15 @@ source_group("game-d3xp\\physics" FILES ${GAMED3XP_PHYSICS_SOURCES})
 source_group("game-d3xp\\script" FILES ${GAMED3XP_SCRIPT_INCLUDES})
 source_group("game-d3xp\\script" FILES ${GAMED3XP_SCRIPT_SOURCES})
 
-
-
-
-source_group("sys\\win32" FILES ${WIN32_INCLUDES})
-source_group("sys\\win32" FILES ${WIN32_SOURCES})
-source_group("sys\\win32\\Resources" FILES ${WIN32_RESOURCES})
-
-source_group("sys\\posix" FILES ${POSIX_INCLUDES})
-source_group("sys\\posix" FILES ${POSIX_SOURCES})
-
-source_group("sys\\common" FILES ${COMMON_INCLUDES})
-source_group("sys\\common" FILES ${COMMON_SOURCES})
-
-source_group("sys\\sdl" FILES ${SDL_INCLUDES})
-source_group("sys\\sdl" FILES ${SDL_SOURCES})
-
-
 source_group("tools\\compilers" FILES ${COMPILER_INCLUDES})
 
-source_group("tools\\compilers\\aas" FILES ${COMPILER_AAS_INCLUDES})
-source_group("tools\\compilers\\aas" FILES ${COMPILER_AAS_SOURCES})
+source_group("tools\\compilers\\aasbuild" FILES ${COMPILER_AAS_INCLUDES})
+source_group("tools\\compilers\\aasbuild" FILES ${COMPILER_AAS_SOURCES})
 
 source_group("tools\\compilers\\dmap" FILES ${COMPILER_DMAP_INCLUDES})
 source_group("tools\\compilers\\dmap" FILES ${COMPILER_DMAP_SOURCES})
 
-source_group("tools\\compilers\\roqvq" FILES ${COMPILER_ROQVQ_INCLUDES})
-source_group("tools\\compilers\\roqvq" FILES ${COMPILER_ROQVQ_SOURCES})
-
 source_group("tools" FILES ${TOOLS_INCLUDES})
-
-source_group("tools\\comafx" FILES ${TOOLS_COMAFX_INCLUDES})
-source_group("tools\\comafx" FILES ${TOOLS_COMAFX_SOURCES})
-
-source_group("tools\\common" FILES ${TOOLS_COMMON_INCLUDES})
-source_group("tools\\common" FILES ${TOOLS_COMMON_SOURCES})
-
-source_group("tools\\common\\proptree" FILES ${TOOLS_COMMON_PROPTREE_INCLUDES})
-source_group("tools\\common\\proptree" FILES ${TOOLS_COMMON_PROPTREE_SOURCES})
-
-source_group("tools\\af" FILES ${EDITOR_AF_INCLUDES})
-source_group("tools\\af" FILES ${EDITOR_AF_SOURCES})
-
-source_group("tools\\debugger" FILES ${EDITOR_DEBUGGER_INCLUDES})
-source_group("tools\\debugger" FILES ${EDITOR_DEBUGGER_SOURCES})
-
-source_group("tools\\decl" FILES ${EDITOR_DECL_INCLUDES})
-source_group("tools\\decl" FILES ${EDITOR_DECL_SOURCES})
-
-source_group("tools\\guied" FILES ${EDITOR_GUIED_INCLUDES})
-source_group("tools\\guied" FILES ${EDITOR_GUIED_SOURCES})
-
-source_group("tools\\materialeditor" FILES ${EDITOR_MATERIALEDITOR_INCLUDES})
-source_group("tools\\materialeditor" FILES ${EDITOR_MATERIALEDITOR_SOURCES})
-
-source_group("tools\\particle" FILES ${EDITOR_PARTICLE_INCLUDES})
-source_group("tools\\particle" FILES ${EDITOR_PARTICLE_SOURCES})
-
-source_group("tools\\pda" FILES ${EDITOR_PDA_INCLUDES})
-source_group("tools\\pda" FILES ${EDITOR_PDA_SOURCES})
-
-source_group("tools\\radiant" FILES ${EDITOR_RADIANT_INCLUDES})
-source_group("tools\\radiant" FILES ${EDITOR_RADIANT_SOURCES})
-
-source_group("tools\\script" FILES ${EDITOR_SCRIPT_INCLUDES})
-source_group("tools\\script" FILES ${EDITOR_SCRIPT_SOURCES})
-
-source_group("tools\\sound" FILES ${EDITOR_SOUND_INCLUDES})
-source_group("tools\\sound" FILES ${EDITOR_SOUND_SOURCES})
 
 source_group("tools\\imgui" FILES ${IMGUI_EDITOR_INCLUDES})
 source_group("tools\\imgui" FILES ${IMGUI_EDITOR_SOURCES})
@@ -1148,14 +951,10 @@ set(RBDOOM3_INCLUDES
 			${AAS_INCLUDES}
 			${CM_INCLUDES}
 			${FRAMEWORK_INCLUDES}
-			${FRAMEWORK_ASYNC_INCLUDES}
+			${FRAMEWORK_DECLS_INCLUDES}
 			${RENDERER_INCLUDES}
 			${RENDERER_COLOR_INCLUDES}
 			${RENDERER_DXT_INCLUDES}
-			${RENDERER_JOBS_INCLUDES}
-			${RENDERER_JOBS_DYNAMICSHADOWVOLUME_INCLUDES}
-			${RENDERER_JOBS_PRELIGHTSHADOWVOLUME_INCLUDES}
-			${RENDERER_JOBS_STATICSHADOWVOLUME_INCLUDES}
 			${RENDERER_PASSES_INCLUDES}
 			
 			${RENDERER_SMAA_INCLUDES}
@@ -1170,7 +969,6 @@ set(RBDOOM3_INCLUDES
 			${MINIZIP_INCLUDES}
 			${BINKDEC_INCLUDES}
 			${RAPIDJSON_INCLUDES}
-			#${FREETYPE_SOURCES}
 			${SOUND_INCLUDES}
 			${OGGVORBIS_INCLUDES}
 			${VMA_INCLUDES}
@@ -1202,14 +1000,10 @@ set(RBDOOM3_SOURCES
 			${AAS_SOURCES}
 			${CM_SOURCES}
 			${FRAMEWORK_SOURCES}
-			${FRAMEWORK_ASYNC_SOURCES} 
+			${FRAMEWORK_DECLS_SOURCES} 
 			${RENDERER_SOURCES}
 			${RENDERER_COLOR_SOURCES}
 			${RENDERER_DXT_SOURCES}
-			${RENDERER_JOBS_SOURCES}
-			${RENDERER_JOBS_DYNAMICSHADOWVOLUME_SOURCES}
-			${RENDERER_JOBS_PRELIGHTSHADOWVOLUME_SOURCES}
-			${RENDERER_JOBS_STATICSHADOWVOLUME_SOURCES}
 			${RENDERER_PASSES_SOURCES}
 			${IRRXML_SOURCES}
 			${FRAMEWORK_IMGUI_SOURCES}
@@ -1218,7 +1012,6 @@ set(RBDOOM3_SOURCES
 			${ZLIB_SOURCES}
 			${MINIZIP_SOURCES}
 			${BINKDEC_SOURCES}
-			#${FREETYPE_SOURCES}
 			${SOUND_SOURCES}
 			${OGGVORBIS_SOURCES}
 			${OPTICK_SOURCES}
@@ -1265,10 +1058,7 @@ if(DOOM_CLASSIC)
 	list(APPEND RBDOOM3_SOURCES ${TIMIDITY_SOURCES})
 endif()
 
-add_definitions(-D__DOOM__
-				#-DBUILD_FREETYPE
-				#-DFT2_BUILD_LIBRARY
-				)
+add_definitions(-D__DOOM__)
 				
 
 include_directories(
@@ -1409,25 +1199,25 @@ if(MSVC)
 	
 	list(APPEND RBDOOM3_SOURCES ${WIN32_RESOURCES})
 	
-	add_executable(DoomCoop WIN32 ${RBDOOM3_INCLUDES} ${RBDOOM3_SOURCES})
-
-	add_dependencies(DoomCoop idlib)
+	add_executable(${APP_NAME} WIN32 ${RBDOOM3_INCLUDES} ${RBDOOM3_SOURCES})
+	add_dependencies(${APP_NAME} idlib)
     
     if(USE_DX12)
-		add_dependencies(DoomCoop nvrhi_d3d12)
+		add_dependencies(${APP_NAME} nvrhi_d3d12)
 	endif()
 	
 	if(USE_VULKAN)
-		add_dependencies(DoomCoop nvrhi_vk)
+		add_dependencies(${APP_NAME} nvrhi_vk)
 	endif()
-	target_link_libraries(DoomCoop
+	target_link_libraries(${APP_NAME}
 		idlib
 		${DirectX_LIBRARIES}
 		dbghelp
 		#eaxguid
 		iphlpapi
 		winmm
-		wsock32.lib
+		wsock32
+		Shlwapi
 		${Vulkan_LIBRARIES}
 		${OpenAL_LIBRARIES}
 		${FFmpeg_LIBRARIES}
@@ -1436,16 +1226,16 @@ if(MSVC)
 		)
 		
 	# set MSVC default debug directory on executable	
-	if(CMAKE_MAJOR_VERSION EQUAL 3 AND CMAKE_MINOR_VERSION GREATER_EQUAL 8)
-		set_target_properties(DoomCoop PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/..")
+	if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.8")
+		set_target_properties(${APP_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/..")
 	endif()
 	
 	#CMAKE_BINARY_DIR
 	if(CMAKE_CL_64)
-		install(TARGETS DoomCoop
+		install(TARGETS ${APP_NAME}
 			RUNTIME DESTINATION .)
 	else()
-		install(TARGETS DoomCoop
+		install(TARGETS ${APP_NAME}
 			RUNTIME DESTINATION .)
 	endif()	
 
@@ -1559,7 +1349,7 @@ else()
 		add_custom_target(precomp_header_rbdoom3bfg ALL
 				COMMAND ${CMAKE_CXX_COMPILER} ${_compiler_FLAGS} -x c++-header idlib/precompiled.h -o idlib/precompiled.h.gch
 				WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-				COMMENT "Creating idlib/precompiled.h.gch for RBDoom3BFG"
+				COMMENT "Creating idlib/precompiled.h.gch for ${APP_NAME}"
 				)
 
 		# make sure this is run after creating idlib
@@ -1600,18 +1390,18 @@ else()
 		set(MACOSX_BUNDLE_INFO_STRING "")					# to be added by author if desired
 		set(MACOSX_BUNDLE_COPYRIGHT "")						# to be added by author if desired
 
-		add_executable(DoomCoop MACOSX_BUNDLE ${MACOS_RESOURCES} ${RBDOOM3_INCLUDES} ${RBDOOM3_SOURCES})
+		add_executable(${APP_NAME} MACOSX_BUNDLE ${MACOS_RESOURCES} ${RBDOOM3_INCLUDES} ${RBDOOM3_SOURCES})
 	else()
-		add_executable(DoomCoop WIN32 ${RBDOOM3_INCLUDES} ${RBDOOM3_SOURCES})
+		add_executable(${APP_NAME} WIN32 ${RBDOOM3_INCLUDES} ${RBDOOM3_SOURCES})
 	endif()
 
 	if(USE_VULKAN)
-        add_dependencies(DoomCoop nvrhi_vk)
+        add_dependencies(${APP_NAME} nvrhi_vk)
     endif()
 
 	if (USE_PRECOMPILED_HEADERS)
 		# make sure precompiled header is created before executable is compiled
-		add_dependencies(DoomCoop precomp_header_rbdoom3bfg)
+		add_dependencies(${APP_NAME} precomp_header_rbdoom3bfg)
 		
 		if(WIN32)
 			set(remove_command "del")
@@ -1626,11 +1416,11 @@ else()
 					WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 					COMMENT "remove idlib/precompiled.h.gch"
 					)
-			add_dependencies(rm_precomp_header DoomCoop)
+			add_dependencies(rm_precomp_header ${APP_NAME})
 
 		# delete precompiled header file after executable is compiled: IDE build case (e.g. Xcode)
 		else()
-			add_custom_command(TARGET DoomCoop POST_BUILD
+			add_custom_command(TARGET ${APP_NAME} POST_BUILD
 					# SRS - added wildcards to remove tmp files from cmake ZERO_CHECK regeneration
 					COMMAND ${remove_command} "idlib/precompiled.h*.gch*"
 					WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -1644,7 +1434,7 @@ else()
 			set(RT_LIBRARY rt)
 		endif()
 
-		target_link_libraries(DoomCoop
+		target_link_libraries(${APP_NAME}
 			idlib
 			${Vulkan_LIBRARY}
 			pthread
@@ -1659,30 +1449,30 @@ else()
 endif()
 
 if(USE_DX12)
-	target_compile_definitions(DoomCoop PUBLIC USE_DX12=1)
-	target_link_libraries(DoomCoop nvrhi_d3d12)
+	target_compile_definitions(${APP_NAME} PUBLIC USE_DX12=1)
+	target_link_libraries(${APP_NAME} nvrhi_d3d12)
 endif()
 
 if(USE_DXIL_ON_DX12)
-	target_compile_definitions(DoomCoop PRIVATE USE_DXIL_ON_DX12=1)
+	target_compile_definitions(${APP_NAME} PRIVATE USE_DXIL_ON_DX12=1)
 endif()
 
 if(USE_VULKAN)
-	target_compile_definitions(DoomCoop PUBLIC USE_VK=1)
-	target_link_libraries(DoomCoop nvrhi_vk)
+	target_compile_definitions(${APP_NAME} PUBLIC USE_VK=1)
+	target_link_libraries(${APP_NAME} nvrhi_vk)
 endif()
 
 if(OPTICK)
-	target_compile_definitions(DoomCoop PUBLIC USE_OPTICK=1)
+	target_compile_definitions(${APP_NAME} PUBLIC USE_OPTICK=1)
 else()
-	target_compile_definitions(DoomCoop PUBLIC USE_OPTICK=0)
+	target_compile_definitions(${APP_NAME} PUBLIC USE_OPTICK=0)
 endif()
 
 # needs to come after nvrhi_d3d11 etc. for link order
-target_link_libraries(DoomCoop nvrhi)
-target_link_libraries(DoomCoop ShaderMakeBlob ${MASKED_OCCLUSION_LIBRARY})
+target_link_libraries(${APP_NAME} nvrhi)
+target_link_libraries(${APP_NAME} ShaderMakeBlob ${MASKED_OCCLUSION_LIBRARY} ${ISPC_TEXCOMP_LIBRARY})
 
 add_subdirectory(shaders)
 add_dependencies(Shaders ShaderMake)
-add_dependencies(DoomCoop Shaders ${MASKED_OCCLUSION_LIBRARY})
+add_dependencies(${APP_NAME} Shaders ${MASKED_OCCLUSION_LIBRARY} ${ISPC_TEXCOMP_LIBRARY})
 

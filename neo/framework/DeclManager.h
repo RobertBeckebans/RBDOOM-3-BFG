@@ -129,6 +129,7 @@ public:
 	virtual size_t			Size() const = 0;
 	virtual void			List() const = 0;
 	virtual void			Print() const = 0;
+	virtual ID_TIME_T		GetSourceFileTimestamp() const = 0; // RB
 };
 
 
@@ -248,6 +249,12 @@ public:
 	bool					EverReferenced() const
 	{
 		return base->EverReferenced();
+	}
+
+	// Returns newest time stamp even if the file was changed since engine startup
+	ID_TIME_T			GetSourceFileTimestamp() const
+	{
+		return base->GetSourceFileTimestamp();
 	}
 
 public:

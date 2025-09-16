@@ -3,7 +3,7 @@
 
 Doom 3 GPL Source Code
 Copyright (C) 1999-2011 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2015 Robert Beckebans
+Copyright (C) 2015-2025 Robert Beckebans
 
 This file is part of the Doom 3 GPL Source Code (?Doom 3 Source Code?).
 
@@ -133,33 +133,49 @@ void FreeTree( tree_t* tree )
 
 void PrintTree_r( node_t* node, int depth )
 {
-	int			i;
-	uBrush_t*	bb;
-
-	for( i = 0 ; i < depth ; i++ )
+	for( int i = 0 ; i < depth; i++ )
 	{
 		common->Printf( "  " );
 	}
+
 	if( node->planenum == PLANENUM_LEAF )
 	{
+		/*
 		if( !node->brushlist )
 		{
 			common->Printf( "NULL\n" );
 		}
 		else
 		{
-			for( bb = node->brushlist ; bb ; bb = bb->next )
+			for( uBrush_t* bb = node->brushlist ; bb ; bb = bb->next )
 			{
 				common->Printf( "%i ", bb->original->brushnum );
 			}
 			common->Printf( "\n" );
 		}
+		*/
+
+		common->Printf( "leaf %i", node->nodeNumber );
+		if( node->area >= 0 )
+		{
+			common->Printf( " area %i", node->area );
+		}
+		if( node->opaque )
+		{
+			common->Printf( " opaque" );
+		}
+		if( node->occupied )
+		{
+			common->Printf( " occupied" );
+		}
+		common->Printf( "\n" );
 		return;
 	}
 
 	idPlane& plane = dmapGlobals.mapPlanes[node->planenum];
-	common->Printf( "#%i (%5.2f %5.2f %5.2f %5.2f)\n", node->planenum,
+	common->Printf( "#%i plane = %i (%5.2f %5.2f %5.2f %5.2f)\n", node->nodeNumber, node->planenum,
 					plane[0], plane[1], plane[2], plane[3] );
+
 	PrintTree_r( node->children[0], depth + 1 );
 	PrintTree_r( node->children[1], depth + 1 );
 }
@@ -169,11 +185,11 @@ void PrintTree_r( node_t* node, int depth )
 AllocBspFace
 ================
 */
-bspface_t*	AllocBspFace()
+bspFace_t*	AllocBspFace()
 {
-	bspface_t*	f;
+	bspFace_t*	f;
 
-	f = ( bspface_t* )Mem_Alloc( sizeof( *f ), TAG_TOOLS );
+	f = ( bspFace_t* )Mem_Alloc( sizeof( *f ), TAG_TOOLS );
 	memset( f, 0, sizeof( *f ) );
 
 	return f;
@@ -184,7 +200,7 @@ bspface_t*	AllocBspFace()
 FreeBspFace
 ================
 */
-void	FreeBspFace( bspface_t* f )
+void	FreeBspFace( bspFace_t* f )
 {
 	if( f->w )
 	{
@@ -196,24 +212,36 @@ void	FreeBspFace( bspface_t* f )
 
 /*
 ================
-SelectSplitPlaneNum
+SelectSplitPlaneNum  (revised)
+- Two-stage approach: strict (portal + axial + wall) -> relaxed (portal + axial) -> fallback (original-like)
+- Prioritizes axial/wall/portal planes, penalizes excessive split winding crosses and highly unbalanced partitions.
 ================
 */
-#define	BLOCK_SIZE	1024
-int SelectSplitPlaneNum( node_t* node, bspface_t* list )
+int SelectSplitPlaneNum( node_t* node, bspFace_t* list )
 {
-	bspface_t*	split;
-	bspface_t*	check;
-	bspface_t*	bestSplit;
-	int			splits, facing, front, back;
-	int			side;
-	idPlane*		mapPlane;
-	int			value, bestValue;
-	idPlane		plane;
-	int			planenum;
-	bool	havePortals;
-	float		dist;
-	idVec3		halfSize;
+	// ---- Tunable heuristics (adjust as needed, or move into dmapGlobals) ----
+	const bool enforceTwoStage = true;              // run strict stage first
+	const float axialDotThreshold = 0.90f; // 0.97f // how strict the "axial" definition is
+	const float wallZMax = 0.20f;                   // |nz| < wallZMax => almost vertical (wall)
+	const float nearEdgePenalty = 50.0f;            // penalty for splits near the node boundary (avoid fine slices)
+	const float areaBiasScale = 10.0f;              // scale factor for surface area bonus
+	const int splitsPenalty = 12;                   // penalty per split cross
+	const int facingPenalty = 6;                    // penalty per facing plane
+	const int balancePenaltyScale = 2;              // penalty for front/back imbalance
+	// -------------------------------------------------------------------------
+
+	bspFace_t* split;
+	bspFace_t* check;
+	bspFace_t* bestSplit = NULL;
+	int statsSplits = 0, statsFacing = 0, statsFront = 0, statsBack = 0;
+	int side;
+	idPlane* mapPlane;
+	int bestValue;
+	idPlane plane;
+	int planenum;
+	bool havePortals;
+	float dist;
+	idVec3 halfSize;
 
 	// if it is crossing a 1k block boundary, force a split
 	// this prevents epsilon problems from extending an
@@ -222,14 +250,21 @@ int SelectSplitPlaneNum( node_t* node, bspface_t* list )
 	halfSize = ( node->bounds[1] - node->bounds[0] ) * 0.5f;
 	for( int axis = 0; axis < 3; axis++ )
 	{
-		if( halfSize[axis] > BLOCK_SIZE )
+		if( dmapGlobals.blockSize[axis] <= 0.0f )
 		{
-			dist = BLOCK_SIZE * ( floor( ( node->bounds[0][axis] + halfSize[axis] ) / BLOCK_SIZE ) + 1.0f );
+			continue;
+		}
+
+		float axisBlockSize = dmapGlobals.blockSize[axis];
+		if( halfSize[axis] > axisBlockSize )
+		{
+			dist = axisBlockSize * ( floor( ( node->bounds[0][axis] + halfSize[axis] ) / axisBlockSize ) + 1.0f );
 		}
 		else
 		{
-			dist = BLOCK_SIZE * ( floor( node->bounds[0][axis] / BLOCK_SIZE ) + 1.0f );
+			dist = axisBlockSize * ( floor( node->bounds[0][axis] / axisBlockSize ) + 1.0f );
 		}
+
 		if( dist > node->bounds[0][axis] + 1.0f && dist < node->bounds[1][axis] - 1.0f )
 		{
 			plane[0] = plane[1] = plane[2] = 0.0f;
@@ -240,13 +275,8 @@ int SelectSplitPlaneNum( node_t* node, bspface_t* list )
 		}
 	}
 
-	// pick one of the face planes
-	// if we have any portal faces at all, only
-	// select from them, otherwise select from
-	// all faces
-	bestValue = -999999;
-	bestSplit = list;
-
+	// Initialize "checked" flags and detect if portals exist
+	bestValue = INT_MIN;
 	havePortals = false;
 	for( split = list ; split ; split = split->next )
 	{
@@ -255,6 +285,204 @@ int SelectSplitPlaneNum( node_t* node, bspface_t* list )
 		{
 			havePortals = true;
 		}
+	}
+
+#if 0
+	// Helper lambda: score a plane (used for candidate evaluation)
+	auto scorePlane = [&]( bspFace_t* candidate, bool preferWallsOnly ) -> int
+	{
+		mapPlane = &dmapGlobals.mapPlanes[ candidate->planenum ];
+
+		// Gather statistics for this plane across the face list
+		statsSplits = 0, statsFacing = 0, statsFront = 0, statsBack = 0;
+
+		for( check = list ; check ; check = check->next )
+		{
+			if( check->planenum == candidate->planenum )
+			{
+				statsFacing++;
+				continue;
+			}
+			int s = check->w->PlaneSide( *mapPlane );
+			if( s == SIDE_CROSS )
+			{
+				statsSplits++;
+			}
+			else if( s == SIDE_FRONT )
+			{
+				statsFront++;
+			}
+			else if( s == SIDE_BACK )
+			{
+				statsBack++;
+			}
+		}
+
+		// Axis/wall detection
+		float nx = ( *mapPlane )[0];
+		float ny = ( *mapPlane )[1];
+		float nz = ( *mapPlane )[2];
+		float absNx = idMath::Fabs( nx );
+		float absNy = idMath::Fabs( ny );
+		float absNz = idMath::Fabs( nz );
+
+		bool isAxial = ( mapPlane->Type() < PLANETYPE_TRUEAXIAL ) ||
+					   ( absNx > axialDotThreshold || absNy > axialDotThreshold || absNz > axialDotThreshold );
+
+		// Wall: nearly vertical (small z) and strongly aligned to X or Y
+		bool isWall = ( idMath::Fabs( nz ) < wallZMax ) && ( absNx > 0.8f || absNy > 0.8f );
+
+		// If wall-only mode is requested and this plane is not a wall, disqualify
+		if( preferWallsOnly && !isWall )
+		{
+			return INT_MIN;
+		}
+
+		// Base score
+		int score = 0;
+
+		// disqualify non-portal planes if portals are present
+		if( havePortals && !candidate->portal )
+		{
+			//v += 1200;
+			return INT_MIN;
+		}
+
+		// Axial and wall bonuses
+		if( isAxial )
+		{
+			score += 200;
+		}
+
+		if( isWall )
+		{
+			score += 350;
+		}
+
+		// Area bonus (larger surfaces get higher score)
+		score += ( int )( candidate->w->GetArea() * areaBiasScale );
+
+		// Penalties: many splits, many facing planes, unbalanced front/back
+		score -= statsSplits * splitsPenalty;
+		score -= statsFacing * facingPenalty;
+		score -= idMath::Fabs( statsFront - statsBack ) * balancePenaltyScale;
+
+		// Penalty if the plane is very close to a node boundary (produces small leaves)
+		// Check only for mostly axial planes (more meaningful there)
+#if 1
+		if( isAxial )
+		{
+			// Find dominant axis
+			int axis = 0;
+			if( absNy > absNx && absNy > absNz )
+			{
+				axis = 1;
+			}
+			else if( absNz > absNx && absNz > absNy )
+			{
+				axis = 2;
+			}
+			float nodeSpan = node->bounds[1][axis] - node->bounds[0][axis];
+			if( nodeSpan > 0.0f )
+			{
+				float planeDist = mapPlane->Dist();
+				float t = ( planeDist - node->bounds[0][axis] ) / nodeSpan; // 0..1 in node space
+				if( t < 0.12f || t > 0.88f )
+				{
+					score -= ( int )nearEdgePenalty;
+				}
+			}
+		}
+#endif
+
+		// Return computed score (negative values possible)
+		return score;
+	};
+
+	if( dmapGlobals.bspAlternateSplitWeights )
+	{
+		// Two-phase: 1) strict: prefer walls only (if enabled)
+		// 2) relaxed axial only
+		// 3) fallback original style
+		// Phase controlled by preferWallsOnly / preferAxialOnly
+		for( int phase = 0; phase < 3; phase++ )
+		{
+			bool preferWallsOnly = ( phase == 0 ) && enforceTwoStage;	// stricter: wall only
+			bool preferAxialOnly = ( phase <= 1 );                      // phases 0 and 1 prefer axial
+			bestValue = INT_MIN;
+			bestSplit = NULL;
+
+			for( split = list ; split ; split = split->next )
+			{
+				if( split->checked )
+				{
+					continue;
+				}
+				if( havePortals != split->portal )
+				{
+					continue;    // if portals exist, only consider portal planes
+				}
+
+				mapPlane = &dmapGlobals.mapPlanes[ split->planenum ];
+
+				// Quick axial filter if we want axial only in this phase
+				if( preferAxialOnly )
+				{
+					float ax0 = idMath::Fabs( ( *mapPlane )[0] );
+					float ax1 = idMath::Fabs( ( *mapPlane )[1] );
+					float ax2 = idMath::Fabs( ( *mapPlane )[2] );
+					if( !( mapPlane->Type() < PLANETYPE_TRUEAXIAL ||
+							ax0 > axialDotThreshold || ax1 > axialDotThreshold || ax2 > axialDotThreshold ) )
+					{
+						// skip non-axial candidate in axial phases
+						continue;
+					}
+				}
+
+				int score = scorePlane( split, preferWallsOnly );
+
+				// If score is INT_MIN => disqualified
+				if( score == INT_MIN )
+				{
+					continue;
+				}
+
+				// Mark same planes as checked (avoid retesting)
+				if( score > bestValue )
+				{
+					bestValue = score;
+					bestSplit = split;
+				}
+			}
+
+			if( bestSplit )
+			{
+				// Mark all faces with the same planenum as checked (like original behavior)
+				for( check = list ; check ; check = check->next )
+				{
+					if( check->planenum == bestSplit->planenum )
+					{
+						check->checked = true;
+					}
+				}
+				return bestSplit->planenum;
+			}
+
+			// If no candidate found in this phase, go to the next (more relaxed)
+		}
+	}
+#endif
+
+	// Fallback: Old heuristic based on front/back/splits
+	// Try to at least return some planenum, scoring without axial/wall restrictions
+	bestValue = INT_MIN;
+	bestSplit = list;
+
+	int numFaces = 0;
+	for( split = list ; split ; split = split->next )
+	{
+		split->checked = false;
+		numFaces++;
 	}
 
 	for( split = list ; split ; split = split->next )
@@ -267,47 +495,80 @@ int SelectSplitPlaneNum( node_t* node, bspface_t* list )
 		{
 			continue;
 		}
+
 		mapPlane = &dmapGlobals.mapPlanes[ split->planenum ];
-		splits = 0;
-		facing = 0;
-		front = 0;
-		back = 0;
+
+		statsSplits = 0, statsFacing = 0, statsFront = 0, statsBack = 0;
+
 		for( check = list ; check ; check = check->next )
 		{
 			if( check->planenum == split->planenum )
 			{
-				facing++;
-				check->checked = true;	// won't need to test this plane again
+				statsFacing++;
+				check->checked = true;
 				continue;
 			}
+
 			side = check->w->PlaneSide( *mapPlane );
 			if( side == SIDE_CROSS )
 			{
-				splits++;
+				statsSplits++;
 			}
 			else if( side == SIDE_FRONT )
 			{
-				front++;
+				statsFront++;
 			}
 			else if( side == SIDE_BACK )
 			{
-				back++;
+				statsBack++;
 			}
 		}
-		value =  5 * facing - 5 * splits; // - abs(front-back);
-		if( mapPlane->Type() < PLANETYPE_TRUEAXIAL )
+
+		int score;
+
+#if 1
+		if( dmapGlobals.bspAlternateSplitWeights )
 		{
-			value += 5;		// axial is better
+			// original idea by 27 of the Urban Terror team
+
+			float sizeBias = split->w->GetArea();
+			int planeCounter = 0;
+
+			int* value;
+			if( dmapGlobals.splitPlanesCounter.Get( split->planenum, &value ) && value != NULL )
+			{
+				planeCounter = *value;
+			}
+
+			score = numFaces * 10;
+			//score = 20000;								// balanced base value
+			score -= ( abs( statsFront - statsBack ) ); 	// prefer centered planes
+			score -= planeCounter * 1;						// avoid reusing the same splitting plane
+			score -= statsFacing;
+			score -= statsSplits * 5;
+			score += ( int )( sizeBias * areaBiasScale );
+		}
+		else
+#endif
+		{
+			// original by id Software used in Quake 3 and Doom 3
+			score = 5 * statsFacing;	// the more faces share the same plane, the better
+			score -= 5 * statsSplits;	// avoid splits
+			//score -= ( abs( statsFront - statsBack ) );
+			if( mapPlane->Type() < PLANETYPE_TRUEAXIAL )
+			{
+				score += 5;
+			}
 		}
 
-		if( value > bestValue )
+		if( score > bestValue )
 		{
-			bestValue = value;
+			bestValue = score;
 			bestSplit = split;
 		}
 	}
 
-	if( bestValue == -999999 )
+	if( bestValue == INT_MIN )
 	{
 		return -1;
 	}
@@ -315,23 +576,25 @@ int SelectSplitPlaneNum( node_t* node, bspface_t* list )
 	return bestSplit->planenum;
 }
 
+
 /*
 ================
 BuildFaceTree_r
 ================
 */
-void	BuildFaceTree_r( node_t* node, bspface_t* list )
+void	BuildFaceTree_r( node_t* node, bspFace_t* list )
 {
-	bspface_t*	split;
-	bspface_t*	next;
+	bspFace_t*	split;
+	bspFace_t*	next;
 	int			side;
-	bspface_t*	newFace;
-	bspface_t*	childLists[2];
+	bspFace_t*	newFace;
+	bspFace_t*	childLists[2];
 	idWinding*	frontWinding, *backWinding;
 	int			i;
 	int			splitPlaneNum;
 
 	splitPlaneNum = SelectSplitPlaneNum( node, list );
+
 	// if we don't have any more faces, this is a node
 	if( splitPlaneNum == -1 )
 	{
@@ -339,6 +602,18 @@ void	BuildFaceTree_r( node_t* node, bspface_t* list )
 		c_faceLeafs++;
 		return;
 	}
+
+	// RB: increase split plane counter
+	int* value;
+	if( dmapGlobals.splitPlanesCounter.Get( splitPlaneNum, &value ) && value != NULL )
+	{
+		( *value )++;
+	}
+	else
+	{
+		dmapGlobals.splitPlanesCounter.Set( splitPlaneNum, 1 );
+	}
+	// RB end
 
 	// partition the list
 	node->planenum = splitPlaneNum;
@@ -424,10 +699,10 @@ FaceBSP
 List will be freed before returning
 ================
 */
-tree_t* FaceBSP( bspface_t* list )
+tree_t* FaceBSP( bspFace_t* list )
 {
 	tree_t*		tree;
-	bspface_t*	face;
+	bspFace_t*	face;
 	int			i;
 	int			count;
 	int			start, end;
@@ -435,6 +710,9 @@ tree_t* FaceBSP( bspface_t* list )
 	start = Sys_Milliseconds();
 
 	common->VerbosePrintf( "--- FaceBSP ---\n" );
+
+	// RB: every model gets its own split plane usage counter
+	dmapGlobals.splitPlanesCounter.Clear();
 
 	tree = AllocTree();
 
@@ -447,6 +725,11 @@ tree_t* FaceBSP( bspface_t* list )
 		{
 			tree->bounds.AddPoint( ( *face->w )[i].ToVec3() );
 		}
+
+		if( face->simpleBSP )
+		{
+			tree->simpleBSP = true;
+		}
 	}
 	common->VerbosePrintf( "%5i faces\n", count );
 
@@ -456,11 +739,38 @@ tree_t* FaceBSP( bspface_t* list )
 
 	BuildFaceTree_r( tree->headnode, list );
 
-	common->VerbosePrintf( "%5i leafs\n", c_faceLeafs );
-
 	end = Sys_Milliseconds();
 
 	common->VerbosePrintf( "%5.1f seconds faceBsp\n", ( end - start ) / 1000.0 );
+
+	if( dmapGlobals.entityNum == 0 )
+	{
+		int depth = log2f( c_faceLeafs + 1 );
+		common->Printf( "BSP depth = %i and %5i leafs\n", depth, c_faceLeafs );
+		common->Printf( "%5i split planes\n", dmapGlobals.splitPlanesCounter.Num() );
+
+		if( dmapGlobals.bspAlternateSplitWeights && dmapGlobals.entityNum == 0 )
+		{
+			for( int i = 0; i < dmapGlobals.splitPlanesCounter.Num(); i++ )
+			{
+				int key;
+				dmapGlobals.splitPlanesCounter.GetIndexKey( i, key );
+				int* value = dmapGlobals.splitPlanesCounter.GetIndex( i );
+
+				idLib::Printf( "%d\t%d\n", key, *value );
+			}
+		}
+
+		/*
+		if( dmapGlobals.entityNum == 2 )
+		{
+			int numLeafs = 0;
+			int numNodes = NumberNodes_r( tree->headnode, 0, numLeafs );
+
+			PrintTree_r(tree->headnode, depth );
+		}
+		*/
+	}
 
 	return tree;
 }
@@ -472,57 +782,104 @@ tree_t* FaceBSP( bspface_t* list )
 MakeStructuralBspFaceList
 =================
 */
-bspface_t*	MakeStructuralBspFaceList( primitive_t* list )
+bspFace_t*	MakeStructuralBspFaceList( primitive_t* list )
 {
 	uBrush_t*	b;
 	int			i;
 	side_t*		s;
 	idWinding*	w;
-	bspface_t*	f, *flist;
+	bspFace_t*	f, *flist;
 	mapTri_t*	tri;
+	primitive_t* prims;
 
+	prims = list;
 	flist = NULL;
-	for( ; list ; list = list->next )
+	if( dmapGlobals.entityNum != 0 )
 	{
-		// RB: support polygons instead of brushes
-		tri = list->bsptris;
-		if( tri )
+		idBounds bounds;
+		bounds.Clear();
+
+		for( ; list; list = list->next )
 		{
-			for( ; tri ; tri = tri->next )
+			tri = list->polyTris;
+			if( tri )
 			{
-				// HACK
-				MapPolygonMesh* mapMesh = ( MapPolygonMesh* ) tri->originalMapMesh;
-
-				// don't create BSP faces for the nodraw helpers touching the area portals
-				if( mapMesh->IsAreaportal() && !( tri->material->GetContentFlags() & CONTENTS_AREAPORTAL ) )
+				for( ; tri; tri = tri->next )
 				{
-					continue;
+					bounds.AddPoint( tri->v[0].xyz );
+					bounds.AddPoint( tri->v[1].xyz );
+					bounds.AddPoint( tri->v[2].xyz );
 				}
 
-				// FIXME: triangles as portals, should be merged back to quad
-				f = AllocBspFace();
-				if( tri->material->GetContentFlags() & CONTENTS_AREAPORTAL )
-				{
-					f->portal = true;
-				}
+				continue;
+			}
+		}
 
-				//w = new idWinding( 3 );
-				//w->SetNumPoints( 3 );
-				//( *w )[0] = idVec5( tri->v[0].xyz, tri->v[0].GetTexCoord() );
-				//( *w )[1] = idVec5( tri->v[1].xyz, tri->v[1].GetTexCoord() );
-				//( *w )[2] = idVec5( tri->v[2].xyz, tri->v[2].GetTexCoord() );
+		if( !bounds.IsCleared() )
+		{
+			b = BrushFromBounds( bounds );
+			//b->substractive = true;
+			b->simpleBSP = true;
+			b->opaque = true;
+			b->entitynum = dmapGlobals.entityNum;
+			b->contentShader = declManager->FindMaterial( "textures/common/caulk", false );
+			b->contents = b->contentShader->GetContentFlags();
 
-				w = WindingForTri( tri );
-				//w->ReverseSelf();
-				f->w = w;
-
-				f->planenum = tri->planeNum & ~1;
-				//f->planenum = ( tri->planeNum ^ 1 ) & ~1;
-				f->next = flist;
-				flist = f;
+			for( i = 0; i < b->numsides; i++ )
+			{
+				s = &b->sides[i];
+				s->material = b->contentShader;
 			}
 
-			continue;
+			primitive_t* prim = ( primitive_t* )Mem_Alloc( sizeof( *prim ), TAG_TOOLS );
+			memset( prim, 0, sizeof( *prim ) );
+			prim->next = prims;
+			prims = prim;
+
+			prim->brush = b;
+
+			// TODO tell ProcessModel() we are using the simple structural BSP
+		}
+
+	}
+
+	for( list = prims; list; list = list->next )
+	{
+		// RB: support structural polygons instead of brushes but only for the worldspawn.
+		// Building a full BSP tree for complex models made in Blender leads to visible cracks
+		// so we only feed the triangles later into the empty BSP tree of the entity
+		if( dmapGlobals.entityNum == 0 )
+		{
+			tri = list->polyTris;
+			if( tri )
+			{
+				for( ; tri; tri = tri->next )
+				{
+					MapPolygonMesh* mapMesh = ( MapPolygonMesh* ) tri->originalMapMesh;
+
+					// don't create BSP faces for the nodraw helpers touching the area portals
+					if( mapMesh->IsAreaportal() && !( tri->material->GetContentFlags() & CONTENTS_AREAPORTAL ) )
+					{
+						continue;
+					}
+
+					f = AllocBspFace();
+
+					if( tri->material->GetContentFlags() & CONTENTS_AREAPORTAL )
+					{
+						f->portal = true;
+					}
+
+					w = WindingForTri( tri );
+					f->w = w;
+					f->planenum = tri->planeNum & ~1;
+
+					f->next = flist;
+					flist = f;
+				}
+
+				continue;
+			}
 		}
 		// RB end
 
@@ -532,30 +889,50 @@ bspface_t*	MakeStructuralBspFaceList( primitive_t* list )
 			continue;
 		}
 
-		if( !b->opaque && !( b->contents & CONTENTS_AREAPORTAL ) )
+		if( !b->opaque && !( b->contents & CONTENTS_AREAPORTAL ) && !b->substractive )
 		{
 			continue;
 		}
 
-		for( i = 0 ; i < b->numsides ; i++ )
+		for( i = 0; i < b->numsides; i++ )
 		{
 			s = &b->sides[i];
 			w = s->winding;
+
 			if( !w )
 			{
 				continue;
 			}
+
 			if( ( b->contents & CONTENTS_AREAPORTAL ) && !( s->material->GetContentFlags() & CONTENTS_AREAPORTAL ) )
 			{
 				continue;
 			}
+
 			f = AllocBspFace();
+
 			if( s->material->GetContentFlags() & CONTENTS_AREAPORTAL )
 			{
 				f->portal = true;
 			}
-			f->w = w->Copy();
-			f->planenum = s->planenum & ~1;
+
+			f->simpleBSP = b->simpleBSP;
+
+			if( b->substractive )
+			{
+				f->w = w->Reverse();
+				f->planenum = ( s->planenum ^ 1 ) & ~1;
+
+				//idPlane plane;
+				//f->w->GetPlane( plane );
+				//f->planenum = FindFloatPlane( plane );
+			}
+			else
+			{
+				f->w = w->Copy();
+				f->planenum = s->planenum & ~1;
+			}
+
 			f->next = flist;
 			flist = f;
 		}
@@ -564,53 +941,5 @@ bspface_t*	MakeStructuralBspFaceList( primitive_t* list )
 	return flist;
 }
 
-/*
-=================
-MakeVisibleBspFaceList
-=================
-*/
-/*
-bspface_t*	MakeVisibleBspFaceList( primitive_t* list )
-{
-	uBrush_t*	b;
-	int			i;
-	side_t*		s;
-	idWinding*	w;
-	bspface_t*	f, *flist;
 
-	flist = NULL;
-	for( ; list ; list = list->next )
-	{
-		b = list->brush;
-		if( !b )
-		{
-			continue;
-		}
-		if( !b->opaque && !( b->contents & CONTENTS_AREAPORTAL ) )
-		{
-			continue;
-		}
-		for( i = 0 ; i < b->numsides ; i++ )
-		{
-			s = &b->sides[i];
-			w = s->visibleHull;
-			if( !w )
-			{
-				continue;
-			}
-			f = AllocBspFace();
-			if( s->material->GetContentFlags() & CONTENTS_AREAPORTAL )
-			{
-				f->portal = true;
-			}
-			f->w = w->Copy();
-			f->planenum = s->planenum & ~1;
-			f->next = flist;
-			flist = f;
-		}
-	}
-
-	return flist;
-}
-*/
 

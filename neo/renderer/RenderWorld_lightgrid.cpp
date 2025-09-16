@@ -3,7 +3,7 @@
 
 Doom 3 GPL Source Code
 Copyright (C) 1999-2011 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2013-2021 Robert Beckebans
+Copyright (C) 2013-2025 Robert Beckebans
 Copyright (C) 2022 Stephen Pridham
 
 This file is part of the Doom 3 GPL Source Code (?Doom 3 Source Code?).
@@ -428,13 +428,15 @@ void idRenderWorldLocal::LoadLightGridImages()
 		if( !area->lightGrid.irradianceImage )
 		{
 			filename.Format( "env/%s/area%i_lightgrid_amb", baseName.c_str(), i );
-			area->lightGrid.irradianceImage = globalImages->ImageFromFile( filename, TF_LINEAR, TR_CLAMP, TD_R11G11B10F, CF_2D );
+			area->lightGrid.irradianceImage = globalImages->ImageFromFile( filename, TF_LINEAR, TR_CLAMP, TD_HDR_LIGHTPROBE, CF_2D );
 		}
 		else
 		{
 			area->lightGrid.irradianceImage->Reload( true, commandList );
 		}
 	}
+
+	globalImages->LoadDeferredImages( commandList );
 
 	commandList->close();
 	deviceManager->GetDevice()->executeCommandList( commandList );
@@ -497,7 +499,8 @@ void idRenderWorldLocal::WriteLightGrid( idFile* fp, const LightGrid& lightGrid 
 	{
 		const lightGridPoint_t* gridPoint = &lightGrid.lightGridPoints[i];
 
-		fp->WriteFloatString( "/* lgp %i */ %d ( %f %f %f )", i, ( int )gridPoint->valid, gridPoint->origin[0], gridPoint->origin[1], gridPoint->origin[2] );
+		//fp->WriteFloatString( "/* lgp %i */ %d ( %f %f %f )", i, ( int )gridPoint->valid, gridPoint->origin[0], gridPoint->origin[1], gridPoint->origin[2] );
+		fp->WriteFloatString( " %d ( %f %f %f )", ( int )gridPoint->valid, gridPoint->origin[0], gridPoint->origin[1], gridPoint->origin[2] );
 
 #if STORE_LIGHTGRID_SHDATA
 		// spherical harmonic
@@ -547,7 +550,7 @@ bool idRenderWorldLocal::LoadLightGridFile( const char* name )
 		file->ReadBig( magic );
 		file->ReadBig( storedTimeStamp );
 		file->ReadBig( numEntries );
-		if( ( magic == BLGRID_MAGIC ) && ( sourceTimeStamp == storedTimeStamp ) && ( numEntries > 0 ) )
+		if( ( magic == BLGRID_MAGIC ) && ( sourceTimeStamp == storedTimeStamp || sourceTimeStamp == 0 ) && ( numEntries > 0 ) )
 		{
 			loaded = true;
 
@@ -1046,6 +1049,9 @@ CONSOLE_COMMAND_SHIP( bakeLightGrids, "Bake irradiance/vis light grid data", NUL
 	int bounces = 1;
 	idVec3 gridSize = defaultLightGridSize;
 
+	bool useThreads = true;
+	int numThreads = JOBLIST_PARALLELISM_MAX_CORES;
+
 	bool helpRequested = false;
 	idStr option;
 
@@ -1085,6 +1091,16 @@ CONSOLE_COMMAND_SHIP( bakeLightGrids, "Bake irradiance/vis light grid data", NUL
 				continue;
 			}
 		}
+		else if( option.IcmpPrefix( "mt" ) == 0 )
+		{
+			option.StripLeading( "mt" );
+			int threads = atoi( option );
+			if( threads > 0 )
+			{
+				int maxCores = parallelJobManager->GetLogicalCpuCores();
+				numThreads = idMath::ClampInt( 1, maxCores, threads );
+			}
+		}
 		else if( option.Icmp( "h" ) == 0 || option.Icmp( "help" ) == 0 )
 		{
 			helpRequested = true;
@@ -1099,7 +1115,7 @@ CONSOLE_COMMAND_SHIP( bakeLightGrids, "Bake irradiance/vis light grid data", NUL
 		idLib::Printf( " limit[num] : max probes per BSP area (default %i)\n", MAX_AREA_LIGHTGRID_POINTS );
 		idLib::Printf( " bounce[num] : number of bounces or number of light reuse (default 1)\n" );
 		idLib::Printf( " grid( xdim ydim zdim ) : light grid size steps into each direction (default 64 64 128)\n" );
-
+		idLib::Printf( " mt[num] : number of threads used for baking (default max logical cores)\n" );
 		return;
 	}
 
@@ -1117,8 +1133,6 @@ CONSOLE_COMMAND_SHIP( bakeLightGrids, "Bake irradiance/vis light grid data", NUL
 
 	int sysWidth = renderSystem->GetWidth();
 	int sysHeight = renderSystem->GetHeight();
-
-	bool useThreads = true;
 
 	baseName = tr.primaryWorld->mapName;
 	baseName.StripFileExtension();
@@ -1161,6 +1175,10 @@ CONSOLE_COMMAND_SHIP( bakeLightGrids, "Bake irradiance/vis light grid data", NUL
 	// turn vsync off for faster capturing of the probes
 	int oldVsync = r_swapInterval.GetInteger();
 	r_swapInterval.SetInteger( 0 );
+
+	// turn off clear in between views so we keep the progress bar visible
+	int oldClear = r_clear.GetInteger();
+	r_clear.SetInteger( 0 );
 
 	idLib::Printf( "----------------------------------\n" );
 	idLib::Printf( "Processing %i light probes in %i areas for %i bounces\n", totalProcessedProbes, totalProcessedAreas, bounces );
@@ -1283,7 +1301,7 @@ CONSOLE_COMMAND_SHIP( bakeLightGrids, "Bake irradiance/vis light grid data", NUL
 							}
 #endif
 							//bool validCapture =
-							R_ReadPixelsRGB16F( deviceManager->GetDevice(), &tr.backend.GetCommonPasses(), globalImages->envprobeHDRImage->GetTextureHandle() , nvrhi::ResourceStates::RenderTarget, &floatRGB16F, captureSize, captureSize );
+							R_ReadPixelsRGB16F( deviceManager->GetDevice(), &backEnd.GetCommonPasses(), globalImages->envprobeHDRImage->GetTextureHandle() , nvrhi::ResourceStates::RenderTarget, &floatRGB16F, captureSize, captureSize );
 
 							// release all in-flight references to the render targets
 							//deviceManager->GetDevice()->runGarbageCollection();
@@ -1358,7 +1376,7 @@ CONSOLE_COMMAND_SHIP( bakeLightGrids, "Bake irradiance/vis light grid data", NUL
 				common->UpdateScreen( false );
 
 				//tr.envprobeJobList->Submit();
-				tr.envprobeJobList->Submit( NULL, JOBLIST_PARALLELISM_MAX_CORES );
+				tr.envprobeJobList->Submit( NULL, numThreads );
 				tr.envprobeJobList->Wait();
 			}
 
@@ -1441,5 +1459,6 @@ CONSOLE_COMMAND_SHIP( bakeLightGrids, "Bake irradiance/vis light grid data", NUL
 
 	// restore vsync setting
 	r_swapInterval.SetInteger( oldVsync );
+	r_clear.SetInteger( oldClear );
 }
 

@@ -111,24 +111,45 @@ void idLib::ShutDown()
 ===============================================================================
 */
 
-idVec4	colorBlack	= idVec4( 0.00f, 0.00f, 0.00f, 1.00f );
-idVec4	colorWhite	= idVec4( 1.00f, 1.00f, 1.00f, 1.00f );
-idVec4	colorRed	= idVec4( 1.00f, 0.00f, 0.00f, 1.00f );
-idVec4	colorGreen	= idVec4( 0.00f, 1.00f, 0.00f, 1.00f );
-idVec4	colorBlue	= idVec4( 0.00f, 0.00f, 1.00f, 1.00f );
-idVec4	colorYellow	= idVec4( 1.00f, 1.00f, 0.00f, 1.00f );
-idVec4	colorMagenta = idVec4( 1.00f, 0.00f, 1.00f, 1.00f );
-idVec4	colorCyan	= idVec4( 0.00f, 1.00f, 1.00f, 1.00f );
-idVec4	colorOrange	= idVec4( 1.00f, 0.50f, 0.00f, 1.00f );
-idVec4	colorPurple	= idVec4( 0.60f, 0.00f, 0.60f, 1.00f );
-idVec4	colorPink	= idVec4( 0.73f, 0.40f, 0.48f, 1.00f );
-idVec4	colorBrown	= idVec4( 0.40f, 0.35f, 0.08f, 1.00f );
-idVec4	colorLtGrey	= idVec4( 0.75f, 0.75f, 0.75f, 1.00f );
-idVec4	colorMdGrey	= idVec4( 0.50f, 0.50f, 0.50f, 1.00f );
-idVec4	colorDkGrey	= idVec4( 0.25f, 0.25f, 0.25f, 1.00f );
-// jmarshall
-idVec4  colorGold	= idVec4( 0.68f, 0.63f, 0.36f, 1.00f );
-// jmarshall end
+// Color definitions (alphabetical order)
+const idVec4 colorAqua          = idVec4( 0.00f, 1.00f, 1.00f, 1.00f ); // #00FFFF
+const idVec4 colorBlack         = idVec4( 0.00f, 0.00f, 0.00f, 1.00f ); // #000000
+const idVec4 colorBlue          = idVec4( 0.00f, 0.00f, 1.00f, 1.00f ); // #0000FF
+const idVec4 colorBrown         = idVec4( 0.40f, 0.35f, 0.08f, 1.00f );
+const idVec4 colorBurlyWood     = idVec4( 0.87f, 0.72f, 0.53f, 1.00f ); // #DEB887
+const idVec4 colorCoral         = idVec4( 1.00f, 0.50f, 0.31f, 1.00f ); // #FF7F50
+const idVec4 colorCrimson       = idVec4( 0.86f, 0.08f, 0.24f, 1.00f ); // #DC143C
+const idVec4 colorCyan          = idVec4( 0.00f, 1.00f, 1.00f, 1.00f );
+const idVec4 colorDarkBlue      = idVec4( 0.00f, 0.00f, 0.55f, 1.00f ); // #00008B
+const idVec4 colorDarkCyan      = idVec4( 0.00f, 0.55f, 0.55f, 1.00f ); // #008B8B
+const idVec4 colorDarkGoldenRod = idVec4( 0.72f, 0.53f, 0.04f, 1.00f ); // #B8860B
+const idVec4 colorDarkKhaki     = idVec4( 0.74f, 0.72f, 0.42f, 1.00f ); // #BDB76B
+const idVec4 colorDarkSalmon    = idVec4( 0.91f, 0.59f, 0.48f, 1.00f ); // #E9967A
+const idVec4 colorDarkSlateGray = idVec4( 0.18f, 0.31f, 0.31f, 1.00f ); // #2F4F4F
+const idVec4 colorDkGrey        = idVec4( 0.25f, 0.25f, 0.25f, 1.00f );
+const idVec4 colorDodgerBlue    = idVec4( 0.12f, 0.56f, 1.00f, 1.00f ); // #1E90FF
+const idVec4 colorFuchsia       = idVec4( 1.00f, 0.00f, 1.00f, 1.00f ); // #FF00FF
+const idVec4 colorGold          = idVec4( 0.68f, 0.63f, 0.36f, 1.00f );
+const idVec4 colorGray          = idVec4( 0.50f, 0.50f, 0.50f, 1.00f ); // #808080
+const idVec4 colorGreen         = idVec4( 0.00f, 0.50f, 0.00f, 1.00f ); // #008000
+const idVec4 colorLightSeaGreen = idVec4( 0.13f, 0.70f, 0.67f, 1.00f ); // #20B2AA
+const idVec4 colorLightSteelBlue = idVec4( 0.69f, 0.77f, 0.87f, 1.00f ); // #B0C4DE
+const idVec4 colorLtGrey        = idVec4( 0.75f, 0.75f, 0.75f, 1.00f );
+const idVec4 colorLime          = idVec4( 0.00f, 1.00f, 0.00f, 1.00f ); // #00FF00
+const idVec4 colorMagenta       = idVec4( 1.00f, 0.00f, 1.00f, 1.00f );
+const idVec4 colorMaroon        = idVec4( 0.50f, 0.00f, 0.00f, 1.00f ); // #800000
+const idVec4 colorMdGrey        = idVec4( 0.50f, 0.50f, 0.50f, 1.00f );
+const idVec4 colorNavy          = idVec4( 0.00f, 0.00f, 0.50f, 1.00f ); // #000080
+const idVec4 colorOlive         = idVec4( 0.50f, 0.50f, 0.00f, 1.00f ); // #808000
+const idVec4 colorOrange        = idVec4( 1.00f, 0.50f, 0.00f, 1.00f );
+const idVec4 colorPink          = idVec4( 0.73f, 0.40f, 0.48f, 1.00f );
+const idVec4 colorPurple        = idVec4( 0.60f, 0.00f, 0.60f, 1.00f );
+const idVec4 colorRed           = idVec4( 1.00f, 0.00f, 0.00f, 1.00f );
+const idVec4 colorSilver        = idVec4( 0.75f, 0.75f, 0.75f, 1.00f ); // #C0C0C0
+const idVec4 colorTeal          = idVec4( 0.00f, 0.50f, 0.50f, 1.00f ); // #008080
+const idVec4 colorWhite         = idVec4( 1.00f, 1.00f, 1.00f, 1.00f );
+const idVec4 colorYellow        = idVec4( 1.00f, 1.00f, 0.00f, 1.00f );
+
 
 /*
 ================

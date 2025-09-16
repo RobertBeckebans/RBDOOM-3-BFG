@@ -137,7 +137,7 @@ static int R_QsortImageName( const void* a, const void* b )
 R_ListImages_f
 ===============
 */
-void R_ListImages_f( const idCmdArgs& args )
+void idImageManager::R_ListImages_f( const idCmdArgs& args )
 {
 	int		i, partialSize;
 	idImage*	image;
@@ -356,7 +356,11 @@ idImage* idImageManager::ImageFromFunction( const char* _name, ImageGeneratorFun
 {
 	// strip any .tga file extensions from anywhere in the _name
 	idStr name = _name;
-	name.Replace( ".tga", "" );
+	idStrList imageFormats = { ".tga", ".jpg", ".png", ".exr", ".hdr" };
+	for( auto& ext : imageFormats )
+	{
+		name.Replace( ext, "" );
+	}
 	name.BackSlashesToSlashes();
 
 	// see if the image already exists
@@ -413,7 +417,11 @@ idImage*	idImageManager::ImageFromFile( const char* _name, textureFilter_t filte
 
 	// strip any .tga file extensions from anywhere in the _name, including image program parameters
 	idStrStatic< MAX_OSPATH > name = _name;
-	name.Replace( ".tga", "" );
+	idStrList imageFormats = { ".tga", ".jpg", ".png", ".exr", ".hdr" };
+	for( auto& ext : imageFormats )
+	{
+		name.Replace( ext, "" );
+	}
 	name.BackSlashesToSlashes();
 
 	//
@@ -546,7 +554,7 @@ idImage* idImageManager::ScratchImage( const char* _name, idImageOpts* imgOpts, 
 
 	// clamp is the only repeat mode that makes sense for cube maps, but
 	// some platforms let them stay in repeat mode and get border seam issues
-	if( imgOpts->textureType == TT_CUBIC && repeat != TR_CLAMP )
+	if( imgOpts->textureType == DTT_CUBIC && repeat != TR_CLAMP )
 	{
 		repeat = TR_CLAMP;
 	}
@@ -598,7 +606,6 @@ idImageManager::GetImage
 */
 idImage* idImageManager::GetImage( const char* _name ) const
 {
-
 	if( !_name || !_name[0] || idStr::Icmp( _name, "default" ) == 0 || idStr::Icmp( _name, "_default" ) == 0 )
 	{
 		declManager->MediaPrint( "DEFAULTED\n" );
@@ -607,7 +614,11 @@ idImage* idImageManager::GetImage( const char* _name ) const
 
 	// strip any .tga file extensions from anywhere in the _name, including image program parameters
 	idStr name = _name;
-	name.Replace( ".tga", "" );
+	idStrList imageFormats = { ".tga", ".jpg", ".png", ".exr", ".hdr" };
+	for( auto& ext : imageFormats )
+	{
+		name.Replace( ext, "" );
+	}
 	name.BackSlashesToSlashes();
 
 	//
@@ -759,6 +770,7 @@ void idImageManager::Init()
 	CreateIntrinsicImages();
 
 	cmdSystem->AddCommand( "reloadImages", R_ReloadImages_f, CMD_FL_RENDERER, "reloads images" );
+	cmdSystem->AddCommand( "cacheGlobalIlluminationData", CacheGlobalIlluminationData_f, CMD_FL_RENDERER, "turn env/maps/*.exr files into .bimage files" );
 #endif
 	cmdSystem->AddCommand( "listImages", R_ListImages_f, CMD_FL_RENDERER, "lists images" );
 	cmdSystem->AddCommand( "combineCubeImages", R_CombineCubeImages_f, CMD_FL_RENDERER, "combines six images for roq compression" );
@@ -1097,3 +1109,52 @@ void idImageManager::LoadDeferredImages( nvrhi::ICommandList* _commandList )
 
 	globalImages->imagesToLoad.Clear();
 }
+
+#include "CmdlineProgressbar.h"
+
+#if !defined( DMAP )
+void idImageManager::CacheGlobalIlluminationData_f( const idCmdArgs& args )
+{
+	common->Printf( "Caching images to bimage files...\n" );
+
+	int	start = Sys_Milliseconds();
+	globalImages->preloadingMapImages = true;
+	globalImages->cacheImages = true;
+
+	idFileList* files = fileSystem->ListFilesTree( "env/maps", "*.exr", true );
+	int numFiles = files->GetNumFiles();
+
+	CommandlineProgressBar progressBar( numFiles, renderSystem->GetWidth(), renderSystem->GetHeight() );
+	progressBar.Start();
+
+	for( int i = 0; i < files->GetNumFiles(); i++ )
+	{
+		const char* filename = files->GetFile( i );
+
+		if( idStr::FindText( filename, "envprobe" ) != -1 )
+		{
+			if( idStr::FindText( filename, "_spec" ) != -1 )
+			{
+				globalImages->ImageFromFile( filename, TF_DEFAULT, TR_CLAMP, TD_HDR_LIGHTPROBE, CF_2D_PACKED_MIPCHAIN );
+			}
+			else
+			{
+				globalImages->ImageFromFile( filename, TF_LINEAR, TR_CLAMP, TD_HDR_LIGHTPROBE, CF_2D_PACKED_MIPCHAIN );
+			}
+		}
+		else if( idStr::FindText( filename, "lightgrid" ) != -1 )
+		{
+			globalImages->ImageFromFile( filename, TF_LINEAR, TR_CLAMP, TD_HDR_LIGHTPROBE, CF_2D );
+		}
+
+		progressBar.Increment( true );
+	}
+	fileSystem->FreeFileList( files );
+
+	int	end = Sys_Milliseconds();
+	common->Printf( "%05d images cached in %5.1f seconds\n", numFiles, ( end - start ) * 0.001 );
+	common->Printf( "----------------------------------------\n" );
+	globalImages->preloadingMapImages = false;
+	globalImages->cacheImages = false;
+}
+#endif

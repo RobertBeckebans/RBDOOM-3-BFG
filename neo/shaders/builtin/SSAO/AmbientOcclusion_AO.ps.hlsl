@@ -177,6 +177,7 @@ float3 reconstructCSPosition( float2 S, float depth )
 	csP.w = dot4( rpModelMatrixW, clip );
 
 	csP.xyz /= csP.w;
+	//csP.z = abs( csP.z );	// this is still negative Z like for OpenGL
 
 	return csP.xyz;
 }

@@ -110,7 +110,6 @@ typedef struct md3Surface_s
 typedef struct
 {
 	char				name[MAX_MD3PATH];
-	//const idMaterial *	shader;			// for in-game use
 	int					shaderIndex; // DG: can't use a pointer, that breaks on 64bit!
 } md3Shader_t;
 

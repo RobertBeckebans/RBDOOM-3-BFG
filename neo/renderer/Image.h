@@ -34,13 +34,12 @@ If you have questions concerning this license or the applicable additional terms
 
 enum textureType_t
 {
-	TT_DISABLED,
-	TT_2D,
-	TT_CUBIC,
-	// RB begin
-	TT_2D_ARRAY,
-	TT_2D_MULTISAMPLE,
-	// RB end
+	// RB: renamed to DDT_ to solve conflict with AMD compressonator
+	DTT_DISABLED,
+	DTT_2D,
+	DTT_CUBIC,
+	DTT_2D_ARRAY,		// new
+	DTT_2D_MULTISAMPLE,	// new
 };
 
 /*
@@ -97,7 +96,8 @@ enum textureFormat_t
 	FMT_Y16_X16,		// 32 bpp
 	FMT_RGB565,			// 16 bpp
 
-	// RB: don't change above for .bimage compatibility up until RBDOOM-3-BFG 1.1
+	// ^-- used in BFG edition, don't change above for original .bimage compatibility
+
 	FMT_ETC1_RGB8_OES,	// 4 bpp
 	FMT_SHADOW_ARRAY,	// 32 bpp * 6
 	FMT_RG16F,			// 32 bpp
@@ -106,11 +106,20 @@ enum textureFormat_t
 	FMT_R32F,			// 32 bpp
 	FMT_R11G11B10F,		// 32 bpp
 
-	// ^-- used up until RBDOOM-3-BFG 1.3
-	FMT_R8,
-	FMT_DEPTH_STENCIL,  // 32 bpp
-	FMT_RGBA16S,		// 64 bpp
-	FMT_SRGB8,
+	// ^-- used up until RBDOOM-3-BFG 1.5 == BIMAGE_VERSION_BFG
+
+	FMT_BC6H,			// 8 bpp
+	FMT_BC7,			// 8 bpp
+
+	// ^-- introduced with RBDOOM-3-BFG 1.6 >= BIMAGE_VERSION_BC6
+
+	//------------------------
+	// Render targets only
+	//------------------------
+
+	FMT_R8F,			// 8 bpp, RT only
+	FMT_DEPTH_STENCIL,  // 32 bpp, RT only
+	FMT_RGBA16S,		// 64 bpp, RT only
 };
 
 int BitsForFormat( textureFormat_t format );
@@ -127,10 +136,6 @@ enum textureColor_t
 	CFM_NORMAL_DXT5,		// XY format and use the fast DXT5 compressor
 	CFM_YCOCG_DXT5,			// convert RGBA to CoCg_Y format
 	CFM_GREEN_ALPHA,		// Copy the alpha channel to green
-
-	// RB: don't change above for legacy .bimage compatibility
-	CFM_YCOCG_RGBA8,
-	// RB end
 };
 
 /*
@@ -175,7 +180,7 @@ ID_INLINE idImageOpts::idImageOpts()
 	width			= 0;
 	height			= 0;
 	numLevels		= 0;
-	textureType		= TT_2D;
+	textureType		= DTT_2D;
 	gammaMips		= false;
 	readback		= false;
 	isRenderTarget	= false;
@@ -207,6 +212,8 @@ No texture is ever used that does not have a corresponding idImage.
 static const int	MAX_TEXTURE_LEVELS = 14;
 
 // How is this texture used?  Determines the storage and color format
+// NOTE: be very careful when editing these because it might break older .bimage files or the lookup name
+// Only add new entries at the bottom
 typedef enum
 {
 	TD_SPECULAR,			// may be compressed, and always zeros the alpha channel
@@ -225,30 +232,35 @@ typedef enum
 	TD_SPECULAR_PBR_RMAO,	// may be compressed, and always zeros the alpha channel, linear RGB R = roughness, G = metal, B = ambient occlusion
 	TD_SPECULAR_PBR_RMAOD,	// may be compressed, alpha channel contains displacement map
 	TD_HIGHQUALITY_CUBE,	// motorsep - Uncompressed cubemap texture (RGB colorspace)
-	TD_LOWQUALITY_CUBE,		// motorsep - Compressed cubemap texture (RGB colorspace DXT5)
+	TD_LOWQUALITY_CUBE,		// motorsep - REMOVED
 	TD_SHADOW_ARRAY,		// 2D depth buffer array for shadow mapping
-	TD_RG16F,
-	TD_RGBA16F,
-	TD_RGBA16S,
-	TD_RGBA32F,
-	TD_R32F,
-	TD_R11G11B10F,			// memory efficient HDR RGB format with only 32bpp
+	TD_RG16F,				// BRDF lookup table
+	TD_RGBA16F,				// RT = render target format only, not written to disk
+	TD_RGBA16S,				// RT only
+	TD_RGBA32F,				// RT only
+	TD_HDR_LIGHTPROBE,		// RB: 2D HDR octahedron probes stored as R11G11B10F in v1.3 - v1.5 and BC6 now
+	// ^-- used up until RBDOOM-3-BFG 1.5
+	TD_HDRI,				// RB: R11G11B10F or BC6
 	// RB end
-	TD_R8F,					// Stephen: Added for ambient occlusion render target.
-	TD_LDR,					// Stephen: Added for SRGB render target when tonemapping.
-	TD_DEPTH_STENCIL,       // depth buffer and stencil buffer
+	TD_R32F,				// RT only
+	TD_R8F,					// SP: RT only, added for ambient occlusion
+	TD_LDR,					// SP: RT only, added for SRGB render target when tonemapping
+	TD_DEPTH_STENCIL,       // SP: RT only, depth buffer and stencil buffer
 } textureUsage_t;
 
+// NOTE: be very careful when editing these because it might break older .bimage files or the lookup name
+// Only add new entries at the bottom
 typedef enum
 {
 	CF_2D,			// not a cube map
 	CF_NATIVE,		// _px, _nx, _py, etc, directly sent to GL
 	CF_CAMERA,		// _forward, _back, etc, rotated and flipped as needed before sending to GL
-	CF_QUAKE1,		// _ft, _bk, etc, rotated and flipped as needed before sending to GL
-	CF_PANORAMA,	// TODO latlong encoded HDRI panorama typically used by Substance or Blender
+	CF_PANORAMA,	// RB: latlong encoded HDRI panorama typically used by Substance or Blender
 	CF_2D_ARRAY,	// not a cube map but not a single 2d texture either
 	CF_2D_PACKED_MIPCHAIN, // usually 2d but can be an octahedron, packed mipmaps into single 2d texture atlas and limited to dim^2
+	// ^-- used up until RBDOOM-3-BFG 1.3
 	CF_SINGLE,      // SP: A single texture cubemap. All six sides in one image.
+	CF_QUAKE1,		// RB: _ft, _bk, etc, rotated and flipped as needed before sending to GL
 } cubeFiles_t;
 
 typedef void ( *ImageGeneratorFunction )( idImage* image, nvrhi::ICommandList* commandList );
@@ -367,7 +379,7 @@ public:
 
 	bool		IsCompressed() const
 	{
-		return ( opts.format == FMT_DXT1 || opts.format == FMT_DXT5 );
+		return ( opts.format == FMT_DXT1 || opts.format == FMT_DXT5 || opts.format == FMT_BC6H || opts.format == FMT_BC7 );
 	}
 
 	textureUsage_t GetUsage() const
@@ -505,12 +517,15 @@ void	R_WriteEXR( const char* filename, const void* data, int channelsPerPixel, i
 
 class idImageManager
 {
+	friend class idImage;
+
 public:
 
 	idImageManager()
 	{
 		insideLevelLoad = false;
 		preloadingMapImages = false;
+		cacheImages = false;
 		commandList = nullptr;
 	}
 
@@ -573,6 +588,7 @@ public:
 	idImage* 			blackImage;					// full of 0x00
 	idImage* 			blackDiffuseImage;			// full of 0x00
 	idImage* 			cyanImage;					// cyan
+	idImage* 			redClayImage;				// dark red
 	idImage* 			noFalloffImage;				// all 255, but zero clamped
 	idImage* 			fogImage;					// increasing alpha is denser fog
 	idImage* 			fogEnterImage;				// adjust fogImage alpha based on terminator plane
@@ -592,10 +608,6 @@ public:
 	idImage*			taaFeedback1Image;
 	idImage*			taaFeedback2Image;
 	idImage*			bloomRenderImage[2];
-	idImage*			glowImage[2];					// contains any glowable surface information.
-	idImage*			glowDepthImage[2];
-	idImage*			accumTransparencyImage;
-	idImage*			revealTransparencyImage;
 	idImage*			envprobeHDRImage;
 	idImage*			envprobeDepthImage;
 	idImage*			heatmap5Image;
@@ -635,13 +647,18 @@ public:
 	bool				ExcludePreloadImage( const char* name );
 
 	idList<idImage*, TAG_IDLIB_LIST_IMAGE>	images;
+private:
 	idHashIndex								imageHash;
+
+	static void			CacheGlobalIlluminationData_f( const idCmdArgs& args ); // RB
+	static void			R_ListImages_f( const idCmdArgs& args );
 
 	// Transient list of images to load on the main thread to the gpu. Freed after images are loaded.
 	idList<idImage*, TAG_IDLIB_LIST_IMAGE>	imagesToLoad;
 
 	bool									insideLevelLoad;			// don't actually load images now
 	bool									preloadingMapImages;		// unless this is set
+	bool									cacheImages;				// similar to preload but surpresses prints
 
 	nvrhi::CommandListHandle				commandList;
 };
@@ -662,6 +679,7 @@ byte* R_ResampleTexture( const byte* in, int inwidth, int inheight, int outwidth
 byte* R_MipMapWithAlphaSpecularity( const byte* in, int width, int height );
 byte* R_MipMapWithGamma( const byte* in, int width, int height );
 byte* R_MipMap( const byte* in, int width, int height );
+byte* R_MipMapR11G11B10F( const byte* in, int width, int height );
 
 // these operate in-place on the provided pixels
 void R_BlendOverTexture( byte* data, int pixelCount, const byte blend[4] );
@@ -673,8 +691,10 @@ void R_ApplyCubeMapTransforms( int i, byte* data, int size );
 // SP begin
 // This method takes in a cubemap from a single image. Depending on the side (0-5),
 // the image will be extracted from data and returned. The dimensions will be size x size.
-byte* R_GenerateCubeMapSideFromSingleImage( byte* data, int srcWidth, int srcHeight, int size, int side );
+byte* R_GenerateCubeMapSideFromSingleImage( const byte* in, int srcWidth, int srcHeight, int size, int side );
 // SP end
+// RB
+byte* R_GenerateCubeMapSideFromPanoramaImage( const byte* in, int srcWidth, int srcHeight, int size, int side );
 
 idVec4 R_CalculateMipRect( uint dimensions, uint mip );
 int R_CalculateUsedAtlasPixels( int dimensions );

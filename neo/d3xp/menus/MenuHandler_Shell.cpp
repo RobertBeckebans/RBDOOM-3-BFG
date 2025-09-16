@@ -874,28 +874,19 @@ void idMenuHandler_Shell::SetupPCOptions()
 		}
 		else
 		{
-#if !defined( ID_RETAIL )
-			navOptions.Append( "DEV" );	// DEV
-#endif
 			navOptions.Append( "#str_swf_campaign" );	// singleplayer
 			navOptions.Append( "#str_swf_multiplayer" );	// multiplayer
 			navOptions.Append( "#str_swf_settings" );	// settings
 			navOptions.Append( "#str_swf_credits" );	// credits
+			// Leyland VR: moved DEV menu down
+#if !defined ( ID_RETAIL )
+			navOptions.Append( "DEV" );	// DEV
+#endif
 			navOptions.Append( "#str_swf_quit" );	// quit
 
 
 			idMenuWidget_MenuButton* buttonWidget = NULL;
 			int index = 0;
-#if !defined( ID_RETAIL )
-			buttonWidget = dynamic_cast< idMenuWidget_MenuButton* >( &menuBar->GetChildByIndex( index ) );
-			if( buttonWidget != NULL )
-			{
-				buttonWidget->ClearEventActions();
-				buttonWidget->AddEventAction( WIDGET_EVENT_PRESS ).Set( WIDGET_ACTION_COMMAND, SHELL_CMD_DEV, index );
-				buttonWidget->SetDescription( "View a list of maps available for play" );
-			}
-			index++;
-#endif
 			buttonWidget = dynamic_cast< idMenuWidget_MenuButton* >( &menuBar->GetChildByIndex( index ) );
 			if( buttonWidget != NULL )
 			{
@@ -928,6 +919,17 @@ void idMenuHandler_Shell::SetupPCOptions()
 				buttonWidget->SetDescription( "#str_02219" );
 			}
 			index++;
+#if !defined ( ID_RETAIL )
+			buttonWidget = dynamic_cast< idMenuWidget_MenuButton* >( &menuBar->GetChildByIndex( index ) );
+			if( buttonWidget != NULL )
+			{
+				buttonWidget->ClearEventActions();
+				buttonWidget->AddEventAction( WIDGET_EVENT_PRESS ).Set( WIDGET_ACTION_COMMAND, SHELL_CMD_DEV, index );
+				buttonWidget->SetDescription( "View a list of maps available for play" );
+			}
+			index++;
+#endif
+			// Leyland end
 			buttonWidget = dynamic_cast< idMenuWidget_MenuButton* >( &menuBar->GetChildByIndex( index ) );
 			if( buttonWidget != NULL )
 			{

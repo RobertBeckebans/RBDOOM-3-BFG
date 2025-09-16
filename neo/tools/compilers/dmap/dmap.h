@@ -37,9 +37,9 @@ typedef struct primitive_s
 	struct primitive_s* next;
 
 	// only one of these will be non-NULL
-	struct bspbrush_s* 	brush;
-	struct mapTri_s* 	tris;
-	struct mapTri_s*	bsptris;
+	struct bspBrush_s* 	brush;			// can be structural or translucent
+	struct mapTri_s*	curveTris;		// never structural
+	struct mapTri_s*	polyTris;		// RB: new and contribute to BSP, same as brush
 } primitive_t;
 
 
@@ -55,6 +55,7 @@ typedef struct
 
 	idVec3				origin;
 	primitive_t* 		primitives;
+	bool				hasPolyTris;	// true if any of the primitives are polyTris
 	struct tree_s* 		tree;
 
 	int					numAreas;
@@ -74,8 +75,6 @@ typedef struct mapTri_s
 	int					polygonId;		// n-gon number from original face used for area portal construction
 
 	const MapPolygonMesh*	originalMapMesh;
-//	idWinding* 			visibleHull;	// also clipped to the solid parts of the world
-
 	// RB end
 
 	// from different fixed groups, like guiSurfs and mirrors
@@ -104,15 +103,16 @@ typedef struct parseMesh_s
 	const idMaterial* 	material;
 } parseMesh_t;
 
-typedef struct bspface_s
+typedef struct bspFace_s
 {
-	struct bspface_s* 	next;
+	struct bspFace_s* 	next;
 	int					planenum;
 	bool				portal;			// all portals will be selected before
+	bool				simpleBSP;		// RB: true if the face is part of a simple structural BSP
 	// any non-portals
 	bool				checked;		// used by SelectSplitPlaneNum()
 	idWinding* 			w;
-} bspface_t;
+} bspFace_t;
 
 typedef struct
 {
@@ -133,19 +133,21 @@ typedef struct side_s
 } side_t;
 
 
-typedef struct bspbrush_s
+typedef struct bspBrush_s
 {
-	struct bspbrush_s* 	next;
-	struct bspbrush_s* 	original;	// chopped up brushes will reference the originals
+	struct bspBrush_s* 	next;
+	struct bspBrush_s* 	original;			// chopped up brushes will reference the originals
 
 	int					entitynum;			// editor numbering for messages
 	int					brushnum;			// editor numbering for messages
 
-	const idMaterial* 	contentShader;	// one face's shader will determine the volume attributes
+	const idMaterial* 	contentShader;		// one face's shader will determine the volume attributes
 
 	int					contents;
 	bool				opaque;
 	int					outputNumber;		// set when the brush is written to the file list
+	bool                substractive;       // RB: invert windings when building structural facelist
+	bool                simpleBSP;          // RB: hint that the BSP only uses this brush which is the AABB of the non-worldspawn model
 
 	idBounds			bounds;
 	int					numsides;
@@ -190,7 +192,7 @@ typedef struct node_s
 typedef struct uPortal_s
 {
 	idPlane		plane;
-	node_t*		onnode;		// NULL = outside box
+	node_t*		onnode;			// NULL = outside box
 	node_t*		nodes[2];		// [0] = front side of plane
 	struct uPortal_s*	next[2];
 	idWinding*	winding;
@@ -202,6 +204,7 @@ typedef struct tree_s
 	node_t*		headnode;
 	node_t		outside_node;
 	idBounds	bounds;
+	bool		simpleBSP;		// RB: made by only 1 brush which is the AABB of the non-worldspawn model
 } tree_t;
 
 #define	MAX_QPATH			256			// max length of a game pathname
@@ -270,15 +273,17 @@ typedef struct
 	idMapFile*	dmapFile;
 
 	idPlaneSet	mapPlanes;
+	idHashTableT<int, int>	splitPlanesCounter;
 
-	int			num_entities;
+	int			numEntities;
 	uEntity_t*	uEntities;
 
 	int			entityNum;
 
 	idList<mapLight_t*>	mapLights;
 
-	bool	glview;
+	bool	exportDebugVisuals;
+	bool	exportObj;			// write Wavefront OBJ of .proc file for Blender
 	bool	asciiTree;			// BSP tree visualization in the .proc file
 	bool	noOptimize;
 	bool	verboseentities;
@@ -286,18 +291,19 @@ typedef struct
 	bool	fullCarve;
 	bool	noModelBrushes;
 	bool	noTJunc;
-	bool	nomerge;
+	bool	noMerge;
 	bool	noFlood;
 	bool	noClipSides;		// don't cut sides by solid leafs, use the entire thing
 	bool	noLightCarve;		// extra triangle subdivision by light frustums
-	shadowOptLevel_t	shadowOptLevel;
-	bool	noShadow;			// don't create optimized shadow volumes
 
 	idBounds	drawBounds;
 	bool	drawflag;
 
-	int		totalShadowTriangles;
-	int		totalShadowVerts;
+	bool	bspAlternateSplitWeights;
+	idVec3	blockSize;			// size of the blocks used for splitting
+
+	bool	inlineStatics;		// dev option: inline static models into the areas
+	int		totalInlinedModels;
 } dmapGlobals_t;
 
 extern dmapGlobals_t dmapGlobals;
@@ -323,7 +329,6 @@ uBrush_t* AllocBrush( int numsides );
 void FreeBrush( uBrush_t* brushes );
 void FreeBrushList( uBrush_t* brushes );
 uBrush_t* CopyBrush( uBrush_t* brush );
-void DrawBrushList( uBrush_t* brush );
 void PrintBrush( uBrush_t* brush );
 bool BoundBrush( uBrush_t* brush );
 bool CreateBrushWindings( uBrush_t* brush );
@@ -347,23 +352,6 @@ void		FreeDMapFile();
 
 //=============================================================================
 
-// draw.cpp -- draw debug views either directly, or through glserv.exe
-
-void Draw_ClearWindow();
-void DrawWinding( const idWinding* w );
-void DrawAuxWinding( const idWinding* w );
-
-void DrawLine( idVec3 v1, idVec3 v2, int color );
-
-void GLS_BeginScene();
-void GLS_Winding( const idWinding* w, int code );
-void GLS_Triangle( const mapTri_t* tri, int code );
-void GLS_EndScene();
-
-
-
-//=============================================================================
-
 // portals.cpp
 
 #define	MAX_INTER_AREA_PORTALS	1024
@@ -381,20 +369,21 @@ struct interAreaPortal_t
 
 extern idList<interAreaPortal_t> interAreaPortals;
 
+bool PlaceOccupant( node_t* headnode, idVec3 origin, uEntity_t* occupant );
 bool FloodEntities( tree_t* tree );
 void FillOutside( uEntity_t* e );
 void FloodAreas( uEntity_t* e );
 void MakeTreePortals( tree_t* tree );
 void FreePortal( uPortal_t* p );
+bool Portal_Passable( uPortal_t*  p );
 
 //=============================================================================
 
 // glfile.cpp -- write a debug file to be viewd with glview.exe
 
-void OutputWinding( idWinding* w, idFile* glview );
-
-void WriteGLView( tree_t* tree, const char* source, int entityNum, bool force = false );
-void WriteGLView( bspface_t* list, const char* source );
+idVec4 PickDebugColor( int area );
+void WriteGLViewBSP( tree_t* tree, const char* source, int entityNum, bool force = false );
+void WriteGLViewFacelist( bspFace_t* list, const char* source, bool force = false );
 
 //=============================================================================
 
@@ -407,16 +396,17 @@ void LeakFile( tree_t* tree );
 // facebsp.cpp
 
 tree_t* AllocTree();
-
 void FreeTree( tree_t* tree );
 
 void FreeTree_r( node_t* node );
 void FreeTreePortals_r( node_t* node );
 
+void PrintTree_r( node_t* node, int depth );
 
-bspface_t*	MakeStructuralBspFaceList( primitive_t* list );
+
+bspFace_t*	MakeStructuralBspFaceList( primitive_t* list );
 //bspface_t*	MakeVisibleBspFaceList( primitive_t* list );
-tree_t*		FaceBSP( bspface_t* list );
+tree_t*		FaceBSP( bspFace_t* list );
 
 node_t*		NodeForPoint( node_t* node, const idVec3& origin );
 
@@ -509,7 +499,6 @@ mapTri_t*	CopyMapTri( const mapTri_t* tri );
 float		MapTriArea( const mapTri_t* tri );
 mapTri_t*	RemoveBadTris( const mapTri_t* tri );
 void		BoundTriList( const mapTri_t* list, idBounds& b );
-void		DrawTri( const mapTri_t* tri );
 void		FlipTriList( mapTri_t* tris );
 void		TriVertsFromOriginal( mapTri_t* tri, const mapTri_t* original );
 void		PlaneForTri( const mapTri_t* tri, idPlane& plane );
@@ -521,6 +510,8 @@ void		ClipTriList( const mapTri_t* list, const idPlane& plane, float epsilon, ma
 
 // output.cpp
 
+// RB: slightly changed variant from output.cpp to number both nodes and leafs
+int			NumberNodes_r( node_t* node, int nextNode, int& nextLeaf );
 int			NumberNodes_r( node_t* node, int nextNumber );
 
 srfTriangles_t*	ShareMapTriVerts( const mapTri_t* tris );

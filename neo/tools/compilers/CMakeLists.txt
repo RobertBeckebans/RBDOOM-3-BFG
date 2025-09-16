@@ -29,6 +29,22 @@ file(GLOB MC_AASBUILD_SOURCES aas/*.cpp)
 file(GLOB MC_CM_INCLUDES ../../cm/*.h)
 file(GLOB MC_CM_SOURCES ../../cm/*.cpp)
 
+set(MC_DECLS_INCLUDES
+	../../framework/DeclManager.h
+	../../framework/DeclEntityDef.h
+	../../framework/DeclSkin.h
+	../../framework/DeclTable.h
+	../../d3xp/anim/Anim.h
+	)
+set(MC_DECLS_SOURCES
+	../../framework/DeclManager.cpp
+	../../framework/DeclEntityDef.cpp
+	../../framework/DeclSkin.cpp
+	../../framework/DeclTable.cpp
+	../../d3xp/anim/Anim.cpp
+	../../d3xp/anim/Anim_Blend.cpp
+	)
+
 set(MC_FRAMEWORK_INCLUDES 
 	../../framework/CmdSystem.h
 	../../framework/CVarSystem.h
@@ -38,10 +54,6 @@ set(MC_FRAMEWORK_INCLUDES
 	../../framework/File_Zip.h
 	../../framework/FileSystem.h
 	../../framework/Licensee.h
-	../../framework/DeclManager.h
-	../../framework/DeclEntityDef.h
-	../../framework/DeclSkin.h
-	../../framework/DeclTable.h
 	../../idlib/precompiled.h
 	)
 set(MC_FRAMEWORK_SOURCES
@@ -52,10 +64,6 @@ set(MC_FRAMEWORK_SOURCES
 	../../framework/File_Resource.cpp
 	../../framework/File_Zip.cpp
 	../../framework/FileSystem.cpp
-	../../framework/DeclManager.cpp
-	../../framework/DeclEntityDef.cpp
-	../../framework/DeclSkin.cpp
-	../../framework/DeclTable.cpp
 	)
 
 set(MC_RENDERER_INCLUDES 
@@ -96,14 +104,6 @@ set(MC_RENDERER_SOURCES
 	../../renderer/Model_lwo.cpp
 	../../renderer/Model_ma.cpp
 	../../renderer/Model_obj.cpp
-	)
-
-set(MC_GAME_INCLUDES 
-	../../d3xp/anim/Anim.h
-	)
-set(MC_GAME_SOURCES
-	../../d3xp/anim/Anim.cpp
-	../../d3xp/anim/Anim_Blend.cpp
 	)
 	
 file(GLOB MC_MIKKTSPACE_INCLUDES ../../libs/mikktspace/*.h)
@@ -185,7 +185,7 @@ set(MC_INCLUDES_ALL
 			${MC_AASBUILD_INCLUDES}
 			${MC_CM_INCLUDES}
 			${MC_MIKKTSPACE_INCLUDES}
-			${MC_GAME_INCLUDES}
+			${MC_DECLS_INCLUDES}
 			${MC_IMGUI_INCLUDES}
 			${MC_IMTUI_INCLUDES}
 			${MC_ZLIB_INCLUDES}
@@ -201,7 +201,7 @@ set(MC_SOURCES_ALL
 			${MC_AASBUILD_SOURCES}
 			${MC_CM_SOURCES}
 			${MC_MIKKTSPACE_SOURCES}
-			${MC_GAME_SOURCES}
+			${MC_DECLS_SOURCES}
 			${MC_IMGUI_SOURCES}
 			${MC_IMTUI_SOURCES}
 			${MC_ZLIB_SOURCES}
@@ -212,16 +212,17 @@ source_group("main" FILES ${MC_INCLUDES})
 source_group("main" FILES ${MC_SOURCES})
 source_group("dmap" FILES ${MC_DMAP_INCLUDES})
 source_group("dmap" FILES ${MC_DMAP_SOURCES})
-source_group("framework" FILES ${MC_FRAMEWORK_INCLUDES})
-source_group("framework" FILES ${MC_FRAMEWORK_SOURCES})
-source_group("renderer" FILES ${MC_RENDERER_INCLUDES})
-source_group("renderer" FILES ${MC_RENDERER_SOURCES})
-source_group("aas" FILES ${MC_AAS_INCLUDES})
-source_group("aas" FILES ${MC_AAS_SOURCES})
+source_group("engine\\framework" FILES ${MC_FRAMEWORK_INCLUDES})
+source_group("engine\\framework" FILES ${MC_FRAMEWORK_SOURCES})
+source_group("engine\\renderer" FILES ${MC_RENDERER_INCLUDES})
+source_group("engine\\renderer" FILES ${MC_RENDERER_SOURCES})
+source_group("engine\\aas" FILES ${MC_AAS_INCLUDES})
+source_group("engine\\aas" FILES ${MC_AAS_SOURCES})
 source_group("aasbuild" FILES ${MC_AASBUILD_INCLUDES})
 source_group("aasbuild" FILES ${MC_AASBUILD_SOURCES})
-source_group("cm" FILES ${MC_CM_INCLUDES})
-source_group("cm" FILES ${MC_CM_SOURCES})
+source_group("engine\\cm" FILES ${MC_CM_INCLUDES})
+source_group("engine\\cm" FILES ${MC_CM_SOURCES})
+
 source_group("libs\\mikktspace" FILES ${MC_MIKKTSPACE_INCLUDES})
 source_group("libs\\mikktspace" FILES ${MC_MIKKTSPACE_SOURCES})
 source_group("libs\\imtui" FILES ${MC_IMTUI_INCLUDES})
@@ -234,8 +235,8 @@ source_group("libs\\zlib" FILES ${MC_ZLIB_SOURCES})
 source_group("libs\\zlib\\minizip" FILES ${MC_MINIZIP_INCLUDES})
 source_group("libs\\zlib\\minizip" FILES ${MC_MINIZIP_SOURCES})
 
-source_group("anim" FILES ${MC_GAME_INCLUDES})
-source_group("anim" FILES ${MC_GAME_SOURCES})
+source_group("decls" FILES ${MC_DECLS_INCLUDES})
+source_group("decls" FILES ${MC_DECLS_SOURCES})
 
 set(MC_PRECOMPILED_SOURCES ${MC_SOURCES_ALL})
 list(REMOVE_ITEM MC_PRECOMPILED_SOURCES ${MC_MIKKTSPACE_SOURCES} ${MC_IMGUI_SOURCES} ${MC_IMTUI_SOURCES} ${MC_ZLIB_SOURCES} ${MC_MINIZIP_SOURCES})
@@ -284,8 +285,8 @@ if(MSVC)
 			)
 
     add_executable(rbdmap ${MC_SOURCES_ALL} ${MC_INCLUDES_ALL})
-	add_dependencies(rbdmap idlib)
-	target_link_libraries(rbdmap idlib winmm imtui-pdcurses ${ZLIB_LIBRARY})
+	add_dependencies(rbdmap idlib  ${ISPC_TEXCOMP_LIBRARY})
+	target_link_libraries(rbdmap idlib winmm imtui-pdcurses Shlwapi ${ZLIB_LIBRARY} ${ISPC_TEXCOMP_LIBRARY})
 
 	# set MSVC default debug directory on executable	
 	if(CMAKE_MAJOR_VERSION EQUAL 3 AND CMAKE_MINOR_VERSION GREATER_EQUAL 8)
@@ -345,7 +346,7 @@ else()
 			)
 
 	add_executable(rbdmap ${MC_SOURCES_ALL} ${MC_INCLUDES_ALL})
-	add_dependencies(rbdmap idlib)
+	add_dependencies(rbdmap idlib ${ISPC_TEXCOMP_LIBRARY})
 
 	if (USE_PRECOMPILED_HEADERS)
 		add_dependencies(rbdmap precomp_header_rbdmap)
@@ -379,7 +380,7 @@ else()
 		endif()
 	endif()
 
-	target_link_libraries(rbdmap idlib ${CURSES_NCURSES_LIBRARY} ${ZLIB_LIBRARY})
+	target_link_libraries(rbdmap idlib ${CURSES_NCURSES_LIBRARY} ${ZLIB_LIBRARY} ${ISPC_TEXCOMP_LIBRARY})
 endif()
 	
 

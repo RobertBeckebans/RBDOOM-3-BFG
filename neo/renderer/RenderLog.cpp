@@ -32,7 +32,7 @@ If you have questions concerning this license or the applicable additional terms
 #include <sys/DeviceManager.h>
 extern DeviceManager* deviceManager;
 
-idCVar r_logLevel( "r_logLevel", "0", CVAR_INTEGER, "1 = blocks only, 2 = everything", 0, 2 );
+idCVar r_logLevel( "r_logLevel", "0", CVAR_BOOL, "1 = Named render events in RenderDoc but is slower if enabled" );
 
 static const int LOG_LEVEL_BLOCKS_ONLY	= 1;
 static const int LOG_LEVEL_EVERYTHING	= 2;

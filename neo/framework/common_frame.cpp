@@ -520,6 +520,7 @@ void idCommonLocal::ProcessGameReturn( const gameReturn_t& ret )
 extern idCVar com_forceGenericSIMD;
 
 extern idCVar com_pause;
+extern idCVar com_activeApp;
 
 /*
 =================
@@ -641,6 +642,28 @@ void idCommonLocal::Frame()
 		}
 		frameTiming.finishSyncTime = Sys_Microseconds();
 
+		// RB: slow down engine in background so it does not eat up so many resources along other 3D tools
+		if( !com_activeApp.GetBool() && !IsServer() /* and not VR */ )
+		{
+			const float backgroundEngineHz = 15.0f;
+			com_engineHz_denominator = 100LL * backgroundEngineHz;
+			com_engineHz_latched = backgroundEngineHz;
+		}
+#if defined(USE_DOOMCLASSIC)
+		else if( IsPlayingDoomClassic() )
+		{
+			com_engineHz_denominator = 100LL * DOOM_CLASSIC_HZ;
+			com_engineHz_latched = DOOM_CLASSIC_HZ;
+		}
+#endif
+		else
+		{
+			// allow com_engineHz to be changed between map loads
+			com_engineHz_denominator = 100LL * com_engineHz.GetFloat();
+			com_engineHz_latched = com_engineHz.GetFloat();
+		}
+		// RB end
+
 		//--------------------------------------------
 		// Determine how many game tics we are going to run,
 		// now that the previous frame is completely finished.
@@ -688,12 +711,16 @@ void idCommonLocal::Frame()
 				gameTimeResidual += clampedDeltaMilliseconds * timescale.GetFloat();
 
 				// don't run any frames when paused
+				/*
+				RB moved down
+
 				if( pauseGame )
 				{
 					gameFrame++;
 					gameTimeResidual = 0;
 					break;
 				}
+				*/
 
 				// debug cvar to force multiple game tics
 				if( com_fixedTic.GetInteger() > 0 )
@@ -751,6 +778,14 @@ void idCommonLocal::Frame()
 				// com_engineHz is 60, so sleep a bit and check again
 				Sys_Sleep( 0 );
 			}
+		}
+
+		// don't run any frames when paused
+		// RB: reset numGameFrames here so we use the sleep above
+		// and don't run as many frames as possible on the GPU
+		if( pauseGame )
+		{
+			numGameFrames = 0;
 		}
 
 		//--------------------------------------------

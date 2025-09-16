@@ -196,7 +196,7 @@ void AfEditor::Draw()
 
 	if( ImGui::Begin( "AF Editor", &showTool, ImGuiWindowFlags_MenuBar ) )
 	{
-		impl::SetReleaseToolMouse( true );
+		SetReleaseToolMouse( true );
 
 		bool changedAf = false;
 		bool openedAfBrowser = false;
@@ -571,7 +571,7 @@ void AfEditor::Draw()
 	{
 		// TODO: do the same as when pressing cancel?
 		isShown = showTool;
-		impl::SetReleaseToolMouse( false );
+		SetReleaseToolMouse( false );
 	}
 }
 

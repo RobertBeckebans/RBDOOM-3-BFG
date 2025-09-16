@@ -2848,6 +2848,9 @@ void Cmd_EditLights_f( const idCmdArgs& args )
 		r_singleLight.SetInteger( -1 );
 		r_showLights.SetInteger( 0 );
 	}
+
+	// put player into fly mode
+	Cmd_Noclip_f( args );
 }
 // RB end
 

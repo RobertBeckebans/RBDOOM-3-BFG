@@ -82,7 +82,7 @@ idCVar r_useValidationLayers( "r_useValidationLayers", "1", CVAR_INTEGER | CVAR_
 #if ID_MSAA
 	idCVar r_antiAliasing( "r_antiAliasing", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER | CVAR_NEW, " 0 = None\n 1 = TAA 1x\n 2 = TAA + SMAA 1x\n 3 = MSAA 2x\n 4 = MSAA 4x\n", 0, ANTI_ALIASING_MSAA_4X );
 #else
-	idCVar r_antiAliasing( "r_antiAliasing", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER | CVAR_NEW, " 0 = None\n 1 = TAA 1x", 0, ANTI_ALIASING_TAA );
+	idCVar r_antiAliasing( "r_antiAliasing", "2", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER | CVAR_NEW, " 0 = None\n 1 = SMAA 1x\n 2 = TAA", 0, ANTI_ALIASING_TAA );
 #endif
 // RB end
 idCVar r_vidMode( "r_vidMode", "0", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_INTEGER, "fullscreen video mode number" );
@@ -154,7 +154,7 @@ idCVar r_useLightPortalCulling( "r_useLightPortalCulling", "1", CVAR_RENDERER | 
 idCVar r_useLightAreaCulling( "r_useLightAreaCulling", "1", CVAR_RENDERER | CVAR_BOOL, "0 = off, 1 = on" );
 idCVar r_useLightScissors( "r_useLightScissors", "3", CVAR_RENDERER | CVAR_INTEGER, "0 = no scissor, 1 = non-clipped scissor, 2 = near-clipped scissor, 3 = fully-clipped scissor", 0, 3, idCmdSystem::ArgCompletion_Integer<0, 3> );
 idCVar r_useEntityPortalCulling( "r_useEntityPortalCulling", "1", CVAR_RENDERER | CVAR_INTEGER, "0 = none, 1 = cull frustum corners to plane, 2 = exact clip the frustum faces", 0, 2, idCmdSystem::ArgCompletion_Integer<0, 2> );
-idCVar r_clear( "r_clear", "2", CVAR_RENDERER, "force screen clear every frame, 1 = purple, 2 = black, 'r g b' = custom" );
+idCVar r_clear( "r_clear", "2", CVAR_RENDERER | CVAR_NOCHEAT, "force screen clear every frame, 1 = purple, 2 = black, 'r g b' = custom" );
 
 idCVar r_offsetFactor( "r_offsetfactor", "0", CVAR_RENDERER | CVAR_FLOAT, "polygon offset parameter" );
 // RB: offset factor was 0, and units were -600 which caused some very ugly polygon offsets on Android so I reverted the values to the same as in Q3A
@@ -165,8 +165,6 @@ idCVar r_offsetFactor( "r_offsetfactor", "0", CVAR_RENDERER | CVAR_FLOAT, "polyg
 #endif
 // RB end
 
-idCVar r_shadowPolygonOffset( "r_shadowPolygonOffset", "-1", CVAR_RENDERER | CVAR_FLOAT, "bias value added to depth test for stencil shadow drawing" );
-idCVar r_shadowPolygonFactor( "r_shadowPolygonFactor", "0", CVAR_RENDERER | CVAR_FLOAT, "scale value for stencil shadow drawing" );
 idCVar r_subviewOnly( "r_subviewOnly", "0", CVAR_RENDERER | CVAR_BOOL, "1 = don't render main view, allowing subviews to be debugged" );
 idCVar r_testGamma( "r_testGamma", "0", CVAR_RENDERER | CVAR_FLOAT, "if > 0 draw a grid pattern to test gamma levels", 0, 195 );
 idCVar r_testGammaBias( "r_testGammaBias", "0", CVAR_RENDERER | CVAR_FLOAT, "if > 0 draw a grid pattern to test gamma levels" );
@@ -257,10 +255,11 @@ idCVar r_shadowMapSplitWeight( "r_shadowMapSplitWeight", "0.9", CVAR_RENDERER | 
 idCVar r_shadowMapLodScale( "r_shadowMapLodScale", "1.4", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
 idCVar r_shadowMapLodBias( "r_shadowMapLodBias", "0", CVAR_RENDERER | CVAR_INTEGER | CVAR_NEW, "" );
 idCVar r_shadowMapPolygonFactor( "r_shadowMapPolygonFactor", "2", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "polygonOffset factor for drawing shadow buffer" );
-idCVar r_shadowMapPolygonOffset( "r_shadowMapPolygonOffset", "3000", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "polygonOffset units for drawing shadow buffer" );
+idCVar r_dxShadowMapPolygonOffset( "r_dxShadowMapPolygonOffset", "0.1", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "polygonOffset units for drawing shadow buffer" );
+idCVar r_vkShadowMapPolygonOffset( "r_vkShadowMapPolygonOffset", "1", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "polygonOffset units for drawing shadow buffer" );
 idCVar r_shadowMapOccluderFacing( "r_shadowMapOccluderFacing", "2", CVAR_RENDERER | CVAR_INTEGER | CVAR_NEW, "0 = front faces, 1 = back faces, 2 = twosided" );
 idCVar r_shadowMapRegularDepthBiasScale( "r_shadowMapRegularDepthBiasScale", "0.999", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "shadowmap bias to fight shadow acne for point and spot lights" );
-idCVar r_shadowMapSunDepthBiasScale( "r_shadowMapSunDepthBiasScale", "0.999991", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "shadowmap bias to fight shadow acne for cascaded shadow mapping with parallel lights" );
+idCVar r_shadowMapSunDepthBiasScale( "r_shadowMapSunDepthBiasScale", "0.999", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "shadowmap bias to fight shadow acne for cascaded shadow mapping with parallel lights" );
 
 // RB: HDR parameters
 idCVar r_hdrAutoExposure( "r_hdrAutoExposure", "0", CVAR_RENDERER | CVAR_BOOL | CVAR_NEW, "EXPENSIVE: enables adapative HDR tone mapping otherwise the exposure is derived by r_exposure" );
@@ -294,8 +293,15 @@ idCVar r_useLightGrid( "r_useLightGrid", "1", CVAR_RENDERER | CVAR_BOOL | CVAR_N
 
 idCVar r_exposure( "r_exposure", "0.5", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "HDR exposure or LDR brightness [-4.0 .. 4.0]", -4.0f, 4.0f );
 
+idCVar r_useSSR( "r_useSSR", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL | CVAR_NEW, "" );
+idCVar r_ssrJitter( "r_ssrJitter", "0", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
+idCVar r_ssrMaxDistance( "r_ssrMaxDistance", "100", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "In meters" );
+idCVar r_ssrMaxSteps( "r_ssrMaxSteps", "100", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
+idCVar r_ssrStride( "r_ssrStride", "12", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
+idCVar r_ssrZThickness( "r_ssrZThickness", "2", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
+
 idCVar r_useTemporalAA( "r_useTemporalAA", "1", CVAR_RENDERER | CVAR_BOOL | CVAR_NEW, "only disable for debugging" );
-idCVar r_taaJitter( "r_taaJitter", "3", CVAR_RENDERER | CVAR_INTEGER | CVAR_NEW, "0: None, 1: MSAA, 2: Halton, 3: R2 Sequence, 4: White Noise" );
+idCVar r_taaJitter( "r_taaJitter", "1", CVAR_RENDERER | CVAR_INTEGER | CVAR_NEW, "0: None, 1: MSAA, 2: Halton, 3: R2 Sequence, 4: White Noise" );
 idCVar r_taaEnableHistoryClamping( "r_taaEnableHistoryClamping", "1", CVAR_RENDERER | CVAR_BOOL | CVAR_NEW, "" );
 idCVar r_taaClampingFactor( "r_taaClampingFactor", "1.0", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
 idCVar r_taaNewFrameWeight( "r_taaNewFrameWeight", "0.1", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
@@ -308,12 +314,12 @@ idCVar r_crtVignette( "r_crtVignette", "0.8", CVAR_RENDERER | CVAR_FLOAT | CVAR_
 
 idCVar r_retroDitherScale( "r_retroDitherScale", "0.3", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
 
-idCVar r_renderMode( "r_renderMode", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER | CVAR_NEW, "0 = Doom, 1 = Commodore 64, 2 = Commodore 64 Highres, 3 = Amstrad CPC 6128, 4 = Amstrad CPC 6128 Highres, 5 = Gameboy, 6 = Gameboy Highres, 7 = NES, 8 = NES Highres, 9 = Sega Genesis, 10 = Sega Genesis Highres, 11 = Sony PSX", 0, 11 );
+idCVar r_renderMode( "r_renderMode", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER | CVAR_NEW, "0 = Doom, 1 = CGA, 2 = CGA Highres, 3 = Commodore 64, 4 = Commodore 64 Highres, 5 = Amstrad CPC 6128, 6 = Amstrad CPC 6128 Highres, 7 = Sega Genesis, 8 = Sega Genesis Highres, 9 = Sony PSX", 0, 9 );
 
 idCVar r_psxVertexJitter( "r_psxVertexJitter", "0.5", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "", 0.0f, 0.75f );
 idCVar r_psxAffineTextures( "r_psxAffineTextures", "1", CVAR_RENDERER | CVAR_FLOAT | CVAR_NEW, "" );
 
-idCVar r_useMaskedOcclusionCulling( "r_useMaskedOcclusionCulling", "1", CVAR_RENDERER | CVAR_BOOL | CVAR_NEW, "SIMD optimized software culling by Intel" );
+idCVar r_useMaskedOcclusionCulling( "r_useMaskedOcclusionCulling", "1", CVAR_RENDERER | CVAR_BOOL | CVAR_NOCHEAT | CVAR_NEW, "SIMD optimized software culling by Intel" );
 // RB end
 
 const char* fileExten[4] = { "tga", "png", "jpg", "exr" };
@@ -335,7 +341,7 @@ bool R_UseTemporalAA()
 		return false;
 	}
 
-	if( r_renderMode.GetInteger() == RENDERMODE_PSX )
+	if( r_renderMode.GetInteger() != RENDERMODE_DOOM )
 	{
 		return false;
 	}
@@ -353,6 +359,19 @@ bool R_UseTemporalAA()
 		default:
 			return false;
 	}
+}
+
+bool R_UseHiZ()
+{
+	// TODO check for driver problems here
+#if defined(__linux__) || defined(__APPLE__)
+	if( glConfig.vendor == VENDOR_INTEL && glConfig.gpuType == GPU_TYPE_OTHER )
+	{
+		// SRS - Disable HiZ to work-around Linux/macOS driver issues on Intel iGPUs
+		return false;
+	}
+#endif
+	return r_useHierarchicalDepthBuffer.GetBool();
 }
 
 uint R_GetMSAASamples()
@@ -398,9 +417,9 @@ void R_SetNewMode( const bool fullInit )
 {
 	// try up to three different configurations
 
-	for( int i = 0 ; i < 3 ; i++ )
+	for( int i = 0 ; i < 3; i++ )
 	{
-		if( i == 0 && stereoRender_enable.GetInteger() != STEREO3D_QUAD_BUFFER )
+		if( i == 0 /*&& vr_enable.GetInteger() != STEREO3D_QUAD_BUFFER*/ )
 		{
 			continue;		// don't even try for a stereo mode
 		}
@@ -424,9 +443,8 @@ void R_SetNewMode( const bool fullInit )
 			idList<vidMode_t> modeList;
 			if( !R_GetModeListForDisplay( r_fullscreen.GetInteger() - 1, modeList ) )
 			{
-				idLib::Printf( "r_fullscreen reset from %i to 1 because mode list failed.\n", r_fullscreen.GetInteger() );
-				r_fullscreen.SetInteger( 1 );
-				R_GetModeListForDisplay( r_fullscreen.GetInteger() - 1, modeList );
+				idLib::Printf( "Going to safe mode because display not found.\n" );
+				goto safeMode;
 			}
 
 			if( modeList.Num() < 1 )
@@ -483,15 +501,6 @@ void R_SetNewMode( const bool fullInit )
 #pragma warning( pop )
 #endif
 
-		if( i == 0 )
-		{
-			parms.stereo = ( stereoRender_enable.GetInteger() == STEREO3D_QUAD_BUFFER );
-		}
-		else
-		{
-			parms.stereo = false;
-		}
-
 		if( fullInit )
 		{
 			// create the context as well as setting up the window
@@ -502,7 +511,7 @@ void R_SetNewMode( const bool fullInit )
 			if( GLimp_Init( parms ) )
 #endif
 			{
-				ImGuiHook::Init( glConfig.nativeScreenWidth, glConfig.nativeScreenHeight );
+				ImGuiHook::Init( renderSystem->GetWidth(), renderSystem->GetHeight() );
 				break;
 			}
 		}
@@ -517,14 +526,14 @@ void R_SetNewMode( const bool fullInit )
 #endif
 			{
 				Framebuffer::ResizeFramebuffers();
-				ImGuiHook::NotifyDisplaySizeChanged( glConfig.nativeScreenWidth, glConfig.nativeScreenHeight );
+				ImGuiHook::NotifyDisplaySizeChanged( renderSystem->GetWidth(), renderSystem->GetHeight() );
 				break;
 			}
 		}
 
 		if( i == 2 )
 		{
-			common->FatalError( "Unable to initialize OpenGL" );
+			common->FatalError( "Unable to initialize renderer" );
 		}
 
 		if( i == 0 )
@@ -536,8 +545,25 @@ void R_SetNewMode( const bool fullInit )
 safeMode:
 		// if we failed, set everything back to "safe mode"
 		// and try again
+
+		// SRS - get the first display with a non-zero mode list, or fail if not found
+		int safeDisplay = 0;
+		idList<vidMode_t> safeList;
+		for( ; ; safeDisplay++ )
+		{
+			if( !R_GetModeListForDisplay( safeDisplay, safeList ) )
+			{
+				common->FatalError( "Unable to find a valid display for renderer" );
+			}
+			else if( safeList.Num() > 0 )
+			{
+				break;
+			}
+		}
+		// SRS end
+
 		r_vidMode.SetInteger( 0 );
-		r_fullscreen.SetInteger( 1 );
+		r_fullscreen.SetInteger( safeDisplay + 1 );
 		r_displayRefresh.SetInteger( 0 );
 		r_antiAliasing.SetInteger( 0 );
 	}
@@ -1068,7 +1094,7 @@ void idRenderSystemLocal::TakeScreenshot( int widthIgnored, int heightIgnored, c
 	// discard anything currently on the list (this triggers SwapBuffers)
 	tr.SwapCommandBuffers( NULL, NULL, NULL, NULL, NULL, NULL );
 
-	R_ReadPixelsRGB8( deviceManager->GetDevice(), &tr.backend.GetCommonPasses(), globalImages->ldrImage->GetTextureHandle() , nvrhi::ResourceStates::RenderTarget, fileName );
+	R_ReadPixelsRGB8( deviceManager->GetDevice(), &backEnd.GetCommonPasses(), globalImages->ldrImage->GetTextureHandle() , nvrhi::ResourceStates::RenderTarget, fileName );
 
 	// discard anything currently on the list
 	tr.SwapCommandBuffers( NULL, NULL, NULL, NULL, NULL, NULL );
@@ -1520,7 +1546,7 @@ void GfxInfo_f( const idCmdArgs& args )
 
 	common->Printf( "-------\n" );
 
-	if( r_swapInterval.GetInteger() )//&& wglSwapIntervalEXT != NULL )
+	if( r_swapInterval.GetInteger() )
 	{
 		common->Printf( "Forcing swapInterval %i\n", r_swapInterval.GetInteger() );
 	}
@@ -1529,49 +1555,7 @@ void GfxInfo_f( const idCmdArgs& args )
 		common->Printf( "swapInterval not forced\n" );
 	}
 
-	if( glConfig.stereoPixelFormatAvailable && glConfig.isStereoPixelFormat )
-	{
-		idLib::Printf( "OpenGl quad buffer stereo pixel format active\n" );
-	}
-	else if( glConfig.stereoPixelFormatAvailable )
-	{
-		idLib::Printf( "OpenGl quad buffer stereo pixel available but not selected\n" );
-	}
-	else
-	{
-		idLib::Printf( "OpenGl quad buffer stereo pixel format not available\n" );
-	}
-
-	idLib::Printf( "Stereo mode: " );
-	switch( renderSystem->GetStereo3DMode() )
-	{
-		case STEREO3D_OFF:
-			idLib::Printf( "STEREO3D_OFF\n" );
-			break;
-		case STEREO3D_SIDE_BY_SIDE_COMPRESSED:
-			idLib::Printf( "STEREO3D_SIDE_BY_SIDE_COMPRESSED\n" );
-			break;
-		case STEREO3D_TOP_AND_BOTTOM_COMPRESSED:
-			idLib::Printf( "STEREO3D_TOP_AND_BOTTOM_COMPRESSED\n" );
-			break;
-		case STEREO3D_SIDE_BY_SIDE:
-			idLib::Printf( "STEREO3D_SIDE_BY_SIDE\n" );
-			break;
-		case STEREO3D_HDMI_720:
-			idLib::Printf( "STEREO3D_HDMI_720\n" );
-			break;
-		case STEREO3D_INTERLACED:
-			idLib::Printf( "STEREO3D_INTERLACED\n" );
-			break;
-		case STEREO3D_QUAD_BUFFER:
-			idLib::Printf( "STEREO3D_QUAD_BUFFER\n" );
-			break;
-		default:
-			idLib::Printf( "Unknown (%i)\n", renderSystem->GetStereo3DMode() );
-			break;
-	}
-
-	idLib::Printf( "%i multisamples\n", glConfig.multisamples );
+	//idLib::Printf( "%i multisamples\n", glConfig.multisamples );
 
 	common->Printf( "%5.1f cm screen width (%4.1f\" diagonal)\n",
 					glConfig.physicalScreenWidthInCentimeters, glConfig.physicalScreenWidthInCentimeters / 2.54f
@@ -2214,8 +2198,6 @@ void idRenderSystemLocal::Init()
 	guiModel->Clear();
 	tr_guiModel = guiModel;	// for DeviceContext fast path
 
-	UpdateStereo3DMode();
-
 	globalImages->Init();
 
 	// RB begin
@@ -2408,7 +2390,7 @@ idRenderSystemLocal::BeginLevelLoad
 void idRenderSystemLocal::BeginLevelLoad()
 {
 	// clear binding sets for previous level images and light data #676
-	backend.ClearCaches();
+	backEnd.ClearCaches();
 
 	globalImages->BeginLevelLoad();
 	renderModelManager->BeginLevelLoad();
@@ -2523,7 +2505,7 @@ void idRenderSystemLocal::InitBackend()
 	// if OpenGL isn't started, start it now
 	if( !IsInitialized() )
 	{
-		backend.Init();
+		backEnd.Init();
 
 		if( !commandList )
 		{
@@ -2550,7 +2532,7 @@ void idRenderSystemLocal::ShutdownOpenGL()
 	// free the context and close the window
 	R_ShutdownFrameData();
 
-	backend.Shutdown();
+	backEnd.Shutdown();
 }
 
 /*
@@ -2580,10 +2562,14 @@ idRenderSystemLocal::GetWidth
 */
 int idRenderSystemLocal::GetWidth() const
 {
+	// do something similar in case the VR API requires it
+	/*
 	if( glConfig.stereo3Dmode == STEREO3D_SIDE_BY_SIDE || glConfig.stereo3Dmode == STEREO3D_SIDE_BY_SIDE_COMPRESSED )
 	{
 		return glConfig.nativeScreenWidth >> 1;
 	}
+	*/
+
 	return glConfig.nativeScreenWidth;
 }
 
@@ -2594,6 +2580,8 @@ idRenderSystemLocal::GetHeight
 */
 int idRenderSystemLocal::GetHeight() const
 {
+	// do something similar in case the VR API requires it
+	/*
 	if( glConfig.stereo3Dmode == STEREO3D_HDMI_720 )
 	{
 		return 720;
@@ -2604,12 +2592,24 @@ int idRenderSystemLocal::GetHeight() const
 		// for the Rift, render a square aspect view that will be symetric for the optics
 		return glConfig.nativeScreenWidth >> 1;
 	}
-	if( glConfig.stereo3Dmode == STEREO3D_INTERLACED || glConfig.stereo3Dmode == STEREO3D_TOP_AND_BOTTOM_COMPRESSED )
-	{
-		return glConfig.nativeScreenHeight >> 1;
-	}
+	*/
+
 	return glConfig.nativeScreenHeight;
 }
+
+
+// RB: return swap chain width
+int idRenderSystemLocal::GetNativeWidth() const
+{
+	return glConfig.nativeScreenWidth;
+}
+
+// RB: return swap chain height
+int idRenderSystemLocal::GetNativeHeight() const
+{
+	return glConfig.nativeScreenHeight;
+}
+// RB end
 
 /*
 ========================
@@ -2645,87 +2645,12 @@ int idRenderSystemLocal::GetVirtualHeight() const
 
 /*
 ========================
-idRenderSystemLocal::GetStereo3DMode
-========================
-*/
-stereo3DMode_t idRenderSystemLocal::GetStereo3DMode() const
-{
-	return glConfig.stereo3Dmode;
-}
-
-/*
-========================
-idRenderSystemLocal::IsStereoScopicRenderingSupported
-========================
-*/
-bool idRenderSystemLocal::IsStereoScopicRenderingSupported() const
-{
-#if VR_OPTIONS
-	return true;
-#else
-	return false;
-#endif
-}
-
-/*
-========================
-idRenderSystemLocal::HasQuadBufferSupport
-========================
-*/
-bool idRenderSystemLocal::HasQuadBufferSupport() const
-{
-	return glConfig.stereoPixelFormatAvailable;
-}
-
-/*
-========================
-idRenderSystemLocal::UpdateStereo3DMode
-========================
-*/
-void idRenderSystemLocal::UpdateStereo3DMode()
-{
-	if( glConfig.nativeScreenWidth == 1280 && glConfig.nativeScreenHeight == 1470 )
-	{
-		glConfig.stereo3Dmode = STEREO3D_HDMI_720;
-	}
-	else
-	{
-		glConfig.stereo3Dmode = GetStereoScopicRenderingMode();
-	}
-}
-
-/*
-========================
-idRenderSystemLocal::GetStereoScopicRenderingMode
-========================
-*/
-stereo3DMode_t idRenderSystemLocal::GetStereoScopicRenderingMode() const
-{
-	// RB: only support in VR builds
-#if VR_OPTIONS
-	return ( !IsStereoScopicRenderingSupported() ) ? STEREO3D_OFF : ( stereo3DMode_t )stereoRender_enable.GetInteger();
-#else
-	return STEREO3D_OFF;
-#endif
-}
-
-/*
-========================
-idRenderSystemLocal::IsStereoScopicRenderingSupported
-========================
-*/
-void idRenderSystemLocal::EnableStereoScopicRendering( const stereo3DMode_t mode ) const
-{
-	stereoRender_enable.SetInteger( mode );
-}
-
-/*
-========================
 idRenderSystemLocal::GetPixelAspect
 ========================
 */
 float idRenderSystemLocal::GetPixelAspect() const
 {
+	/*
 	switch( glConfig.stereo3Dmode )
 	{
 		case STEREO3D_SIDE_BY_SIDE_COMPRESSED:
@@ -2736,6 +2661,9 @@ float idRenderSystemLocal::GetPixelAspect() const
 		default:
 			return glConfig.pixelAspect;
 	}
+	*/
+
+	return glConfig.pixelAspect;
 }
 
 /*

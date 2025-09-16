@@ -177,7 +177,6 @@ idRenderModel* R_EntityDefDynamicModel( idRenderEntityLocal* def )
 	// if we don't have a snapshot of the dynamic model, generate it now
 	if( def->dynamicModel == NULL )
 	{
-
 		SCOPED_PROFILE_EVENT( "InstantiateDynamicModel" );
 
 		// instantiate the snapshot of the dynamic model, possibly reusing memory from the cached snapshot
@@ -315,9 +314,6 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 {
 	// we will add all interaction surfs here, to be chained to the lights in later serial code
 	vEntity->drawSurfs = NULL;
-
-	// RB
-	vEntity->useLightGrid = false;
 
 	// globals we really should pass in...
 	const viewDef_t* viewDef = tr.viewDef;
@@ -494,32 +490,6 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 			}
 		}
 	}
-
-	// RB: use first valid lightgrid
-	for( areaReference_t* ref = entityDef->entityRefs; ref != NULL; ref = ref->ownerNext )
-	{
-		idImage* lightGridImage = ref->area->lightGrid.GetIrradianceImage();
-
-		if( ref->area->lightGrid.lightGridPoints.Num() && lightGridImage && !lightGridImage->IsDefaulted() )
-		{
-			vEntity->useLightGrid = true;
-			vEntity->lightGridAtlasImage = lightGridImage;
-			vEntity->lightGridAtlasSingleProbeSize = ref->area->lightGrid.imageSingleProbeSize;
-			vEntity->lightGridAtlasBorderSize = ref->area->lightGrid.imageBorderSize;
-
-			for( int i = 0; i < 3; i++ )
-			{
-				vEntity->lightGridOrigin[i] = ref->area->lightGrid.lightGridOrigin[i];
-				vEntity->lightGridSize[i] = ref->area->lightGrid.lightGridSize[i];
-				vEntity->lightGridBounds[i] = ref->area->lightGrid.lightGridBounds[i];
-			}
-
-			break;
-		}
-	}
-
-
-	// RB end
 
 	//---------------------------
 	// copy matrix related stuff for back-end use
@@ -709,26 +679,23 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 				tr.pc.c_mocIndexes += 36;
 				tr.pc.c_mocVerts += 8;
 
-				const float size = 16.0f;
-				idBounds debugBounds( idVec3( -size ), idVec3( size ) );
-				//debugBounds = vEntity->entityDef->localReferenceBounds;
-#if 0
+				idBounds surfaceBounds;
+#if 1
 				if( gpuSkinned )
 				{
-					//debugBounds = vEntity->entityDef->localReferenceBounds;
-					debugBounds = model->Bounds();
+					surfaceBounds = vEntity->entityDef->localReferenceBounds;
 				}
 				else
 #endif
 				{
-					debugBounds = tri->bounds;
+					surfaceBounds = tri->bounds;
 				}
 
 				idRenderMatrix modelRenderMatrix;
 				idRenderMatrix::CreateFromOriginAxis( renderEntity->origin, renderEntity->axis, modelRenderMatrix );
 
 				idRenderMatrix inverseBaseModelProject;
-				idRenderMatrix::OffsetScaleForBounds( modelRenderMatrix, debugBounds, inverseBaseModelProject );
+				idRenderMatrix::OffsetScaleForBounds( modelRenderMatrix, surfaceBounds, inverseBaseModelProject );
 
 				idRenderMatrix invProjectMVPMatrix;
 				idRenderMatrix::Multiply( viewDef->worldSpace.unjitteredMVP, inverseBaseModelProject, invProjectMVPMatrix );
@@ -759,8 +726,6 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 			}
 		}
 #endif // #if defined(USE_INTRINSICS_SSE)
-
-
 
 		//--------------------------
 		// base drawing surface
@@ -844,6 +809,99 @@ void R_AddSingleModel( viewEntity_t* vEntity )
 				baseDrawSurf->linkChain = NULL;		// link to the view
 				baseDrawSurf->nextOnLight = vEntity->drawSurfs;
 				vEntity->drawSurfs = baseDrawSurf;
+			}
+
+			// RB: use area the surface is in because a model can span multiple areas #965
+			baseDrawSurf->area = NULL;
+
+			if( shader->ReceivesLighting() )
+			{
+				idVec3 surfaceCenter;
+				idVec3 triCenter = tri->bounds.GetCenter();
+
+				idRenderMatrix modelRenderMatrix;
+				idRenderMatrix::CreateFromOriginAxis( renderEntity->origin, renderEntity->axis, modelRenderMatrix );
+				modelRenderMatrix.TransformPoint( triCenter, surfaceCenter );
+
+				int surfaceArea = tr.primaryWorld->PointInArea( surfaceCenter );
+
+				for( areaReference_t* ref = entityDef->entityRefs; ref != NULL; ref = ref->ownerNext )
+				{
+					idImage* lightGridImage = ref->area->lightGrid.GetIrradianceImage();
+
+					if( surfaceArea == ref->area->areaNum && ref->area->lightGrid.lightGridPoints.Num() && lightGridImage != NULL && !lightGridImage->IsDefaulted() )
+					{
+						baseDrawSurf->area = ref->area;
+						break;
+					}
+				}
+
+				// RB: use first valid lightgrid
+				// this would be wrong but less wrong than a flickering env_probe fallback
+				if( baseDrawSurf->area == NULL )
+				{
+					for( areaReference_t* ref = entityDef->entityRefs; ref != NULL; ref = ref->ownerNext )
+					{
+						idImage* lightGridImage = ref->area->lightGrid.GetIrradianceImage();
+
+						if( ref->area->lightGrid.lightGridPoints.Num() && lightGridImage != NULL && !lightGridImage->IsDefaulted() )
+						{
+							baseDrawSurf->area = ref->area;
+							break;
+						}
+					}
+				}
+
+#if 0
+				// show which area the surface is coming from
+				//if( baseDrawSurf->area == NULL )
+				{
+					idBounds surfaceBounds;
+					if( gpuSkinned )
+					{
+						surfaceBounds = vEntity->entityDef->localReferenceBounds;
+					}
+					else
+					{
+						surfaceBounds = tri->bounds;
+					}
+
+					idRenderMatrix modelRenderMatrix;
+					idRenderMatrix::CreateFromOriginAxis( renderEntity->origin, renderEntity->axis, modelRenderMatrix );
+
+					idRenderMatrix inverseBaseModelProject;
+					idRenderMatrix::OffsetScaleForBounds( modelRenderMatrix, surfaceBounds, inverseBaseModelProject );
+
+					// NOTE: unit cube instead of zeroToOne cube
+					idVec4* verts = tr.maskedUnitCubeVerts;
+					idVec4 triVerts[8];
+
+					for( int i = 0; i < 8; i++ )
+					{
+						// transform to clip space
+						inverseBaseModelProject.TransformPoint( verts[i], triVerts[i] );
+					}
+
+					static idVec4 colors[] = { colorBrown, colorBlue, colorCyan, colorGreen, colorYellow, colorRed, colorWhite };
+					idVec4 color = colors[surfaceArea & 7];
+
+					if( baseDrawSurf->area == NULL )
+					{
+						color = colorPurple;
+					}
+
+					// same as idRenderWorldLocal::DebugBox
+					const int lifetime = 0;
+					for( int i = 0; i < 4; i++ )
+					{
+						tr.viewDef->renderWorld->DebugLine( color, triVerts[i].ToVec3(), triVerts[( i + 1 ) & 3].ToVec3(), lifetime );
+						tr.viewDef->renderWorld->DebugLine( color, triVerts[4 + i].ToVec3(), triVerts[4 + ( ( i + 1 ) & 3 )].ToVec3(), lifetime );
+						tr.viewDef->renderWorld->DebugLine( color, triVerts[i].ToVec3(), triVerts[4 + i].ToVec3(), lifetime );
+					}
+
+					tr.viewDef->renderWorld->DebugAxis( surfaceCenter, renderEntity->axis );
+				}
+#endif
 			}
 		}
 

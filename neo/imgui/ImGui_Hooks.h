@@ -61,6 +61,8 @@ void	Render();
 
 void	Destroy();
 
+bool	RightMouseActive();
+
 } //namespace ImGuiHook
 
 

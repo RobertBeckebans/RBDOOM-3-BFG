@@ -1285,6 +1285,17 @@ void idMaterial::ParseFragmentMap( idLexer& src, newShaderStage_t* newStage )
 			cubeMap = CF_SINGLE;
 			continue;
 		}
+		if( !token.Icmp( "panoramaMap" ) )
+		{
+			cubeMap = CF_PANORAMA;
+			continue;
+		}
+		if( !token.Icmp( "hdriMap" ) )
+		{
+			cubeMap = CF_PANORAMA;
+			td = TD_HDRI;
+			continue;
+		}
 		if( !token.Icmp( "nearest" ) )
 		{
 			tf = TF_NEAREST;
@@ -1807,6 +1818,24 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 			continue;
 		}
 
+		if( !token.Icmp( "panoramaMap" ) )
+		{
+			str = R_ParsePastImageProgram( src );
+			idStr::Copynz( imageName, str, sizeof( imageName ) );
+			cubeMap = CF_PANORAMA;
+			td = TD_HIGHQUALITY_CUBE;
+			continue;
+		}
+
+		if( !token.Icmp( "hdriMap" ) )
+		{
+			str = R_ParsePastImageProgram( src );
+			idStr::Copynz( imageName, str, sizeof( imageName ) );
+			cubeMap = CF_PANORAMA;
+			td = TD_HDRI;
+			continue;
+		}
+
 		if( !token.Icmp( "cubeMapSize" ) )
 		{
 			cubeMapSize = src.ParseInt();
@@ -1917,6 +1946,10 @@ void idMaterial::ParseStage( idLexer& src, const textureRepeat_t trpDefault )
 			else if( !token.Icmp( "reflect" ) )
 			{
 				ts->texgen = TG_REFLECT_CUBE;
+			}
+			else if( !token.Icmp( "reflect2" ) )
+			{
+				ts->texgen = TG_REFLECT_CUBE2;
 			}
 			else if( !token.Icmp( "skybox" ) )
 			{
@@ -2757,6 +2790,11 @@ void idMaterial::ParseMaterial( idLexer& src )
 		else if( !token.Icmp( "mikktspace" ) )
 		{
 			mikktspace = true;
+			continue;
+		}
+		else if( !token.Icmp( "unlit" ) )
+		{
+			SetMaterialFlag( MF_UNLIT );
 			continue;
 		}
 		// lightFallofImage <imageprogram>
@@ -3947,11 +3985,27 @@ CONSOLE_COMMAND_SHIP( makeMaterials, "Make .mtr file from a models or textures f
 {
 	if( args.Argc() < 2 )
 	{
-		common->Warning( "Usage: makeMaterials <folder>\n" );
+		common->Printf( "Usage: makeMaterials <folder>\n" );
 		return;
 	}
 
-	idStr folderName = args.Argv( 1 );
+	bool ueMode = false;
+
+	idStr option;
+	for( int i = 1; i < args.Argc(); i++ )
+	{
+		option = args.Argv( i );
+		option.StripLeading( '-' );
+
+		if( option.IcmpPrefix( "Unreal" ) == 0 )
+		{
+			ueMode = true;
+		}
+	}
+
+	idStr folderName = args.Argv( args.Argc() - 1 );
+	folderName.StripTrailing( '/' );
+
 	idFileList* files = fileSystem->ListFilesTree( folderName, ".png|.tga|.jpg|.exr" );
 
 	idStr mtrBuffer;
@@ -3979,6 +4033,24 @@ CONSOLE_COMMAND_SHIP( makeMaterials, "Make .mtr file from a models or textures f
 			imageName = imageName.StripFileExtension();
 
 			idStr baseName = imageName;
+			idStr resName;
+			if( baseName.IStripTrailingOnce( "_1k" ) )
+			{
+				resName = "_1k";
+			}
+			else if( baseName.IStripTrailingOnce( "_2k" ) )
+			{
+				resName = "_2k";
+			}
+			else if( baseName.IStripTrailingOnce( "_4k" ) )
+			{
+				resName = "_4k";
+			}
+			else if( baseName.IStripTrailingOnce( "_8k" ) )
+			{
+				resName = "_8k";
+			}
+
 			baseName.IStripTrailingOnce( "_diffuse" );
 			baseName.IStripTrailingOnce( "_diff" );
 			baseName.IStripTrailingOnce( "_albedo" );
@@ -3987,8 +4059,31 @@ CONSOLE_COMMAND_SHIP( makeMaterials, "Make .mtr file from a models or textures f
 			baseName.IStripTrailingOnce( "_color" );
 			baseName.IStripTrailingOnce( "_col" );
 
+			if( idStr::FindText( imageName, "FloorTiles2", false ) != -1 )
+			{
+				mtrBuffer += "\n// FoorTiles found \n";
+			}
+
+
+			idStr materialName = baseName;
+
+			if( idStr::FindText( baseName, "_inst_inst_inst_", false ) != -1 ||
+					idStr::FindText( baseName, "_inst_inst_", false ) != -1 ||
+					idStr::FindText( baseName, "_inst_", false ) != -1 )
+			{
+				materialName.CopyRange( baseName.c_str(), 0, baseName.Length() - 2 );
+			}
+
+			if( ueMode )
+			{
+				// strip folder from material name
+				idStr matName;
+				materialName.ExtractFileName( matName );
+				materialName = matName;
+			}
+
 			//mtrBuffer += va( "%s/%s\n", folderName, imageName.c_str() );
-			mtrBuffer += baseName.c_str();
+			mtrBuffer += materialName.c_str();
 			mtrBuffer += "\n{\n";
 
 			// TODO qer_editorImage
@@ -4002,7 +4097,7 @@ CONSOLE_COMMAND_SHIP( makeMaterials, "Make .mtr file from a models or textures f
 			for( auto& name : alphaNames )
 			{
 				ID_TIME_T testStamp;
-				idStr testName = baseName + name;
+				idStr testName = baseName + name + resName;
 
 				R_LoadImage( testName, NULL, NULL, NULL, &testStamp, true, NULL );
 
@@ -4069,18 +4164,18 @@ CONSOLE_COMMAND_SHIP( makeMaterials, "Make .mtr file from a models or textures f
 
 			// ===============================
 			// test normal map
-			idStrList normalNames = { "_normal", "_nor", "_nrm", "_nrml", "_norm", "_normal_directx", "_normal_opengl" };
+			idStrList normalNames = { "_normal", "_nor", "_nrm", "_nrml", "_norm", "_nor_dx", "_nor_gl", "_normal_directx", "_normal_opengl" };
 
 			for( auto& name : normalNames )
 			{
 				ID_TIME_T testStamp;
-				idStr testName = baseName + name;
+				idStr testName = baseName + name + resName;
 
 				R_LoadImage( testName, NULL, NULL, NULL, &testStamp, true, NULL );
 
 				if( testStamp != FILE_NOT_FOUND_TIMESTAMP )
 				{
-					if( name.Cmp( "_normal_opengl" ) == 0 )
+					if( name.Cmp( "_nor_dx" ) == 0 || name.Cmp( "_normal_directx" ) == 0 || ueMode )
 					{
 						mtrBuffer += va( "\tnormalmap invertGreen( %s )\n", testName.c_str() );
 					}
@@ -4102,7 +4197,7 @@ CONSOLE_COMMAND_SHIP( makeMaterials, "Make .mtr file from a models or textures f
 			for( auto& name : roughNames )
 			{
 				ID_TIME_T testStamp;
-				idStr testName = baseName + name;
+				idStr testName = baseName + name + resName;
 
 				R_LoadImage( testName, &roughPic, &roughWidth, &roughHeight, &testStamp, true, NULL );
 				if( testStamp != FILE_NOT_FOUND_TIMESTAMP )
@@ -4121,7 +4216,7 @@ CONSOLE_COMMAND_SHIP( makeMaterials, "Make .mtr file from a models or textures f
 			for( auto& name : metalNames )
 			{
 				ID_TIME_T testStamp;
-				idStr testName = baseName + name;
+				idStr testName = baseName + name + resName;
 
 				R_LoadImage( testName, &metalPic, &metalWidth, &metalHeight, &testStamp, true, NULL );
 				if( testStamp != FILE_NOT_FOUND_TIMESTAMP )
@@ -4140,7 +4235,7 @@ CONSOLE_COMMAND_SHIP( makeMaterials, "Make .mtr file from a models or textures f
 			for( auto& name : aoNames )
 			{
 				ID_TIME_T testStamp;
-				idStr testName = baseName + name;
+				idStr testName = baseName + name + resName;
 
 				R_LoadImage( testName, &aoPic, &aoWidth, &aoHeight, &testStamp, true, NULL );
 				if( testStamp != FILE_NOT_FOUND_TIMESTAMP )
@@ -4187,7 +4282,54 @@ CONSOLE_COMMAND_SHIP( makeMaterials, "Make .mtr file from a models or textures f
 					idStr mergedName = baseName + "_rmao.png";
 					R_WritePNG( mergedName, static_cast<byte*>( roughPic ), 4, roughWidth, roughHeight, "fs_basepath" );
 
+					mergedName.StripFileExtension();
 					mtrBuffer += va( "\trmaomap %s\n", mergedName.c_str() );
+				}
+			}
+
+			if( ueMode )
+			{
+				// ===============================
+				// test UE4 specular map
+				idStrList specNames = { "_specular" };
+				byte* specPic = NULL;
+				int specWidth = 0;
+				int specHeight = 0;
+
+				for( auto& name : specNames )
+				{
+					ID_TIME_T testStamp;
+					idStr testName = baseName + name + resName;
+
+					R_LoadImage( testName, &specPic, &specWidth, &specHeight, &testStamp, true, NULL );
+					if( testStamp != FILE_NOT_FOUND_TIMESTAMP )
+					{
+						// swap bytes to RMAO order
+						int c = specWidth * specHeight * 4;
+
+						for( int j = 0 ; j < c ; j += 4 )
+						{
+							byte ao = specPic[j + 0];
+							byte roughness = specPic[j + 1];
+							byte metal = specPic[j + 2];
+
+							specPic[j + 0] = roughness;
+							specPic[j + 1] = metal;
+							specPic[j + 2] = ao;
+
+							// put middle 0.5 value into alpha channel for the case we want to add displacement later
+							specPic[j + 3] = 128;
+						}
+
+						idStr mergedName = baseName + "_rmao.png";
+						R_WritePNG( mergedName, static_cast<byte*>( specPic ), 4, specWidth, specHeight, "fs_basepath" );
+
+						mergedName.StripFileExtension();
+						mtrBuffer += va( "\trmaomap %s\n", mergedName.c_str() );
+
+						R_StaticFree( specPic );
+						break;
+					}
 				}
 			}
 

@@ -97,7 +97,7 @@ idAASLocal::DrawEdge
 void idAASLocal::DrawEdge( int edgeNum, bool arrow ) const
 {
 	const aasEdge_t* edge;
-	idVec4* color;
+	idVec4 color;
 
 	if( !file )
 	{
@@ -105,14 +105,14 @@ void idAASLocal::DrawEdge( int edgeNum, bool arrow ) const
 	}
 
 	edge = &file->GetEdge( edgeNum );
-	color = &colorRed;
+	color = colorRed;
 	if( arrow )
 	{
-		gameRenderWorld->DebugArrow( *color, file->GetVertex( edge->vertexNum[0] ), file->GetVertex( edge->vertexNum[1] ), 1 );
+		gameRenderWorld->DebugArrow( color, file->GetVertex( edge->vertexNum[0] ), file->GetVertex( edge->vertexNum[1] ), 1 );
 	}
 	else
 	{
-		gameRenderWorld->DebugLine( *color, file->GetVertex( edge->vertexNum[0] ), file->GetVertex( edge->vertexNum[1] ) );
+		gameRenderWorld->DebugLine( color, file->GetVertex( edge->vertexNum[0] ), file->GetVertex( edge->vertexNum[1] ) );
 	}
 
 	if( gameLocal.GetLocalPlayer() )

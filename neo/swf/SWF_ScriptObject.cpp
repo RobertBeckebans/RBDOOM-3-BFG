@@ -525,6 +525,13 @@ idSWFScriptObject::swfNamedVar_t* idSWFScriptObject::GetVariable( const char* na
 	int hash = idStr::Hash( name ) & ( VARIABLE_HASH_BUCKETS - 1 );
 	for( int i = variablesHash[hash]; i >= 0; i = variables[i].hashNext )
 	{
+		if( i >= variables.Num() )
+		{
+			// RB FIXME: prevent out of bounds access in case of a hash collision #304
+			//idLib::Printf("WARNING: Out of bounds i=%d, variables.Num()=%d, hashNext=%d\n", i, variables.Num(), variables[i].hashNext);
+			i = variables.Num() - 1;
+		}
+
 		if( variables[i].name == name )
 		{
 			return &variables[i];

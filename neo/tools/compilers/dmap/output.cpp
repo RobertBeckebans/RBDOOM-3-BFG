@@ -3,7 +3,7 @@
 
 Doom 3 GPL Source Code
 Copyright (C) 1999-2011 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2013-2022 Robert Beckebans
+Copyright (C) 2013-2025 Robert Beckebans
 
 This file is part of the Doom 3 GPL Source Code (?Doom 3 Source Code?).
 
@@ -358,44 +358,24 @@ static void WriteUTriangles( idFile* procFile, const srfTriangles_t* uTris, cons
 }
 
 // RB begin
-static void WriteObjTriangles( idFile* objFile, const srfTriangles_t* uTris, const idMat4& entityToWorldTransform, const char* materialName )
+static void WriteObjTriangles( idFile* objFile, int area, const srfTriangles_t* uTris, const idMat4& entityToWorldTransform, const char* materialName )
 {
-	int			col;
-	int			i;
+	idVec4 c = PickDebugColor( area );
 
-	// emit this chain
-	//procFile->WriteFloatString( "/* numVerts = */ %i /* numIndexes = */ %i\n",
-	//							uTris->numVerts, uTris->numIndexes );
+	objFile->Printf( "usemtl %s\n", materialName );
 
 	// verts
-	col = 0;
-	for( i = 0 ; i < uTris->numVerts ; i++ )
+	for( int i = 0 ; i < uTris->numVerts ; i++ )
 	{
-		float	vec[8];
-		const idDrawVert* dv;
-
-		dv = &uTris->verts[i];
-
-		//vec[0] = dv->xyz[0] - offsetOrigin.x;
-		//vec[1] = dv->xyz[1] - offsetOrigin.y;
-		//vec[2] = dv->xyz[2] - offsetOrigin.z;
+		const idDrawVert* dv = &uTris->verts[i];
 
 		idVec3 pos = ( entityToWorldTransform * idVec4( dv->xyz[0], dv->xyz[1], dv->xyz[2], 1 ) ).ToVec3();
-		vec[0] = pos.x;
-		vec[1] = pos.y;
-		vec[2] = pos.z;
-
 		idVec2 st = dv->GetTexCoord();
-		vec[3] = st.x;
-		vec[4] = st.y;
+		idVec3 n = dv->GetNormal();
 
-		idVec3 normal = dv->GetNormal();
-		vec[5] = normal.x;
-		vec[6] = normal.y;
-		vec[7] = normal.z;
-
-		//Write1DMatrix( procFile, 8, vec );
-		objFile->Printf( "v %1.6f %1.6f %1.6f\n", vec[0], vec[1], vec[2] );
+		objFile->Printf( "v %1.6f %1.6f %1.6f %1.6f %1.6f %1.6f\n", pos.x, pos.y, pos.z, c.x, c.y, c.z );
+		objFile->Printf( "vt %1.6f %1.6f\n", st.x, 1.0f - st.y );
+		objFile->Printf( "vn %1.6f %1.6f %1.6f\n", n.x, n.y, n.z );
 	}
 
 	// indexes
@@ -636,7 +616,8 @@ static void WriteOutputSurfaces( int entityNum, int areaNum, idFile* procFile, i
 				entityToWorldTransform = transform;
 			}
 
-			WriteObjTriangles( objFile, uTri, entityToWorldTransform, matName.c_str() );
+			int debugArea = ( entityNum == 0 ) ? areaNum : -1;
+			WriteObjTriangles( objFile, debugArea, uTri, entityToWorldTransform, matName.c_str() );
 		}
 		// RB end
 
@@ -898,6 +879,55 @@ static void WriteOutputPortals( uEntity_t* e, idFile* procFile )
 	procFile->WriteFloatString( "}\n\n" );
 }
 
+// RB begin
+static void WriteObjOutputPortals( uEntity_t* e, idFile* objFile )
+{
+	int			i, j;
+	interAreaPortal_t*	iap;
+	idWinding*			w;
+
+	if( !objFile )
+	{
+		return;
+	}
+
+	idVec4 c = colorBlack;
+
+	for( i = 0 ; i < interAreaPortals.Num() ; i++ )
+	{
+		iap = &interAreaPortals[i];
+
+		if( iap->side )
+		{
+			w = iap->side->winding;
+		}
+		else
+		{
+			w = & iap->w;
+		}
+
+		objFile->WriteFloatString( "g interAreaPortal.%i\n", i );
+		for( j = 0 ; j < w->GetNumPoints() ; j++ )
+		{
+			idVec5 v = ( *w )[j];
+
+			objFile->Printf( "v %1.6f %1.6f %1.6f %1.6f %1.6f %1.6f\n",
+							 v.x, v.y, v.z, c.x, c.y, c.z );
+		}
+
+		objFile->Printf( "f " );
+		for( j = 0; j < w->GetNumPoints(); j++ )
+		{
+			objFile->Printf( "%i// ", c_totalObjVerts + 1 + j );
+		}
+
+		c_totalObjVerts += w->GetNumPoints();
+
+		objFile->Printf( "\n\n" );
+	}
+}
+// RB end
+
 
 /*
 ====================
@@ -930,6 +960,7 @@ static void WriteOutputEntity( int entityNum, idFile* procFile, idFile* objFile 
 	{
 		// output the area portals
 		WriteOutputPortals( e, procFile );
+		WriteObjOutputPortals( e, objFile );
 
 		// output the nodes
 		WriteOutputNodes( e->tree->headnode, procFile );
@@ -961,7 +992,7 @@ void WriteOutputFile()
 
 	// RB: write area models as OBJ file
 	idFile* objFile = NULL;
-	if( dmapGlobals.glview )
+	if( dmapGlobals.exportObj )
 	{
 		idStrStatic< MAX_OSPATH > qpath;
 		qpath.Format( "%s.obj", dmapGlobals.mapFileBase );
@@ -977,7 +1008,7 @@ void WriteOutputFile()
 	procFile->WriteFloatString( "%s\n\n", PROC_FILE_ID );
 
 	// write the entity models and information, writing entities first
-	for( i = dmapGlobals.num_entities - 1 ; i >= 0 ; i-- )
+	for( i = dmapGlobals.numEntities - 1 ; i >= 0 ; i-- )
 	{
 		entity = &dmapGlobals.uEntities[i];
 

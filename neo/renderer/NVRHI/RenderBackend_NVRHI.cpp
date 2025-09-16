@@ -138,11 +138,11 @@ static NvrhiContext prevContext;
 
 /*
 ==================
-R_InitOpenGL
+idRenderBackend::Init
 
-This function is responsible for initializing a valid OpenGL subsystem
-for rendering.  This is done by calling the system specific GLimp_Init,
-which gives us a working OGL subsystem, then setting all necessary openGL
+This function is responsible for initializing a valid DX12/Vulkan subsystem
+for rendering.  This is done by calling the system specific GLimp_Init/VKimp_Init,
+which gives us a working subsystem, then setting all necessary renderer
 state, including images, vertex programs, and display lists.
 
 Changes to the vertex cache size or smp state require a vid_restart.
@@ -154,11 +154,11 @@ and model information functions.
 */
 void idRenderBackend::Init()
 {
-	common->Printf( "----- R_InitOpenGL -----\n" );
+	common->Printf( "----- idRenderBackend::Init -----\n" );
 
 	if( tr.IsInitialized() )
 	{
-		common->FatalError( "R_InitOpenGL called while active" );
+		common->FatalError( "idRenderBackend::Init called while active" );
 	}
 
 	// SRS - create deviceManager here to prevent allocation loop via R_SetNewMode( true )
@@ -269,7 +269,7 @@ void idRenderBackend::Shutdown()
 	// SRS - Clean up NVRHI resources before Sys_Quit(), otherwise non-zero exit code (destructors too late)
 
 	// Clear all cached pipeline data
-	tr.backend.ClearCaches();
+	backEnd.ClearCaches();
 	pipelineCache.Shutdown();
 
 	// Delete all renderpass resources
@@ -448,7 +448,7 @@ void idRenderBackend::DrawElementsWithCounters( const drawSurf_t* surf, bool sha
 
 		for( int i = 0; i < layouts->Num(); i++ )
 		{
-			if( !currentBindingSets[i] || *currentBindingSets[i]->getDesc() != pendingBindingSetDescs[bindingLayoutType][i] )
+			if( !currentBindingSets[i] || *currentBindingSets[i]->getDesc() != pendingBindingSetDescs[bindingLayoutType][i] || bindingLayoutType != prevBindingLayoutType )
 			{
 				currentBindingSets[i] = bindingCache.GetOrCreateBindingSet( pendingBindingSetDescs[bindingLayoutType][i], ( *layouts )[i] );
 				changeState = true;
@@ -1565,6 +1565,72 @@ void idRenderBackend::GetCurrentBindingLayout( int type )
 			desc[1].bindings[1].resourceHandle = commonPasses.m_LinearWrapSampler;
 		}
 	}
+	else if( type == BINDING_LAYOUT_SMAA_EDGE_DETECTION )
+	{
+		if( desc[0].bindings.empty() )
+		{
+			desc[0].bindings =
+			{
+				nvrhi::BindingSetItem::ConstantBuffer( 0, paramCb, range ),
+				nvrhi::BindingSetItem::Texture_SRV( 0, ( nvrhi::ITexture* )GetImageAt( 0 )->GetTextureID() )
+			};
+		}
+		else
+		{
+			desc[0].bindings[0].resourceHandle = paramCb;
+			desc[0].bindings[0].range = range;
+			desc[0].bindings[1].resourceHandle = ( nvrhi::ITexture* )GetImageAt( 0 )->GetTextureID();
+		}
+
+		if( desc[1].bindings.empty() )
+		{
+			desc[1].bindings =
+			{
+				nvrhi::BindingSetItem::Sampler( 0, commonPasses.m_LinearClampSampler ),
+				nvrhi::BindingSetItem::Sampler( 1, commonPasses.m_PointClampSampler )
+			};
+		}
+		else
+		{
+			desc[1].bindings[0].resourceHandle = commonPasses.m_LinearClampSampler;
+			desc[1].bindings[1].resourceHandle = commonPasses.m_PointClampSampler;
+		}
+	}
+	else if( type == BINDING_LAYOUT_SMAA_WEIGHT_CALC )
+	{
+		if( desc[0].bindings.empty() )
+		{
+			desc[0].bindings =
+			{
+				nvrhi::BindingSetItem::ConstantBuffer( 0, paramCb, range ),
+				nvrhi::BindingSetItem::Texture_SRV( 0, ( nvrhi::ITexture* )GetImageAt( 0 )->GetTextureID() ),
+				nvrhi::BindingSetItem::Texture_SRV( 1, ( nvrhi::ITexture* )GetImageAt( 1 )->GetTextureID() ),
+				nvrhi::BindingSetItem::Texture_SRV( 2, ( nvrhi::ITexture* )GetImageAt( 2 )->GetTextureID() )
+			};
+		}
+		else
+		{
+			desc[0].bindings[0].resourceHandle = paramCb;
+			desc[0].bindings[0].range = range;
+			desc[0].bindings[1].resourceHandle = ( nvrhi::ITexture* )GetImageAt( 0 )->GetTextureID();
+			desc[0].bindings[2].resourceHandle = ( nvrhi::ITexture* )GetImageAt( 1 )->GetTextureID();
+			desc[0].bindings[3].resourceHandle = ( nvrhi::ITexture* )GetImageAt( 2 )->GetTextureID();
+		}
+
+		if( desc[1].bindings.empty() )
+		{
+			desc[1].bindings =
+			{
+				nvrhi::BindingSetItem::Sampler( 0, commonPasses.m_LinearClampSampler ),
+				nvrhi::BindingSetItem::Sampler( 1, commonPasses.m_PointClampSampler )
+			};
+		}
+		else
+		{
+			desc[1].bindings[0].resourceHandle = commonPasses.m_LinearClampSampler;
+			desc[1].bindings[1].resourceHandle = commonPasses.m_PointClampSampler;
+		}
+	}
 	else if( type == BINDING_LAYOUT_POST_PROCESS_CRT )
 	{
 		if( desc[0].bindings.empty() )
@@ -1721,6 +1787,102 @@ void idRenderBackend::GetCurrentBindingLayout( int type )
 			}
 		}
 	}
+	else if( type == BINDING_LAYOUT_OCTAHEDRON_CUBE || type == BINDING_LAYOUT_OCTAHEDRON_CUBE_SKINNED )
+	{
+		if( type == BINDING_LAYOUT_OCTAHEDRON_CUBE_SKINNED )
+		{
+			if( desc[0].bindings.empty() )
+			{
+				desc[0].bindings =
+				{
+					nvrhi::BindingSetItem::ConstantBuffer( 0,  paramCb, range ),
+					nvrhi::BindingSetItem::StructuredBuffer_SRV( 11, currentJointBuffer, nvrhi::Format::UNKNOWN, nvrhi::BufferRange( currentJointOffset, sizeof( idVec4 ) * numBoneMatrices ) )
+				};
+			}
+			else
+			{
+				auto& bindings = desc[0].bindings;
+				bindings[0].resourceHandle = paramCb;
+				bindings[0].range = range;
+
+				bindings[1].resourceHandle = currentJointBuffer;
+				bindings[1].range = nvrhi::BufferRange{ currentJointOffset, sizeof( idVec4 )* numBoneMatrices };
+			}
+		}
+		else
+		{
+			if( desc[0].bindings.empty() )
+			{
+				desc[0].bindings =
+				{
+					nvrhi::BindingSetItem::ConstantBuffer( 0, paramCb, range ),
+				};
+			}
+			else
+			{
+				desc[0].bindings[0].resourceHandle = paramCb;
+				desc[0].bindings[0].range = range;
+			}
+		}
+
+		if( desc[1].bindings.empty() )
+		{
+			desc[1].bindings =
+			{
+				nvrhi::BindingSetItem::Texture_SRV( 0, ( nvrhi::ITexture* )GetImageAt( 0 )->GetTextureID() ),
+				nvrhi::BindingSetItem::Texture_SRV( 1, ( nvrhi::ITexture* )GetImageAt( 1 )->GetTextureID() ),
+				nvrhi::BindingSetItem::Texture_SRV( 2, ( nvrhi::ITexture* )GetImageAt( 2 )->GetTextureID() ),
+				nvrhi::BindingSetItem::Texture_SRV( 3, ( nvrhi::ITexture* )GetImageAt( 3 )->GetTextureID() ),
+				nvrhi::BindingSetItem::Texture_SRV( 4, ( nvrhi::ITexture* )GetImageAt( 4 )->GetTextureID() ),
+				nvrhi::BindingSetItem::Texture_SRV( 5, ( nvrhi::ITexture* )GetImageAt( 5 )->GetTextureID() ),
+				nvrhi::BindingSetItem::Texture_SRV( 6, ( nvrhi::ITexture* )GetImageAt( 6 )->GetTextureID() )
+			};
+		}
+		else
+		{
+			auto& bindings = desc[1].bindings;
+			bindings[0].resourceHandle = ( nvrhi::ITexture* )GetImageAt( 0 )->GetTextureID();
+			bindings[1].resourceHandle = ( nvrhi::ITexture* )GetImageAt( 1 )->GetTextureID();
+			bindings[2].resourceHandle = ( nvrhi::ITexture* )GetImageAt( 2 )->GetTextureID();
+			bindings[3].resourceHandle = ( nvrhi::ITexture* )GetImageAt( 3 )->GetTextureID();
+			bindings[4].resourceHandle = ( nvrhi::ITexture* )GetImageAt( 4 )->GetTextureID();
+			bindings[5].resourceHandle = ( nvrhi::ITexture* )GetImageAt( 5 )->GetTextureID();
+			bindings[6].resourceHandle = ( nvrhi::ITexture* )GetImageAt( 6 )->GetTextureID();
+		}
+
+		if( R_UsePixelatedLook() )
+		{
+			if( desc[2].bindings.empty() )
+			{
+				desc[2].bindings =
+				{
+					nvrhi::BindingSetItem::Sampler( 0, commonPasses.m_PointWrapSampler ),
+					nvrhi::BindingSetItem::Sampler( 1, commonPasses.m_LinearBorderSampler )
+				};
+			}
+			else
+			{
+				desc[2].bindings[0].resourceHandle = commonPasses.m_PointWrapSampler;
+				desc[2].bindings[1].resourceHandle = commonPasses.m_LinearBorderSampler;
+			}
+		}
+		else
+		{
+			if( desc[2].bindings.empty() )
+			{
+				desc[2].bindings =
+				{
+					nvrhi::BindingSetItem::Sampler( 0, commonPasses.m_AnisotropicWrapSampler ),
+					nvrhi::BindingSetItem::Sampler( 1, commonPasses.m_LinearBorderSampler )
+				};
+			}
+			else
+			{
+				desc[2].bindings[0].resourceHandle = commonPasses.m_AnisotropicWrapSampler;
+				desc[2].bindings[1].resourceHandle = commonPasses.m_LinearBorderSampler;
+			}
+		}
+	}
 	else if( type == BINDING_LAYOUT_BINK_VIDEO )
 	{
 		if( desc[0].bindings.empty() )
@@ -1838,6 +2000,58 @@ void idRenderBackend::GL_StartFrame()
 
 	renderLog.StartFrame( commandList );
 	renderLog.OpenMainBlock( MRB_GPU_TIME );
+
+	// -------------------------
+	// make sure textures and render passes are initialized
+
+	void* textureId = globalImages->hierarchicalZbufferImage->GetTextureID();
+
+	// RB: we need to load all images left before rendering
+	// this can be expensive here because of the runtime image compression
+	//globalImages->LoadDeferredImages( commandList );
+
+	extern idCVar r_useNewSsaoPass;
+
+	if( !ssaoPass && r_useNewSsaoPass.GetBool() )
+	{
+		ssaoPass = new SsaoPass(
+			deviceManager->GetDevice(),
+			&commonPasses, globalImages->currentDepthImage->GetTextureHandle(),
+			globalImages->gbufferNormalsRoughnessImage->GetTextureHandle(),
+			globalImages->ambientOcclusionImage[0]->GetTextureHandle() );
+	}
+
+	if( ( globalImages->hierarchicalZbufferImage->GetTextureID() != textureId || !hiZGenPass ) && R_UseHiZ() )
+	{
+		if( hiZGenPass )
+		{
+			delete hiZGenPass;
+		}
+
+		hiZGenPass = new MipMapGenPass( deviceManager->GetDevice(), globalImages->hierarchicalZbufferImage->GetTextureHandle() );
+	}
+
+	if( !toneMapPass )
+	{
+		TonemapPass::CreateParameters createParms;
+		toneMapPass = new TonemapPass();
+		toneMapPass->Init( deviceManager->GetDevice(), &commonPasses, createParms, globalFramebuffers.ldrFBO->GetApiObject() );
+	}
+
+	if( !taaPass )
+	{
+		TemporalAntiAliasingPass::CreateParameters taaParams;
+		taaParams.sourceDepth = globalImages->currentDepthImage->GetTextureHandle();
+		taaParams.motionVectors = globalImages->taaMotionVectorsImage->GetTextureHandle();
+		taaParams.unresolvedColor = globalImages->currentRenderHDRImage->GetTextureHandle();
+		taaParams.resolvedColor = globalImages->taaResolvedImage->GetTextureHandle();
+		taaParams.feedback1 = globalImages->taaFeedback1Image->GetTextureHandle();
+		taaParams.feedback2 = globalImages->taaFeedback2Image->GetTextureHandle();
+		taaParams.motionVectorStencilMask = 0; //0x01;
+		taaParams.useCatmullRomFilter = true;
+		taaPass = new TemporalAntiAliasingPass();
+		taaPass->Init( deviceManager->GetDevice(), &commonPasses, NULL, taaParams );
+	}
 }
 
 /*
@@ -1884,10 +2098,6 @@ void idRenderBackend::GL_BlockingSwapBuffers()
 
 	OPTICK_CATEGORY( "BlockingSwapBuffers", Optick::Category::Wait );
 	//OPTICK_TAG( "Waiting for swapIndex", swapIndex );
-
-	// SRS - device-level sync kills perf by serializing command queue processing (CPU) and rendering (GPU)
-	//	   - instead, use alternative sync method (based on command queue event queries) inside Present()
-	//deviceManager->GetDevice()->waitForIdle();
 
 	// Make sure that all frames have finished rendering
 	deviceManager->Present();
@@ -2038,18 +2248,21 @@ void idRenderBackend::GL_Color( float r, float g, float b, float a )
 idRenderBackend::GL_Clear
 ========================
 */
-void idRenderBackend::GL_Clear( bool color, bool depth, bool stencil, byte stencilValue, float r, float g, float b, float a, bool clearHDR )
+void idRenderBackend::GL_Clear( bool color, bool depth, bool stencil, byte stencilValue, float r, float g, float b, float a, bool clearHDR, bool clearVR, const int stereoEye )
 {
 	nvrhi::IFramebuffer* framebuffer = Framebuffer::GetActiveFramebuffer()->GetApiObject();
 
+	nvrhi::Color colorValue( r, g, b, a );
+
 	if( color )
 	{
-		nvrhi::utils::ClearColorAttachment( commandList, framebuffer, 0, nvrhi::Color( 0.f ) );
+		nvrhi::utils::ClearColorAttachment( commandList, framebuffer, 0, colorValue );
 	}
 
 	if( clearHDR )
 	{
-		nvrhi::utils::ClearColorAttachment( commandList, globalFramebuffers.hdrFBO->GetApiObject(), 0, nvrhi::Color( 0.f ) );
+		nvrhi::utils::ClearColorAttachment( commandList, globalFramebuffers.hdrFBO->GetApiObject(), 0, colorValue );
+		nvrhi::utils::ClearColorAttachment( commandList, globalFramebuffers.ldrFBO->GetApiObject(), 0, colorValue );
 	}
 
 	if( depth || stencil )
@@ -2221,7 +2434,7 @@ void idRenderBackend::SetBuffer( const void* data )
 
 	currentScissor.Clear();
 	currentScissor.AddPoint( 0, 0 );
-	currentScissor.AddPoint( tr.GetWidth(), tr.GetHeight() );
+	currentScissor.AddPoint( renderSystem->GetWidth(), renderSystem->GetHeight() );
 
 	// clear screen for debugging
 	// automatically enable this with several other debug tools
@@ -2233,19 +2446,19 @@ void idRenderBackend::SetBuffer( const void* data )
 		float c[3];
 		if( sscanf( r_clear.GetString(), "%f %f %f", &c[0], &c[1], &c[2] ) == 3 )
 		{
-			GL_Clear( true, false, false, 0, c[0], c[1], c[2], 1.0f, true );
+			GL_Clear( true, false, false, 0, c[0], c[1], c[2], 1.0f, true, true );
 		}
 		else if( r_clear.GetInteger() == 2 )
 		{
-			GL_Clear( true, false, false, 0, 0.0f, 0.0f, 0.0f, 1.0f, true );
+			GL_Clear( true, false, false, 0, 0.0f, 0.0f, 0.0f, 1.0f, true, true );
 		}
 		else if( r_showOverDraw.GetBool() )
 		{
-			GL_Clear( true, false, false, 0, 1.0f, 1.0f, 1.0f, 1.0f, true );
+			GL_Clear( true, false, false, 0, 1.0f, 1.0f, 1.0f, 1.0f, true, true );
 		}
 		else
 		{
-			GL_Clear( true, false, false, 0, 0.4f, 0.0f, 0.25f, 1.0f, true );
+			GL_Clear( true, false, false, 0, 0.4f, 0.0f, 0.25f, 1.0f, true, true );
 		}
 	}
 
@@ -2360,3 +2573,4 @@ void idRenderBackend::ResetPipelineCache()
 {
 	pipelineCache.Clear();
 }
+

@@ -3,7 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
-Copyright (C) 2013-2015 Robert Beckebans
+Copyright (C) 2013-2025 Robert Beckebans
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -766,18 +766,16 @@ void R_DeriveEnvprobeData( RenderEnvprobeLocal* probe )
 	fullname.Format( "env/%s/area%i_envprobe_%i_%i_%i_amb", basename.c_str(), areaNum, int( point.x ), int( point.y ), int( point.z ) );
 	fullname.ReplaceChar( '-', '_' );
 
-	probe->irradianceImage = globalImages->ImageFromFile( fullname, TF_LINEAR, TR_CLAMP, TD_R11G11B10F, CF_2D_PACKED_MIPCHAIN );
+	probe->irradianceImage = globalImages->ImageFromFile( fullname, TF_LINEAR, TR_CLAMP, TD_HDR_LIGHTPROBE, CF_2D_PACKED_MIPCHAIN );
 
 	fullname.Format( "env/%s/area%i_envprobe_%i_%i_%i_spec", basename.c_str(), areaNum, int( point.x ), int( point.y ), int( point.z ) );
 	fullname.ReplaceChar( '-', '_' );
 
-	probe->radianceImage = globalImages->ImageFromFile( fullname, TF_DEFAULT, TR_CLAMP, TD_R11G11B10F, CF_2D_PACKED_MIPCHAIN );
+	probe->radianceImage = globalImages->ImageFromFile( fullname, TF_DEFAULT, TR_CLAMP, TD_HDR_LIGHTPROBE, CF_2D_PACKED_MIPCHAIN );
 
 	// ------------------------------------
 	// compute the probe projection matrix
 	// ------------------------------------
-
-
 
 	idMat3 axis;
 	axis.Identity();
@@ -851,12 +849,6 @@ void R_CreateEnvprobeRefs( RenderEnvprobeLocal* probe )
 
 void R_FreeEnvprobeDefDerivedData( RenderEnvprobeLocal* probe )
 {
-	// TODO free all the interactions
-	//while( ldef->firstInteraction != NULL )
-	//{
-	//	ldef->firstInteraction->UnlinkAndFree();
-	//}
-
 	// free all the references to the envprobe
 	areaReference_t* nextRef = NULL;
 	for( areaReference_t* lref = probe->references; lref != NULL; lref = nextRef )

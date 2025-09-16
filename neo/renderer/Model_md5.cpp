@@ -714,9 +714,9 @@ void idRenderModelMD5::InitFromFile( const char* fileName, const idImportOptions
 idRenderModelMD5::LoadBinaryModel
 ========================
 */
-bool idRenderModelMD5::LoadBinaryModel( idFile* file, const ID_TIME_T sourceTimeStamp )
+bool idRenderModelMD5::LoadBinaryModel( idFile* file, const ID_TIME_T sourceTimeStamp, const ID_TIME_T declSourceTimeStamp )
 {
-	if( !idRenderModelStatic::LoadBinaryModel( file, sourceTimeStamp ) )
+	if( !idRenderModelStatic::LoadBinaryModel( file, sourceTimeStamp, declSourceTimeStamp ) )
 	{
 		return false;
 	}

@@ -159,7 +159,10 @@ void CinematicAudio_XAudio2::InitAudio( void* audioContext )
 	exvoice.SubFormat = use_ext ? KSDATAFORMAT_SUBTYPE_IEEE_FLOAT : KSDATAFORMAT_SUBTYPE_PCM;
 	// Use the XAudio2 that the game has initialized instead of making our own
 	// SRS - Hook up the voice callback interface to get notice when audio buffers can be freed
-	( ( IXAudio2* )soundSystemLocal.GetIXAudio2() )->CreateSourceVoice( &pMusicSourceVoice1, ( WAVEFORMATEX* )&exvoice, XAUDIO2_VOICE_USEFILTER, XAUDIO2_DEFAULT_FREQ_RATIO, &voiceCallback );
+	if( soundSystemLocal.GetIXAudio2() )
+	{
+		( ( IXAudio2* )soundSystemLocal.GetIXAudio2() )->CreateSourceVoice( &pMusicSourceVoice1, ( WAVEFORMATEX* )&exvoice, XAUDIO2_VOICE_USEFILTER, XAUDIO2_DEFAULT_FREQ_RATIO, &voiceCallback );
+	}
 }
 
 void CinematicAudio_XAudio2::PlayAudio( uint8_t* data, int size )

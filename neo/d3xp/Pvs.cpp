@@ -1448,7 +1448,7 @@ void idPVS::DrawPVS( const idVec3& source, const pvsType_t type ) const
 	exitPortal_t portal;
 	idPlane plane;
 	idVec3 offset;
-	idVec4* color;
+	const idVec4* color;
 	pvsHandle_t handle;
 
 	sourceArea = gameRenderWorld->PointInArea( source );
@@ -1509,7 +1509,7 @@ void idPVS::DrawPVS( const idBounds& source, const pvsType_t type ) const
 	exitPortal_t portal;
 	idPlane plane;
 	idVec3 offset;
-	idVec4* color;
+	idVec4 color;
 	pvsHandle_t handle;
 
 	num = gameRenderWorld->BoundsInAreas( source, areas, MAX_BOUNDS_AREAS );
@@ -1538,11 +1538,11 @@ void idPVS::DrawPVS( const idBounds& source, const pvsType_t type ) const
 		}
 		if( i < num )
 		{
-			color = &colorRed;
+			color = colorRed;
 		}
 		else
 		{
-			color = &colorCyan;
+			color = colorCyan;
 		}
 
 		n = gameRenderWorld->NumPortalsInArea( j );
@@ -1558,7 +1558,7 @@ void idPVS::DrawPVS( const idBounds& source, const pvsType_t type ) const
 			offset = plane.Normal() * 4.0f;
 			for( k = 0; k < numPoints; k++ )
 			{
-				gameRenderWorld->DebugLine( *color, ( *portal.w )[k].ToVec3() + offset, ( *portal.w )[( k + 1 ) % numPoints].ToVec3() + offset );
+				gameRenderWorld->DebugLine( color, ( *portal.w )[k].ToVec3() + offset, ( *portal.w )[( k + 1 ) % numPoints].ToVec3() + offset );
 			}
 		}
 	}
@@ -1577,7 +1577,7 @@ void idPVS::DrawCurrentPVS( const pvsHandle_t handle, const idVec3& source ) con
 	exitPortal_t portal;
 	idPlane plane;
 	idVec3 offset;
-	idVec4* color;
+	idVec4 color;
 
 	if( handle.i < 0 || handle.i >= MAX_CURRENT_PVS ||
 			handle.h != currentPVS[handle.i].handle.h )
@@ -1603,11 +1603,11 @@ void idPVS::DrawCurrentPVS( const pvsHandle_t handle, const idVec3& source ) con
 
 		if( j == sourceArea )
 		{
-			color = &colorRed;
+			color = colorRed;
 		}
 		else
 		{
-			color = &colorCyan;
+			color = colorCyan;
 		}
 
 		n = gameRenderWorld->NumPortalsInArea( j );
@@ -1623,7 +1623,7 @@ void idPVS::DrawCurrentPVS( const pvsHandle_t handle, const idVec3& source ) con
 			offset = plane.Normal() * 4.0f;
 			for( k = 0; k < numPoints; k++ )
 			{
-				gameRenderWorld->DebugLine( *color, ( *portal.w )[k].ToVec3() + offset, ( *portal.w )[( k + 1 ) % numPoints].ToVec3() + offset );
+				gameRenderWorld->DebugLine( color, ( *portal.w )[k].ToVec3() + offset, ( *portal.w )[( k + 1 ) % numPoints].ToVec3() + offset );
 			}
 		}
 	}

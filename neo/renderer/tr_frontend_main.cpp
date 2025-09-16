@@ -551,6 +551,10 @@ static void R_FindClosestEnvironmentProbes()
 		verts[i] = vProbe->parms.origin;
 	}
 
+	tr.viewDef->probePositions->Set( verts[0].x, verts[0].y, verts[0].z, 1 );
+	tr.viewDef->probePositions->Set( verts[1].x, verts[1].y, verts[1].z, 1 );
+	tr.viewDef->probePositions->Set( verts[2].x, verts[2].y, verts[2].z, 1 );
+
 	idVec3 closest = R_ClosestPointPointTriangle( testOrigin, verts[0], verts[1], verts[2] );
 	idVec3 bary;
 
@@ -558,8 +562,12 @@ static void R_FindClosestEnvironmentProbes()
 	float denom = idWinding::TriangleArea( verts[0], verts[1], verts[2] );
 	if( denom == 0 )
 	{
-		// all points at same location
-		bary.Set( 1, 0, 0 );
+		// triangle is line
+		float t;
+
+		R_ClosestPointOnLineSegment( testOrigin, verts[0], verts[1], t );
+
+		bary.Set( 1.0f - t, t, 0 );
 	}
 	else
 	{
@@ -581,6 +589,205 @@ static void R_FindClosestEnvironmentProbes()
 			tr.viewDef->radianceImages[i] = viewEnvprobes[i]->radianceImage;
 		}
 	}
+
+	if( tr.viewDef->radianceImages[0] == globalImages->defaultUACRadianceCube &&
+			tr.viewDef->radianceImages[1] == globalImages->defaultUACRadianceCube &&
+			tr.viewDef->radianceImages[2] == globalImages->defaultUACRadianceCube )
+	{
+		// this didn't work so this is the way to tell the backend and avoid blood reflections
+		tr.viewDef->globalProbeBounds.Clear();
+	}
+}
+
+// this one tries to interpolate between probes over time
+static void R_FindClosestEnvironmentProbes2()
+{
+	// set safe defaults
+	tr.viewDef->globalProbeBounds.Clear();
+
+	tr.viewDef->irradianceImage = globalImages->defaultUACIrradianceCube;
+	tr.viewDef->radianceImageBlends.Set( 1, 0, 0, 0 );
+	for( int i = 0; i < 3; i++ )
+	{
+		tr.viewDef->radianceImages[i] = globalImages->defaultUACRadianceCube;
+	}
+
+	// early out
+	if( tr.viewDef->areaNum == -1 || tr.viewDef->isSubview )
+	{
+		return;
+	}
+
+	idList<RenderEnvprobeLocal*, TAG_RENDER_ENVPROBE> viewEnvprobes;
+	for( int i = 0; i < tr.primaryWorld->envprobeDefs.Num(); i++ )
+	{
+		RenderEnvprobeLocal* vProbe = tr.primaryWorld->envprobeDefs[i];
+		if( vProbe )
+		{
+			// check for being closed off behind a door
+			if( r_useLightAreaCulling.GetBool() && vProbe->areaNum != -1 && !tr.viewDef->connectedAreas[ vProbe->areaNum ] )
+			{
+				continue;
+			}
+
+			viewEnvprobes.AddUnique( vProbe );
+		}
+	}
+
+	if( viewEnvprobes.Num() == 0 )
+	{
+		return;
+	}
+
+	idVec3 testOrigin = tr.viewDef->renderView.vieworg;
+
+	// sort by distance
+	// RB: each Doom 3 level has ~50 - 150 probes so this should be ok for each frame
+	viewEnvprobes.SortWithTemplate( idSort_CompareEnvprobe( testOrigin ) );
+
+	RenderEnvprobeLocal* nearest = viewEnvprobes[0];
+	tr.viewDef->globalProbeBounds = nearest->globalProbeBounds;
+
+	if( nearest->irradianceImage->IsLoaded() && !nearest->irradianceImage->IsDefaulted() )
+	{
+		tr.viewDef->irradianceImage = nearest->irradianceImage;
+	}
+
+	static float oldBarycentricWeights[3] = {0};
+	static int oldIndexes[3] = {0};
+	static int timeInterpolateStart = 0;
+
+	// form a triangle of the 3 closest probes
+	int triIndexes[3];
+	idVec3 verts[3];
+	for( int i = 0; i < 3; i++ )
+	{
+		verts[i] = viewEnvprobes[0]->parms.origin;
+		triIndexes[i] =  viewEnvprobes[0]->index;
+	}
+
+	bool triChanged = false;
+	for( int i = 0; i < viewEnvprobes.Num() && i < 3; i++ )
+	{
+		RenderEnvprobeLocal* vProbe = viewEnvprobes[i];
+
+		verts[i] = vProbe->parms.origin;
+		triIndexes[i] = vProbe->index;
+	}
+
+	tr.viewDef->probePositions->Set( verts[0].x, verts[0].y, verts[0].z, 1 );
+	tr.viewDef->probePositions->Set( verts[1].x, verts[1].y, verts[1].z, 1 );
+	tr.viewDef->probePositions->Set( verts[2].x, verts[2].y, verts[2].z, 1 );
+
+	// don't assume tri changed if we just moved inside a triangle and only the indixes switched
+	// because one vertex is closer than before
+
+	static int numInterpolantsDuringChange = 0;
+	int numInterpolants = 0;
+	int interpolants[3];
+	int mapIndexes[3] = {0, 1, 2};
+
+	for( int i = 0; i < 3; i++ )
+	{
+		for( int j = 0; j < 3; j++ )
+		{
+			if( oldIndexes[i] == triIndexes[j] && numInterpolants < 3 )
+			{
+				interpolants[numInterpolants] = i;
+				mapIndexes[numInterpolants] = j;
+				numInterpolants++;
+			}
+		}
+	}
+
+	if( numInterpolants != 3 )
+	{
+		triChanged = true;
+		timeInterpolateStart = Sys_Milliseconds();
+		numInterpolantsDuringChange = numInterpolants;
+
+		//idLib::Printf( "env_probe triangle changed!\n" );
+	}
+
+	const int c_interpolationTimeframe = 2000.0f;
+
+	idVec3 closest = R_ClosestPointPointTriangle( testOrigin, verts[0], verts[1], verts[2] );
+	idVec3 barycentricWeights;
+
+	int time = Sys_Milliseconds();
+
+	// find the barycentric coordinates
+	float denom = idWinding::TriangleArea( verts[0], verts[1], verts[2] );
+	if( denom == 0 )
+	{
+		// triangle is a line
+		// this can be the case in long corridors
+		float t;
+
+		R_ClosestPointOnLineSegment( testOrigin, verts[0], verts[1], t );
+
+		barycentricWeights.Set( 1.0f - t, t, 0 );
+
+		oldBarycentricWeights[0] = barycentricWeights[0];
+		oldBarycentricWeights[1] = barycentricWeights[1];
+		oldBarycentricWeights[2] = barycentricWeights[2];
+	}
+	else
+	{
+		float	a, b, c;
+
+		a = idWinding::TriangleArea( closest, verts[1], verts[2] ) / denom;
+		b = idWinding::TriangleArea( closest, verts[2], verts[0] ) / denom;
+		c = idWinding::TriangleArea( closest, verts[0], verts[1] ) / denom;
+
+		barycentricWeights.Set( a, b, c );
+
+		// are there at least 2 old matching indices then interpolate from the old barycentrics over time
+		if( numInterpolantsDuringChange == 2 && ( time < ( timeInterpolateStart + c_interpolationTimeframe ) ) )
+		{
+			float t = -float( timeInterpolateStart - time ) / c_interpolationTimeframe;
+
+			t = idMath::ClampFloat( 0.0f, 1.0f, t );
+
+			barycentricWeights[mapIndexes[0]] = Lerp( oldBarycentricWeights[interpolants[0]], barycentricWeights[mapIndexes[0]], t );
+			barycentricWeights[mapIndexes[1]] = Lerp( oldBarycentricWeights[interpolants[1]], barycentricWeights[mapIndexes[1]], t );
+			barycentricWeights.z = 1.0f - idMath::Sqrt( idMath::Fabs( barycentricWeights.x * barycentricWeights.x + barycentricWeights.y * barycentricWeights.y ) );
+
+#if 0
+			idLib::Printf( "start %i time %i lerp %.2f old[ %.2f %.2f %.2f] new [ %.2f %.2f %.2f]\n", timeInterpolateStart, time, t,
+						   oldBarycentricWeights[0], oldBarycentricWeights[1], oldBarycentricWeights[2],
+						   barycentricWeights.x, barycentricWeights.y, barycentricWeights.z );
+#endif
+		}
+		else
+		{
+			oldBarycentricWeights[0] = barycentricWeights[0];
+			oldBarycentricWeights[1] = barycentricWeights[1];
+			oldBarycentricWeights[2] = barycentricWeights[2];
+		}
+	}
+
+	oldIndexes[0] = triIndexes[0];
+	oldIndexes[1] = triIndexes[1];
+	oldIndexes[2] = triIndexes[2];
+
+	tr.viewDef->radianceImageBlends.Set( barycentricWeights.x, barycentricWeights.y, barycentricWeights.z, 0.0f );
+
+	for( int i = 0; i < viewEnvprobes.Num() && i < 3; i++ )
+	{
+		if( !viewEnvprobes[i]->radianceImage->IsDefaulted() )
+		{
+			tr.viewDef->radianceImages[i] = viewEnvprobes[i]->radianceImage;
+		}
+	}
+
+	if( tr.viewDef->radianceImages[0] == globalImages->defaultUACRadianceCube &&
+			tr.viewDef->radianceImages[1] == globalImages->defaultUACRadianceCube &&
+			tr.viewDef->radianceImages[2] == globalImages->defaultUACRadianceCube )
+	{
+		// this didn't work so this is the way to tell the backend and avoid blood reflections
+		tr.viewDef->globalProbeBounds.Clear();
+	}
 }
 // RB end
 
@@ -601,6 +808,9 @@ void R_RenderView( viewDef_t* parms )
 
 	tr.viewDef = parms;
 
+	// use this same frame index for the projection matrix jittering here and in the backend!
+	tr.viewDef->taaFrameCount = tr.frameCount;
+
 	// setup the matrix for world space to eye space
 	R_SetupViewMatrix( tr.viewDef );
 
@@ -612,7 +822,6 @@ void R_RenderView( viewDef_t* parms )
 	// RB: we need a unprojection matrix to calculate the vertex position based on the depth image value
 	// for some post process shaders
 	R_SetupUnprojection( tr.viewDef );
-	// RB end
 
 	// setup render matrices for faster culling
 	idRenderMatrix::Transpose( *( idRenderMatrix* )tr.viewDef->projectionMatrix, tr.viewDef->projectionRenderMatrix );
@@ -634,9 +843,8 @@ void R_RenderView( viewDef_t* parms )
 	// remove the Z-near to avoid portals from being near clipped
 	tr.viewDef->frustums[FRUSTUM_PRIMARY][4][3] -= r_znear.GetFloat();
 
-	// RB begin
+	// RB: prepare subfrustums for cascaded shadow mapping of sun lights
 	R_SetupSplitFrustums( tr.viewDef );
-	// RB end
 
 	// identify all the visible portal areas, and create view lights and view entities
 	// for all the the entityDefs and lightDefs that are in the visible portal areas

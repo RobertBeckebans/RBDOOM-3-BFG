@@ -103,10 +103,8 @@ bool	g_MousePressed[5] = { false, false, false, false, false };
 float	g_MouseWheel = 0.0f;
 ImVec2	g_MousePos = ImVec2( -1.0f, -1.0f ); //{-1.0f, -1.0f};
 ImVec2	g_DisplaySize = ImVec2( 0.0f, 0.0f ); //{0.0f, 0.0f};
-
-
-
-bool g_haveNewFrame = false;
+bool	g_haveNewFrame = false;
+bool	g_insideRender = false;
 
 bool HandleKeyEvent( const sysEvent_t& keyEvent )
 {
@@ -116,6 +114,26 @@ bool HandleKeyEvent( const sysEvent_t& keyEvent )
 	bool pressed = keyEvent.evValue2 > 0;
 
 	ImGuiIO& io = ImGui::GetIO();
+
+	if( keyNum == K_MOUSE2 )
+	{
+		// RB: allow navigation like in a level editor
+		g_MousePressed[1] = pressed;
+
+		if( ImGuiTools::AreEditorsActive() )
+		{
+			ImGuiTools::SetReleaseToolMouse( !pressed );
+		}
+		//common->Printf( "mouse2 pressed %d\n", int( pressed ) );
+
+		return true;
+	}
+
+	if( g_MousePressed[1] )
+	{
+		// RB: ignore everything as long right mouse button is pressed
+		return false;
+	}
 
 	if( keyNum < K_JOY1 )
 	{
@@ -230,7 +248,7 @@ bool ShowWindows()
 
 bool UseInput()
 {
-	return ImGuiTools::ReleaseMouseForTools() || imgui_showDemoWindow.GetBool();
+	return ( ImGuiTools::ReleaseMouseForTools() || imgui_showDemoWindow.GetBool() );
 }
 
 void StyleGruvboxDark()
@@ -752,7 +770,7 @@ void NotifyDisplaySizeChanged( int width, int height )
 // inject a sys event
 bool InjectSysEvent( const sysEvent_t* event )
 {
-	if( IsInitialized() && UseInput() )
+	if( IsInitialized() && ( UseInput() || RightMouseActive() ) )
 	{
 		if( event == NULL )
 		{
@@ -793,6 +811,11 @@ bool InjectSysEvent( const sysEvent_t* event )
 		}
 	}
 	return false;
+}
+
+bool RightMouseActive()
+{
+	return g_MousePressed[1];
 }
 
 bool InjectMouseWheel( int delta )
@@ -872,8 +895,10 @@ bool IsReadyToRender()
 
 void Render()
 {
-	if( IsInitialized() && ShowWindows() )
+	if( !g_insideRender && IsInitialized() && ShowWindows() )
 	{
+		g_insideRender = true;
+
 		if( !g_haveNewFrame )
 		{
 			// for screenshots etc, where we didn't go through idCommonLocal::Frame()
@@ -895,6 +920,7 @@ void Render()
 		ImGui::Render();
 		idRenderBackend::ImGui_RenderDrawLists( ImGui::GetDrawData() );
 		g_haveNewFrame = false;
+		g_insideRender = false;
 	}
 }
 

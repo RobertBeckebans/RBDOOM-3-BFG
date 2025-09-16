@@ -25,6 +25,7 @@
 #pragma hdrstop
 
 #include "TemporalAntiAliasingPass.h"
+#include "TemporalAntiAliasingPass_cb.h"
 #include "CommonPasses.h"
 
 #include "renderer/RenderCommon.h"
@@ -84,29 +85,17 @@ void TemporalAntiAliasingPass::Init(
 		}
 	}
 
-	//std::vector<ShaderMacro> MotionVectorMacros;
-	//MotionVectorMacros.push_back( ShaderMacro( "USE_STENCIL", useStencil ? "1" : "0" ) );
-	//m_MotionVectorPS = shaderFactory->CreateShader( "donut/passes/motion_vectors_ps.hlsl", "main", &MotionVectorMacros, nvrhi::ShaderType::Pixel );
-
-	auto taaMotionVectorsShaderInfo = renderProgManager.GetProgramInfo( BUILTIN_TAA_MOTION_VECTORS );
-	m_MotionVectorPS = taaMotionVectorsShaderInfo.ps;
-
-	//std::vector<ShaderMacro> ResolveMacros;
-	//ResolveMacros.push_back( ShaderMacro( "SAMPLE_COUNT", std::to_string( unresolvedColorDesc.sampleCount ) ) );
-	//ResolveMacros.push_back( ShaderMacro( "USE_CATMULL_ROM_FILTER", params.useCatmullRomFilter ? "1" : "0" ) );
-	//m_TemporalAntiAliasingCS = shaderFactory->CreateShader( "donut/passes/taa_cs.hlsl", "main", &ResolveMacros, nvrhi::ShaderType::Compute );
-
-	switch( r_antiAliasing.GetInteger() )
+	//switch( r_antiAliasing.GetInteger() )
 	{
 #if ID_MSAA
-		case ANTI_ALIASING_MSAA_2X:
+	case ANTI_ALIASING_MSAA_2X:
 		{
 			auto taaResolveShaderInfo = renderProgManager.GetProgramInfo( BUILTIN_TAA_RESOLVE_MSAA_2X );
 			m_TemporalAntiAliasingCS = taaResolveShaderInfo.cs;
 			break;
 		}
 
-		case ANTI_ALIASING_MSAA_4X:
+	case ANTI_ALIASING_MSAA_4X:
 		{
 			auto taaResolveShaderInfo = renderProgManager.GetProgramInfo( BUILTIN_TAA_RESOLVE_MSAA_4X );
 			m_TemporalAntiAliasingCS = taaResolveShaderInfo.cs;
@@ -117,11 +106,11 @@ void TemporalAntiAliasingPass::Init(
 #pragma warning( disable : 4065 )	// C4065: switch statement contains 'default' but no 'case'
 #endif
 
-		default:
+		//default:
 		{
 			auto taaResolveShaderInfo = renderProgManager.GetProgramInfo( BUILTIN_TAA_RESOLVE );
 			m_TemporalAntiAliasingCS = taaResolveShaderInfo.cs;
-			break;
+			//break;
 		}
 	}
 #if !ID_MSAA && defined( _MSC_VER )
@@ -140,36 +129,6 @@ void TemporalAntiAliasingPass::Init(
 	constantBufferDesc.isVolatile = true;
 	constantBufferDesc.maxVersions = params.numConstantBufferVersions;
 	m_TemporalAntiAliasingCB = device->createBuffer( constantBufferDesc );
-
-	if( params.sourceDepth )
-	{
-		nvrhi::BindingLayoutDesc layoutDesc;
-		layoutDesc.visibility = nvrhi::ShaderType::Pixel;
-		layoutDesc.bindings =
-		{
-			nvrhi::BindingLayoutItem::VolatileConstantBuffer( 0 ),
-			nvrhi::BindingLayoutItem::Texture_SRV( 0 )
-		};
-
-		if( useStencil )
-		{
-			layoutDesc.bindings.push_back( nvrhi::BindingLayoutItem::Texture_SRV( 1 ) );
-		}
-
-		m_MotionVectorsBindingLayout = device->createBindingLayout( layoutDesc );
-
-		nvrhi::BindingSetDesc bindingSetDesc;
-		bindingSetDesc.bindings =
-		{
-			nvrhi::BindingSetItem::ConstantBuffer( 0, m_TemporalAntiAliasingCB ),
-			nvrhi::BindingSetItem::Texture_SRV( 0, params.sourceDepth ),
-		};
-		if( useStencil )
-		{
-			bindingSetDesc.bindings.push_back( nvrhi::BindingSetItem::Texture_SRV( 1, params.sourceDepth, stencilFormat ) );
-		}
-		m_MotionVectorsBindingSet = device->createBindingSet( bindingSetDesc, m_MotionVectorsBindingLayout );
-	}
 
 	{
 		nvrhi::BindingSetDesc bindingSetDesc;
@@ -221,23 +180,25 @@ void TemporalAntiAliasingPass::TemporalResolve(
 	taaConstants.inputViewSize = idVec2( viewportInput.width() + 1, viewportInput.height() + 1 );
 	taaConstants.outputViewOrigin = idVec2( viewportOutput.minX, viewportOutput.minY );
 	taaConstants.outputViewSize = idVec2( viewportOutput.width() + 1, viewportOutput.height() + 1 );
-	taaConstants.inputPixelOffset = GetCurrentPixelOffset();
+	taaConstants.inputPixelOffset = GetCurrentPixelOffset( viewDef->taaFrameCount );
 	taaConstants.outputTextureSizeInv = idVec2( 1.0f, 1.0f ) / idVec2( float( renderSystem->GetWidth() ), float( renderSystem->GetHeight() ) );
 	taaConstants.inputOverOutputViewSize = taaConstants.inputViewSize / taaConstants.outputViewSize;
 	taaConstants.outputOverInputViewSize = taaConstants.outputViewSize / taaConstants.inputViewSize;
-	taaConstants.clampingFactor = params.enableHistoryClamping ? params.clampingFactor : -1.f;
-	taaConstants.newFrameWeight = feedbackIsValid ? params.newFrameWeight : 1.f;
+	taaConstants.clampingFactor = params.enableHistoryClamping ? params.clampingFactor : -1.0f;
+	taaConstants.newFrameWeight = feedbackIsValid ? params.newFrameWeight : 1.0f;
 	taaConstants.pqC = idMath::ClampFloat( 1e-4f, 1e8f, params.maxRadiance );
 	taaConstants.invPqC = 1.f / taaConstants.pqC;
 	commandList->writeBuffer( m_TemporalAntiAliasingCB, &taaConstants, sizeof( taaConstants ) );
 
-	idVec2i viewportSize = idVec2i( taaConstants.outputViewSize.x, taaConstants.outputViewSize.y );
-	idVec2i gridSize = ( viewportSize + 15 ) / 16;
+
 
 	nvrhi::ComputeState state;
 	state.pipeline = m_ResolvePso;
 	state.bindings = { m_ResolveBindingSet };
 	commandList->setComputeState( state );
+
+	idVec2i viewportSize = idVec2i( taaConstants.outputViewSize.x, taaConstants.outputViewSize.y );
+	idVec2i gridSize = ( viewportSize + 15 ) / 16;
 
 	commandList->dispatch( gridSize.x, gridSize.y, 1 );
 }
@@ -275,7 +236,7 @@ static float VanDerCorput( size_t base, size_t index )
 	return ret;
 }
 
-idVec2 TemporalAntiAliasingPass::GetCurrentPixelOffset()
+idVec2 TemporalAntiAliasingPass::GetCurrentPixelOffset( int frameIndex )
 {
 	switch( r_taaJitter.GetInteger() )
 	{
@@ -288,11 +249,11 @@ idVec2 TemporalAntiAliasingPass::GetCurrentPixelOffset()
 				idVec2( -0.3125f, 0.3125f ), idVec2( -0.4375f, 0.0625f ), idVec2( 0.1875f, 0.4375f ), idVec2( 0.4375f, -0.4375f )
 			};
 
-			return offsets[m_FrameIndex % 8];
+			return offsets[frameIndex % 8];
 		}
 		case( int )TemporalAntiAliasingJitter::Halton:
 		{
-			uint32_t index = ( m_FrameIndex % 16 ) + 1;
+			uint32_t index = ( frameIndex % 16 ) + 1;
 			return idVec2{ VanDerCorput( 2, index ), VanDerCorput( 3, index ) } - idVec2( 0.5f, 0.5f );
 		}
 		case( int )TemporalAntiAliasingJitter::R2:
@@ -301,7 +262,7 @@ idVec2 TemporalAntiAliasingPass::GetCurrentPixelOffset()
 		}
 		case( int )TemporalAntiAliasingJitter::WhiteNoise:
 		{
-			std::mt19937 rng( m_FrameIndex );
+			std::mt19937 rng( frameIndex );
 			std::uniform_real_distribution<float> dist( -0.5f, 0.5f );
 			return idVec2{ dist( rng ), dist( rng ) };
 		}

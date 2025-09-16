@@ -317,7 +317,7 @@ void idRenderProgManager::KillAllShaders()
 {
 	Unbind();
 
-	tr.backend.ResetPipelineCache();
+	backEnd.ResetPipelineCache();
 
 	for( int i = 0; i < shaders.Num(); i++ )
 	{

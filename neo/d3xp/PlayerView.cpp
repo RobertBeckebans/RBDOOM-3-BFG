@@ -665,25 +665,13 @@ void idPlayerView::ScreenFade()
 	}
 }
 
-idCVar	stereoRender_interOccularCentimeters( "stereoRender_interOccularCentimeters", "3.0", CVAR_ARCHIVE | CVAR_RENDERER, "Distance between eyes" );
+idCVar	stereoRender_interOccularCentimeters( "stereoRender_interOccularCentimeters", "6.5", CVAR_ARCHIVE | CVAR_RENDERER, "Distance between eyes" );
 idCVar	stereoRender_convergence( "stereoRender_convergence", "6", CVAR_RENDERER, "0 = head mounted display, otherwise world units to convergence plane" );
 
 extern	idCVar stereoRender_screenSeparation;	// screen units from center to eyes
 extern	idCVar stereoRender_swapEyes;
 
-// In a head mounted display with separate displays for each eye,
-// screen separation will be zero and world separation will be the eye distance.
-struct stereoDistances_t
-{
-	// Offset to projection matrix, positive one eye, negative the other.
-	// Total distance is twice this, so 0.05 would give a 10% of screen width
-	// separation for objects at infinity.
-	float	screenSeparation;
 
-	// Game world units from one eye to the centerline.
-	// Total distance is twice this.
-	float	worldSeparation;
-};
 
 float CentimetersToInches( const float cm )
 {
@@ -782,10 +770,6 @@ The crosshair is swapped for a laser sight in stereo rendering
 */
 bool	IsGameStereoRendered()
 {
-	if( renderSystem->GetStereo3DMode() != STEREO3D_OFF )
-	{
-		return true;
-	}
 	return false;
 }
 
@@ -802,6 +786,7 @@ idPlayerView::RenderPlayerView
 void idPlayerView::RenderPlayerView( idMenuHandler_HUD* hudManager )
 {
 	const renderView_t* view = player->GetRenderView();
+#if 0
 	if( renderSystem->GetStereo3DMode() != STEREO3D_OFF )
 	{
 		// render both eye views each frame on the PC
@@ -811,6 +796,7 @@ void idPlayerView::RenderPlayerView( idMenuHandler_HUD* hudManager )
 		}
 	}
 	else
+#endif
 	{
 		SingleView( view, hudManager );
 	}

@@ -460,9 +460,9 @@ void LoadSTB_RGBA8( const char* filename, unsigned char** pic, int* width, int* 
 
 	Mem_Free( ( void* )fbuffer );
 
-	//if( numChannels != 3 )
+	//if( numChannels != 4 )
 	//{
-	//	common->Error( "LoadHDR( %s ): HDR has not 3 channels\n", filename );
+	//	common->Error( "LoadSTB_RGBA8( %s ): HDR has not 4 channels\n", filename );
 	//}
 
 	if( !rgba )
@@ -573,6 +573,7 @@ static void LoadEXR( const char* filename, unsigned char** pic, int* width, int*
 		if( ret != 0 )
 		{
 			common->Error( "LoadEXR( %s ): %s\n", filename, err );
+			FreeEXRErrorMessage( err );
 			return;
 		}
 	}
@@ -852,7 +853,7 @@ void R_WriteEXR( const char* filename, const void* rgba16f, int channelsPerPixel
 	if( size == 0 )
 	{
 		common->Error( "R_WriteEXR( %s ): Save EXR err: %s\n", filename, err );
-
+		FreeEXRErrorMessage( err );
 		goto cleanup;
 	}
 
@@ -905,14 +906,14 @@ static void LoadHDR( const char* filename, unsigned char** pic, int* width, int*
 
 	int32 numChannels;
 
-	float* rgba = stbi_loadf_from_memory( ( stbi_uc const* ) fbuffer, fileSize, width, height, &numChannels, 0 );
+	float* rgb = stbi_loadf_from_memory( ( stbi_uc const* ) fbuffer, fileSize, width, height, &numChannels, 0 );
 
 	if( numChannels != 3 )
 	{
 		common->Error( "LoadHDR( %s ): HDR has not 3 channels\n", filename );
 	}
 
-	if( rgba )
+	if( rgb )
 	{
 		int32 pixelCount = *width * *height;
 		byte* out = ( byte* )R_StaticAlloc( pixelCount * 4, TAG_IMAGE );
@@ -921,7 +922,7 @@ static void LoadHDR( const char* filename, unsigned char** pic, int* width, int*
 
 		// convert to packed R11G11B10F as uint32 for each pixel
 
-		const float* src = rgba;
+		const float* src = rgb;
 		byte* dst = out;
 		for( int i = 0; i < pixelCount; i++ )
 		{
@@ -936,11 +937,11 @@ static void LoadHDR( const char* filename, unsigned char** pic, int* width, int*
 			uint32_t value = float3_to_r11g11b10f( p );
 			*( uint32_t* )dst = value;
 
-			src += 4;
+			src += 3;
 			dst += 4;
 		}
 
-		free( rgba );
+		free( rgb );
 	}
 
 	Mem_Free( ( void* )fbuffer );
@@ -1046,15 +1047,6 @@ void R_LoadImage( const char* cname, byte** pic, int* width, int* height, ID_TIM
 			name = origName;
 		}
 	}
-#if 0
-	else if( usage && *usage == TD_R11G11B10F )
-	{
-		name.StripFileExtension();
-
-		ext = "exr";
-		name.DefaultFileExtension( ".exr" );
-	}
-#endif
 
 retry:
 
@@ -1260,6 +1252,52 @@ bool R_LoadCubeImages( const char* imgName, cubeFiles_t extensions, byte* pics[6
 						R_RotatePic( pics[i], cubeMapSize );
 						break;
 				}
+			}
+
+			R_StaticFree( thisPic[0] );
+		}
+
+		return true;
+	}
+
+	if( extensions == CF_PANORAMA )
+	{
+		ID_TIME_T thisTime;
+		byte* thisPic[1];
+		thisPic[0] = nullptr;
+
+		if( pics )
+		{
+			R_LoadImageProgram( imgName, thisPic, &width, &height, &thisTime );
+		}
+		else
+		{
+			// load just the timestamps
+			R_LoadImageProgram( imgName, nullptr, &width, &height, &thisTime );
+		}
+
+
+		if( thisTime == FILE_NOT_FOUND_TIMESTAMP )
+		{
+			return false;
+		}
+
+		if( timestamp )
+		{
+			if( thisTime > *timestamp )
+			{
+				*timestamp = thisTime;
+			}
+		}
+
+		if( pics )
+		{
+			cubeMapSize = 1024;
+			*outSize = cubeMapSize;
+
+			for( int i = 0; i < 6; i++ )
+			{
+				pics[i] = R_GenerateCubeMapSideFromPanoramaImage( thisPic[0], width, height, cubeMapSize, i );
 			}
 
 			R_StaticFree( thisPic[0] );

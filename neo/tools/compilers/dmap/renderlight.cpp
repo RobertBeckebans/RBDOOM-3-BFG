@@ -44,7 +44,6 @@ idRenderLightLocal::idRenderLightLocal()
 	index					= 0;
 	areaNum					= 0;
 	lastModifiedFrameNum	= 0;
-	archived				= false;
 	lightShader				= NULL;
 	falloffImage			= NULL;
 	globalLightOrigin		= vec3_zero;
