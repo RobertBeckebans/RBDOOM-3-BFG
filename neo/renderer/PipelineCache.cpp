@@ -264,7 +264,7 @@ void PipelineCache::GetRenderState( uint64 stateBits, PipelineKey key, nvrhi::Re
 				blendOp = nvrhi::BlendOp::Add;
 				break;
 			case GLS_BLENDOP_SUB:
-				blendOp = nvrhi::BlendOp::Subrtact;
+				blendOp = nvrhi::BlendOp::Subtract;
 				break;
 		}
 
