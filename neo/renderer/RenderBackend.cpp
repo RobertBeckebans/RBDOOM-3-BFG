@@ -5756,6 +5756,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 	if( R_UseHiZ() && is3D )
 	{
 		OPTICK_GPU_EVENT( "Render_HiZ" );
+		renderLog.OpenMainBlock( MRB_FILL_HIZ_BUFFER );
 		renderLog.OpenBlock( "Render_HiZ" );
 
 		commandList->clearTextureFloat( globalImages->hierarchicalZbufferImage->GetTextureHandle(), nvrhi::AllSubresources, nvrhi::Color( 1.f ) );
@@ -5769,6 +5770,7 @@ void idRenderBackend::DrawViewInternal( const viewDef_t* _viewDef, const int ste
 		hiZGenPass->Dispatch( commandList, MAX_HIERARCHICAL_ZBUFFERS );
 
 		renderLog.CloseBlock();
+		renderLog.CloseMainBlock();
 	}
 
 	//-------------------------------------------------

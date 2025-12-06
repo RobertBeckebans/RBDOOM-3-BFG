@@ -332,6 +332,11 @@ public:
 		return stats_backend.gpuDepthMicroSec;
 	}
 
+	uint64		GetRendererGpuHiZMicroseconds() const
+	{
+		return stats_backend.gpuHiZMicroSec;
+	}
+
 	uint64		GetRendererGpuGeometryMicroseconds() const
 	{
 		return stats_backend.gpuGeometryMicroSec;

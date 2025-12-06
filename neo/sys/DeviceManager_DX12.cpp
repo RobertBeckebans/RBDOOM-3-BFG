@@ -378,7 +378,8 @@ bool DeviceManager_DX12::CreateDeviceAndSwapChain()
 				D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,
 				D3D12_MESSAGE_ID_COMMAND_LIST_STATIC_DESCRIPTOR_RESOURCE_DIMENSION_MISMATCH, // descriptor validation doesn't understand acceleration structures
 				D3D12_MESSAGE_ID_CREATEGRAPHICSPIPELINESTATE_RENDERTARGETVIEW_NOT_SET, // disable warning when there is no color attachment (e.g. shadow atlas)
-				D3D12_MESSAGE_ID_RESOURCE_BARRIER_BEFORE_AFTER_MISMATCH // barrier validation error caused by cinematics - not sure how to fix, suppress for now
+				D3D12_MESSAGE_ID_RESOURCE_BARRIER_BEFORE_AFTER_MISMATCH, // barrier validation error caused by cinematics - not sure how to fix, suppress for now
+				D3D12_MESSAGE_ID(1321) // D3D12_MESSAGE_ID_COMMAND_LIST_STATIC_DESCRIPTOR_SAMPLER_MODE_MISMATCH - suppress another descriptor validation issue
 			};
 
 			D3D12_INFO_QUEUE_FILTER filter = {};

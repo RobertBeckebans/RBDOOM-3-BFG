@@ -163,6 +163,7 @@ struct backEndCounters_t
 	uint64	cpuShadowMicroSec;
 	uint64	gpuBeginDrawingMicroSec;
 	uint64	gpuDepthMicroSec;
+	uint64	gpuHiZMicroSec;
 	uint64	gpuGeometryMicroSec;
 	uint64	gpuScreenSpaceAmbientOcclusionMicroSec;
 	uint64	gpuScreenSpaceReflectionsMicroSec;

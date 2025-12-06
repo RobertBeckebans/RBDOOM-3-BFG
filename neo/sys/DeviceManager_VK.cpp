@@ -1022,7 +1022,6 @@ bool DeviceManager_VK::createDevice()
 #endif
 							.setPNext( pNext );
 
-	auto layerVec = stringSetToVector( enabledExtensions.layers );
 	auto extVec = stringSetToVector( enabledExtensions.device );
 
 	auto deviceDesc = vk::DeviceCreateInfo()
@@ -1031,8 +1030,6 @@ bool DeviceManager_VK::createDevice()
 					  .setPEnabledFeatures( &deviceFeatures )
 					  .setEnabledExtensionCount( uint32_t( extVec.size() ) )
 					  .setPpEnabledExtensionNames( extVec.data() )
-					  .setEnabledLayerCount( uint32_t( layerVec.size() ) )
-					  .setPpEnabledLayerNames( layerVec.data() )
 					  .setPNext( &vulkan12features );
 
 	const vk::Result res = m_VulkanPhysicalDevice.createDevice( &deviceDesc, nullptr, &m_VulkanDevice );
@@ -1271,13 +1268,14 @@ bool DeviceManager_VK::CreateDeviceAndSwapChain()
 		// 0x609a13b: Vertex attribute at location X not consumed by vertex shader.
 		// 0x609a13b: fragment shader writes to output location X with no matching attachment.
 
-		// SRS - Suppress false-positive descriptor count warning for MipMapGen pass which is by design:
-		// 0x3af3126a: vkCreateComputePipelines(): pCreateInfos[0].stage uses ... with a descriptorCount of X, but requires at least Y in the SPIR-V.
+		// SRS - Suppress false-positive descriptor count and no update warnings for MipMapGen pass which is by design:
+		// 0x3af3126a: vkCreateComputePipelines(): stage uses descriptor [... "u_output"] with descriptorCount of 1, but requires at least 4 in the SPIR-V.
+		// 0x30b6e267: vkCmdDispatch(): descriptor [... "u_output"] used in dispatch has never been updated via vkUpdateDescriptorSets() or a similar call.
 
 #ifdef _WIN32
-		SetEnvironmentVariable( "VK_LAYER_MESSAGE_ID_FILTER", "0xc81ad50e;0x9805298c;0x609a13b;0x3af3126a" );
+		SetEnvironmentVariable( "VK_LAYER_MESSAGE_ID_FILTER", "0xc81ad50e;0x9805298c;0x609a13b;0x3af3126a;0x30b6e267" );
 #else
-		setenv( "VK_LAYER_MESSAGE_ID_FILTER", "0xc81ad50e:0x9805298c:0x609a13b:0x3af3126a", 1 );
+		setenv( "VK_LAYER_MESSAGE_ID_FILTER", "0xc81ad50e:0x9805298c:0x609a13b:0x3af3126a:0x30b6e267", 1 );
 #endif
 	}
 

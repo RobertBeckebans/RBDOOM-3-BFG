@@ -500,22 +500,20 @@ Recommended in this case is `cmake-vs2022-win64-no-ffmpeg.bat`
 	
 	The Vulkan SDK 1.3.275.0 (minimum) or 1.3.296.0 (min recommended) or later must be installed and can be obtained from https://vulkan.lunarg.com/sdk/home#mac
 	
-3. Clone the source code into a new `DoomCode` directory and checkout the `rpsubsets-and-pc` branch for optimal performance on macOS with MoltenVK:
+3. Checkout the source code into a new `DoomCode` directory (now contains performance optimizations for macOS):
 
 		> git clone --recursive https://github.com/RobertBeckebans/RBDOOM-3-BFG.git DoomCode
-		> cd DoomCode
-		> git checkout rpsubsets-and-pc
 
 4. Generate the Makefiles using CMake:
 
 	For command line builds:
 
-		> cd neo/
+		> cd DoomCode/neo/
 		> ./cmake-macos-release.sh
 	
 	For Xcode builds:
 	
-		> cd neo/
+		> cd DoomCode/neo/
 		> ./cmake-xcode-release.sh	
 		or
 		> ./cmake-xcode-universal.sh (universal build on macOS Big Sur / Xcode 12.2 or later)
