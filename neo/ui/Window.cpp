@@ -149,7 +149,7 @@ void idWindow::CommonInit()
 	timeLine = -1;
 	textShadow = 0;
 	hover = false;
-
+	swf = NULL;
 	for( int i = 0; i < SCRIPT_COUNT; i++ )
 	{
 		scripts[i] = NULL;
@@ -262,6 +262,12 @@ void idWindow::CleanUp()
 	{
 		delete scripts[i];
 	}
+
+	if( swf != NULL )
+	{
+		delete swf;
+	}
+
 	CommonInit();
 }
 
@@ -799,6 +805,12 @@ const char* idWindow::HandleEvent( const sysEvent_t* event, bool* updateVisuals 
 		{
 			dc->SetCursor( idDeviceContext::CURSOR_ARROW );
 		}
+
+		if( swf && swf->IsLoaded() )
+		{
+			swf->HandleEvent( event );
+		}
+
 	}
 
 	if( visible && !noEvents )
@@ -1511,6 +1523,16 @@ void idWindow::Redraw( float x, float y, bool hud )
 		{
 			drawWindows[i].simp->Redraw( clientRect.x + xOffset, clientRect.y + yOffset );
 		}
+	}
+
+	if( swf != NULL )
+	{
+		if( !swf->IsActive() )
+		{
+			swf->Activate( true );
+		}
+
+		swf->Render( renderSystem, Sys_Milliseconds() );
 	}
 
 	// Put transforms back to what they were before the children were processed
@@ -4276,6 +4298,10 @@ idWindow::Interactive
 */
 bool idWindow::Interactive()
 {
+	if( swf != NULL )
+	{
+		return true;// return swf->isMouseInClientArea;
+	}
 	if( scripts[ ON_ACTION ] )
 	{
 		return true;

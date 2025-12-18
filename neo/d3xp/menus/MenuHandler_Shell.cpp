@@ -60,7 +60,7 @@ void idMenuHandler_Shell::Update()
 		ClearWidgetActionRepeater();
 	}
 
-	if( nextState != state )
+	if( nextState != state && gui->IsContructed() )
 	{
 
 		if( introGui != NULL && introGui->IsActive() )
@@ -162,7 +162,7 @@ void idMenuHandler_Shell::Update()
 			}
 	}
 
-	if( activeScreen != nextScreen )
+	if( activeScreen != nextScreen && gui->IsContructed() )
 	{
 
 		ClearWidgetActionRepeater();

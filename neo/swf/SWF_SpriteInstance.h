@@ -3,6 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2023 Harrie van Ginneken
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -147,9 +148,11 @@ public:
 	bool childrenRunning;
 	bool firstRun;
 
+	bool constructed;
 	// currentFrame is the frame number currently in the displayList
 	// we use 1 based frame numbers because currentFrame = 0 means nothing is in the display list
 	// it's also convenient because Flash also uses 1 based frame numbers
+	uint16  lastFrame;
 	uint16	currentFrame;
 	uint16	frameCount;
 
@@ -184,6 +187,7 @@ public:
 	idList< swfDisplayEntry_t, TAG_SWF > displayList;
 	swfDisplayEntry_t* FindDisplayEntry( int depth );
 
+	SWF_AbcFile* abcFile;
 	// name of this sprite instance
 	idStr name;
 
@@ -193,6 +197,7 @@ public:
 		uint32 dataLength;
 	};
 	idList< swfAction_t, TAG_SWF > actions;
+	idList< idSWFScriptFunction*, TAG_SWF > functionActions;
 
 	idSWFScriptFunction_Script* actionScript;
 
@@ -232,6 +237,7 @@ public:
 	void					SwapDepths( int depth1, int depth2 );
 
 	void					DoAction( idSWFBitStream& bitstream );
+	void					DoAction( idSWFScriptFunction* function );
 
 	idSWFSpriteInstance* 	FindChildSprite( const char* childName );
 	idSWFSpriteInstance* 	ResolveTarget( const char* targetName );
@@ -258,6 +264,7 @@ public:
 		idSWFScriptVar Call( idSWFScriptObject * thisObject, const idSWFParmList & parms ); \
 	} scriptFunction_##x
 
+	SWF_SPRITE_FUNCTION_DECLARE( addFrameScript );
 	SWF_SPRITE_FUNCTION_DECLARE( duplicateMovieClip );
 	SWF_SPRITE_FUNCTION_DECLARE( gotoAndPlay );
 	SWF_SPRITE_FUNCTION_DECLARE( gotoAndStop );
@@ -279,6 +286,7 @@ public:
 	SWF_NATIVE_VAR_DECLARE( _rotation );
 
 	SWF_NATIVE_VAR_DECLARE_READONLY( _name );
+	SWF_NATIVE_VAR_DECLARE_READONLY( name );
 	SWF_NATIVE_VAR_DECLARE_READONLY( _currentframe );
 	SWF_NATIVE_VAR_DECLARE_READONLY( _totalframes );
 	SWF_NATIVE_VAR_DECLARE_READONLY( _target );
