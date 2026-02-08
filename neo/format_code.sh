@@ -11,7 +11,15 @@ print_usage () {
 
 # Determine platform and set clang-format binary path
 case "$(uname -s)" in
-    Linux*)   CLANGFMT_DEFAULT="./clang-format" ;;
+    Linux*)
+        if command -v clang-format-18 >/dev/null 2>&1; then
+            CLANGFMT_DEFAULT="clang-format-18"
+        elif command -v clang-format >/dev/null 2>&1; then
+            CLANGFMT_DEFAULT="clang-format"
+        else
+            CLANGFMT_DEFAULT="./clang-format"
+        fi
+        ;;
     MINGW*|MSYS*|CYGWIN*) CLANGFMT_DEFAULT="./clang-format.exe" ;;
     *)        echo "ERROR: Unsupported platform: $(uname -s)"; print_usage; exit 1 ;;
 esac
@@ -20,7 +28,7 @@ esac
 CLANGFMT_BIN=${CLANGFMT_BIN:-$CLANGFMT_DEFAULT}
 
 # Check if the binary exists and is executable
-if [ ! -x "$CLANGFMT_BIN" ]; then
+if ! command -v "$CLANGFMT_BIN" >/dev/null 2>&1 && [ ! -x "$CLANGFMT_BIN" ]; then
     echo "ERROR: $CLANGFMT_BIN not found or not executable"
     print_usage
     exit 1
@@ -58,15 +66,23 @@ if [ "$CLANG_FORMAT_FILES" -gt 1 ]; then
     echo "This may cause conflicts. Consider keeping only one .clang-format file in the project root."
 fi
 
-# Run clang-format on all relevant files
-#find . -regex ".*\.\(cpp\|cc\|cxx\|h\|hpp\)" ! -path "./libs/*" ! -path "./extern/*" ! -path "./d3xp/gamesys/SysCvar.cpp" ! -path "./d3xp/gamesys/Callbacks.cpp" ! -path "./sys/win32/win_cpu.cpp" ! -path "./sys/win32/win_main.cpp" -print0 | xargs -0 -P 16 "$CLANGFMT_BIN" -i
-
 # Copy different configs because -style=file: did not work
 cp .clang-format-header .clang-format
 find . -regex ".*\.\(h\|hpp\)" \
+	! -path "./build/*" \
 	! -path "./libs/*" \
 	! -path "./extern/*" \
-	-print0 | xargs -0 -P 16 "$CLANGFMT_BIN" -i
+	! -path "./idlib/sys/sys_defines.h" \
+	! -path "./renderer/Image_blueNoiseVC_1M.h" \
+	! -path "./renderer/Image_blueNoiseVC_2.h" \
+	! -path "./renderer/Image_brdfLut.h" \
+	! -path "./renderer/Image_env_UAC_lobby_amb.h" \
+	! -path "./renderer/Image_env_UAC_lobby_spec.h" \
+	! -path "./renderer/SMAA/AreaTex.h" \
+	! -path "./renderer/SMAA/SearchTex.h" \
+    ! -path "./renderer/simplex.h" \
+    ! -path "./d3xp/gamesys/GameTypeInfo.h" \
+	-print0 | xargs -0 -P 16 "$CLANGFMT_BIN" -i --verbose
 
 cp .clang-format-cpp .clang-format
 find . -regex ".*\.\(c\|cpp\)" \
@@ -76,16 +92,20 @@ find . -regex ".*\.\(c\|cpp\)" \
 	! -path "./d3xp/gamesys/Callbacks.cpp" \
 	! -path "./sys/win32/win_cpu.cpp" \
 	! -path "./sys/win32/win_main.cpp" \
-	-print0 | xargs -0 -P 16 "$CLANGFMT_BIN" -i
+	-print0 | xargs -0 -P 16 "$CLANGFMT_BIN" -i --verbose
 
 rm .clang-format
 
-# Post-process files to align method names right (requires Python)
+# Post-process files for ( void ), (void) -> () (requires Python)
+# This might break some C code so outcommented this if you run into problems
 if command -v python >/dev/null 2>&1; then
     python format_slimvoids.py
     echo "Void post-processing completed!"
+elif command -v python3 >/dev/null 2>&1; then
+    python3 format_slimvoids.py
+    echo "Void post-processing completed!"
 else
-    echo "WARNING: Python3 not found, skipping right-alignment post-processing."
+    echo "WARNING: Python not found, skipping right-alignment post-processing."
 fi
 
 echo "Formatting completed!"
