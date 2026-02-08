@@ -1159,8 +1159,6 @@ extern idCVar r_skipDecals;					// skip decal surfaces
 extern idCVar r_skipOverlays;				// skip overlay surfaces
 extern idCVar r_skipShadows;				// disable shadows
 
-extern idCVar r_ignoreGLErrors;
-
 extern idCVar r_screenFraction;				// for testing fill rate, the resolution of the entire screen can be changed
 extern idCVar r_showUnsmoothedTangents;		// highlight geometry rendered with unsmoothed tangents
 extern idCVar r_showSilhouette;				// highlight edges that are casting shadow planes

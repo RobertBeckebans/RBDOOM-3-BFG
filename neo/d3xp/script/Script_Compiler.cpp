@@ -1360,7 +1360,7 @@ idVarDef* idCompiler::ParseFunctionCall( idVarDef* funcDef )
 
 	if( funcDef->initialized == idVarDef::uninitialized )
 	{
-		Error( "Function '%s' has not been defined yet", funcDef->GlobalName() );
+		Error( "Function '%s' has not been defined yet", funcDef->GlobalName().c_str() );
 	}
 
 	assert( funcDef->value.functionPtr );
@@ -1653,7 +1653,7 @@ idVarDef* idCompiler::ParseValue()
 			{
 				if( namespaceDef != NULL )
 				{
-					Error( "Unknown value \"%s::%s\"", namespaceDef->GlobalName(), name.c_str() );
+					Error( "Unknown value \"%s::%s\"", namespaceDef->GlobalName().c_str(), name.c_str() );
 				}
 				else
 				{
@@ -2495,7 +2495,7 @@ void idCompiler::ParseObjectDef( const char* objname )
 	idTypeDef*	parentType;
 	idTypeDef*	fieldtype;
 	idStr		name;
-	const char*  fieldname;
+	idStr		fieldname;
 	idTypeDef	newtype( ev_field, NULL, "", 0, NULL );
 	idVarDef*	oldscope;
 	int			num;
@@ -2654,7 +2654,7 @@ void idCompiler::ParseFunctionDef( idTypeDef* returnType, const char* name )
 		assert( func );
 		if( func->firstStatement )
 		{
-			Error( "%s redeclared", def->GlobalName() );
+			Error( "%s redeclared", def->GlobalName().c_str() );
 		}
 	}
 

@@ -486,7 +486,7 @@ void idRenderBackend::DrawElementsWithCounters( const drawSurf_t* surf, bool sha
 		{
 			// Reset the graphics state if the uniforms or binding layout type
 			// have changed for Vulkan - either push constants are enabled or
-			// the constant buffer is written to and the render pass is
+			// the binding layout type has changed and the render pass is
 			// ended for vulkan. setGraphicsState will reinstate the
 			// render pass or set up for push constants.
 			changeState = true;

@@ -1663,6 +1663,8 @@ idPlayer::idPlayer():
 	playedTimeSecs			= 0;
 	playedTimeResidual		= 0;
 
+	flashlightReset			= false;
+
 	ResetControllerShake();
 
 	memset( pdaHasBeenRead, 0, sizeof( pdaHasBeenRead ) );

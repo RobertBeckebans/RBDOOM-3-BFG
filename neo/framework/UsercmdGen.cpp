@@ -501,13 +501,19 @@ void idUsercmdGenLocal::MouseMove()
 	my /= smooth;
 
 	historyCounter++;
+/*
+-- Originally found by Caedes
+Unclear what this was supposed to achieve, in practice it ends up clamping fast mouse movement to zero, 
+which makes for extremely unresponsive and jittery feel either for high-DPI mice or fast flicks. Thus, commented out.
+--
 
 	if( idMath::Fabs( mx ) > 1000 || idMath::Fabs( my ) > 1000 )
 	{
 		Sys_DebugPrintf( "idUsercmdGenLocal::MouseMove: Ignoring ridiculous mouse delta.\n" );
 		mx = my = 0;
 	}
-
+*/
+	
 	mx *= sensitivity.GetFloat();
 	my *= sensitivity.GetFloat();
 

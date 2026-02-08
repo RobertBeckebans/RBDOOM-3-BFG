@@ -844,7 +844,7 @@ void Sys_SaveGameCheck( bool& exists, bool& autosaveExists )
 
 		for( int i = 0; i < fileList.Num(); i++ )
 		{
-			const char* directory = va( "%s/%s", saveFolder, fileList[i].c_str() );
+			idStr directory = va( "%s/%s", saveFolder, fileList[i].c_str() );
 
 			if( fileSystem->IsFolder( directory, "fs_savePath" ) == FOLDER_YES )
 			{

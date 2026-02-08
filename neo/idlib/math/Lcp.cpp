@@ -2294,7 +2294,12 @@ bool idLCP_Square::Solve( const idMatX& o_m, idVecX& o_x, const idVecX& o_b, con
 	}
 
 	// tells if a variable is at the low boundary, high boundary or inbetween
-	side = ( int* ) _alloca16( m.GetNumRows() * sizeof( int ) );
+	// SRS - side is used by SIMD code so alloc in multiples of four and initialize
+	side = ( int* ) _alloca16( ( ( m.GetNumRows() + 3 ) & ~3 ) * sizeof( int ) );
+	for( int i = 0; i < ( ( m.GetNumRows() + 3 ) & ~3 ); i++ )
+	{
+		side[i] = 0;
+	}
 
 	// index to keep track of the permutation
 	permuted = ( int* ) _alloca16( m.GetNumRows() * sizeof( int ) );
@@ -3074,7 +3079,12 @@ bool idLCP_Symmetric::Solve( const idMatX& o_m, idVecX& o_x, const idVecX& o_b, 
 	}
 
 	// tells if a variable is at the low boundary, high boundary or inbetween
-	side = ( int* ) _alloca16( m.GetNumRows() * sizeof( int ) );
+	// SRS - side is used by SIMD code so alloc in multiples of four and initialize
+	side = ( int* ) _alloca16( ( ( m.GetNumRows() + 3 ) & ~3 ) * sizeof( int ) );
+	for( int i = 0; i < ( ( m.GetNumRows() + 3 ) & ~3 ); i++ )
+	{
+		side[i] = 0;
+	}
 
 	// index to keep track of the permutation
 	permuted = ( int* ) _alloca16( m.GetNumRows() * sizeof( int ) );

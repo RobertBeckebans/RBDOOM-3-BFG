@@ -2314,7 +2314,7 @@ idActor::GetAnim
 int idActor::GetAnim( int channel, const char* animname )
 {
 	int			anim;
-	const char* temp;
+	idStr		temp;
 	idAnimator* animatorPtr;
 
 	if( channel == ANIMCHANNEL_HEAD )

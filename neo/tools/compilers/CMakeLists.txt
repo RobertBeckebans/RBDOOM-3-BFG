@@ -136,6 +136,7 @@ endif()
 
 file(GLOB MC_MINIZIP_INCLUDES ../../libs/zlib/minizip/*.h)
 file(GLOB MC_MINIZIP_SOURCES ../../libs/zlib/minizip/*.c ../../libs/zlib/minizip/*.cpp)
+file(GLOB MC_MINIZIP_C_SOURCES ../../libs/zlib/minizip/*.c)
 
 if(MSVC)
 	file(GLOB CURSES_INCLUDES ../../libs/imtui/pdcurses/*.h)
@@ -340,9 +341,9 @@ else()
 	# SRS - disable certain gcc/clang warnings for select third-party source libraries, consider updating versions in the future?
 	set_source_files_properties(
 			${MC_ZLIB_SOURCES}
-			${MC_MINIZIP_SOURCES}
+			${MC_MINIZIP_C_SOURCES}
 			PROPERTIES
-			COMPILE_FLAGS "-Wno-stringop-overread -Wno-deprecated-non-prototype"
+			COMPILE_FLAGS "-Wno-stringop-overread -Wno-deprecated-non-prototype -Wno-old-style-definition"
 			)
 
 	add_executable(rbdmap ${MC_SOURCES_ALL} ${MC_INCLUDES_ALL})

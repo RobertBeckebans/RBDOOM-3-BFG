@@ -1989,7 +1989,7 @@ void idGameLocal::CacheDictionaryMedia( const idDict* dict )
 	if( kv != NULL && kv->GetValue().Length() )
 	{
 		int teleportType = atoi( kv->GetValue() );
-		const char* p = ( teleportType ) ? va( "fx/teleporter%i.fx", teleportType ) : "fx/teleporter.fx";
+		idStr p = ( teleportType ) ? va( "fx/teleporter%i.fx", teleportType ) : "fx/teleporter.fx";
 		declManager->FindType( DECL_FX, p );
 	}
 

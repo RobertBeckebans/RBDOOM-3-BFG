@@ -174,7 +174,7 @@ const char* idMenuScreen_PDA_Inventory::GetWeaponName( int index )
 		return NULL;
 	}
 
-	const char* weaponDefName = va( "def_weapon%d", index );
+	idStr weaponDefName = va( "def_weapon%d", index );
 	if( player->GetInventory().weapons & ( 1 << index ) )
 	{
 		return player->spawnArgs.GetString( weaponDefName );

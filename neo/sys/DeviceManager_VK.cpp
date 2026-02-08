@@ -1345,7 +1345,7 @@ bool DeviceManager_VK::CreateDeviceAndSwapChain()
 	auto vecLayers = stringSetToVector( enabledExtensions.layers );
 	auto vecDeviceExt = stringSetToVector( enabledExtensions.device );
 
-	nvrhi::vulkan::DeviceDesc deviceDesc;
+	nvrhi::vulkan::DeviceDesc deviceDesc {};
 	deviceDesc.errorCB = &DefaultMessageCallback::GetInstance();
 	deviceDesc.instance = m_VulkanInstance;
 	deviceDesc.physicalDevice = m_VulkanPhysicalDevice;

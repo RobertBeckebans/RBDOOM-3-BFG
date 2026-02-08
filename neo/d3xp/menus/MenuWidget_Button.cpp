@@ -316,7 +316,7 @@ void idMenuWidget_Button::AnimateToState( const animState_t targetAnimState, con
 		{
 			for( int i = 0; i < trans.prefixes.Num(); ++i )
 			{
-				const char* const frameLabel = va( "%s%s", trans.prefixes[ i ], trans.animationName );
+				idStr const frameLabel = va( "%s%s", trans.prefixes[ i ], trans.animationName );
 				if( GetSprite()->FrameExists( frameLabel ) )
 				{
 					GetSprite()->PlayFrame( frameLabel );

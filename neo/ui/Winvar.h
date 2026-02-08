@@ -84,7 +84,7 @@ public:
 	virtual void Init( const char* _name, idWindow* win ) = 0;
 	virtual void Set( const char* val ) = 0;
 	virtual void Update() = 0;
-	virtual const char* c_str() const = 0;
+	virtual const char* c_str() = 0;
 	virtual size_t Size()
 	{
 		size_t sz = ( name ) ? strlen( name ) : 0;
@@ -167,9 +167,10 @@ public:
 		}
 	}
 
-	virtual const char* c_str() const
+	virtual const char* c_str()
 	{
-		return va( "%i", data );
+		data_str = va( "%i", data );
+		return data_str.c_str();
 	}
 
 	// SaveGames
@@ -191,6 +192,7 @@ public:
 
 protected:
 	bool data;
+	idStr data_str;
 };
 
 class idWinStr : public idWinVar
@@ -269,7 +271,7 @@ public:
 		}
 		data.RemoveColors();
 	}
-	virtual const char* c_str() const
+	virtual const char* c_str()
 	{
 		return data.c_str();
 	}
@@ -382,9 +384,10 @@ public:
 			data = guiDict->GetInt( s );
 		}
 	}
-	virtual const char* c_str() const
+	virtual const char* c_str()
 	{
-		return va( "%i", data );
+		data_str = va( "%i", data );
+		return data_str.c_str();
 	}
 
 	// SaveGames
@@ -408,6 +411,7 @@ public:
 
 protected:
 	int data;
+	idStr data_str;
 };
 
 class idWinFloat : public idWinVar
@@ -458,9 +462,10 @@ public:
 			data = guiDict->GetFloat( s );
 		}
 	}
-	virtual const char* c_str() const
+	virtual const char* c_str()
 	{
-		return va( "%f", data );
+		data_str = va( "%f", data );
+		return data_str.c_str();
 	}
 
 	virtual void WriteToSaveGame( idFile* savefile )
@@ -480,6 +485,7 @@ public:
 	};
 protected:
 	float data;
+	idStr data_str;
 };
 
 class idWinRectangle : public idWinVar
@@ -596,7 +602,7 @@ public:
 		}
 	}
 
-	virtual const char* c_str() const
+	virtual const char* c_str()
 	{
 		return data.ToVec4().ToString();
 	}
@@ -684,7 +690,7 @@ public:
 			data = guiDict->GetVec2( s );
 		}
 	}
-	virtual const char* c_str() const
+	virtual const char* c_str()
 	{
 		return data.ToString();
 	}
@@ -787,7 +793,7 @@ public:
 			data = guiDict->GetVec4( s );
 		}
 	}
-	virtual const char* c_str() const
+	virtual const char* c_str()
 	{
 		return data.ToString();
 	}
@@ -889,7 +895,7 @@ public:
 			data = guiDict->GetVector( s );
 		}
 	}
-	virtual const char* c_str() const
+	virtual const char* c_str()
 	{
 		return data.ToString();
 	}
@@ -996,7 +1002,7 @@ public:
 		}
 		return data.Length();
 	}
-	virtual const char* c_str() const
+	virtual const char* c_str()
 	{
 		return data.c_str();
 	}

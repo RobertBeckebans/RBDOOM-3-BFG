@@ -350,7 +350,7 @@ public:
 	~idVarDef();
 
 	const char* 			Name() const;
-	const char* 			GlobalName() const;
+	idStr		 			GlobalName() const;
 
 	void					SetTypeDef( idTypeDef* _type )
 	{

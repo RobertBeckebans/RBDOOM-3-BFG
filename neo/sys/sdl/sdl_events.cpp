@@ -184,7 +184,7 @@ static void PushConsoleEvent( const char* s )
 	b = ( char* )Mem_Alloc( len, TAG_EVENTS );
 	strcpy( b, s );
 
-	SDL_Event event;
+	SDL_Event event {};
 
 	event.type = SDL_USEREVENT;
 	event.user.code = SE_CONSOLE;

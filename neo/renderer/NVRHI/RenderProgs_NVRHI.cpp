@@ -555,7 +555,10 @@ bool idRenderProgManager::CommitConstantBuffer( nvrhi::ICommandList* commandList
 
 		uniformsChanged[bindingLayoutType] = false;
 
-		return true;
+		// SRS - Writing to a volatile constant buffer no longer ends the renderpass, so indicate state change only if binding layout type has changed
+		//     - for nvrhi Vulkan see related commit https://github.com/NVIDIA-RTX/NVRHI/commit/dafbd407f6fb8b91078da72ca1712dbbd6ac2496
+		//     - for nvrhi DX12 a state change has never been required or activated when writing uniforms to volatile constant buffers
+		return bindingLayoutTypeChanged;
 	}
 
 	return false;

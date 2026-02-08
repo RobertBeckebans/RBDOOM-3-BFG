@@ -687,7 +687,7 @@ void idSWFScriptObject::PrintToConsole() const
 
 		maxVarLength += 2;	// a little extra padding
 
-		const char* const fmt = va( "%%-%ds %%-10s %%-s\n", maxVarLength );
+		idStr const fmt = va( "%%-%ds %%-10s %%-s\n", maxVarLength );
 		idLib::Printf( fmt, "Name", "Type", "Value" );
 		idLib::Printf( "------------------------------------------------------------\n" );
 		for( int i = 0; i < variables.Num(); ++i )

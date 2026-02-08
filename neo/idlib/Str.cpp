@@ -501,8 +501,8 @@ idStr::FloatArrayToString
 */
 const char* idStr::FloatArrayToString( const float* array, const int length, const int precision )
 {
-	static int index = 0;
-	static char str[4][16384];	// in case called by nested functions
+	thread_local int index = 0;
+	thread_local char str[4][MAX_PRINT_MSG];	// in case called by nested functions
 	int i, n;
 	char format[16], *s;
 
@@ -549,8 +549,8 @@ idStr::CStyleQuote
 */
 const char* idStr::CStyleQuote( const char* str )
 {
-	static int index = 0;
-	static char buffers[4][16384];	// in case called by nested functions
+	thread_local int index = 0;
+	thread_local char buffers[4][MAX_PRINT_MSG];	// in case called by nested functions
 	unsigned int i;
 	char* buf;
 
@@ -633,8 +633,8 @@ const char* idStr::CStyleUnQuote( const char* str )
 		return str;
 	}
 
-	static int index = 0;
-	static char buffers[4][16384];	// in case called by nested functions
+	thread_local int index = 0;
+	thread_local char buffers[4][MAX_PRINT_MSG];	// in case called by nested functions
 	unsigned int i;
 	char* buf;
 
@@ -740,7 +740,7 @@ void idStr::Format( const char* fmt, ... )
 
 	if( len < 0 )
 	{
-		idLib::common->FatalError( "Tried to set a large buffer using %s", fmt );
+		idLib::common->FatalError( "idStr::Format() tried to set a large buffer using %s", fmt );
 	}
 	*this = text;
 }
@@ -2376,29 +2376,28 @@ int vsprintf( idStr& string, const char* fmt, va_list argptr )
 
 /*
 ============
-va
+va_str
 
-does a varargs printf into a temp buffer
-NOTE: not thread safe
+does a varargs printf into a temp buffer (like idStr::Format but global)
+SRS - now thread safe by removing static vars and using idStr return type
+SRS - va() macro (Str.h) converts to va_str().c_str() for char* return type
 ============
 */
-char* va( const char* fmt, ... )
+idStr va_str( const char* fmt, ... )
 {
 	va_list argptr;
-	static int index = 0;
-	static char string[4][16384];	// in case called by nested functions
-	char* buf;
-
-	buf = string[index];
+	char text[MAX_PRINT_MSG];
 
 	va_start( argptr, fmt );
 	// SRS - using idStr::vsnPrintf() guarantees size and null termination
-	idStr::vsnPrintf( buf, sizeof( string[index] ), fmt, argptr );
+	int len = idStr::vsnPrintf( text, sizeof( text ), fmt, argptr );
 	va_end( argptr );
 
-	index = ( index + 1 ) & 3;
-
-	return buf;
+	if( len < 0 )
+	{
+		idLib::common->FatalError( "va_str() tried to set a large buffer using %s", fmt );
+	}
+	return text;
 }
 
 

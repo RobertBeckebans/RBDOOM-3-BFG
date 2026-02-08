@@ -400,7 +400,13 @@ public:
 	static const int	INVALID_POSITION = -1;
 };
 
-char* 					va( VERIFY_FORMAT_STRING const char* fmt, ... ) ID_STATIC_ATTRIBUTE_PRINTF( 1, 2 );
+// SRS - Converted previous va() definition to idStr return type va_str() combined with va() macro to guarantee thread safety
+idStr va_str( VERIFY_FORMAT_STRING const char* fmt, ... ) ID_STATIC_ATTRIBUTE_PRINTF( 1, 2 );
+
+// Note: va() returns a const char* stack address that must be copied into a new memory location (e.g. idStr) to be persistent.
+//		 This means that va() should not be assigned to a char* variable or used as a return value for a char* type function.
+//		 Once the va() expression is complete, the returned memory location will be recovered and the contents will be lost.
+#define va( format, ... ) va_str( format, ##__VA_ARGS__ ).c_str()
 
 /*
 ================================================================================================

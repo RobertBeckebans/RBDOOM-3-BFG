@@ -315,7 +315,7 @@ void idMenuHandler_PDA::Initialize( const char* swfFile, idSoundWorld* sw )
 
 		for( int j = 0; j < MAX_WEAPONS; j++ )
 		{
-			const char* weaponDefName = va( "def_weapon%d", j );
+			idStr weaponDefName = va( "def_weapon%d", j );
 			const char* weap = player->spawnArgs.GetString( weaponDefName );
 			if( weap != NULL && *weap != '\0' )
 			{

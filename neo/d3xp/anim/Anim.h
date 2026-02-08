@@ -293,7 +293,7 @@ public:
 	bool						GetOrigin( idVec3& offset, int animNum, int time, int cyclecount ) const;
 	bool						GetOriginRotation( idQuat& rotation, int animNum, int currentTime, int cyclecount ) const;
 	bool						GetBounds( idBounds& bounds, int animNum, int time, int cyclecount ) const;
-	const char*					AddFrameCommand( const class idDeclModelDef* modelDef, int framenum, idLexer& src, const idDict* def );
+	idStr						AddFrameCommand( const class idDeclModelDef* modelDef, int framenum, idLexer& src, const idDict* def );
 	void						CallFrameCommands( idEntity* ent, int from, int to ) const;
 	bool						HasFrameCommands() const;
 

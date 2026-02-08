@@ -270,7 +270,7 @@ float idConsoleLocal::DrawFPS( float y )
 		cpuUsage /= FPS_FRAMES;
 		gpuUsage /= FPS_FRAMES;
 
-		const char* s = va( "%ifps", fps );
+		idStr s = va( "%ifps", fps );
 		int w = strlen( s ) * BIGCHAR_WIDTH;
 
 		if( com_showFPS.GetInteger() == 1 )
@@ -528,7 +528,7 @@ float idConsoleLocal::DrawFPS( float y )
 
 		if( com_showFPS.GetInteger() > 2 )
 		{
-			const char* overlay = va( "Average FPS %-4i", fps );
+			idStr overlay = va( "Average FPS %-4i", fps );
 
 			ImGui::PlotLines( "Relative\nFrametime ms", previousTimesNormalized, FPS_FRAMES_HISTORY, valuesOffset, overlay, -10.0f, 10.0f, ImVec2( 0, 50 ) );
 		}

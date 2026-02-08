@@ -543,7 +543,7 @@ void idMenuScreen_HUD::GiveWeapon( idPlayer* player, int weaponIndex )
 		return;
 	}
 
-	const char* weapnum = va( "def_weapon%d", weaponIndex );
+	idStr weapnum = va( "def_weapon%d", weaponIndex );
 	const char* weap = player->spawnArgs.GetString( weapnum );
 	if( weap != NULL && *weap != '\0' )
 	{
@@ -1199,7 +1199,7 @@ void idMenuScreen_HUD::UpdateWeaponStates( idPlayer* player, bool weaponChanged 
 
 		for( int i = 0; i < MAX_WEAPONS; i++ )
 		{
-			const char* weapnum = va( "def_weapon%d", i );
+			idStr weapnum = va( "def_weapon%d", i );
 			int weapstate = 0;
 			if( player->inventory.weapons & ( 1 << i ) )
 			{

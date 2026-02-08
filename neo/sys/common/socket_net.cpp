@@ -1166,8 +1166,9 @@ const char* Sys_NetAdrToString( const netadr_t a )
 	// DG: FIXME: those static buffers look fishy - I would feel better if they were
 	//            at least thread-local - so /maybe/ use ID_TLS here?
 	//            or maybe return an idStr and change calling code accordingly
-	static int index = 0;
-	static char buf[ 4 ][ 64 ];	// flip/flop
+	// SRS -      changed index and buffer array to use C++11 thread_local attribute
+	thread_local int index = 0;
+	thread_local char buf[ 4 ][ 64 ];	// flip/flop
 	char* s;
 
 	s = buf[index];

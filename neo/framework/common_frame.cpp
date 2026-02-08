@@ -299,7 +299,7 @@ void idCommonLocal::Draw()
 			}
 
 			// prepare our strings
-			const char* text;
+			idStr text;
 			if( loadPacifierBinarizeTimeLeft >= 99.5f )
 			{
 				text = va( "Binarizing %3.0f%% ETA %2.0f minutes", loadPacifierBinarizeProgress * 100.0f, loadPacifierBinarizeTimeLeft / 60.0f );

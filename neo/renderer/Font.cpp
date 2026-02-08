@@ -271,7 +271,7 @@ bool idFont::LoadFont()
 	for( int i = 0; i < 3; i++ )
 	{
 		oldGlyphInfo_t oldGlyphInfo[GLYPHS_PER_FONT];
-		const char* oldFileName = va( "newfonts/%s/old_%d.dat", GetName(), pointSizes[i] );
+		idStr oldFileName = va( "newfonts/%s/old_%d.dat", GetName(), pointSizes[i] );
 		if( LoadOldGlyphData( oldFileName, oldGlyphInfo ) )
 		{
 			int mh = 0;

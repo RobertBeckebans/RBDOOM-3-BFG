@@ -315,7 +315,7 @@ idAnim::AddFrameCommand
 Returns NULL if no error.
 =====================
 */
-const char* idAnim::AddFrameCommand( const idDeclModelDef* modelDef, int framenum, idLexer& src, const idDict* def )
+idStr idAnim::AddFrameCommand( const idDeclModelDef* modelDef, int framenum, idLexer& src, const idDict* def )
 {
 	int					i;
 	int					index;
@@ -3297,8 +3297,8 @@ bool idDeclModelDef::ParseAnim( idLexer& src, int numDefaultAnims, const idStr& 
 			else if( token == "frame" )
 			{
 				// create a frame command
-				int			framenum;
-				const char*	err;
+				int		framenum;
+				idStr	err;
 
 				// make sure we don't have any line breaks while reading the frame command so the error line # will be correct
 				if( !src.ReadTokenOnLine( &token ) )
@@ -3323,9 +3323,9 @@ bool idDeclModelDef::ParseAnim( idLexer& src, int numDefaultAnims, const idStr& 
 
 				// put the command on the specified frame of the animation
 				err = anim->AddFrameCommand( this, framenum, src, NULL );
-				if( err )
+				if( err.Length() > 0 )
 				{
-					src.Warning( "%s", err );
+					src.Warning( "%s", err.c_str() );
 					MakeDefault();
 					return false;
 				}
