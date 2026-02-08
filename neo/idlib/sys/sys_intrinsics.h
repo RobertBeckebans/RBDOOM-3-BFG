@@ -44,18 +44,26 @@ ID_INLINE_EXTERN float __fmuls( float a, float b )
 {
 	return ( a * b );
 }
+// On ppc64le, Clang defines __fmadds, __fnmsubs, and __fsels as macros
+// mapping to compiler builtins. Skip our definitions when they already exist.
+#ifndef __fmadds
 ID_INLINE_EXTERN float __fmadds( float a, float b, float c )
 {
 	return ( a * b + c );
 }
+#endif
+#ifndef __fnmsubs
 ID_INLINE_EXTERN float __fnmsubs( float a, float b, float c )
 {
 	return ( c - a * b );
 }
+#endif
+#ifndef __fsels
 ID_INLINE_EXTERN float __fsels( float a, float b, float c )
 {
 	return ( a >= 0.0f ) ? b : c;
 }
+#endif
 ID_INLINE_EXTERN float __frcps( float x )
 {
 	return ( 1.0f / x );
