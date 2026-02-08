@@ -82,21 +82,21 @@ public:
 		// byte swapping pointers is pointless because we should never store pointers on disk
 		assert( !IsPointer( c ) );
 
-		if( sizeof( type ) == 1 )
+		if constexpr( sizeof( type ) == 1 )
 		{
 		}
-		else if( sizeof( type ) == 2 )
+		else if constexpr( sizeof( type ) == 2 )
 		{
 			byte* b = ( byte* )&c;
 			SwapBytes( b[0], b[1] );
 		}
-		else if( sizeof( type ) == 4 )
+		else if constexpr( sizeof( type ) == 4 )
 		{
 			byte* b = ( byte* )&c;
 			SwapBytes( b[0], b[3] );
 			SwapBytes( b[1], b[2] );
 		}
-		else if( sizeof( type ) == 8 )
+		else if constexpr( sizeof( type ) == 8 )
 		{
 			byte* b = ( byte* )&c;
 			SwapBytes( b[0], b[7] );
@@ -106,7 +106,7 @@ public:
 		}
 		else
 		{
-			assert( false );
+			static_assert( sizeof( type ) == 0, "Unsupported type size for byte swapping" );
 		}
 	}
 
