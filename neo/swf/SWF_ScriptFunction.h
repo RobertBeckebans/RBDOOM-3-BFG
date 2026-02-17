@@ -4,6 +4,7 @@
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
 Copyright (C) 2015 Robert Beckebans
+Copyright (C) 2023 Harrie van Ginneken
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -28,6 +29,18 @@ If you have questions concerning this license or the applicable additional terms
 */
 #ifndef __SWF_SCRIPTFUNCTION_H__
 #define __SWF_SCRIPTFUNCTION_H__
+#include "SWF_Abc.h"
+
+#define SWF_NATIVE_API_OBJECT_DECLARE( x ) idSwfActionScriptAPI::AddObjectAPI(#x);
+
+class idSwfActionScriptAPI
+{
+public:
+	static idList<idSWFScriptFunction*, TAG_SWF> actionScriptAPIs;
+	static idList<idStr, TAG_SWF>  actionScriptVariableAPIs;
+	static idList<idStr, TAG_SWF>  actionScriptVariableNames;
+	static void AddObjectAPI( idStr var );
+};
 
 /*
 ========================
@@ -43,6 +56,13 @@ public:
 	{
 		return idSWFScriptVar();
 	}; // this should never be hit
+
+	//Used to generate [returnVal].as file with public stub function to be used while compiling actionscript 3.0
+	virtual const char* GetActionScriptAPI( idStr& out )
+	{
+		return "";
+	};
+
 	virtual void			AddRef() {};
 	virtual void			Release() {};
 	virtual idSWFScriptObject* GetPrototype()
@@ -50,6 +70,8 @@ public:
 		return NULL;
 	}
 	virtual void			SetPrototype( idSWFScriptObject* _object ) { }
+
+
 };
 
 /*
@@ -185,7 +207,7 @@ idSWFScriptFunction_Script is a script function that's implemented in action scr
 class idSWFScriptFunction_Script : public idSWFScriptFunction
 {
 public:
-	idSWFScriptFunction_Script() : refCount( 1 ), flags( 0 ), data( NULL ), length( 0 ), prototype( NULL ), defaultSprite( NULL )
+	idSWFScriptFunction_Script() : refCount( 1 ), flags( 0 ), data( NULL ), length( 0 ), prototype( NULL ), defaultSprite( NULL ), methodInfo( NULL ), abcFile( NULL )
 	{
 		registers.SetNum( 4 );
 	}
@@ -217,7 +239,23 @@ public:
 		data = _data;
 		length = _length;
 	}
+	void	SetData( swfMethod_info* _method )
+	{
+		methodInfo = _method;
+	}
+	void	SetAbcFile( SWF_AbcFile* _file )
+	{
+		abcFile = _file;
+	}
+	swfMethod_info* GetMethodInfo()
+	{
+		return methodInfo;
+	}
 	void	SetScope( idList<idSWFScriptObject*>& scope );
+	idList<idSWFScriptObject*, TAG_SWF>* 	GetScope()
+	{
+		return &scope;
+	}
 	void	SetConstants( const idSWFConstantPool& _constants )
 	{
 		constants.Copy( _constants );
@@ -257,9 +295,20 @@ public:
 	idStr CallToScript( idSWFScriptObject* thisObject, const idSWFParmList& parms, const char* filename, int characterID, int actionID );
 
 private:
+	//////////////////////////////////////////////////////////////////////////
+	//////////////////////ABC Wordcode Interpretation/////////////////////////
+	//////////////////////////////////////////////////////////////////////////
+	void findproperty( SWF_AbcFile* file, idSWFStack& stack, idSWFBitStream& bitstream );
+	void findpropstrict( SWF_AbcFile* file, idSWFStack& stack, idSWFBitStream& bitstream );
+	void getlex( SWF_AbcFile* file, idSWFStack& stack, idSWFBitStream& bitstream );
+	void getscopeobject( SWF_AbcFile* file, idSWFStack& stack, idSWFBitStream& bitstream );
+	void pushscope( SWF_AbcFile* file, idSWFStack& stack, idSWFBitStream& bitstream );
+	void getlocal0( SWF_AbcFile* file, idSWFStack& stack, idSWFBitStream& bitstream );
+	void newclass( SWF_AbcFile* file, idSWFStack& stack, idSWFBitStream& bitstream );
+	void callpropvoid( SWF_AbcFile* file, idSWFStack& stack, idSWFBitStream& bitstream );
+	//////////////////////////////////////////////////////////////////////////
+
 	idSWFScriptVar Run( idSWFScriptObject* thisObject, idSWFStack& stack, idSWFBitStream& bitstream );
-
-
 
 	struct ActionBlock
 	{
@@ -280,6 +329,9 @@ private:
 	idStr		ExportToScript( idSWFScriptObject* thisObject, idSWFStack& stack, idSWFBitStream& bitstream, const char* filename, int characterID, int actionID );
 	// RB end
 
+
+	idSWFScriptVar RunAbc( idSWFScriptObject* thisObject, idSWFStack& stack, idSWFBitStream& bitstream );
+	SWF_AbcFile* abcFile;
 private:
 	std::atomic<int>	refCount;
 
@@ -300,7 +352,9 @@ private:
 		const char* name;
 		uint8 reg;
 	};
-	idList< parmInfo_t, TAG_SWF > parameters;
+	idList< parmInfo_t > parameters;
+
+	swfMethod_info* methodInfo;
 };
 
 #endif // !__SWF_SCRIPTFUNCTION_H__

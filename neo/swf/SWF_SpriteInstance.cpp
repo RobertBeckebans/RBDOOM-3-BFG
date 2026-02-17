@@ -3,6 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2023 Harrie van Ginneken
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -45,6 +46,7 @@ idSWFSpriteInstance::idSWFSpriteInstance() :
 	sprite( NULL ),
 	parent( NULL ),
 	depth( 0 ),
+	lastFrame( 0 ),
 	itemIndex( 0 ),
 	materialOverride( NULL ),
 	materialWidth( 0 ),
@@ -54,7 +56,10 @@ idSWFSpriteInstance::idSWFSpriteInstance() :
 	moveToXScale( 1.0f ),
 	moveToYScale( 1.0f ),
 	moveToSpeed( 1.0f ),
-	stereoDepth( 0 )
+	stereoDepth( 0 ),
+	actionScript( NULL ),
+	scriptObject( NULL ),
+	constructed( false )
 {
 }
 
@@ -71,18 +76,25 @@ void idSWFSpriteInstance::Init( idSWFSprite* _sprite, idSWFSpriteInstance* _pare
 
 	frameCount = sprite->frameCount;
 
-	scriptObject = idSWFScriptObject::Alloc();
-	scriptObject->SetPrototype( &spriteInstanceScriptObjectPrototype );
+	if( !scriptObject )
+	{
+		scriptObject = idSWFScriptObject::Alloc();
+		scriptObject->SetPrototype( &spriteInstanceScriptObjectPrototype );
+
+	}
 	scriptObject->SetSprite( this );
 
 	firstRun = true;
 
-	actionScript = idSWFScriptFunction_Script::Alloc();
-
-	idList<idSWFScriptObject*, TAG_SWF> scope;
-	scope.Append( sprite->swf->globals );
-	scope.Append( scriptObject );
-	actionScript->SetScope( scope );
+	//this is already set if this is the main timeline
+	if( !actionScript )
+	{
+		actionScript = idSWFScriptFunction_Script::Alloc();
+		idList<idSWFScriptObject*, TAG_SWF > scope;
+		scope.Append( sprite->swf->globals );
+		scope.Append( scriptObject );
+		actionScript->SetScope( scope );
+	}
 	actionScript->SetDefaultSprite( this );
 
 	for( int i = 0; i < sprite->doInitActions.Num(); i++ )
@@ -122,8 +134,15 @@ void idSWFSpriteInstance::FreeDisplayList()
 {
 	for( int i = 0; i < displayList.Num(); i++ )
 	{
-		sprite->swf->spriteInstanceAllocator.Free( displayList[i].spriteInstance );
-		sprite->swf->textInstanceAllocator.Free( displayList[i].textInstance );
+		if( displayList[i].spriteInstance )
+		{
+			sprite->swf->spriteInstanceAllocator.Free( displayList[i].spriteInstance );
+		}
+
+		if( displayList[i].textInstance )
+		{
+			sprite->swf->textInstanceAllocator.Free( displayList[i].textInstance );
+		}
 	}
 	displayList.SetNum( 0 );	// not calling Clear() so we don't continuously re-allocate memory
 	currentFrame = 0;
@@ -182,16 +201,63 @@ swfDisplayEntry_t* idSWFSpriteInstance::AddDisplayEntry( int depth, int characte
 	idSWFDictionaryEntry* dictEntry = sprite->swf->FindDictionaryEntry( characterID );
 	if( dictEntry != NULL )
 	{
+		if( !dictEntry->resolved )
+		{
+			for( auto& symbol : sprite->swf->symbolClasses.symbols )
+			{
+				if( symbol.tag == characterID )
+				{
+					dictEntry->scriptClass = sprite->swf->globals->Get( symbol.name );
+					dictEntry->name = &symbol.name;
+					break;
+				}
+			}
+			dictEntry->resolved = true;//dictEntry->scriptClass != nullptr;
+		}
+
 		if( dictEntry->type == SWF_DICT_SPRITE )
 		{
 			display.spriteInstance = sprite->swf->spriteInstanceAllocator.Alloc();
+			display.spriteInstance->abcFile = this->abcFile;
+			if( dictEntry->scriptClass.IsValid() )
+			{
+				display.spriteInstance->scriptObject = idSWFScriptObject::Alloc();
+				auto* super = dictEntry->scriptClass.GetObject();
+
+				auto dcopy = super->Get( *dictEntry->name );
+				if( dcopy.IsObject() )
+				{
+					display.spriteInstance->scriptObject->DeepCopy( dcopy.GetObject() );
+				}
+
+				display.spriteInstance->scriptObject->SetPrototype( super );
+			}
+
 			display.spriteInstance->Init( dictEntry->sprite, this, depth );
 			display.spriteInstance->RunTo( 1 );
 		}
 		else if( dictEntry->type == SWF_DICT_EDITTEXT )
 		{
 			display.textInstance = sprite->swf->textInstanceAllocator.Alloc();
+
+			if( dictEntry->scriptClass.IsValid() )
+			{
+				auto* super = dictEntry->scriptClass.GetObject();
+				auto dcopy = super->Get( *dictEntry->name );
+				if( dcopy.IsObject() )
+				{
+					display.textInstance->scriptObject.DeepCopy( dcopy.GetObject() );
+				}
+
+				display.textInstance->scriptObject.SetPrototype( super );
+			}
+
 			display.textInstance->Init( dictEntry->edittext, sprite->GetSWF() );
+		}
+		else if( dictEntry->type == SWF_DICT_TEXT )
+		{
+			//display.textInstance = sprite->swf->textInstanceAllocator.Alloc();
+			//display.textInstance->Init( dictEntry->text, sprite->GetSWF() );
 		}
 	}
 	return &display;
@@ -207,8 +273,14 @@ void idSWFSpriteInstance::RemoveDisplayEntry( int depth )
 	swfDisplayEntry_t* entry = FindDisplayEntry( depth );
 	if( entry != NULL )
 	{
-		sprite->swf->spriteInstanceAllocator.Free( entry->spriteInstance );
-		sprite->swf->textInstanceAllocator.Free( entry->textInstance );
+		if( entry->spriteInstance )
+		{
+			sprite->swf->spriteInstanceAllocator.Free( entry->spriteInstance );
+		}
+		if( entry->textInstance )
+		{
+			sprite->swf->textInstanceAllocator.Free( entry->textInstance );
+		}
 		displayList.RemoveIndex( displayList.IndexOf( entry ) );
 	}
 }
@@ -312,14 +384,73 @@ bool idSWFSpriteInstance::RunActions()
 	if( !isVisible )
 	{
 		actions.SetNum( 0 );
+		functionActions.SetNum( 0 );
 		return false;
 	}
 
-	if( firstRun && scriptObject->HasProperty( "onLoad" ) )
+	if( !constructed )
+	{
+		if( scriptObject->HasProperty( "__constructor__" ) )
+		{
+			//common->DPrintf( "Calling constructor for %s%\n", name.c_str() );
+			idSWFScriptVar instanceInit = scriptObject->Get( "__constructor__" );
+			idSWFScriptFunction_Script* constructor = ( idSWFScriptFunction_Script* )instanceInit.GetFunction();
+			if( !actionScript->GetScope()->Num() )
+			{
+				actionScript->GetScope()->Alloc() = sprite->swf->globals;
+			}
+			actionScript->SetData( constructor->GetMethodInfo() );
+			actionScript->SetAbcFile( abcFile );
+			actionScript->Call( scriptObject, idSWFParmList() );
+			constructed = true;
+		}
+	}
+
+	if( firstRun && ( scriptObject->HasProperty( "__eventDispatcher__" ) || scriptObject->HasProperty( "onLoad" ) ) )
 	{
 		firstRun = false;
 		idSWFScriptVar onLoad = scriptObject->Get( "onLoad" );
-		onLoad.GetFunction()->Call( scriptObject, idSWFParmList() );
+		if( onLoad.IsValid() )
+		{
+			if( !( ( idSWFScriptFunction_Script* )onLoad.GetFunction() )->GetScope()->Num() )
+			{
+				( ( idSWFScriptFunction_Script* )onLoad.GetFunction() )->GetScope()->Append( sprite->swf->globals );
+			}
+
+			onLoad.GetFunction()->Call( scriptObject, idSWFParmList() );
+		}
+
+		if( scriptObject->HasProperty( "__eventDispatcher__" ) )
+		{
+			idSWFScriptObject* eventDispatcher = scriptObject->Get( "__eventDispatcher__" ).GetObject();
+			idSWFScriptVar var = eventDispatcher->Get( "addedToStage" );
+			if( var.IsFunction() )
+			{
+
+				idSWFScriptObject* eventObj = sprite->swf->globals
+											  ->Get( "EventDispatcher" ).GetObject()
+											  ->Get( "Event" ).GetObject()
+											  ->Get( "[Event]" ).GetObject();
+
+				idSWFScriptVar eventParm;
+				eventParm.SetObject( idSWFScriptObject::Alloc() );
+				eventParm.GetObject()->DeepCopy( eventObj );
+
+				idSWFScriptVar eventArg;
+				eventArg.SetObject( idSWFScriptObject::Alloc() );
+				eventArg.GetObject()->Set( "Event", eventParm );
+
+				idSWFParmList parms;
+				parms.Append( eventArg );
+
+				idSWFScriptFunction_Script* eventFunc = ( idSWFScriptFunction_Script* )var.GetFunction();
+
+				actionScript->SetData( eventFunc->GetMethodInfo() );
+				actionScript->SetAbcFile( abcFile );
+				actionScript->Call( scriptObject, parms );
+				parms.Clear();
+			}
+		}
 	}
 
 	if( onEnterFrame.IsFunction() )
@@ -334,6 +465,13 @@ bool idSWFSpriteInstance::RunActions()
 	}
 	actions.SetNum( 0 );
 
+	for( int i = 0; i < functionActions.Num(); i++ )
+	{
+		actionScript->SetData( ( ( idSWFScriptFunction_Script* )functionActions[i] )->GetMethodInfo() );
+		actionScript->Call( scriptObject, idSWFParmList() );
+	}
+	functionActions.SetNum( 0 );
+
 	for( int i = 0; i < displayList.Num(); i++ )
 	{
 		if( displayList[i].spriteInstance != NULL )
@@ -341,6 +479,7 @@ bool idSWFSpriteInstance::RunActions()
 			Prefetch( displayList[i].spriteInstance, 0 );
 		}
 	}
+
 	for( int i = 0; i < displayList.Num(); i++ )
 	{
 		if( displayList[i].spriteInstance != NULL )
@@ -434,7 +573,8 @@ void idSWFSpriteInstance::RunTo( int targetFrame )
 	for( uint32 c = sprite->frameOffsets[ currentFrame ]; c < sprite->frameOffsets[ targetFrame ]; c++ )
 	{
 		idSWFSprite::swfSpriteCommand_t& command = sprite->commands[ c ];
-		if( command.tag == Tag_DoAction && c < firstActionCommand )
+
+		if( command.tag == Tag_DoAction  && c < firstActionCommand )
 		{
 			// Skip DoAction up to the firstActionCommand
 			// This is to properly support skipping to a specific frame
@@ -458,6 +598,22 @@ void idSWFSpriteInstance::RunTo( int targetFrame )
 		}
 	}
 
+	idStr frameId = idStr( "frame" ) + targetFrame ;
+	idSWFScriptObject* obj = scriptObject;
+	if( obj && obj->HasValidProperty( frameId.c_str() ) )
+	{
+		idSWFScriptVar frameFunc = obj->Get( frameId.c_str() );
+		if( frameFunc.IsFunction() )
+		{
+			idSWFScriptFunction* funcPtr = frameFunc.GetFunction();
+			if( !( ( idSWFScriptFunction_Script* )funcPtr )->GetScope()->Num() )
+			{
+				( ( idSWFScriptFunction_Script* )funcPtr )->SetScope( *actionScript->GetScope() );
+			}
+			DoAction( funcPtr );
+		}
+	}
+
 	currentFrame = targetFrame;
 }
 
@@ -473,6 +629,11 @@ void idSWFSpriteInstance::DoAction( idSWFBitStream& bitstream )
 	action.data = bitstream.ReadData( bitstream.Length() );
 	action.dataLength = bitstream.Length();
 #endif
+}
+
+void idSWFSpriteInstance::DoAction( idSWFScriptFunction* function )
+{
+	functionActions.Alloc() = function;
 }
 
 /*
@@ -1026,6 +1187,7 @@ idSWFScriptObject_SpriteInstancePrototype
 
 idSWFScriptObject_SpriteInstancePrototype::idSWFScriptObject_SpriteInstancePrototype()
 {
+	SWF_SPRITE_FUNCTION_SET( addFrameScript );
 	SWF_SPRITE_FUNCTION_SET( duplicateMovieClip );
 	SWF_SPRITE_FUNCTION_SET( gotoAndPlay );
 	SWF_SPRITE_FUNCTION_SET( gotoAndStop );
@@ -1046,6 +1208,7 @@ idSWFScriptObject_SpriteInstancePrototype::idSWFScriptObject_SpriteInstanceProto
 	SWF_SPRITE_NATIVE_VAR_SET( _height );
 	SWF_SPRITE_NATIVE_VAR_SET( _rotation );
 	SWF_SPRITE_NATIVE_VAR_SET( _name );
+	SWF_SPRITE_NATIVE_VAR_SET( name );
 	SWF_SPRITE_NATIVE_VAR_SET( _currentframe );
 	SWF_SPRITE_NATIVE_VAR_SET( _totalframes );
 	SWF_SPRITE_NATIVE_VAR_SET( _target );
@@ -1111,6 +1274,15 @@ SWF_SPRITE_NATIVE_VAR_DEFINE_GET( _height )
 }
 SWF_SPRITE_NATIVE_VAR_DEFINE_SET( _height ) { }
 
+
+SWF_SPRITE_FUNCTION_DEFINE( addFrameScript )
+{
+	SWF_SPRITE_PTHIS_FUNC( "addFrameScript" );
+	// Frame/timeline actionScript code is added implicitly
+	return idSWFScriptVar();
+}
+
+
 SWF_SPRITE_FUNCTION_DEFINE( duplicateMovieClip )
 {
 	SWF_SPRITE_PTHIS_FUNC( "duplicateMovieClip" );
@@ -1157,8 +1329,9 @@ SWF_SPRITE_FUNCTION_DEFINE( gotoAndPlay )
 
 	if( parms.Num() > 0 )
 	{
+		uint32 targetFrame = pThis->FindFrame( parms[0].ToString() );
 		pThis->actions.Clear();
-		pThis->RunTo( pThis->FindFrame( parms[0].ToString() ) );
+		pThis->RunTo( targetFrame );
 		pThis->Play();
 	}
 	else
@@ -1496,6 +1669,14 @@ SWF_SPRITE_NATIVE_VAR_DEFINE_SET( _rotation )
 SWF_SPRITE_NATIVE_VAR_DEFINE_GET( _name )
 {
 	SWF_SPRITE_PTHIS_GET( "_name" );
+	return pThis->name.c_str();
+}
+
+// HarrievG: I'm not sure how much of the 'legacy' underscore prefixed functions need to be changed for as3.0.
+//if more is needed, we should change the macro to work for both legacy AS and 3.0
+SWF_SPRITE_NATIVE_VAR_DEFINE_GET( name )
+{
+	SWF_SPRITE_PTHIS_GET( "name" );
 	return pThis->name.c_str();
 }
 

@@ -3,6 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2023 Harrie van Ginneken
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -89,7 +90,7 @@ private:
 	void TriangulateSoup( idSWFFontGlyph& shape );
 	int FindEarVert( const swfSPLineLoop_t& loop );
 	void AddUniqueVert( idSWFShapeDrawFill& drawFill, const idVec2& start, const idVec2& end );
-
+	void MakeCap( swfSPDrawLine_t& spld, idSWFShapeDrawLine& ld , swfSPMorphEdge_t& edge, bool start );
 };
 
 #endif // !__SWF_SHAPEPARSER_H__
