@@ -224,6 +224,7 @@ private:
 	{
 		// instance
 		{
+			VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME,
 			VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
 		},
 		// layers
@@ -247,7 +248,9 @@ private:
 #endif
 			VK_EXT_LAYER_SETTINGS_EXTENSION_NAME,
 #endif
-			VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME,
+#if defined( VK_EXT_surface_maintenance1 )
+			VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME,
+#endif
 			VK_EXT_DEBUG_REPORT_EXTENSION_NAME
 		},
 		// layers
@@ -263,6 +266,7 @@ private:
 			VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
 			VK_NV_MESH_SHADER_EXTENSION_NAME,
 			VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME,
+			VK_EXT_SAMPLER_FILTER_MINMAX_EXTENSION_NAME,
 #if USE_OPTICK
 			VK_GOOGLE_DISPLAY_TIMING_EXTENSION_NAME,
 #endif
@@ -318,8 +322,8 @@ private:
 	nvrhi::DeviceHandle m_ValidationLayer;
 
 	//nvrhi::CommandListHandle m_BarrierCommandList;		// SRS - no longer needed
-	std::queue<vk::Semaphore> m_PresentSemaphoreQueue;
-	vk::Semaphore m_PresentSemaphore;
+	std::queue<vk::Semaphore> m_AcquireSemaphores;
+	std::vector<vk::Semaphore> m_PresentSemaphores;
 
 	nvrhi::EventQueryHandle m_FrameWaitQuery;
 
@@ -699,28 +703,8 @@ bool DeviceManager_VK::pickPhysicalDevice()
 		}
 
 		// check that this device supports our intended swap chain creation parameters
-		auto surfaceCaps = dev.getSurfaceCapabilitiesKHR( m_WindowSurface );
 		auto surfaceFmts = dev.getSurfaceFormatsKHR( m_WindowSurface );
 		auto surfacePModes = dev.getSurfacePresentModesKHR( m_WindowSurface );
-
-		// SRS/Ricardo Garcia rg3 - clamp swapChainBufferCount to the min/max capabilities of the surface
-		m_DeviceParams.swapChainBufferCount = Max( surfaceCaps.minImageCount, m_DeviceParams.swapChainBufferCount );
-		m_DeviceParams.swapChainBufferCount = surfaceCaps.maxImageCount > 0 ? Min( m_DeviceParams.swapChainBufferCount, surfaceCaps.maxImageCount ) : m_DeviceParams.swapChainBufferCount;
-
-		/* SRS - Don't check extent here since window manager surfaceCaps may restrict extent to something smaller than requested
-			   - Instead, check and clamp extent to window manager surfaceCaps during swap chain creation inside createSwapChain()
-		if( surfaceCaps.minImageExtent.width > requestedExtent.width ||
-				surfaceCaps.minImageExtent.height > requestedExtent.height ||
-				surfaceCaps.maxImageExtent.width < requestedExtent.width ||
-				surfaceCaps.maxImageExtent.height < requestedExtent.height )
-		{
-			errorStream << std::endl << "  - cannot support the requested swap chain size:";
-			errorStream << " requested " << requestedExtent.width << "x" << requestedExtent.height << ", ";
-			errorStream << " available " << surfaceCaps.minImageExtent.width << "x" << surfaceCaps.minImageExtent.height;
-			errorStream << " - " << surfaceCaps.maxImageExtent.width << "x" << surfaceCaps.maxImageExtent.height;
-			deviceIsGood = false;
-		}
-		*/
 
 		bool surfaceFormatPresent = false;
 		for( const vk::SurfaceFormatKHR& surfaceFmt : surfaceFmts )
@@ -1209,6 +1193,9 @@ void DeviceManager_VK::destroySwapChain()
 
 	while( !m_SwapChainImages.empty() )
 	{
+		m_VulkanDevice.destroySemaphore( m_PresentSemaphores.back() );
+		m_PresentSemaphores.pop_back();
+
 		auto sci = m_SwapChainImages.back();
 		m_SwapChainImages.pop_back();
 		sci.rhiHandle = nullptr;
@@ -1228,13 +1215,6 @@ bool DeviceManager_VK::createSwapChain()
 		vk::Format( nvrhi::vulkan::convertFormat( m_DeviceParams.swapChainFormat ) ),
 		vk::ColorSpaceKHR::eSrgbNonlinear
 	};
-
-	// SRS - Clamp swap chain extent within the range supported by the device / window surface
-	auto surfaceCaps = m_VulkanPhysicalDevice.getSurfaceCapabilitiesKHR( m_WindowSurface );
-	m_DeviceParams.backBufferWidth = idMath::ClampInt( surfaceCaps.minImageExtent.width, surfaceCaps.maxImageExtent.width, m_DeviceParams.backBufferWidth );
-	m_DeviceParams.backBufferHeight = idMath::ClampInt( surfaceCaps.minImageExtent.height, surfaceCaps.maxImageExtent.height, m_DeviceParams.backBufferHeight );
-
-	vk::Extent2D extent = vk::Extent2D( m_DeviceParams.backBufferWidth, m_DeviceParams.backBufferHeight );
 
 	std::unordered_set<uint32_t> uniqueQueues =
 	{
@@ -1261,6 +1241,29 @@ bool DeviceManager_VK::createSwapChain()
 		default:
 			presentMode = vk::PresentModeKHR::eFifo;	// eFifo always supported according to Vulkan spec
 	}
+
+	// SRS - Get surface capabilities for the selected present mode if supported by implementation (note: image counts can differ based on present mode)
+	vk::PhysicalDeviceSurfaceInfo2KHR deviceSurfaceInfo;
+	deviceSurfaceInfo.surface = m_WindowSurface;
+#if defined( VK_EXT_surface_maintenance1 )
+	vk::SurfacePresentModeEXT surfacePresentMode;
+	if( IsVulkanInstanceExtensionEnabled( VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME ) )
+	{
+		surfacePresentMode.presentMode = presentMode;
+		deviceSurfaceInfo.pNext = &surfacePresentMode;
+	}
+#endif
+	auto surfaceCaps2 = m_VulkanPhysicalDevice.getSurfaceCapabilities2KHR( deviceSurfaceInfo );
+
+	// SRS/Ricardo Garcia rg3 - clamp swapChainBufferCount to the min/max capabilities of the surface (note: start with default value set to NUM_FRAME_DATA frames-in-flight)
+	m_DeviceParams.swapChainBufferCount = Max( surfaceCaps2.surfaceCapabilities.minImageCount, NUM_FRAME_DATA );
+	m_DeviceParams.swapChainBufferCount = surfaceCaps2.surfaceCapabilities.maxImageCount > 0 ? Min( m_DeviceParams.swapChainBufferCount, surfaceCaps2.surfaceCapabilities.maxImageCount ) : m_DeviceParams.swapChainBufferCount;
+
+	// SRS - Clamp swap chain extent within the range supported by the device / window surface
+	m_DeviceParams.backBufferWidth = idMath::ClampInt( surfaceCaps2.surfaceCapabilities.minImageExtent.width, surfaceCaps2.surfaceCapabilities.maxImageExtent.width, m_DeviceParams.backBufferWidth );
+	m_DeviceParams.backBufferHeight = idMath::ClampInt( surfaceCaps2.surfaceCapabilities.minImageExtent.height, surfaceCaps2.surfaceCapabilities.maxImageExtent.height, m_DeviceParams.backBufferHeight );
+
+	vk::Extent2D extent = vk::Extent2D( m_DeviceParams.backBufferWidth, m_DeviceParams.backBufferHeight );
 
 	auto desc = vk::SwapchainCreateInfoKHR()
 				.setSurface( m_WindowSurface )
@@ -1304,6 +1307,8 @@ bool DeviceManager_VK::createSwapChain()
 
 		sci.rhiHandle = m_NvrhiDevice->createHandleForNativeTexture( nvrhi::ObjectTypes::VK_Image, nvrhi::Object( sci.image ), textureDesc );
 		m_SwapChainImages.push_back( sci );
+
+		m_PresentSemaphores.push_back( m_VulkanDevice.createSemaphore( vk::SemaphoreCreateInfo() ) );
 	}
 
 	m_SwapChainIndex = 0;
@@ -1453,12 +1458,11 @@ bool DeviceManager_VK::CreateDeviceAndSwapChain()
 
 	//m_BarrierCommandList = m_NvrhiDevice->createCommandList();		// SRS - no longer needed
 
-	// SRS - Give each swapchain image its own semaphore in case of overlap (e.g. MoltenVK async queue submit)
-	for( int i = 0; i < m_SwapChainImages.size(); i++ )
+	// SRS - Give each frame-in-flight an image acquire semaphore in case of overlap due to async operations
+	for( int i = 0; i < NUM_FRAME_DATA; i++ )
 	{
-		m_PresentSemaphoreQueue.push( m_VulkanDevice.createSemaphore( vk::SemaphoreCreateInfo() ) );
+		m_AcquireSemaphores.push( m_VulkanDevice.createSemaphore( vk::SemaphoreCreateInfo() ) );
 	}
-	m_PresentSemaphore = m_PresentSemaphoreQueue.front();
 
 	m_FrameWaitQuery = m_NvrhiDevice->createEventQuery();
 	m_NvrhiDevice->setEventQuery( m_FrameWaitQuery, nvrhi::CommandQueue::Graphics );
@@ -1485,12 +1489,11 @@ void DeviceManager_VK::DestroyDeviceAndSwapChain()
 
 	m_FrameWaitQuery = nullptr;
 
-	for( int i = 0; i < m_SwapChainImages.size(); i++ )
+	for( int i = 0; i < NUM_FRAME_DATA; i++ )
 	{
-		m_VulkanDevice.destroySemaphore( m_PresentSemaphoreQueue.front() );
-		m_PresentSemaphoreQueue.pop();
+		m_VulkanDevice.destroySemaphore( m_AcquireSemaphores.front() );
+		m_AcquireSemaphores.pop();
 	}
-	m_PresentSemaphore = vk::Semaphore();
 
 	//m_BarrierCommandList = nullptr;		// SRS - no longer needed
 
@@ -1557,20 +1560,24 @@ void DeviceManager_VK::BeginFrame()
 
 	const vk::Result res = m_VulkanDevice.acquireNextImageKHR( m_SwapChain,
 						   std::numeric_limits<uint64_t>::max(), // timeout
-						   m_PresentSemaphore,
+						   m_AcquireSemaphores.front(),
 						   vk::Fence(),
 						   &m_SwapChainIndex );
 
 	assert( res == vk::Result::eSuccess || res == vk::Result::eSuboptimalKHR );
 
-	m_NvrhiDevice->queueWaitForSemaphore( nvrhi::CommandQueue::Graphics, m_PresentSemaphore, 0 );
+	m_NvrhiDevice->queueWaitForSemaphore( nvrhi::CommandQueue::Graphics, m_AcquireSemaphores.front(), 0 );
+
+	// SRS - Cycle the acquire semaphore queue and setup for the next frame
+	m_AcquireSemaphores.push( m_AcquireSemaphores.front() );
+	m_AcquireSemaphores.pop();
 }
 
 void DeviceManager_VK::EndFrame()
 {
 	OPTICK_CATEGORY( "Vulkan_EndFrame", Optick::Category::Wait );
 
-	m_NvrhiDevice->queueSignalSemaphore( nvrhi::CommandQueue::Graphics, m_PresentSemaphore, 0 );
+	m_NvrhiDevice->queueSignalSemaphore( nvrhi::CommandQueue::Graphics, m_PresentSemaphores[ m_SwapChainIndex ], 0 );
 
 	// SRS - Don't need barrier commandlist if EndFrame() is called before executeCommandList() in idRenderBackend::GL_EndFrame()
 	//m_BarrierCommandList->open(); // umm...
@@ -1608,7 +1615,7 @@ void DeviceManager_VK::Present()
 
 	vk::PresentInfoKHR info = vk::PresentInfoKHR()
 							  .setWaitSemaphoreCount( 1 )
-							  .setPWaitSemaphores( &m_PresentSemaphore )
+							  .setPWaitSemaphores( &m_PresentSemaphores[ m_SwapChainIndex ] )
 							  .setSwapchainCount( 1 )
 							  .setPSwapchains( &m_SwapChain )
 							  .setPImageIndices( &m_SwapChainIndex )
@@ -1616,11 +1623,6 @@ void DeviceManager_VK::Present()
 
 	const vk::Result res = m_PresentQueue.presentKHR( &info );
 	assert( res == vk::Result::eSuccess || res == vk::Result::eErrorOutOfDateKHR || res == vk::Result::eSuboptimalKHR );
-
-	// SRS - Cycle the semaphore queue and setup m_PresentSemaphore for the next swapchain image
-	m_PresentSemaphoreQueue.pop();
-	m_PresentSemaphoreQueue.push( m_PresentSemaphore );
-	m_PresentSemaphore = m_PresentSemaphoreQueue.front();
 
 	// SRS - The following event queries provide explicit CPU/GPU synchronization (supports validation layer if enabled)
 	if constexpr( NUM_FRAME_DATA > 2 )
@@ -1659,20 +1661,18 @@ void DeviceManager_VK::Present()
 				OPTICK_STORAGE_EVENT( mvkSubmitEventStorage, mvkSubmitEventDesc, mvkPreviousSubmitTime, mvkPreviousSubmitTime + mvkPreviousSubmitWaitTime );
 				OPTICK_STORAGE_TAG( mvkSubmitEventStorage, mvkPreviousSubmitTime + mvkPreviousSubmitWaitTime / 2, "Frame", idLib::frameNumber - 2 );
 
-				// SRS - select latest acquire time if hashes match and we didn't retrieve a new image, or vsync is on, or other high-load conditions
-				double mvkLatestAcquireHash = mvkPerfStats.queue.retrieveCAMetalDrawable.latest + mvkPerfStats.queue.retrieveCAMetalDrawable.previous;
-				bool useLatestAcquire = ( mvkLatestAcquireHash != mvkPreviousAcquireHash ) && ( mvkPerfStats.queue.waitSubmitCommandBuffers.latest > mvkPerfStats.queue.waitSubmitCommandBuffers.previous || mvkPerfStats.queue.commandBufferEncoding.latest > mvkPerfStats.queue.commandBufferEncoding.previous ) && ( mvkPerfStats.queue.retrieveCAMetalDrawable.latest > mvkPerfStats.queue.retrieveCAMetalDrawable.previous );
-				int64_t mvkAcquireWaitTime = mvkLatestAcquireHash == mvkPreviousAcquireHash || r_swapInterval.GetInteger() > 0 || useLatestAcquire ? mvkPerfStats.queue.retrieveCAMetalDrawable.latest * 1000000.0 : mvkPerfStats.queue.retrieveCAMetalDrawable.previous * 1000000.0;
-
 				// SRS - select latest presented frame if we are running synchronous, otherwise select previous presented frame as reference
 				int64_t mvkAcquireStartTime = mvkPreviousSubmitTime + mvkPreviousSubmitWaitTime;
 				int32_t frameNumberTag = idLib::frameNumber - 2;
 				if( r_mvkSynchronousQueueSubmits.GetBool() )
 				{
 					mvkAcquireStartTime = mvkLatestSubmitTime + int64_t( mvkPerfStats.queue.waitSubmitCommandBuffers.latest * 1000000.0 );
-					mvkAcquireWaitTime = mvkPerfStats.queue.retrieveCAMetalDrawable.latest * 1000000.0;
 					frameNumberTag = idLib::frameNumber - 1;
 				}
+
+				// SRS - select latest acquire time if hashes match and we didn't retrieve a new image or if running synchronous, otherwise select previous
+				double mvkLatestAcquireHash = mvkPerfStats.queue.retrieveCAMetalDrawable.latest + mvkPerfStats.queue.retrieveCAMetalDrawable.previous;
+				int64_t mvkAcquireWaitTime = ( mvkLatestAcquireHash == mvkPreviousAcquireHash || r_mvkSynchronousQueueSubmits.GetBool() || r_swapInterval.GetInteger() > 0 ? mvkPerfStats.queue.retrieveCAMetalDrawable.latest : mvkPerfStats.queue.retrieveCAMetalDrawable.previous ) * 1000000.0;
 
 				// SRS - create custom Optick event that displays MoltenVK's image acquire waiting time
 				OPTICK_STORAGE_EVENT( mvkAcquireEventStorage, mvkAcquireEventDesc, mvkAcquireStartTime, mvkAcquireStartTime + mvkAcquireWaitTime );
@@ -1681,13 +1681,21 @@ void DeviceManager_VK::Present()
 				// SRS - when Optick is active, use max of MoltenVK's latest/previous encoding time to select game command buffer vs. Optick's command buffer
 				int64_t mvkEncodeStartTime = mvkAcquireStartTime + mvkAcquireWaitTime;
 				mvkEncodeTime = Max( mvkPerfStats.queue.commandBufferEncoding.latest, mvkPerfStats.queue.commandBufferEncoding.previous ) * 1000000.0;
-				mvkEncodeTime = ( mvkEncodeTime > mvkAcquireWaitTime ) && ( ( mvkPerfStats.queue.commandBufferEncoding.previous > mvkPerfStats.queue.commandBufferEncoding.latest && Max( mvkPreviousSubmitWaitTime, int64_t( mvkPerfStats.queue.waitSubmitCommandBuffers.previous * 1000000.0 ) ) > int64_t( mvkPerfStats.queue.waitSubmitCommandBuffers.latest * 1000000.0 ) ) || useLatestAcquire ) ? mvkEncodeTime - mvkAcquireWaitTime : mvkEncodeTime;
+				if( mvkEncodeTime > mvkPerfStats.queue.retrieveCAMetalDrawable.latest * 1000000.0 && ( mvkPerfStats.queue.retrieveCAMetalDrawable.latest > mvkPerfStats.queue.retrieveCAMetalDrawable.previous || r_mvkSynchronousQueueSubmits.GetBool() || r_swapInterval.GetInteger() > 0 ) )
+				{
+					mvkEncodeTime = mvkEncodeTime - mvkPerfStats.queue.retrieveCAMetalDrawable.latest * 1000000.0;
+				}
 
 				// SRS - create custom Optick event that displays MoltenVK's Vulkan-to-Metal encoding time
 				OPTICK_STORAGE_EVENT( mvkEncodeEventStorage, mvkEncodeEventDesc, mvkEncodeStartTime, mvkEncodeStartTime + mvkEncodeTime );
 				OPTICK_STORAGE_TAG( mvkEncodeEventStorage, mvkEncodeStartTime + mvkEncodeTime / 2, "Frame", frameNumberTag );
 
+				// SRS - when Optick is active, use min of MoltenVK's latest/previous submit wait time to select game command buffer vs. Optick's command buffer
 				mvkPreviousSubmitWaitTime = Min( mvkPerfStats.queue.waitSubmitCommandBuffers.latest, mvkPerfStats.queue.waitSubmitCommandBuffers.previous ) * 1000000.0;
+				if( mvkAcquireWaitTime == int64_t( mvkPerfStats.queue.retrieveCAMetalDrawable.previous * 1000000.0 ) && mvkEncodeTime == int64_t( mvkPerfStats.queue.commandBufferEncoding.previous * 1000000.0 ) && r_swapInterval.GetInteger() == 0 )
+				{
+					mvkPreviousSubmitWaitTime = mvkPerfStats.queue.waitSubmitCommandBuffers.previous * 1000000.0;
+				}
 				mvkPreviousAcquireHash = mvkLatestAcquireHash;
 			}
 #endif
