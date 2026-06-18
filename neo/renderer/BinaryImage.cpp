@@ -838,6 +838,89 @@ void idBinaryImage::LoadCubeFromMemory( int width, const byte* pics[6], int numL
 
 /*
 ========================
+idBinaryImage::LoadCubeMipchainFromMemory
+
+Like LoadCubeFromMemory, but takes one SUPPLIED prefiltered face per mip level and never
+box-downsamples. faceMips is indexed [side * numLevels + level]; each face is R11G11B10F.
+========================
+*/
+void idBinaryImage::LoadCubeMipchainFromMemory(int width, const byte* const* faceMips, int numLevels, textureFormat_t& textureFormat)
+{
+	fileData.textureType = DTT_CUBIC;
+	fileData.format = textureFormat;
+	fileData.colorFormat = CFM_DEFAULT;
+	fileData.height = fileData.width = width;
+	fileData.numLevels = numLevels;
+
+	images.SetNum(numLevels * 6);
+
+	for (int side = 0; side < 6; side++)
+	{
+		int scaledWidth = width;
+		for (int level = 0; level < numLevels; level++)
+		{
+			idBinaryImageData& img = images[level * 6 + side];
+			const byte* pic = faceMips[side * numLevels + level];	// this level's prefiltered face
+
+			ALIGN16(byte padBlock[64]);
+			int padSize;
+			const byte* padSrc;
+			if (scaledWidth < 4 && (textureFormat == FMT_BC6H || textureFormat == FMT_BC7 || textureFormat == FMT_DXT1 || textureFormat == FMT_DXT5))
+			{
+				PadImageTo4x4(pic, scaledWidth, scaledWidth, padBlock);
+				padSize = 4;
+				padSrc = padBlock;
+			}
+			else
+			{
+				padSize = scaledWidth;
+				padSrc = pic;
+			}
+
+			img.level = level;
+			img.destZ = side;
+			img.width = padSize;
+			img.height = padSize;
+
+			if (textureFormat == FMT_BC6H)
+			{
+#if !defined(USE_INTRINSICS_SSE) && !defined(USE_INTRINSICS_NEON)
+				// generic fallback, same as LoadCubeFromMemory: store uncompressed R11G11B10F
+				fileData.format = textureFormat = FMT_R11G11B10F;
+				img.Alloc(padSize * padSize * 4);
+				memcpy(img.data, pic, img.dataSize);
+#else
+				img.Alloc(padSize * padSize);
+				idDxtEncoder dxt;
+				if (image_highQualityCompression.GetBool())
+				{
+					dxt.CompressImageR11G11B10_BC6HQ(padSrc, img.data, padSize, padSize);
+				}
+				else
+				{
+					dxt.CompressImageR11G11B10_BC6Fast(padSrc, img.data, padSize, padSize);
+				}
+#endif
+			}
+			else if (textureFormat == FMT_R11G11B10F)
+			{
+				img.Alloc(padSize * padSize * 4);
+				memcpy(img.data, pic, img.dataSize);
+			}
+			else
+			{
+				fileData.format = textureFormat = FMT_RGBA8;
+				img.Alloc(padSize * padSize * 4);
+				memcpy(img.data, pic, img.dataSize);
+			}
+
+			scaledWidth = Max(1, scaledWidth >> 1);	// advance size only — NO downsample
+		}
+	}
+}
+
+/*
+========================
 idBinaryImage::WriteGeneratedFile
 ========================
 */

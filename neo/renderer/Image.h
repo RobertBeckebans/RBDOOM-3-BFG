@@ -261,6 +261,8 @@ typedef enum
 	// ^-- used up until RBDOOM-3-BFG 1.3
 	CF_SINGLE,      // SP: A single texture cubemap. All six sides in one image.
 	CF_QUAKE1,		// RB: _ft, _bk, etc, rotated and flipped as needed before sending to GL
+	CF_NATIVE_HDR,	// HDR float cube
+
 } cubeFiles_t;
 
 typedef void ( *ImageGeneratorFunction )( idImage* image, nvrhi::ICommandList* commandList );

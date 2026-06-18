@@ -1135,7 +1135,7 @@ void idImageManager::CacheGlobalIlluminationData_f( const idCmdArgs& args )
 		{
 			if( idStr::FindText( filename, "_spec" ) != -1 )
 			{
-				globalImages->ImageFromFile( filename, TF_DEFAULT, TR_CLAMP, TD_HDR_LIGHTPROBE, CF_2D_PACKED_MIPCHAIN );
+				globalImages->ImageFromFile( filename, TF_DEFAULT, TR_CLAMP, TD_HDR_LIGHTPROBE, CF_NATIVE_HDR );
 			}
 			else
 			{

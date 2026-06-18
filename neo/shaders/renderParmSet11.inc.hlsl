@@ -80,6 +80,10 @@ struct renderParmSet11_t
 
 	float4 rpShadowMatrices[6 * 4];
 	float4 rpShadowAtlasOffsets[6];
+	
+    float4 rpUser0; // (enabled, type, falloff, pattern)
+    float4 rpUser1; // (falloffExp, innerRadius, shapeExp, penumbra)
+    float4 rpUser2; // (patternStrength, patternScale, patternPhase, energyClamp)
 };
 
 #if USE_PUSH_CONSTANTS

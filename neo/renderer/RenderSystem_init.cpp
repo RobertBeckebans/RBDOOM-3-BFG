@@ -6,6 +6,7 @@ Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
 Copyright (C) 2014-2024 Robert Beckebans
 Copyright (C) 2014-2016 Kot in Action Creative Artel
 Copyright (C) 2022 Stephen Pridham
+Copyright (C) 2026 Phillip Melnichenko
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -1049,6 +1050,170 @@ bool R_ReadPixelsRGB16F( nvrhi::IDevice* device, CommonRenderPasses* pPasses, nv
 	device->unmapStagingTexture( stagingTexture );
 
 	return ( !isCorrupted );
+}
+
+// shared tail of R_ReadPixelsRGB16F
+static bool R_MapConvertFilterRGB16F(nvrhi::IDevice* device, nvrhi::IStagingTexture* stagingTexture,
+	const nvrhi::TextureDesc& desc, int picWidth, int picHeight, byte** pic)
+{
+	size_t rowPitch = 0;
+	void* pData = device->mapStagingTexture(stagingTexture, nvrhi::TextureSlice(), nvrhi::CpuAccessMode::Read, &rowPitch);
+
+	if (!pData)
+	{
+		return false;
+	}
+
+	uint16_t* newData = nullptr;
+
+	if (rowPitch != desc.width * 8)
+	{
+		newData = new uint16_t[desc.width * desc.height * 2];
+
+		for (uint32_t row = 0; row < desc.height; row++)
+		{
+			memcpy(newData + row * desc.width, static_cast<char*>(pData) + row * rowPitch, desc.width * sizeof(uint16_t) * 4);
+		}
+
+		pData = newData;
+	}
+
+	int pix = picWidth * picHeight;
+	const int bufferSize = pix * 3 * 2;
+
+	void* floatRGB16F = R_StaticAlloc(bufferSize);
+	*pic = (byte*)floatRGB16F;
+
+	// copy from RGBA16F to RGB16F
+	uint16_t* data = static_cast<uint16_t*>(pData);
+	uint16_t* outData = static_cast<uint16_t*>(floatRGB16F);
+
+	for (uint32_t i = 0; i < (desc.width * desc.height); i++)
+	{
+		outData[i * 3 + 0] = data[i * 4 + 0];
+		outData[i * 3 + 1] = data[i * 4 + 1];
+		outData[i * 3 + 2] = data[i * 4 + 2];
+	}
+
+	// RB: filter out garbage and reset it to black (rare, high visual impact).
+	// Safe for the depth target too: it stores hardware depth in [0,1] at this point,
+	// so the luminance > 30 test can never trip on it.
+	bool isCorrupted = false;
+
+	const idVec3 LUMINANCE_LINEAR(0.299f, 0.587f, 0.144f);
+	idVec3 rgb;
+
+	for (uint32_t i = 0; i < (desc.width * desc.height); i++)
+	{
+		rgb.x = F16toF32(outData[i * 3 + 0]);
+		rgb.y = F16toF32(outData[i * 3 + 1]);
+		rgb.z = F16toF32(outData[i * 3 + 2]);
+
+		if (IsNAN(rgb.x) || IsNAN(rgb.y) || IsNAN(rgb.z))
+		{
+			isCorrupted = true;
+			break;
+		}
+
+		float luminance = rgb * LUMINANCE_LINEAR;
+		if (luminance > 30.0f)
+		{
+			isCorrupted = true;
+			break;
+		}
+	}
+
+	if (isCorrupted)
+	{
+		for (uint32_t i = 0; i < (desc.width * desc.height); i++)
+		{
+			outData[i * 3 + 0] = F32toF16(0);
+			outData[i * 3 + 1] = F32toF16(0);
+			outData[i * 3 + 2] = F32toF16(0);
+		}
+	}
+
+	if (newData)
+	{
+		delete[] newData;
+		newData = nullptr;
+	}
+
+	device->unmapStagingTexture(stagingTexture);
+
+	return (!isCorrupted);
+}
+
+//reads the envprobe COLOUR and DEPTH targets with one command list,
+bool R_ReadProbeColorAndDepthRGB16F(nvrhi::IDevice* device, CommonRenderPasses* pPasses,
+	nvrhi::ITexture* colorTexture, nvrhi::ITexture* depthTexture,
+	byte** colorPic, byte** depthPic, int picWidth, int picHeight)
+{
+	*colorPic = NULL;
+	*depthPic = NULL;
+
+	nvrhi::CommandListHandle commandList = device->createCommandList();
+	commandList->open();
+
+	//colour source (envprobeHDRImage: RGBA16F render target -> direct copy path)
+	nvrhi::TextureDesc colorDesc = colorTexture->getDesc();
+	nvrhi::TextureHandle colorTemp;
+	nvrhi::FramebufferHandle colorFramebuffer;
+
+	commandList->beginTrackingTextureState(colorTexture, nvrhi::TextureSubresourceSet(0, 1, 0, 1), nvrhi::ResourceStates::RenderTarget);
+
+	switch (colorDesc.format)
+	{
+	case nvrhi::Format::RGBA16_FLOAT:
+		colorTemp = colorTexture;
+		break;
+	default:
+		colorDesc.format = nvrhi::Format::RGBA16_FLOAT;
+		colorDesc.isRenderTarget = true;
+		colorDesc.initialState = nvrhi::ResourceStates::RenderTarget;
+		colorDesc.keepInitialState = true;
+
+		colorTemp = device->createTexture(colorDesc);
+		colorFramebuffer = device->createFramebuffer(nvrhi::FramebufferDesc().addColorAttachment(colorTemp));
+
+		pPasses->BlitTexture(commandList, colorFramebuffer, colorTexture);
+	}
+
+	nvrhi::StagingTextureHandle colorStaging = device->createStagingTexture(colorDesc, nvrhi::CpuAccessMode::Read);
+	commandList->copyTexture(colorStaging, nvrhi::TextureSlice(), colorTemp, nvrhi::TextureSlice());
+
+	commandList->setTextureState(colorTexture, nvrhi::TextureSubresourceSet(0, 1, 0, 1), nvrhi::ResourceStates::RenderTarget);
+	commandList->commitBarriers();
+
+	//depth source (envprobeDepthImage: depth format -> blit to RGBA16F, then copy) 
+	nvrhi::TextureDesc depthDesc = depthTexture->getDesc();
+
+	commandList->beginTrackingTextureState(depthTexture, nvrhi::TextureSubresourceSet(0, 1, 0, 1), nvrhi::ResourceStates::DepthWrite);
+
+	depthDesc.format = nvrhi::Format::RGBA16_FLOAT;
+	depthDesc.isRenderTarget = true;
+	depthDesc.initialState = nvrhi::ResourceStates::RenderTarget;
+	depthDesc.keepInitialState = true;
+
+	nvrhi::TextureHandle depthTemp = device->createTexture(depthDesc);
+	nvrhi::FramebufferHandle depthFramebuffer = device->createFramebuffer(nvrhi::FramebufferDesc().addColorAttachment(depthTemp));
+
+	pPasses->BlitTexture(commandList, depthFramebuffer, depthTexture);
+
+	nvrhi::StagingTextureHandle depthStaging = device->createStagingTexture(depthDesc, nvrhi::CpuAccessMode::Read);
+	commandList->copyTexture(depthStaging, nvrhi::TextureSlice(), depthTemp, nvrhi::TextureSlice());
+
+	commandList->setTextureState(depthTexture, nvrhi::TextureSubresourceSet(0, 1, 0, 1), nvrhi::ResourceStates::DepthWrite);
+	commandList->commitBarriers();
+
+	commandList->close();
+	device->executeCommandList(commandList);
+
+	bool colorOK = R_MapConvertFilterRGB16F(device, colorStaging, colorDesc, picWidth, picHeight, colorPic);	// waits for the GPU
+	bool depthOK = R_MapConvertFilterRGB16F(device, depthStaging, depthDesc, picWidth, picHeight, depthPic);	// returns immediately
+	(void)colorOK;																								// colour corruption is already zeroed in-buffer
+
+	return depthOK;
 }
 
 /*

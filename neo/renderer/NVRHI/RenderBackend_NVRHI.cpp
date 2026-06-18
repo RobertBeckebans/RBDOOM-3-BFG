@@ -446,12 +446,9 @@ void idRenderBackend::DrawElementsWithCounters( const drawSurf_t* surf, bool sha
 	{
 		GetCurrentBindingLayout( bindingLayoutType );
 
-		bool uniformsLayoutChanged = prevBindingLayoutType >= 0 ? ( *layouts )[0] != ( *renderProgManager.GetBindingLayout( prevBindingLayoutType ) )[0] : true;
-
 		for( int i = 0; i < layouts->Num(); i++ )
 		{
-			// SRS - Update currentBindingSets[0] if uniforms binding layout has changed, can happen with push constants even if binding set descriptions match
-			if( !currentBindingSets[i] || *currentBindingSets[i]->getDesc() != pendingBindingSetDescs[bindingLayoutType][i] || ( uniformsLayoutChanged && i == 0 ) )
+			if( !currentBindingSets[i] || *currentBindingSets[i]->getDesc() != pendingBindingSetDescs[bindingLayoutType][i] || bindingLayoutType != prevBindingLayoutType )
 			{
 				currentBindingSets[i] = bindingCache.GetOrCreateBindingSet( pendingBindingSetDescs[bindingLayoutType][i], ( *layouts )[i] );
 				changeState = true;
@@ -540,11 +537,6 @@ void idRenderBackend::DrawElementsWithCounters( const drawSurf_t* surf, bool sha
 		commandList->setGraphicsState( state );
 
 		renderProgManager.CommitPushConstants( commandList, bindingLayoutType );
-
-		// keep track of last context to avoid setting up the binding layout and binding set again.
-		// SRS - Save context only if state actually changed - to keep currentBindingSets in sync
-		prevContext = context;
-		prevBindingLayoutType = bindingLayoutType;
 	}
 
 	//
@@ -555,6 +547,10 @@ void idRenderBackend::DrawElementsWithCounters( const drawSurf_t* surf, bool sha
 	args.startIndexLocation = currentIndexOffset / sizeof( triIndex_t );
 	args.vertexCount = surf->numIndexes;
 	commandList->drawIndexed( args );
+
+	// keep track of last context to avoid setting up the binding layout and binding set again.
+	prevContext = context;
+	prevBindingLayoutType = bindingLayoutType;
 
 	if( shadowCounter )
 	{
@@ -738,7 +734,10 @@ void idRenderBackend::GetCurrentBindingLayout( int type )
 				nvrhi::BindingSetItem::Texture_SRV( 7, ( nvrhi::ITexture* )GetImageAt( 7 )->GetTextureID() ),
 				nvrhi::BindingSetItem::Texture_SRV( 8, ( nvrhi::ITexture* )GetImageAt( 8 )->GetTextureID() ),
 				nvrhi::BindingSetItem::Texture_SRV( 9, ( nvrhi::ITexture* )GetImageAt( 9 )->GetTextureID() ),
-				nvrhi::BindingSetItem::Texture_SRV( 10, ( nvrhi::ITexture* )GetImageAt( 10 )->GetTextureID() )
+				nvrhi::BindingSetItem::Texture_SRV( 10, ( nvrhi::ITexture* )GetImageAt( 10 )->GetTextureID() ),
+				nvrhi::BindingSetItem::Texture_SRV( 12, (nvrhi::ITexture* )GetImageAt( 12 )->GetTextureID() ),
+				nvrhi::BindingSetItem::Texture_SRV( 13, (nvrhi::ITexture* )GetImageAt( 13 )->GetTextureID() ),	
+				nvrhi::BindingSetItem::Texture_SRV( 14, (nvrhi::ITexture* )GetImageAt( 14 )->GetTextureID() )	
 			};
 		}
 		else
@@ -748,7 +747,10 @@ void idRenderBackend::GetCurrentBindingLayout( int type )
 			desc[2].bindings[2].resourceHandle = ( nvrhi::ITexture* )GetImageAt( 7 )->GetTextureID();
 			desc[2].bindings[3].resourceHandle = ( nvrhi::ITexture* )GetImageAt( 8 )->GetTextureID();
 			desc[2].bindings[4].resourceHandle = ( nvrhi::ITexture* )GetImageAt( 9 )->GetTextureID();
-			desc[2].bindings[5].resourceHandle = ( nvrhi::ITexture* )GetImageAt( 10 )->GetTextureID();
+			desc[2].bindings[5].resourceHandle = ( nvrhi::ITexture*)GetImageAt( 10 )->GetTextureID();
+			desc[2].bindings[6].resourceHandle = ( nvrhi::ITexture*)GetImageAt( 12 )->GetTextureID();
+			desc[2].bindings[7].resourceHandle = ( nvrhi::ITexture*)GetImageAt( 13 )->GetTextureID();	
+			desc[2].bindings[8].resourceHandle = ( nvrhi::ITexture*)GetImageAt( 14 )->GetTextureID();	
 		}
 
 		if( R_UsePixelatedLook() )
@@ -827,7 +829,10 @@ void idRenderBackend::GetCurrentBindingLayout( int type )
 				nvrhi::BindingSetItem::Texture_SRV( 7, ( nvrhi::ITexture* )GetImageAt( 7 )->GetTextureID() ),
 				nvrhi::BindingSetItem::Texture_SRV( 8, ( nvrhi::ITexture* )GetImageAt( 8 )->GetTextureID() ),
 				nvrhi::BindingSetItem::Texture_SRV( 9, ( nvrhi::ITexture* )GetImageAt( 9 )->GetTextureID() ),
-				nvrhi::BindingSetItem::Texture_SRV( 10, ( nvrhi::ITexture* )GetImageAt( 10 )->GetTextureID() )
+				nvrhi::BindingSetItem::Texture_SRV( 10, ( nvrhi::ITexture* )GetImageAt( 10 )->GetTextureID() ),
+				nvrhi::BindingSetItem::Texture_SRV( 12, ( nvrhi::ITexture* )GetImageAt( 12 )->GetTextureID() ),
+				nvrhi::BindingSetItem::Texture_SRV( 13, ( nvrhi::ITexture* )GetImageAt( 13 )->GetTextureID() ),	
+				nvrhi::BindingSetItem::Texture_SRV( 14, ( nvrhi::ITexture* )GetImageAt( 14 )->GetTextureID() )	
 			};
 		}
 		else
@@ -838,6 +843,9 @@ void idRenderBackend::GetCurrentBindingLayout( int type )
 			desc[2].bindings[3].resourceHandle = ( nvrhi::ITexture* )GetImageAt( 8 )->GetTextureID();
 			desc[2].bindings[4].resourceHandle = ( nvrhi::ITexture* )GetImageAt( 9 )->GetTextureID();
 			desc[2].bindings[5].resourceHandle = ( nvrhi::ITexture* )GetImageAt( 10 )->GetTextureID();
+			desc[2].bindings[6].resourceHandle = ( nvrhi::ITexture* )GetImageAt( 12 )->GetTextureID();
+			desc[2].bindings[7].resourceHandle = ( nvrhi::ITexture* )GetImageAt( 13 )->GetTextureID();	
+			desc[2].bindings[8].resourceHandle = ( nvrhi::ITexture* )GetImageAt( 14 )->GetTextureID();	
 		}
 
 		if( R_UsePixelatedLook() )

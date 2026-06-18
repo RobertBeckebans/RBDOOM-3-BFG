@@ -30,6 +30,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __RENDERWORLD_H__
 #define __RENDERWORLD_H__
 
+#include "MathLight.h"
+
 /*
 ===============================================================================
 
@@ -40,6 +42,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #define PROC_FILE_EXT				"proc"
 #define	PROC_FILE_ID				"mapProcFile003"
+
 
 // shader parms
 const int SHADERPARM_RED			= 0;
@@ -209,6 +212,7 @@ typedef struct renderLight_s
 	const idMaterial* 		shader;				// NULL = either lights/defaultPointLight or lights/defaultProjectedLight
 	float					shaderParms[MAX_ENTITY_SHADER_PARMS];		// can be used in any way by shader
 	idSoundEmitter* 		referenceSound;		// for shader sound tables, allowing effects to vary with sounds
+	mathLightData_t         mathLight;
 } renderLight_t;
 
 

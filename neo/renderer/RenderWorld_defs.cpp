@@ -4,6 +4,7 @@
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
 Copyright (C) 2013-2025 Robert Beckebans
+Copyright (C) 2026 Phillip Melnichenko
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -729,6 +730,74 @@ void R_CreateLightRefs( idRenderLightLocal* light )
 }
 
 /*
+========================
+idRenderWorldLocal::LoadSHProbesFile
+
+lazy, once-per-map parse of <mapbase>.shprobes — the per-probe L2 SH
+sidecar written at the end of bakeEnvironmentProbes. Mirrors LoadLightGridFile's
+text conventions; no binary cache because ~150 probes x 27 floats parses in
+microseconds. Keyed by the map name so re-initing this world for a different
+map self-invalidates.
+========================
+*/
+void idRenderWorldLocal::LoadSHProbesFile()
+{
+	if (shProbesLoadedForMap == mapName)
+	{
+		return;
+	}
+
+	shProbesLoadedForMap = mapName;
+	shProbeEntries.Clear();
+
+	idStr fileName = mapName;
+	fileName.StripFileExtension();
+	fileName.SetFileExtension("shprobes");
+
+	idLexer src(fileName, LEXFL_NOSTRINGCONCAT | LEXFL_NODOLLARPRECOMPILE);
+	if (!src.IsLoaded())
+	{
+		// no sidecar (pre-Part-3 bake) — probes keep zeroed SH
+		return;
+	}
+
+	idToken token;
+
+	if (!src.ExpectTokenString("SHPROBES"))
+	{
+		return;
+	}
+
+	// version
+	if (!src.ReadToken(&token) || token != "1")
+	{
+		common->Warning("LoadSHProbesFile: unsupported version '%s' in %s", token.c_str(), fileName.c_str());
+		return;
+	}
+
+	int numProbes = src.ParseInt();
+	if (numProbes < 0 || numProbes > 65536)
+	{
+		common->Warning("LoadSHProbesFile: bad probe count %i in %s", numProbes, fileName.c_str());
+		return;
+	}
+
+	shProbeEntries.SetNum(numProbes);
+
+	for (int i = 0; i < numProbes; i++)
+	{
+		shProbeEntry_t& e = shProbeEntries[i];
+
+		e.areaNum = src.ParseInt();
+		src.Parse1DMatrix(3, e.origin.ToFloatPtr());
+		src.Parse1DMatrix(27, e.sh[0].ToFloatPtr());		// idVec3[9] is 27 contiguous floats —
+		// same trick ParseLightGridPoints uses
+	}
+
+	common->Printf("loaded %i SH probe entries from %s\n", numProbes, fileName.c_str());
+}
+
+/*
 =================================================================================
 
 ENVPROBE DEFS
@@ -762,6 +831,25 @@ void R_DeriveEnvprobeData( RenderEnvprobeLocal* probe )
 	idVec3 point = probe->parms.origin;
 	point.SnapInt();
 
+	probe->world->LoadSHProbesFile();
+
+	for (int i = 0; i < probe->world->shProbeEntries.Num(); i++)
+	{
+		const shProbeEntry_t& e = probe->world->shProbeEntries[i];
+
+		if (e.areaNum == areaNum &&
+			int(e.origin.x) == int(point.x) &&
+			int(e.origin.y) == int(point.y) &&
+			int(e.origin.z) == int(point.z))
+		{
+			for (int j = 0; j < 9; j++)
+			{
+				probe->shIrradiance[j] = e.sh[j];
+			}
+			break;
+		}
+	}
+
 	// load preconvolved cubemaps as mipmap chain packed octahedrons
 	fullname.Format( "env/%s/area%i_envprobe_%i_%i_%i_amb", basename.c_str(), areaNum, int( point.x ), int( point.y ), int( point.z ) );
 	fullname.ReplaceChar( '-', '_' );
@@ -771,7 +859,12 @@ void R_DeriveEnvprobeData( RenderEnvprobeLocal* probe )
 	fullname.Format( "env/%s/area%i_envprobe_%i_%i_%i_spec", basename.c_str(), areaNum, int( point.x ), int( point.y ), int( point.z ) );
 	fullname.ReplaceChar( '-', '_' );
 
-	probe->radianceImage = globalImages->ImageFromFile( fullname, TF_DEFAULT, TR_CLAMP, TD_HDR_LIGHTPROBE, CF_2D_PACKED_MIPCHAIN );
+	probe->radianceImage = globalImages->ImageFromFile(fullname, TF_DEFAULT, TR_CLAMP, TD_HDR_LIGHTPROBE, CF_NATIVE_HDR);
+
+	fullname.Format("env/%s/area%i_envprobe_%i_%i_%i_depth", basename.c_str(), areaNum, int(point.x), int(point.y), int(point.z));
+	fullname.ReplaceChar('-', '_');
+
+	probe->depthImage = globalImages->ImageFromFile(fullname, TF_LINEAR, TR_CLAMP, TD_HDRI, CF_NATIVE_HDR);
 
 	// ------------------------------------
 	// compute the probe projection matrix

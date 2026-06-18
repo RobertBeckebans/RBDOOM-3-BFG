@@ -4,6 +4,7 @@
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
 Copyright (C) 2013-2020 Robert Beckebans
+Copyright (C) 2026 Phillip Melnichenko
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -71,6 +72,16 @@ struct renderParmSet9_t
 	float4 rpJitterTexOffset;
 	float4 rpPSXDistortions;
 	float4 rpCascadeDistances;
+	
+    float4 rpWobbleSkyX; 
+    float4 rpWobbleSkyY; 
+    float4 rpWobbleSkyZ;
+	
+    float4 rpTexGen0S; 
+    float4 rpTexGen0T; 
+    float4 rpTexGen0Q; 
+	
+    float4 rpSHIrradiance[9];
 };
 
 #if USE_PUSH_CONSTANTS

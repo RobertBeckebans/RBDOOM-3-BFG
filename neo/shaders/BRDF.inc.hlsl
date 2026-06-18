@@ -3,6 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 2014-2020 Robert Beckebans
+Copyright (C) 2026 Phillip Melnichenko
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -68,12 +69,24 @@ float3 Fresnel_SchlickRoughness( float3 specularColor, float vDotN, float roughn
 	return specularColor + ( max( float3( oneMinusRoughness, oneMinusRoughness, oneMinusRoughness ), specularColor ) - specularColor ) * pow( 1.0 - vDotN, 5.0 );
 }
 
-// Sebastien Lagarde proposes an empirical approach to derive the specular occlusion term from the diffuse occlusion term in [Lagarde14].
-// The result does not have any physical basis but produces visually pleasant results.
+// Lagarde specular occlusion
+// does not have any physical basis but produces visually pleasant results
 // See Sebastien Lagarde and Charles de Rousiers. 2014. Moving Frostbite to PBR.
 float ComputeSpecularAO( float vDotN, float ao, float roughness )
 {
 	return clamp( pow( vDotN + ao, exp2( -16.0 * roughness - 1.0 ) ) - 1.0 + ao, 0.0, 1.0 );
+}
+
+// Analytic directional albedo of the GGX lobe (Karis/Lazarov env-BRDF fit).
+// Used for multiscatter compensation in the direct path, where no DFG LUT is bound.
+float EnvBRDFEnergyApprox( float roughness, float vdotN )
+{
+	const float4 c0 = float4( -1.0, -0.0275, -0.572, 0.022 );
+	const float4 c1 = float4(  1.0,  0.0425,  1.04, -0.04 );
+	float4 r = roughness * c0 + c1;
+	float a004 = min( r.x * r.x, exp2( -9.28 * vdotN ) ) * r.x + r.y;
+	float2 AB = float2( -1.04, 1.04 ) * a004 + r.zw;
+	return AB.x + AB.y;
 }
 
 // Visibility term G( l, v, h )
@@ -100,7 +113,16 @@ float Visibility_SmithGGX( float vdotN, float ldotN, float alpha )
 	float V2 = vdotN + sqrt( alpha + ( 1.0 - alpha ) * vdotN * vdotN );
 
 	// RB: avoid too bright spots
-	return ( 1.0 / max( V1 * V2, 0.15 ) );
+    return (1.0 / max(V1 * V2, .0004f));
+}
+
+// Hammon height-correlated Smith approximation
+// "PBR Diffuse Lighting for GGX+Smith Microsurfaces", GDC 2017
+float Visibility_SmithGGXHammon(float vdotN, float ldotN, float alpha)
+{
+	// alpha is roughness^2
+    float denom = lerp(2.0 * ldotN * vdotN, ldotN + vdotN, alpha);
+    return (0.5 / max(denom, 1e-4));
 }
 
 // RB: HACK calculate roughness from D3 gloss maps
@@ -116,7 +138,10 @@ float EstimateLegacyRoughness( float3 specMapSRGB )
 	return roughness;
 }
 
+#if !defined(USE_PBR) || !USE_PBR
+// legacy fudgefactor spec+bump wrangling into "PBR", leave it alone unless touching backwards compat
 #define KENNY_PBR 1
+#endif
 
 // Kennedith98 begin
 // takes a gamma-space specular texture

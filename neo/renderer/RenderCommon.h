@@ -6,6 +6,7 @@ Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
 Copyright (C) 2012-2023 Robert Beckebans
 Copyright (C) 2014-2016 Kot in Action Creative Artel
 Copyright (C) 2022 Stephen Pridham
+Copyright (C) 2026 Phillip Melnichenko
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -39,6 +40,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "Image.h"
 #include "Font.h"
 #include "Framebuffer.h"
+
+#include "MathLight.h"
 
 // maximum texture units
 const int MAX_PROG_TEXTURE_PARMS	= 16;
@@ -251,6 +254,10 @@ public:
 
 	idImage* 					irradianceImage;		// cubemap image used for diffuse IBL by backend
 	idImage* 					radianceImage;			// cubemap image used for specular IBL by backend
+	idImage*					depthImage;				// secondary cubemap per-probe distance for space aware AO 
+
+	idVec3						shIrradiance[9];		// L2 SH irradiance; zero until baked/loaded
+	
 
 	// temporary helpers
 	int							viewCount;				// if == tr.viewCount, the envprobe is on the viewDef->viewEnvprobes list
@@ -384,6 +391,9 @@ struct viewLight_t
 	{
 		return ( imageSize.x != -1 ) && ( imageSize.y != -1 );
 	}
+
+	mathLightData_t   mathLight;
+
 };
 
 // a viewEntity is created whenever a idRenderEntityLocal is considered for inclusion
@@ -472,6 +482,10 @@ struct calcEnvprobeParms_t
 	// output
 	halfFloat_t*					outBuffer;				// HDR RGB16F packed octahedron atlas
 	int								time;					// execution time in milliseconds
+	halfFloat_t*					outFaces[6][16];
+
+	int								probeIndex;				// for SH copy-back (irradiance job)
+	idVec3							shIrradiance[9];		// out: L2 SH coefficients (irradiance job only)
 };
 
 
@@ -617,8 +631,11 @@ struct viewDef_t
 	idRenderMatrix		inverseBaseEnvProbeProject;	// the matrix for deforming the 'zeroOneCubeModel' to exactly cover the environent probe volume in world space
 	idImage* 			irradianceImage;			// cubemap image used for diffuse IBL by backend
 	idImage* 			radianceImages[3];			// cubemap image used for specular IBL by backend
+	idImage*			depthImage;					// env-probe distance cube to combat light leakage
+	idImage*			probeDepthImages[2];		// distance cubes between probes 1 and 2 (probe 0 of the blend = depthImage)
 	idVec4				radianceImageBlends;		// blending weights
 	idVec4				probePositions[3];			// only used by parallax correction
+	idVec4				shIrradiance[9];			// CPU pre-blended L2 SH for envprobe diffuse path
 
 	Framebuffer*		targetRender;				// SP: The framebuffer to render to
 
@@ -1346,6 +1363,7 @@ NVRHI helpers
 */
 bool R_ReadPixelsRGB8( nvrhi::IDevice* device, CommonRenderPasses* pPasses, nvrhi::ITexture* texture, nvrhi::ResourceStates textureState, const char* fullname );
 bool R_ReadPixelsRGB16F( nvrhi::IDevice* device, CommonRenderPasses* pPasses, nvrhi::ITexture* texture, nvrhi::ResourceStates textureState, byte** pic, int picWidth, int picHeight );
+bool R_ReadProbeColorAndDepthRGB16F(nvrhi::IDevice* device, CommonRenderPasses* pPasses, nvrhi::ITexture* colorTexture, nvrhi::ITexture* depthTexture, byte** colorPic, byte** depthPic, int picWidth, int picHeight);
 
 /*
 ====================================================================

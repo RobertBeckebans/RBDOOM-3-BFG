@@ -4,6 +4,7 @@
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
 Copyright (C) 2013-2024 Robert Beckebans
+Copyright (C) 2026 Phillip Melnichenko
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -30,6 +31,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "global_inc.hlsl"
 #include "renderParmSet10.inc.hlsl"
 #include "BRDF.inc.hlsl"
+#include "mathlight.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -77,8 +79,17 @@ void main( PS_IN fragment, out PS_OUT result )
 	}
 
 	float4 bumpMap =		t_Normal.Sample( s_Material, bumpUV );
-	float4 lightFalloff =	idtex2Dproj( s_Lighting, t_LightFalloff, fragment.texcoord2 );
-	float4 lightProj =		idtex2Dproj( s_Lighting, t_LightProjection, fragment.texcoord3 );
+    float3 lightFalloffRGB;
+    float3 lightProjRGB;
+    if (!MLEvaluate(
+        fragment.texcoord2, fragment.texcoord3,
+        pc.rpUser0, pc.rpUser1, pc.rpUser2,
+        lightFalloffRGB, lightProjRGB))
+    {
+    // legacy path
+        lightFalloffRGB = idtex2Dproj(s_Lighting, t_LightFalloff, fragment.texcoord2).xyz;
+        lightProjRGB = idtex2Dproj(s_Lighting, t_LightProjection, fragment.texcoord3).xyz;
+    }
 	float4 YCoCG =			t_BaseColor.Sample( s_Material, baseUV );
 	float4 specMapSRGB =	t_Specular.Sample( s_Material, specUV );
 	float4 specMap =		sRGBAToLinearRGBA( specMapSRGB );
@@ -97,6 +108,17 @@ void main( PS_IN fragment, out PS_OUT result )
 	// RB end
 	localNormal.z = sqrt( abs( dot( localNormal.xy, localNormal.xy ) - 0.25 ) );
 	localNormal = normalize( localNormal );
+	
+	// View-dependent normal contrast
+    const float vdContrastMin = 0.8; // contrast head-on  (1.0 = no change, <1 flattens, >1 amplifies)
+    const float vdContrastMax = 1.2; // contrast at grazing
+{
+        float NdotV = saturate(viewVector.z);
+        float grazing = 1.0 - NdotV; // 0 head-on, 1 grazing
+        float contrast = lerp(vdContrastMin, vdContrastMax, grazing);
+        localNormal.xy *= contrast;
+        localNormal = normalize(localNormal);
+    }
 
 	// traditional very dark Lambert light model used in Doom 3
 	float ldotN = saturate( dot3( localNormal, lightVector ) );
@@ -118,7 +140,7 @@ void main( PS_IN fragment, out PS_OUT result )
 
 #if USE_PBR
 	// RB: roughness 0 somehow is not shiny so we clamp it
-	float roughness = max( 0.05, specMapSRGB.r );
+	float roughness = max( 0.045, specMapSRGB.r );
 	const float metallic = specMapSRGB.g;
 
 	// the vast majority of real-world materials (anything not metal or gems) have F(0)
@@ -133,6 +155,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	float3 diffuseColor = baseColor * ( 1.0 - metallic );
 	float3 specularColor = lerp( dielectricColor, baseColor, metallic );
 
+// legacy fudgefactor spec+bump wrangling into "PBR", leave it alone unless touching backwards compat
 #elif KENNY_PBR
 	float3 diffuseColor = diffuseMap;
 	float3 specularColor;
@@ -153,32 +176,37 @@ void main( PS_IN fragment, out PS_OUT result )
 	//lambert /= PI;
 
 	// pc.rpDiffuseModifier contains light color multiplier
-	float3 lightColor = sRGBToLinearRGB( lightProj.xyz * lightFalloff.xyz );
+    float3 lightColor = sRGBToLinearRGB(lightProjRGB * lightFalloffRGB);
 
 	float vdotN = clamp( dot3( viewVector, localNormal ), 0.0, 1.0 );
 	float vdotH = clamp( dot3( viewVector, halfAngleVector ), 0.0, 1.0 );
 	float ldotH = clamp( dot3( lightVector, halfAngleVector ), 0.0, 1.0 );
 
-	// keep in mind this is r_lightScale 3 * 2
-	float3 reflectColor = specularColor * pc.rpSpecularModifier.rgb;
 
-	// cheap approximation by ARM with only one division
-	// http://community.arm.com/servlet/JiveServlet/download/96891546-19496/siggraph2015-mmg-renaldas-slides.pdf
-	// page 26
+    float rr = roughness * roughness;
+    float rrrr = rr * rr;
 
-	float rr = roughness * roughness;
-	float rrrr = rr * rr;
+	// Disney/GGX NDF
+    float D_denom = (hdotN * hdotN) * (rrrr - 1.0) + 1.0;
+    float D = rrrr / (3.14159f * D_denom * D_denom);
 
-	// disney GGX
-	float D = ( hdotN * hdotN ) * ( rrrr - 1.0 ) + 1.0;
-	float VFapprox = ( ldotH * ldotH ) * ( roughness + 0.5 );
+	// Hammon height-correlated Smith G2 approximation
+    float Vis = Visibility_SmithGGXHammon(vdotN, ldotN, rr);
 
+	// Schlick Fresnel at the micro-facet vdotH is deliberate
+    float3 F = Fresnel_Schlick(specularColor, vdotH);
+
+// legacy fudgefactor spec+bump wrangling into "PBR", leave it alone unless touching backwards compat
 #if KENNY_PBR
-	float3 specularLight = ( rrrr / ( 4.0 * D * D * VFapprox ) ) * ldotN * reflectColor;
+	float3 specularLight = D * Vis * F * ldotN * PI * pc.rpSpecularModifier.rgb;
 #else
-	float3 specularLight = ( rrrr / ( 4.0 * PI * D * D * VFapprox ) ) * ldotN * reflectColor;
+    float3 specularLight = D * Vis * F * ldotN * pc.rpSpecularModifier.rgb;
 #endif
 
+	// multiple-scattering energy compensation  no DFG LUT in the direct path
+    float singleScatterEnergy = EnvBRDFEnergyApprox(roughness, vdotN);
+    float3 energyCompensation = 1.0 + specularColor * (1.0 / max(singleScatterEnergy, 1e-3) - 1.0);
+    specularLight *= energyCompensation;
 
 #if 0
 	result.color = float4( _float3( VFapprox ), 1.0 );

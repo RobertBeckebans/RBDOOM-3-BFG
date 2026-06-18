@@ -5,6 +5,7 @@ Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
 Copyright (C) 2020-2025 Robert Beckebans
 Copyright (C) 2022 Stephen Pridham
+Copyright (C) 2026 Phillip Melnichenko
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -36,6 +37,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "RenderCommon.h"
 #include "CmdlineProgressbar.h"
 #include "../framework/Common_local.h" // commonLocal.WaitGameThread();
+
+#include "../libs/mesa/format_r11g11b10f.h"
 
 #include <sys/DeviceManager.h>
 extern DeviceManager* deviceManager;
@@ -322,6 +325,97 @@ void R_SampleCubeMapHDR16F( const idVec3& dir, int size, halfFloat_t* buffers[6]
 	result[2] = F16toF32( buffers[axis][( y * size + x ) * 3 + 2] );
 }
 
+
+/*
+==================
+R_SampleCubeMapHDR16F_Bilinear
+
+Same axis selection and projection as R_SampleCubeMapHDR16F, but interpolates the
+four texels around the sample point instead of snapping to the nearest one. Edges
+clamp to the face border (cross-face filtering is left to a future pass; at
+ENVPROBE_CAPTURE_SIZE the 1-texel border error is below BC6H quantization).
+==================
+*/
+static void R_SampleCubeMapHDR16F_Bilinear(const idVec3& dir, int size, halfFloat_t* buffers[6], float result[3])
+{
+	float	adir[3];
+	int		axis;
+
+	adir[0] = fabs(dir[0]);
+	adir[1] = fabs(dir[1]);
+	adir[2] = fabs(dir[2]);
+
+	if (dir[0] >= adir[1] && dir[0] >= adir[2])
+	{
+		axis = 0;
+	}
+	else if (-dir[0] >= adir[1] && -dir[0] >= adir[2])
+	{
+		axis = 1;
+	}
+	else if (dir[1] >= adir[0] && dir[1] >= adir[2])
+	{
+		axis = 2;
+	}
+	else if (-dir[1] >= adir[0] && -dir[1] >= adir[2])
+	{
+		axis = 3;
+	}
+	else if (dir[2] >= adir[1] && dir[2] >= adir[2])
+	{
+		axis = 4;
+	}
+	else
+	{
+		axis = 5;
+	}
+
+	const float denom = dir * tr.cubeAxis[axis][0];
+	float fx = (dir * tr.cubeAxis[axis][1]) / denom;
+	float fy = (dir * tr.cubeAxis[axis][2]) / denom;
+
+	fx = -fx;
+	fy = -fy;
+
+	// continuous texel-center coordinates (the -0.5 moves us into center space)
+	const float xf = size * 0.5f * (fx + 1.0f) - 0.5f;
+	const float yf = size * 0.5f * (fy + 1.0f) - 0.5f;
+
+	int x0 = (int)idMath::Floor(xf);
+	int y0 = (int)idMath::Floor(yf);
+
+	// fractions are computed from the UNCLAMPED corner, before edge clamping
+	const float tx = xf - (float)x0;
+	const float ty = yf - (float)y0;
+
+	int x1 = x0 + 1;
+	int y1 = y0 + 1;
+
+	// within-face bilinear: clamp the four taps to the face border
+	x0 = idMath::ClampInt(0, size - 1, x0);
+	x1 = idMath::ClampInt(0, size - 1, x1);
+	y0 = idMath::ClampInt(0, size - 1, y0);
+	y1 = idMath::ClampInt(0, size - 1, y1);
+
+	const halfFloat_t* buf = buffers[axis];
+
+	const int i00 = (y0 * size + x0) * 3;
+	const int i10 = (y0 * size + x1) * 3;
+	const int i01 = (y1 * size + x0) * 3;
+	const int i11 = (y1 * size + x1) * 3;
+
+	for (int c = 0; c < 3; c++)
+	{
+		const float c00 = F16toF32(buf[i00 + c]);
+		const float c10 = F16toF32(buf[i10 + c]);
+		const float c01 = F16toF32(buf[i01 + c]);
+		const float c11 = F16toF32(buf[i11 + c]);
+
+		const float a = c00 + (c10 - c00) * tx;
+		const float b = c01 + (c11 - c01) * tx;
+		result[c] = a + (b - a) * ty;
+	}
+}
 
 
 
@@ -616,7 +710,6 @@ void CalculateIrradianceJob( calcEnvprobeParms_t* parms )
 	}
 
 	// build SH by iterating over all cubemap pixels
-
 	idVec4 dstRect = R_CalculateMipRect( parms->outHeight, 0 );
 
 	for( int side = 0; side < 6; side++ )
@@ -632,9 +725,6 @@ void CalculateIrradianceJob( calcEnvprobeParms_t* parms )
 				idVec3 radiance;
 				R_SampleCubeMapHDR16F( dir, ENVPROBE_CAPTURE_SIZE, buffers, &radiance[0], u, v );
 
-				//radiance = dir * 0.5 + idVec3( 0.5f, 0.5f, 0.5f );
-
-				// convert from [0 .. size-1] to [-1.0 + invSize .. 1.0 - invSize]
 				const float uu = 2.0f * ( u * invDstSize ) - 1.0f;
 				const float vv = 2.0f * ( v * invDstSize ) - 1.0f;
 
@@ -658,6 +748,11 @@ void CalculateIrradianceJob( calcEnvprobeParms_t* parms )
 				}
 			}
 		}
+	}
+
+	for (int i = 0; i < 9; i++)
+	{
+		parms->shIrradiance[i] = shRadiance[i];
 	}
 
 	// reset image to black
@@ -717,7 +812,7 @@ void CalculateIrradianceJob( calcEnvprobeParms_t* parms )
 
 					float u, v;
 					idVec3 radiance;
-					R_SampleCubeMapHDR( H, parms->outHeight, buffers, &radiance[0], u, v );
+					R_SampleCubeMapHDR( L, parms->outHeight, buffers, &radiance[0], u, v );
 
 					outColor[0] += radiance[0];
 					outColor[1] += radiance[1];
@@ -730,7 +825,6 @@ void CalculateIrradianceJob( calcEnvprobeParms_t* parms )
 #endif
 
 				//outColor = dir * 0.5 + idVec3( 0.5f, 0.5f, 0.5f );
-
 				parms->outBuffer[( y * parms->outWidth + x ) * 3 + 0] = F32toF16( outColor[0] );
 				parms->outBuffer[( y * parms->outWidth + x ) * 3 + 1] = F32toF16( outColor[1] );
 				parms->outBuffer[( y * parms->outWidth + x ) * 3 + 2] = F32toF16( outColor[2] );
@@ -748,125 +842,129 @@ void CalculateIrradianceJob( calcEnvprobeParms_t* parms )
 	parms->time = end - start;
 }
 
-void CalculateRadianceJob( calcEnvprobeParms_t* parms )
+void CalculateRadianceJob(calcEnvprobeParms_t* parms)
 {
-	halfFloat_t*		buffers[6];
+	halfFloat_t* buffers[6];
 
 	int	start = Sys_Milliseconds();
 
-	for( int i = 0; i < 6; i++ )
+	for (int i = 0; i < 6; i++)
 	{
-		buffers[ i ] = ( halfFloat_t* ) parms->radiance[ i ];
+		buffers[i] = (halfFloat_t*)parms->radiance[i];	// captured faces (ENVPROBE_CAPTURE_SIZE)
 	}
 
-	const float invDstSize = 1.0f / float( parms->outHeight );
+	// parms->outHeight is now the cube face size, cube faces get hardware seam filtering,
+	// all mips are usable
+	const int faceSize = parms->outHeight;
+	const int numMips = idMath::BitsForInteger(faceSize);
 
-	const int numMips = idMath::BitsForInteger( parms->outHeight );
-	const int numOctahedronMips = numMips - 3; // the last 3 mips are too low quality for filtering
-
-	CommandlineProgressBar progressBar( R_CalculateUsedAtlasPixels( parms->outHeight ), parms->printWidth, parms->printHeight );
-	if( parms->printProgress )
+	CommandlineProgressBar progressBar(faceSize * faceSize * 6, parms->printWidth, parms->printHeight);
+	if (parms->printProgress)
 	{
 		progressBar.Start();
 	}
 
-	// reset output image to black
-	for( int x = 0; x < parms->outWidth; x++ )
+	for (int mip = 0; mip < numMips; mip++)
 	{
-		for( int y = 0; y < parms->outHeight; y++ )
+		const float roughness = (numMips > 1) ? ((float)mip / (float)(numMips - 1)) : 0.0f;
+		const int   mipSize = Max(1, faceSize >> mip);
+
+		for (int face = 0; face < 6; face++)
 		{
-			parms->outBuffer[( y * parms->outWidth + x ) * 3 + 0] = F32toF16( 0 );
-			parms->outBuffer[( y * parms->outWidth + x ) * 3 + 1] = F32toF16( 0 );
-			parms->outBuffer[( y * parms->outWidth + x ) * 3 + 2] = F32toF16( 0 );
-		}
-	}
-
-	for( int mip = 0; mip < numOctahedronMips; mip++ )
-	{
-		float roughness = ( float )mip / ( float )( numOctahedronMips - 1 );
-
-		idVec4 dstRect = R_CalculateMipRect( parms->outHeight, mip );
-
-		for( int x = dstRect.x; x < ( dstRect.x + dstRect.z ); x++ )
-		{
-			for( int y = dstRect.y; y < ( dstRect.y + dstRect.w ); y++ )
+			for (int y = 0; y < mipSize; y++)
 			{
-				idVec2 octCoord;
-				if( mip > 0 )
+				for (int x = 0; x < mipSize; x++)
 				{
-					// move back to [0, 1] coords
-					octCoord = NormalizedOctCoordNoBorder( x - dstRect.x, y - dstRect.y, dstRect.z );
-				}
-				else
-				{
-					octCoord = NormalizedOctCoordNoBorder( x, y, dstRect.z );
-				}
+					// cube-face texel -> world direction (replaces FromOctahedral)
+					idVec3 N = MapXYSToDirection(x, y, face, mipSize, mipSize);
 
-				// convert UV coord to 3D direction
-				idVec3 N;
+					// Epic split-sum: V = R = N (unchanged from the octahedral path)
+					const idVec3 R = N;
+					const idVec3 V = R;
 
-				N.FromOctahedral( octCoord );
+					idVec3 outColor(0, 0, 0);
 
-				idVec3 outColor( 0, 0, 0 );
-
-				// RB: Split Sum approximation explanation
-
-				// Epic Games makes a further approximation by assuming the view direction
-				// (and thus the specular reflection direction) to be equal to the output sample direction Ï‰o.
-				// This translates itself to the following code:
-				const idVec3 R = N;
-				const idVec3 V = R;
-
-				float totalWeight = 0.0f;
-
-				for( int s = 0; s < parms->samples; s++ )
-				{
-					idVec2 Xi = Hammersley2D( s, parms->samples );
-					idVec3 H = ImportanceSampleGGX( Xi, N, roughness );
-					idVec3 L = ( 2.0 * ( H * ( V * H ) ) - V );
-
-					float NdotL = Max( ( N * L ), 0.0f );
-					if( NdotL > 0.0 )
+					if (mip == 0)
 					{
+						// 'samples'-tap weighted average collapses to a single tap along N.
 						float sample[3];
-						float u, v;
+						R_SampleCubeMapHDR16F_Bilinear(N, ENVPROBE_CAPTURE_SIZE, buffers, sample);
 
-						R_SampleCubeMapHDR16F( H, ENVPROBE_CAPTURE_SIZE, buffers, sample, u, v );
-
-						outColor[0] += sample[0] * NdotL;
-						outColor[1] += sample[1] * NdotL;
-						outColor[2] += sample[2] * NdotL;
-
-						totalWeight += NdotL;
+						outColor[0] = sample[0];
+						outColor[1] = sample[1];
+						outColor[2] = sample[2];
 					}
-				}
+					else
+					{
+						const idVec3 R = N;
+						const idVec3 V = R;
+						float totalWeight = 0.0f;
 
-				outColor[0] /= totalWeight;
-				outColor[1] /= totalWeight;
-				outColor[2] /= totalWeight;
+						for (int s = 0; s < parms->samples; s++)
+						{
+							idVec2 Xi = Hammersley2D(s, parms->samples);
+							idVec3 H = ImportanceSampleGGX(Xi, N, roughness);
+							idVec3 L = (2.0 * (H * (V * H)) - V);
 
-				parms->outBuffer[( y * parms->outWidth + x ) * 3 + 0] = F32toF16( outColor[0] );
-				parms->outBuffer[( y * parms->outWidth + x ) * 3 + 1] = F32toF16( outColor[1] );
-				parms->outBuffer[( y * parms->outWidth + x ) * 3 + 2] = F32toF16( outColor[2] );
+							float NdotL = Max((N * L), 0.0f);
+							if (NdotL > 0.0)
+							{
+								float sample[3];
+								R_SampleCubeMapHDR16F_Bilinear(L, ENVPROBE_CAPTURE_SIZE, buffers, sample);
 
-				if( parms->printProgress )
-				{
-					progressBar.Increment( true );
+								outColor[0] += sample[0] * NdotL;
+								outColor[1] += sample[1] * NdotL;
+								outColor[2] += sample[2] * NdotL;
+								totalWeight += NdotL;
+							}
+						}
+
+						outColor /= Max(totalWeight, 1e-4f);
+					}
+
+					// write the prefiltered texel into this face+mip's RGB16F buffer,
+					// using the same F32toF16 idiom the octahedron path used:
+					halfFloat_t* dst = parms->outFaces[face][mip];	// RGB16F, mipSize x mipSize
+					const int    idx = (y * mipSize + x) * 3;
+					dst[idx + 0] = F32toF16(outColor[0]);
+					dst[idx + 1] = F32toF16(outColor[1]);
+					dst[idx + 2] = F32toF16(outColor[2]);
+
+					if (parms->printProgress)
+					{
+						progressBar.Increment(true);
+					}
 				}
 			}
 		}
 	}
 
 	int	end = Sys_Milliseconds();
-
 	parms->time = end - start;
 }
 
 REGISTER_PARALLEL_JOB( CalculateIrradianceJob, "CalculateIrradianceJob" );
 REGISTER_PARALLEL_JOB( CalculateRadianceJob, "CalculateRadianceJob" );
 
+static float LinearizeProbeDepth(float hwDepth, int face, int pixel, int size)
+{
+	const float zNear = 3.0f;		// fill near plane 
+	const float zFar = 16384.0f;	// fill far plane
 
-void R_MakeAmbientMap( const char* baseName, byte* buffers[6], const char* suffix, int outSize, bool specular, bool useThreads )
+	float zEye = (zNear * zFar) / (zFar - hwDepth * (zFar - zNear));	
+
+	int    x = pixel % size, y = pixel / size;
+	idVec3 dir = MapXYSToDirection(x, y, face, size, size);
+	float  cosTheta = dir * tr.cubeAxis[face][0];	// [0] = face forward
+	if (cosTheta < 1e-4f)
+	{
+		cosTheta = 1e-4f;
+	}
+	return zEye / cosTheta;		// world units from the probe center
+}
+
+
+void R_MakeAmbientMap( const char* baseName, byte* buffers[6], const char* suffix, int outSize, bool specular, bool useThreads, int probeIndex )
 {
 	idStr		fullname;
 	renderView_t	ref;
@@ -885,15 +983,34 @@ void R_MakeAmbientMap( const char* baseName, byte* buffers[6], const char* suffi
 	jobParms->freeRadiance = specular ? 1 : 0;
 
 	jobParms->samples = 1000;
+	jobParms->probeIndex = probeIndex;
 	jobParms->filename.Format( "env/%s%s.exr", baseName, suffix );
 
 	jobParms->printProgress = !useThreads;
 	jobParms->printWidth = renderSystem->GetWidth();
 	jobParms->printHeight = renderSystem->GetHeight();
 
-	jobParms->outWidth = int( outSize * 1.5f );
-	jobParms->outHeight = outSize;
-	jobParms->outBuffer = ( halfFloat_t* )R_StaticAlloc( idMath::Ceil( outSize * outSize * 3 * sizeof( halfFloat_t ) * 1.5f ), TAG_IMAGE );
+	jobParms->outWidth = int(outSize * 1.5f);		
+	jobParms->outHeight = outSize;					
+
+	if (specular)	// radiance -> GGX cube
+	{
+		jobParms->outBuffer = NULL;												// unused; the cube writes outFaces
+		const int numMips = idMath::BitsForInteger(outSize);					// 512 -> 10, 256 -> 9
+		for (int mip = 0, m = outSize; mip < numMips; mip++, m = Max(1, m >> 1))
+		{
+			for (int side = 0; side < 6; side++)
+			{
+				jobParms->outFaces[side][mip] =
+					(halfFloat_t*)R_StaticAlloc(m * m * 3 * sizeof(halfFloat_t), TAG_IMAGE);
+			}
+		}
+	}
+	else			// irradiance -> packed octahedron (unchanged)
+	{
+		jobParms->outBuffer =
+			(halfFloat_t*)R_StaticAlloc(idMath::Ceil(outSize * outSize * 3 * sizeof(halfFloat_t) * 1.5f), TAG_IMAGE);
+	}
 
 	tr.envprobeJobs.Append( jobParms );
 
@@ -1060,6 +1177,7 @@ CONSOLE_COMMAND_SHIP( bakeEnvironmentProbes, "Bake environment probes", NULL )
 		}
 
 		byte* buffers[6];
+		byte* depthBuffers[6];
 
 		int areaNum = tr.primaryWorld->PointInArea( def->parms.origin );
 		idVec3 point = def->parms.origin;
@@ -1091,14 +1209,12 @@ CONSOLE_COMMAND_SHIP( bakeEnvironmentProbes, "Bake environment probes", NULL )
 			tr.SwapCommandBuffers( NULL, NULL, NULL, NULL, NULL, NULL );
 
 			byte* floatRGB16F = NULL;
+			byte* depthPacked = NULL;
 
-			//if( point.x == 0 && point.y == 64 && point.z == 56 && j == 1 )
-			//{
-			//	floatRGB16F = NULL;
-			//}
-
-			//bool validCapture =
-			R_ReadPixelsRGB16F( deviceManager->GetDevice(), &backEnd.GetCommonPasses(), globalImages->envprobeHDRImage->GetTextureHandle(), nvrhi::ResourceStates::RenderTarget, &floatRGB16F, captureSize, captureSize );
+			bool  depthOK = R_ReadProbeColorAndDepthRGB16F(deviceManager->GetDevice(), &backEnd.GetCommonPasses(),
+				globalImages->envprobeHDRImage->GetTextureHandle(),
+				globalImages->envprobeDepthImage->GetTextureHandle(),
+				&floatRGB16F, &depthPacked, captureSize, captureSize);
 
 #if 0
 			idStr testName;
@@ -1111,6 +1227,44 @@ CONSOLE_COMMAND_SHIP( bakeEnvironmentProbes, "Bake environment probes", NULL )
 			}
 #endif
 			buffers[ j ] = floatRGB16F;
+
+			float* dist = (float*)R_StaticAlloc(captureSize * captureSize * sizeof(float));
+
+			if (!depthOK || depthPacked == NULL)
+			{
+				common->Warning("depth read-back FAILED, probe %i side %i", i, j);
+				for (int p = 0; p < captureSize * captureSize; p++) { dist[p] = 0.0f; }
+			}
+			else
+			{
+				const halfFloat_t* dsrc = (const halfFloat_t*)depthPacked;
+				for (int p = 0; p < captureSize * captureSize; p++)
+				{
+					dist[p] = LinearizeProbeDepth(F16toF32(dsrc[p * 3 + 0]), j, p, captureSize);
+				}
+#if 0 // TEMP: validate depth read-back — delete once confirmed
+				if (i == 0)	// first probe only -> 6 files, not hundreds
+				{
+					idStr dbgName;
+					dbgName.Format("env/test/depth_raw_side_%i.exr", j);
+					R_WriteEXR(dbgName, depthPacked, 3, captureSize, captureSize, "fs_basepath");
+
+					halfFloat_t* dbg = (halfFloat_t*)R_StaticAlloc(captureSize * captureSize * 3 * sizeof(halfFloat_t));
+					for (int p = 0; p < captureSize * captureSize; p++)
+					{
+						halfFloat_t h = F32toF16(dist[p]);
+						dbg[p * 3 + 0] = h;
+						dbg[p * 3 + 1] = h;
+						dbg[p * 3 + 2] = h;	// grey
+					}
+					dbgName.Format("env/test/depth_lin_side_%i.exr", j);
+					R_WriteEXR(dbgName, (byte*)dbg, 3, captureSize, captureSize, "fs_basepath");
+					R_StaticFree(dbg);
+				}
+#endif
+				R_StaticFree(depthPacked);
+			}
+			depthBuffers[j] = (byte*)dist;
 		}
 
 		tr.takingEnvprobe = false;
@@ -1121,8 +1275,65 @@ CONSOLE_COMMAND_SHIP( bakeEnvironmentProbes, "Bake environment probes", NULL )
 		fullname.ReplaceChar( '-', '_' );
 
 		// create 2 jobs
-		R_MakeAmbientMap( fullname.c_str(), buffers, "_amb", IRRADIANCE_OCTAHEDRON_SIZE, false, useThreads );
-		R_MakeAmbientMap( fullname.c_str(), buffers, "_spec", RADIANCE_OCTAHEDRON_SIZE, true, useThreads );
+		R_MakeAmbientMap( fullname.c_str(), buffers, "_amb", IRRADIANCE_OCTAHEDRON_SIZE, false, useThreads, def->index);
+		R_MakeAmbientMap( fullname.c_str(), buffers, "_spec", RADIANCE_OCTAHEDRON_SIZE, true, useThreads, def->index);
+
+		// write per-probe distance cube in memory
+		idStr depthName;
+		depthName.Format("%s_depth", fullname.c_str());
+
+		const byte* depthFaces[6];
+		const float invZFar = 1.0f / 16384.0f;		// must match zFar in LinearizeProbeDepth
+		const int   outSize = 64;					// occluder-field resolution
+		const int   block = captureSize / outSize;	// 4:1 per axis at 256 -> 64
+		assert(captureSize% outSize == 0);			// captureSize is ENVPROBE_CAPTURE_SIZE = 256 (Framebuffer.h:41)
+
+		for (int j = 0; j < 6; j++)
+		{
+			// MIN keeps the nearest occluder so thin geometry survives distance
+			uint32_t* packed = (uint32_t*)R_StaticAlloc(outSize * outSize * 4, TAG_IMAGE);
+			const float* d = (const float*)depthBuffers[j];
+
+			for (int oy = 0; oy < outSize; oy++)
+			{
+				for (int ox = 0; ox < outSize; ox++)
+				{
+					float m = 1e30f;
+					for (int sy = 0; sy < block; sy++)
+					{
+						for (int sx = 0; sx < block; sx++)
+						{
+							const float s = d[(oy * block + sy) * captureSize + (ox * block + sx)];
+							m = (s < m) ? s : m;
+						}
+					}
+
+					float nd = m * invZFar;
+					float rgb[3] = { m, nd * nd, 0.0f };
+					packed[oy * outSize + ox] = float3_to_r11g11b10f(rgb);
+				}
+			}
+
+			depthFaces[j] = (const byte*)packed;
+			R_StaticFree(depthBuffers[j]);
+		}
+
+		{
+			idStrStatic< MAX_OSPATH > genName = depthName;
+			idImage::GetGeneratedName(genName, TD_HDRI, CF_NATIVE_HDR);	
+			idBinaryImage im(genName);
+			textureFormat_t fmt = FMT_R11G11B10F;
+			im.LoadCubeFromMemory(outSize, depthFaces, 1, fmt, false);
+			im.WriteGeneratedFile(FILE_NOT_FOUND_TIMESTAMP);
+		}
+
+		def->depthImage = globalImages->ImageFromFile(depthName, TF_LINEAR, TR_CLAMP, TD_HDRI, CF_NATIVE_HDR);
+
+		for (int j = 0; j < 6; j++)
+		{
+			R_StaticFree((void*)depthFaces[j]);
+		}
+		def->depthImage = globalImages->ImageFromFile(depthName, TF_LINEAR, TR_CLAMP, TD_HDRI, CF_NATIVE_HDR);
 	}
 
 	int	end = Sys_Milliseconds();
@@ -1147,41 +1358,152 @@ CONSOLE_COMMAND_SHIP( bakeEnvironmentProbes, "Bake environment probes", NULL )
 		tr.envprobeJobList->Wait();
 	}
 
-	for( int j = 0; j < tr.envprobeJobs.Num(); j++ )
+	for (int j = 0; j < tr.envprobeJobs.Num(); j++)
 	{
-		calcEnvprobeParms_t* job = tr.envprobeJobs[ j ];
+		calcEnvprobeParms_t* job = tr.envprobeJobs[j];
 
-		R_WriteEXR( job->filename, ( byte* )job->outBuffer, 3, job->outWidth, job->outHeight, "fs_basepath" );
-
-		common->Printf( "%s convolved in %5.1f seconds\n\n", job->filename.c_str(), job->time * 0.001f );
-
-		if( job->freeRadiance > 0 )
+		if (job->outHeight == RADIANCE_OCTAHEDRON_SIZE)	// _spec (radiance) -> GGX cube .bimage
 		{
-			for( int i = 0; i < 6; i++ )
+			const int faceSize = job->outHeight;						// must match the bake & NUM_RADIANCE_MIPS
+			const int numLevels = idMath::BitsForInteger(faceSize);		// 512 -> 10, 256 -> 9
+
+			// (1) convert each prefiltered RGB16F face/level to packed R11G11B10F (BC6 input)
+			idList<byte*> faceMips;
+			faceMips.SetNum(6 * numLevels);	
+			for (int side = 0; side < 6; side++)
 			{
-				if( job->radiance[i] )
+				int mipSize = faceSize;
+				for (int level = 0; level < numLevels; level++)
 				{
-					Mem_Free( job->radiance[i] );
+					const halfFloat_t* s = job->outFaces[side][level];	
+					byte* packed = (byte*)R_StaticAlloc(mipSize * mipSize * 4, TAG_IMAGE);
+					for (int p = 0; p < mipSize * mipSize; p++)
+					{
+						float rgb[3] = { F16toF32(s[p * 3 + 0]), F16toF32(s[p * 3 + 1]), F16toF32(s[p * 3 + 2]) };
+						((uint32_t*)packed)[p] = float3_to_r11g11b10f(rgb);
+					}
+					faceMips[side * numLevels + level] = packed;
+					mipSize = Max(1, mipSize >> 1);
+				}
+			}
+
+			// no EXR round-trip
+			idStrStatic< MAX_OSPATH > baseName = job->filename;
+			baseName.StripFileExtension();                                          
+			idStrStatic< MAX_OSPATH > genName = baseName;
+			idImage::GetGeneratedName(genName, TD_HDR_LIGHTPROBE, CF_NATIVE_HDR); 
+			idBinaryImage im(genName);
+			textureFormat_t fmt = FMT_BC6H;
+			im.LoadCubeMipchainFromMemory(faceSize, (const byte* const*)faceMips.Ptr(), numLevels, fmt);
+			im.WriteGeneratedFile(FILE_NOT_FOUND_TIMESTAMP);
+
+			globalImages->ImageFromFile(baseName, TF_DEFAULT, TR_CLAMP, TD_HDR_LIGHTPROBE, CF_NATIVE_HDR);
+
+			
+			for (int i = 0; i < faceMips.Num(); i++)
+			{
+				R_StaticFree(faceMips[i]);
+			}
+			for (int side = 0; side < 6; side++)
+			{
+				for (int level = 0; level < numLevels; level++)
+				{
+					R_StaticFree(job->outFaces[side][level]);
+				}
+			}
+			
+		}
+		else												
+		{
+			R_WriteEXR(job->filename, (byte*)job->outBuffer, 3, job->outWidth, job->outHeight, "fs_basepath");
+			globalImages->ImageFromFile(job->filename, TF_LINEAR, TR_CLAMP, TD_HDR_LIGHTPROBE, CF_2D_PACKED_MIPCHAIN);
+			Mem_Free(job->outBuffer);
+			
+			if (job->probeIndex >= 0 && job->probeIndex < tr.primaryWorld->envprobeDefs.Num())
+			{
+				RenderEnvprobeLocal* shDef = tr.primaryWorld->envprobeDefs[job->probeIndex];
+				if (shDef != NULL)
+				{
+					for (int i = 0; i < 9; i++)
+					{
+						shDef->shIrradiance[i] = job->shIrradiance[i];
+					}
 				}
 			}
 		}
 
-		// generate .bimage file
-		if( job->outHeight == RADIANCE_OCTAHEDRON_SIZE )
+		common->Printf("%s convolved in %5.1f seconds\n\n", job->filename.c_str(), job->time * 0.001f);
+
+		// freeRadiance is 1 only for the radiance job, so this fires once per probe.
+		if (job->freeRadiance > 0)
 		{
-			globalImages->ImageFromFile( job->filename, TF_DEFAULT, TR_CLAMP, TD_HDR_LIGHTPROBE, CF_2D_PACKED_MIPCHAIN );
-		}
-		else
-		{
-			globalImages->ImageFromFile( job->filename, TF_LINEAR, TR_CLAMP, TD_HDR_LIGHTPROBE, CF_2D_PACKED_MIPCHAIN );
+			for (int i = 0; i < 6; i++)
+			{
+				if (job->radiance[i])
+				{
+					Mem_Free(job->radiance[i]);
+				}
+			}
 		}
 
-		Mem_Free( job->outBuffer );
-
-		delete job;
+		delete job;		// PRESERVED FROM STOCK (L1181)
 	}
 
 	tr.envprobeJobs.Clear();
+
+	// per-probe SH sidecar
+	{
+		idStr shName;
+		shName.Format("%s.shprobes", baseName.c_str());
+
+		idFile* fp = fileSystem->OpenFileWrite(shName, "fs_basepath");
+		if (fp == NULL)
+		{
+			common->Warning("bakeEnvironmentProbes: couldn't write %s", shName.c_str());
+		}
+		else
+		{
+			int numProbes = 0;
+			for (int i = 0; i < tr.primaryWorld->envprobeDefs.Num(); i++)
+			{
+				if (tr.primaryWorld->envprobeDefs[i] != NULL)
+				{
+					numProbes++;
+				}
+			}
+
+			fp->WriteFloatString("SHPROBES \"1\"\n\n");
+			fp->WriteFloatString("%i\n", numProbes);
+
+			for (int i = 0; i < tr.primaryWorld->envprobeDefs.Num(); i++)
+			{
+				RenderEnvprobeLocal* def = tr.primaryWorld->envprobeDefs[i];
+				if (def == NULL)
+				{
+					continue;
+				}
+
+				int probeAreaNum = tr.primaryWorld->PointInArea(def->parms.origin);
+
+				idVec3 point = def->parms.origin;
+				point.SnapInt();
+
+				fp->WriteFloatString("%i ( %i %i %i ) ( ",
+					probeAreaNum, int(point.x), int(point.y), int(point.z));
+
+				for (int j = 0; j < 9; j++)
+				{
+					fp->WriteFloatString("%f %f %f ",
+						def->shIrradiance[j].x, def->shIrradiance[j].y, def->shIrradiance[j].z);
+				}
+
+				fp->WriteFloatString(")\n");
+			}
+
+			fileSystem->CloseFile(fp);
+			common->Printf("wrote %s (%i probes)\n", shName.c_str(), numProbes);
+		}
+	}
 
 	int	totalEnd = Sys_Milliseconds();
 

@@ -43,6 +43,11 @@ If you have questions concerning this license or the applicable additional terms
 #include <sys/DeviceManager.h>
 #include <nvrhi/utils.h>
 
+#include "MathLight.h"
+
+idCVar r_mathLightsEnabled("r_mathLightsEnabled", "1", CVAR_RENDERER | CVAR_BOOL, "globally enable math-driven light falloff (per-light math_enabled spawn arg still required)");
+idCVar r_showMathLights("r_showMathLights", "0", CVAR_RENDERER | CVAR_INTEGER, "math light debug view: 0 = off, 1 = falloff t (black at source, white at volume edge), 2 = spot shape mask, 3 = pattern RGB", 0, 3);
+
 idCVar r_useNewSsaoPass( "r_useNewSSAOPass", "1", CVAR_RENDERER | CVAR_BOOL | CVAR_NEW, "use the new SSAO pass from Donut" );
 extern DeviceManager* deviceManager;
 
@@ -1059,6 +1064,10 @@ const int INTERACTION_TEXUNIT_AMBIENT_CUBE1 = 7;
 const int INTERACTION_TEXUNIT_SPECULAR_CUBE1 = 8;
 const int INTERACTION_TEXUNIT_SPECULAR_CUBE2 = 9;
 const int INTERACTION_TEXUNIT_SPECULAR_CUBE3 = 10;
+const int INTERACTION_TEXUNIT_DEPTH_CUBE = 12;		//shared IBL binding layout uses SRVs t3/t4/t7/t8/t9/t10, t11 and t12 are free but 
+													//skinned variant pulls in a joint buffer at StructuredBuffer_SRV(11)
+const int INTERACTION_TEXUNIT_DEPTH_CUBE2 = 13;		
+const int INTERACTION_TEXUNIT_DEPTH_CUBE3 = 14;		//13 and 14 are inter-probe distances
 
 /*
 ==================
@@ -1208,6 +1217,10 @@ void idRenderBackend::DrawSingleInteraction( drawInteraction_t* din, bool useFas
 		SetVertexParm( RENDERPARM_WOBBLESKY_Y, probeMaxs.ToFloatPtr() );
 		SetVertexParm( RENDERPARM_WOBBLESKY_Z, probeCenter.ToFloatPtr() );
 
+		SetVertexParm( RENDERPARM_TEXGEN_0_S, viewDef->probePositions[0].ToFloatPtr() );	
+		SetVertexParm( RENDERPARM_TEXGEN_0_T, viewDef->probePositions[1].ToFloatPtr() );	
+		SetVertexParm( RENDERPARM_TEXGEN_0_Q, viewDef->probePositions[2].ToFloatPtr() );	
+
 		// use rpGlobalLightOrigin for lightGrid center
 		const LightGrid& lightGrid = din->surf->area->lightGrid;
 
@@ -1283,6 +1296,15 @@ void idRenderBackend::DrawSingleInteraction( drawInteraction_t* din, bool useFas
 
 		GL_SelectTexture( INTERACTION_TEXUNIT_SPECULAR_CUBE3 );
 		viewDef->radianceImages[2]->Bind();
+
+		GL_SelectTexture( INTERACTION_TEXUNIT_DEPTH_CUBE );	
+		viewDef->depthImage->Bind();
+
+		GL_SelectTexture( INTERACTION_TEXUNIT_DEPTH_CUBE2 );	
+		viewDef->probeDepthImages[0]->Bind();
+
+		GL_SelectTexture( INTERACTION_TEXUNIT_DEPTH_CUBE3 );	
+		viewDef->probeDepthImages[1]->Bind();
 	}
 	else if( useIBL )
 	{
@@ -1305,8 +1327,15 @@ void idRenderBackend::DrawSingleInteraction( drawInteraction_t* din, bool useFas
 		SetVertexParm( RENDERPARM_WOBBLESKY_Y, probeMaxs.ToFloatPtr() );
 		SetVertexParm( RENDERPARM_WOBBLESKY_Z, probeCenter.ToFloatPtr() );
 
+		SetVertexParm( RENDERPARM_TEXGEN_0_S, viewDef->probePositions[0].ToFloatPtr() );	
+		SetVertexParm( RENDERPARM_TEXGEN_0_T, viewDef->probePositions[1].ToFloatPtr() );	
+		SetVertexParm( RENDERPARM_TEXGEN_0_Q, viewDef->probePositions[2].ToFloatPtr() );	
+
 		// specular cubemap blend weights
 		renderProgManager.SetUniformValue( RENDERPARM_LOCALLIGHTORIGIN, viewDef->radianceImageBlends.ToFloatPtr() );
+
+		// blended L2 SH irradiance (9 contiguous vec4 parms)
+		SetVertexParms(RENDERPARM_SH_IRRADIANCE_0, viewDef->shIrradiance[0].ToFloatPtr(), 9);
 
 		if( specUsage == TD_SPECULAR_PBR_RMAO || specUsage == TD_SPECULAR_PBR_RMAOD )
 		{
@@ -1356,6 +1385,15 @@ void idRenderBackend::DrawSingleInteraction( drawInteraction_t* din, bool useFas
 
 		GL_SelectTexture( INTERACTION_TEXUNIT_SPECULAR_CUBE3 );
 		viewDef->radianceImages[2]->Bind();
+
+		GL_SelectTexture( INTERACTION_TEXUNIT_DEPTH_CUBE );	
+		viewDef->depthImage->Bind();
+
+		GL_SelectTexture( INTERACTION_TEXUNIT_DEPTH_CUBE2 );
+		viewDef->probeDepthImages[0]->Bind();
+
+		GL_SelectTexture( INTERACTION_TEXUNIT_DEPTH_CUBE3 );
+		viewDef->probeDepthImages[1]->Bind();
 	}
 	else if( setInteractionShader )
 	{
@@ -1875,6 +1913,40 @@ void idRenderBackend::RenderInteractions( const drawSurf_t* surfList, const view
 		// texture 2 will be the light projection texture
 		GL_SelectTexture( INTERACTION_TEXUNIT_PROJECTION );
 		lightStage->texture.image->Bind();
+
+		//puncho start
+		{
+			const mathLightData_t& m = vLight->mathLight;
+			const bool useML = m.enabled && r_mathLightsEnabled.GetBool();
+			float mlMode = 0.0f;										// flags.x: 0 = legacy path, 1 = math on, 2-4 = debug views
+			if (useML)
+			{
+				mlMode = 1.0f + (float)r_showMathLights.GetInteger();
+			}
+
+			idVec4 flags(
+				mlMode,
+				(float)m.type,
+				(float)m.falloff,
+				(float)m.pattern);
+
+			idVec4 shape(
+				m.falloffExp,
+				m.innerRadius,
+				m.shapeExp,
+				m.penumbra);
+
+			idVec4 pattern(
+				m.patternStrength,
+				m.patternScale,
+				m.patternPhase,
+				m.energyClamp ? 1.0f : 0.0f);
+
+			SetFragmentParm(RENDERPARM_USER0, flags.ToFloatPtr());
+			SetFragmentParm(RENDERPARM_USER1, shape.ToFloatPtr());
+			SetFragmentParm(RENDERPARM_USER2, pattern.ToFloatPtr());
+		}
+		//puncho end
 
 		// texture 5 will be the shadow maps array
 		GL_SelectTexture( INTERACTION_TEXUNIT_SHADOWMAPS );

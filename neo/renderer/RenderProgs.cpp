@@ -405,10 +405,11 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 	{
 		// SRS - FIXME: Workaround - Disable push constants for select shaders to reduce GPU Timeout Errors (seen on Linux+AMD and macOS+AMD)
 		//     - Possibly due to exceeding push constant resource limits or perhaps a driver sync problem with AMD GPUs
-		//     - Note this may not be required on Windows Vulkan+AMD, but being conservative with minimal impact
+		//     - Note this may not be required on Windows Vulkan+AMD, but being conservative with no negative impact
 		layoutTypeAttributes[BINDING_LAYOUT_GBUFFER].pcEnabled = false;
+		layoutTypeAttributes[BINDING_LAYOUT_GBUFFER_SKINNED].pcEnabled = false;
 		layoutTypeAttributes[BINDING_LAYOUT_TEXTURE].pcEnabled = false;
-		layoutTypeAttributes[BINDING_LAYOUT_CONSTANT_BUFFER_ONLY].pcEnabled = false;
+		layoutTypeAttributes[BINDING_LAYOUT_TEXTURE_SKINNED].pcEnabled = false;
 	}
 
 	auto defaultLayoutDesc = nvrhi::BindingLayoutDesc()
@@ -452,12 +453,17 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 
 	auto ambientIblLayoutDesc = nvrhi::BindingLayoutDesc()
 								.setVisibility( nvrhi::ShaderType::Pixel )
-								.addItem( nvrhi::BindingLayoutItem::Texture_SRV( 3 ) ) // brdf lut
-								.addItem( nvrhi::BindingLayoutItem::Texture_SRV( 4 ) ) // ssao
-								.addItem( nvrhi::BindingLayoutItem::Texture_SRV( 7 ) ) // irradiance cube map
-								.addItem( nvrhi::BindingLayoutItem::Texture_SRV( 8 ) ) // radiance cube map 1
-								.addItem( nvrhi::BindingLayoutItem::Texture_SRV( 9 ) ) // radiance cube map 2
-								.addItem( nvrhi::BindingLayoutItem::Texture_SRV( 10 ) ); // radiance cube map 3
+								.addItem( nvrhi::BindingLayoutItem::Texture_SRV( 3 ) )		// brdf lut
+								.addItem( nvrhi::BindingLayoutItem::Texture_SRV( 4 ) )		// ssao
+								.addItem( nvrhi::BindingLayoutItem::Texture_SRV( 7 ) )		// irradiance cube map
+								.addItem( nvrhi::BindingLayoutItem::Texture_SRV( 8 ) )	    // radiance cube map 1
+								.addItem( nvrhi::BindingLayoutItem::Texture_SRV( 9 ) )      // radiance cube map 2
+								.addItem( nvrhi::BindingLayoutItem::Texture_SRV( 10 ) )	    // radiance cube map 3
+								.addItem( nvrhi::BindingLayoutItem::Texture_SRV( 12 ) )     // depth cube
+								.addItem( nvrhi::BindingLayoutItem::Texture_SRV( 13 ) )	    // inter-probe distance, probe 1
+								.addItem( nvrhi::BindingLayoutItem::Texture_SRV( 14 ) );    // inter-probe distance, probe 2
+								
+								
 
 	auto ambientIblLayout = device->createBindingLayout( ambientIblLayoutDesc );
 

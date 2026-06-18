@@ -4,6 +4,7 @@
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
 Copyright (C) 2013-2024 Robert Beckebans
+Copyright (C) 2026 Phillip Melnichenko
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -29,6 +30,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "global_inc.hlsl"
 #include "renderParmSet10.inc.hlsl"
+#include "mathlight.inc.hlsl"
+#include "BRDF.inc.hlsl"
 
 
 // *INDENT-OFF*
@@ -76,8 +79,18 @@ void main( PS_IN fragment, out PS_OUT result )
 	}
 
 	float4 bumpMap =		t_Normal.Sample( s_Material, bumpUV );
-	float4 lightFalloff =	idtex2Dproj( s_Lighting, t_LightFalloff, fragment.texcoord2 );
-	float4 lightProj =		idtex2Dproj( s_Lighting, t_LightProjection, fragment.texcoord3 );
+    float3 lightFalloffRGB;
+    float3 lightProjRGB;
+    if (!MLEvaluate(
+        fragment.texcoord2, fragment.texcoord3,
+        pc.rpUser0, pc.rpUser1, pc.rpUser2,
+        lightFalloffRGB, lightProjRGB))
+    {
+    // legacy path
+        lightFalloffRGB = idtex2Dproj(s_Lighting, t_LightFalloff, fragment.texcoord2).xyz;
+        lightProjRGB = idtex2Dproj(s_Lighting, t_LightProjection, fragment.texcoord3).xyz;
+    }
+
 	float4 YCoCG =			t_BaseColor.Sample( s_Material, baseUV );
 	float4 specMapSRGB =	t_Specular.Sample( s_Material, specUV );
 	float4 specMap =		sRGBAToLinearRGBA( specMapSRGB );
@@ -99,6 +112,18 @@ void main( PS_IN fragment, out PS_OUT result )
 
 	// traditional very dark Lambert light model used in Doom 3
 	float ldotN = saturate( dot3( localNormal, lightVector ) );
+	
+	// View-dependent normal contrast
+    float3 viewVector = normalize(fragment.texcoord6.xyz);
+    const float vdContrastMin = 1.0;
+    const float vdContrastMax = 1.4;
+{
+        float NdotV = saturate(viewVector.z);
+        float grazing = 1.0 - NdotV;
+        float contrast = lerp(vdContrastMin, vdContrastMax, grazing);
+        localNormal.xy *= contrast;
+        localNormal = normalize(localNormal);
+    }
 
 #if defined(USE_HALF_LAMBERT)
 	// RB: http://developer.valvesoftware.com/wiki/Half_Lambert
@@ -109,14 +134,31 @@ void main( PS_IN fragment, out PS_OUT result )
 	float lambert = ldotN;
 #endif
 
-	const float specularPower = 10.0f;
-	float hDotN = dot3( normalize( fragment.texcoord6.xyz ), localNormal );
-	// RB: added abs
-	float3 specularContribution = _float3( pow( abs( hDotN ), specularPower ) );
+    float3 diffuseColor = diffuseMap * (pc.rpDiffuseModifier.xyz);
 
-	float3 diffuseColor = diffuseMap * ( pc.rpDiffuseModifier.xyz );
-	float3 specularColor = specMap.xyz * specularContribution * ( pc.rpSpecularModifier.xyz );
-	float3 lightColor = sRGBToLinearRGB( lightProj.xyz * lightFalloff.xyz );
+#if USE_PBR
+    float roughness = specMapSRGB.r;
+    float metallic  = specMapSRGB.g;
+    float ao        = specMapSRGB.b;
+
+    float3 F0 = lerp( _float3( 0.04 ), diffuseMap, metallic );
+
+    float vDotN = saturate( dot3( viewVector, localNormal ) );
+    float3 kS = Fresnel_SchlickRoughness( F0, vDotN, roughness );
+
+    float specAO = ComputeSpecularAO( vDotN, ao, roughness );
+    float3 specularColor = kS * specAO * ( pc.rpSpecularModifier.xyz );
+
+    // metals have no diffuse
+    diffuseColor *= ( 1.0 - metallic );
+#else
+    const float specularPower = 10.0f;
+    float hDotN = dot3(viewVector, localNormal);
+    float3 specularContribution = _float3(pow(abs(hDotN), specularPower));
+    float3 specularColor = specMap.xyz * specularContribution * (pc.rpSpecularModifier.xyz);
+#endif
+	
+    float3 lightColor = sRGBToLinearRGB(lightProjRGB * lightFalloffRGB);
 
 	result.color.xyz = ( diffuseColor + specularColor ) * lightColor * fragment.color.xyz;
 	result.color.w = 1.0;

@@ -729,6 +729,20 @@ void idSaveGame::WriteRenderLight( const renderLight_t& renderLight )
 	{
 		WriteInt( 0 );
 	}
+
+	const mathLightData_t& m = renderLight.mathLight;
+	WriteBool(m.enabled);
+	WriteInt(m.type);
+	WriteInt(m.falloff);
+	WriteInt(m.pattern);
+	WriteFloat(m.falloffExp);
+	WriteFloat(m.innerRadius);
+	WriteFloat(m.shapeExp);
+	WriteFloat(m.penumbra);
+	WriteFloat(m.patternStrength);
+	WriteFloat(m.patternScale);
+	WriteFloat(m.patternPhase);
+	WriteBool(m.energyClamp);
 }
 
 // RB begin
@@ -1638,6 +1652,27 @@ void idRestoreGame::ReadRenderLight( renderLight_t& renderLight )
 
 	ReadInt( index );
 	renderLight.referenceSound = gameSoundWorld->EmitterForIndex( index );
+
+	if (GetBuildNumber() >= BUILD_NUMBER_SAVE_VERSION_MATH_LIGHTS)
+	{
+		mathLightData_t& m = renderLight.mathLight;
+		ReadBool(m.enabled);
+		ReadInt(m.type);
+		ReadInt(m.falloff);
+		ReadInt(m.pattern);
+		ReadFloat(m.falloffExp);
+		ReadFloat(m.innerRadius);
+		ReadFloat(m.shapeExp);
+		ReadFloat(m.penumbra);
+		ReadFloat(m.patternStrength);
+		ReadFloat(m.patternScale);
+		ReadFloat(m.patternPhase);
+		ReadBool(m.energyClamp);
+	}
+	else
+	{
+		memset(&renderLight.mathLight, 0, sizeof(renderLight.mathLight));
+	}
 }
 
 // RB begin

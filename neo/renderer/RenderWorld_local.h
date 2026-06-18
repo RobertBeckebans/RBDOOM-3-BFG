@@ -133,8 +133,8 @@ static const int	AREANUM_SOLID = -1;
 typedef struct
 {
 	idPlane			plane;
-	int				children[2];		// negative numbers are (-1 - areaNumber), 0 = solid
-	int				commonChildrenArea;	// if all children are either solid or a single area,
+	int				children[2];			// negative numbers are (-1 - areaNumber), 0 = solid
+	int				commonChildrenArea;		// if all children are either solid or a single area,
 	// this is the area number, else CHILDREN_HAVE_MULTIPLE_AREAS
 } areaNode_t;
 
@@ -153,6 +153,13 @@ struct reusableOverlay_t
 };
 
 struct portalStack_t;
+
+struct shProbeEntry_t
+{
+	int			areaNum;
+	idVec3		origin;						// snapped, same key as the envprobe image filenames
+	idVec3		sh[9];						// L2 SH irradiance, RGB per coefficient
+};
 
 class idRenderWorldLocal : public idRenderWorld
 {
@@ -244,6 +251,11 @@ public:
 	idList<idRenderEntityLocal*, TAG_ENTITY>		entityDefs;
 	idList<idRenderLightLocal*, TAG_LIGHT>			lightDefs;
 	idList<RenderEnvprobeLocal*, TAG_ENVPROBE>		envprobeDefs; // RB
+
+	// lazy once-per-map cache of <mapbase>.shprobes
+	idList<shProbeEntry_t>	shProbeEntries;
+	idStr					shProbesLoadedForMap;
+	void					LoadSHProbesFile();
 
 	idBlockAlloc<areaReference_t, 1024> areaReferenceAllocator;
 	idBlockAlloc<idInteraction, 256>	interactionAllocator;

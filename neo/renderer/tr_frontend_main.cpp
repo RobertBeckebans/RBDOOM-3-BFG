@@ -495,6 +495,18 @@ static void R_FindClosestEnvironmentProbes()
 	{
 		tr.viewDef->radianceImages[i] = globalImages->defaultUACRadianceCube;
 	}
+	tr.viewDef->depthImage = globalImages->defaultUACRadianceCube;	
+	tr.viewDef->probeDepthImages[0] = globalImages->defaultUACRadianceCube;	
+	tr.viewDef->probeDepthImages[1] = globalImages->defaultUACRadianceCube;	
+	for (int i = 0; i < 3; i++)
+	{
+		tr.viewDef->probePositions[i].Set(0.0f, 0.0f, 0.0f, 0.0f);			
+	}
+
+	for (int i = 0; i < 9; i++)
+	{
+		tr.viewDef->shIrradiance[i].Zero();
+	}
 
 	// early out
 	if( tr.viewDef->areaNum == -1 || tr.viewDef->isSubview )
@@ -536,6 +548,11 @@ static void R_FindClosestEnvironmentProbes()
 	{
 		tr.viewDef->irradianceImage = nearest->irradianceImage;
 	}
+	
+	if (nearest->depthImage && nearest->depthImage->IsLoaded() && !nearest->depthImage->IsDefaulted())
+	{
+		tr.viewDef->depthImage = nearest->depthImage;
+	}
 
 	// form a triangle of the 3 closest probes
 	idVec3 verts[3];
@@ -551,36 +568,72 @@ static void R_FindClosestEnvironmentProbes()
 		verts[i] = vProbe->parms.origin;
 	}
 
-	tr.viewDef->probePositions->Set( verts[0].x, verts[0].y, verts[0].z, 1 );
-	tr.viewDef->probePositions->Set( verts[1].x, verts[1].y, verts[1].z, 1 );
-	tr.viewDef->probePositions->Set( verts[2].x, verts[2].y, verts[2].z, 1 );
-
-	idVec3 closest = R_ClosestPointPointTriangle( testOrigin, verts[0], verts[1], verts[2] );
-	idVec3 bary;
-
-	// find the barycentric coordinates
-	float denom = idWinding::TriangleArea( verts[0], verts[1], verts[2] );
-	if( denom == 0 )
+	// indexes correctly (old form decayed to [0] three times) 
+	// carries per-probe depth-cube validity in .w for the shader's visibility/reprojection gates.
+	for ( int i = 0; i < 3; i++ )
 	{
-		// triangle is line
-		float t;
+		float depthValid = 0.0f;
+		if ( i < viewEnvprobes.Num() &&
+			viewEnvprobes[i]->depthImage &&
+			viewEnvprobes[i]->depthImage->IsLoaded() && !viewEnvprobes[i]->depthImage->IsDefaulted() )
+		{
+			depthValid = 1.0f;
+		}
+		tr.viewDef->probePositions[i].Set( verts[i].x, verts[i].y, verts[i].z, depthValid );
+	}
 
-		R_ClosestPointOnLineSegment( testOrigin, verts[0], verts[1], t );
+	// Distance-falloff blend weights. Anchoring the cutoff radius to the 4th-nearest
+	// probe guarantees the current 3rd probe's weight reaches exactly 0 at the instant
+	// it would be swapped out for the 4th, so the active set can change with no pop and
+	// without needing a triangulation. The same weights drive the diffuse SH blend
+	// below, which the old triangle path only did in the degenerate (collinear) case.
+	const int numProbes = viewEnvprobes.Num();
 
-		bary.Set( 1.0f - t, t, 0 );
+	float probeDist[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	for (int i = 0; i < 4 && i < numProbes; i++)
+	{
+		probeDist[i] = (viewEnvprobes[i]->parms.origin - testOrigin).Length();
+	}
+
+	// cutoff = 4th-nearest distance when present; with < 4 candidates the set cannot
+	// change through motion, so keep the farthest active probe alive.
+	const float dCut = (numProbes > 3)
+		? Max(probeDist[3], 1e-4f)
+		: Max(probeDist[Max(0, numProbes - 1)] * 1.5f, 1e-4f);
+
+	idVec3 bary(0.0f, 0.0f, 0.0f);
+	float  weightSum = 0.0f;
+	for (int i = 0; i < 3 && i < numProbes; i++)
+	{
+		float w = Max(0.0f, 1.0f - probeDist[i] / dCut);
+		w *= w;												// squared -> weight AND its slope reach 0 at dCut (tunable)
+		bary[i] = w;
+		weightSum += w;
+	}
+
+	if (weightSum > 1e-4f)
+	{
+		bary /= weightSum;
 	}
 	else
 	{
-		float	a, b, c;
-
-		a = idWinding::TriangleArea( closest, verts[1], verts[2] ) / denom;
-		b = idWinding::TriangleArea( closest, verts[2], verts[0] ) / denom;
-		c = idWinding::TriangleArea( closest, verts[0], verts[1] ) / denom;
-
-		bary.Set( a, b, c );
+		bary.Set(1.0f, 0.0f, 0.0f);							// degenerate -> nearest probe only
 	}
 
-	tr.viewDef->radianceImageBlends.Set( bary.x, bary.y, bary.z, 0.0f );
+	// Diffuse SH irradiance: blend the L2 coefficients with the SAME weights, every
+	// frame. Fixes the black-probe-diffuse bug where the non-degenerate triangle path
+	// left tr.viewDef->shIrradiance at the zeroed defaults.
+	for (int i = 0; i < 9; i++)
+	{
+		idVec3 s(0.0f, 0.0f, 0.0f);
+		for (int p = 0; p < 3 && p < numProbes; p++)
+		{
+			s += viewEnvprobes[p]->shIrradiance[i] * bary[p];
+		}
+		tr.viewDef->shIrradiance[i].Set(s.x, s.y, s.z, 0.0f);
+	}
+
+	tr.viewDef->radianceImageBlends.Set(bary.x, bary.y, bary.z, 0.0f);
 
 	for( int i = 0; i < viewEnvprobes.Num() && i < 3; i++ )
 	{
@@ -590,11 +643,26 @@ static void R_FindClosestEnvironmentProbes()
 		}
 	}
 
+	// depth cubes for radiance probes 1 and 2 (probe 0 == nearest == depthImage)
+	for (int i = 1; i < viewEnvprobes.Num() && i < 3; i++)
+	{
+		if (viewEnvprobes[i]->depthImage && viewEnvprobes[i]->depthImage->IsLoaded() && !viewEnvprobes[i]->depthImage->IsDefaulted())
+		{
+			tr.viewDef->probeDepthImages[i - 1] = viewEnvprobes[i]->depthImage;
+		}
+	}
+
 	if( tr.viewDef->radianceImages[0] == globalImages->defaultUACRadianceCube &&
 			tr.viewDef->radianceImages[1] == globalImages->defaultUACRadianceCube &&
 			tr.viewDef->radianceImages[2] == globalImages->defaultUACRadianceCube )
 	{
 		// this didn't work so this is the way to tell the backend and avoid blood reflections
+		tr.viewDef->globalProbeBounds.Clear();
+	}
+
+	// no usable depth cube -> disable the march (placeholder is zeros and must never be marched)
+	if (tr.viewDef->depthImage == globalImages->defaultUACRadianceCube)
+	{
 		tr.viewDef->globalProbeBounds.Clear();
 	}
 }
@@ -675,9 +743,18 @@ static void R_FindClosestEnvironmentProbes2()
 		triIndexes[i] = vProbe->index;
 	}
 
-	tr.viewDef->probePositions->Set( verts[0].x, verts[0].y, verts[0].z, 1 );
-	tr.viewDef->probePositions->Set( verts[1].x, verts[1].y, verts[1].z, 1 );
-	tr.viewDef->probePositions->Set( verts[2].x, verts[2].y, verts[2].z, 1 );
+	// per-probe depth-cube validit, for the shader's visibility/reprojection gates.
+	for (int i = 0; i < 3; i++)
+	{
+		float depthValid = 0.0f;
+		if (i < viewEnvprobes.Num() &&
+			viewEnvprobes[i]->depthImage &&
+			viewEnvprobes[i]->depthImage->IsLoaded() && !viewEnvprobes[i]->depthImage->IsDefaulted())
+		{
+			depthValid = 1.0f;
+		}
+		tr.viewDef->probePositions[i].Set(verts[i].x, verts[i].y, verts[i].z, depthValid);
+	}
 
 	// don't assume tri changed if we just moved inside a triangle and only the indixes switched
 	// because one vertex is closer than before

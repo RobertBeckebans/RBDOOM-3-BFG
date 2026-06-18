@@ -138,19 +138,16 @@ void fhImmediateMode::End()
 	vertexBuffer.Update( drawVerts, drawVertsUsed * sizeof( idDrawVert ), 0, false, commandList );
 	indexBuffer.Update( lineIndices, drawVertsUsed * sizeof( triIndex_t ), 0, false, commandList );
 
+	renderProgManager.CommitConstantBuffer( commandList, true );
+
 	int bindingLayoutType = renderProgManager.BindingLayoutType();
 
 	idStaticList<nvrhi::BindingLayoutHandle, nvrhi::c_MaxBindingLayouts>* layouts
 		= renderProgManager.GetBindingLayout( bindingLayoutType );
 
-	backEnd.GetCurrentBindingLayout( bindingLayoutType );
-
-	bool uniformsLayoutChanged = backEnd.prevBindingLayoutType >= 0 ? ( *layouts )[0] != ( *renderProgManager.GetBindingLayout( backEnd.prevBindingLayoutType ) )[0] : true;
-
 	for( int i = 0; i < layouts->Num(); i++ )
 	{
-		// SRS - Update currentBindingSets[0] if uniforms binding layout has changed, can happen with push constants even if binding set descriptions match
-		if( !backEnd.currentBindingSets[i] || *backEnd.currentBindingSets[i]->getDesc() != backEnd.pendingBindingSetDescs[bindingLayoutType][i] || ( uniformsLayoutChanged && i == 0 ) )
+		if( !backEnd.currentBindingSets[i] || *backEnd.currentBindingSets[i]->getDesc() != backEnd.pendingBindingSetDescs[bindingLayoutType][i] || bindingLayoutType != backEnd.prevBindingLayoutType )
 		{
 			backEnd.currentBindingSets[i] = backEnd.bindingCache.GetOrCreateBindingSet( backEnd.pendingBindingSetDescs[bindingLayoutType][i], ( *layouts )[i] );
 		}
@@ -161,8 +158,6 @@ void fhImmediateMode::End()
 	int program = renderProgManager.CurrentProgram();
 	PipelineKey key{ stateBits, program, static_cast<int>( backEnd.depthBias ), backEnd.slopeScaleBias, backEnd.currentFrameBuffer };
 	auto pipeline = backEnd.pipelineCache.GetOrCreatePipeline( key );
-
-	renderProgManager.CommitConstantBuffer( commandList, bindingLayoutType != backEnd.prevBindingLayoutType );
 
 	{
 		nvrhi::GraphicsState state;
@@ -189,10 +184,6 @@ void fhImmediateMode::End()
 		commandList->setGraphicsState( state );
 
 		renderProgManager.CommitPushConstants( commandList, bindingLayoutType );
-
-		// SRS - Save context so state change detection works properly in DrawElementsWithCounters()
-		backEnd.prevBindingLayoutType = bindingLayoutType;
-		backEnd.currentPipeline = pipeline;
 	}
 
 	nvrhi::DrawArguments args;

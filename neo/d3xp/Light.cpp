@@ -196,6 +196,15 @@ void idGameEdit::ParseSpawnArgsToRenderLight( const idDict* args, renderLight_t*
 
 	// allow this to be NULL
 	renderLight->shader = declManager->FindMaterial( texture, false );
+
+	
+	
+	// MATH LIGHT extension
+	if (renderLight->parallel) { renderLight->mathLight.type = ML_SUN; }
+	else if (!renderLight->pointLight) { renderLight->mathLight.type = ML_SPOT; }
+	else { renderLight->mathLight.type = ML_POINT; }
+
+	ML_ParseFromDict(args, &renderLight->mathLight);
 }
 
 /*

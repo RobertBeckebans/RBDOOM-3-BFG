@@ -584,7 +584,7 @@ void idImage::ActuallyLoadImage( bool fromBackEnd, nvrhi::ICommandList* commandL
 		{
 			opts.textureType = DTT_2D_ARRAY;
 		}
-		else if( cubeFiles == CF_NATIVE || cubeFiles == CF_CAMERA || cubeFiles == CF_QUAKE1 || cubeFiles == CF_SINGLE || cubeFiles == CF_PANORAMA )
+		else if( cubeFiles == CF_NATIVE || cubeFiles == CF_NATIVE_HDR || cubeFiles == CF_CAMERA || cubeFiles == CF_QUAKE1 || cubeFiles == CF_SINGLE || cubeFiles == CF_PANORAMA )
 		{
 			opts.textureType = DTT_CUBIC;
 			repeat = TR_CLAMP;

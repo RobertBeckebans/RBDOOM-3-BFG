@@ -62,6 +62,10 @@ struct renderParmSet10_t
 	float4 rpProjectionMatrixW;
 
 	float4 rpPSXDistortions;
+	
+    float4 rpUser0; // (enabled, type, falloff, pattern)
+    float4 rpUser1; // (falloffExp, innerRadius, shapeExp, penumbra)
+    float4 rpUser2; // (patternStrength, patternScale, patternPhase, energyClamp)
 };
 
 #if USE_PUSH_CONSTANTS

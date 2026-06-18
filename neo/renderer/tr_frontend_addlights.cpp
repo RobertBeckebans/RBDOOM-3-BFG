@@ -224,6 +224,11 @@ static void R_AddSingleLight( viewLight_t* vLight )
 	vLight->lightCenter = light->parms.lightCenter;
 	// RB end
 
+	//puncho start
+	//thread safety
+	memcpy(&vLight->mathLight, &light->parms.mathLight, sizeof(mathLightData_t));
+	//puncho end
+
 	vLight->falloffImage = light->falloffImage;
 	vLight->lightShader = light->lightShader;
 	vLight->shaderRegisters = lightRegs;

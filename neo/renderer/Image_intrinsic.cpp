@@ -1028,9 +1028,16 @@ static void R_CreateEnvprobeImage_UAC_lobby_irradiance( idImage* image, nvrhi::I
 	image->GenerateImage( ( byte* )IMAGE_ENV_UAC_LOBBY_AMB_H_Bytes, IMAGE_ENV_UAC_LOBBY_AMB_H_TEX_WIDTH, IMAGE_ENV_UAC_LOBBY_AMB_H_TEX_HEIGHT, TF_LINEAR, TR_CLAMP, TD_HDR_LIGHTPROBE, commandList, false, false, 1, CF_2D_PACKED_MIPCHAIN );
 }
 
-static void R_CreateEnvprobeImage_UAC_lobby_radiance( idImage* image, nvrhi::ICommandList* commandList )
+static void R_CreateDefaultRadianceCube(idImage* image, nvrhi::ICommandList* commandList)
 {
-	image->GenerateImage( ( byte* )IMAGE_ENV_UAC_LOBBY_SPEC_H_Bytes, IMAGE_ENV_UAC_LOBBY_SPEC_H_TEX_WIDTH, IMAGE_ENV_UAC_LOBBY_SPEC_H_TEX_HEIGHT, TF_DEFAULT, TR_CLAMP, TD_HDR_LIGHTPROBE, commandList, false, false, 1, CF_2D_PACKED_MIPCHAIN );
+	const int size = 8;	// tiny; it is only a no-probe fallback
+	const int n = size * size;
+
+
+	idTempArray<byte> face(n * 4);
+	memset(face.Ptr(), 0, n * 4);
+	const byte* pics[6] = { face.Ptr(), face.Ptr(), face.Ptr(), face.Ptr(), face.Ptr(), face.Ptr() };
+	image->GenerateCubeImage(pics, size, TF_LINEAR, TD_HDRI, commandList);
 }
 
 // RB end
@@ -1129,7 +1136,7 @@ void idImageManager::CreateIntrinsicImages()
 	brdfLutImage = ImageFromFunction( "_brdfLut", R_CreateBrdfLutImage );
 
 	defaultUACIrradianceCube = ImageFromFunction( "_defaultUACIrradiance", R_CreateEnvprobeImage_UAC_lobby_irradiance );
-	defaultUACRadianceCube = ImageFromFunction( "_defaultUACRadiance", R_CreateEnvprobeImage_UAC_lobby_radiance );
+	defaultUACRadianceCube = ImageFromFunction("_defaultUACRadiance", R_CreateDefaultRadianceCube);
 	// RB end
 
 	// scratchImage is used for screen wipes/doublevision etc..

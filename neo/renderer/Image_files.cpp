@@ -1165,6 +1165,10 @@ bool R_LoadCubeImages( const char* imgName, cubeFiles_t extensions, byte* pics[6
 	const char*	axisSides[6] =  { "_px.tga", "_nx.tga", "_py.tga", "_ny.tga",
 								  "_pz.tga", "_nz.tga"
 								};
+	const char* axisSidesHDR[6] = { "_px.exr", "_nx.exr", "_py.exr", "_ny.exr",
+									"_pz.exr", "_nz.exr"
+								};
+
 	const char**	sides;
 	char	fullName[MAX_IMAGE_NAME];
 	int		width, height, size = 0;
@@ -1173,9 +1177,13 @@ bool R_LoadCubeImages( const char* imgName, cubeFiles_t extensions, byte* pics[6
 	{
 		sides = cameraSides;
 	}
-	else if( extensions == CF_QUAKE1 )
+	else if (extensions == CF_QUAKE1)
 	{
 		sides = quakeSides;
+	}
+	else if (extensions == CF_NATIVE_HDR)
+	{
+		sides = axisSidesHDR;
 	}
 	else
 	{

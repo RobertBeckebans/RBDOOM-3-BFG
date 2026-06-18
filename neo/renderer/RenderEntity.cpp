@@ -138,6 +138,14 @@ RenderEnvprobeLocal::RenderEnvprobeLocal()
 	areaNum					= 0;
 	lastModifiedFrameNum	= 0;
 	references				= NULL;
+
+	irradianceImage			= NULL;	// hygiene
+	radianceImage			= NULL;	// 
+	depthImage				= NULL;	//
+	viewCount				= 0;	//
+	viewEnvprobe			= NULL;	//
+
+	memset(shIrradiance, 0, sizeof(shIrradiance));
 }
 
 void RenderEnvprobeLocal::FreeRenderEnvprobe()

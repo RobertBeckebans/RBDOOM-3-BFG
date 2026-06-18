@@ -363,26 +363,6 @@ bool DeviceManager_DX12::CreateDeviceAndSwapChain()
 			 IID_PPV_ARGS( &m_Device12 ) );
 	HR_RETURN( hr );
 
-	// SRS - calculate and print out the DXGI device name and driver version string
-	idStr version_string;
-
-	// SRS - check the adaptor interface which returns the User Mode Driver version
-	LARGE_INTEGER UMDVersion;
-	if(	SUCCEEDED( targetAdapter->CheckInterfaceSupport( __uuidof( IDXGIDevice ), &UMDVersion ) ) )
-	{
-		version_string.Format( "UMD driver %u.%u.%u.%u",
-								UMDVersion.QuadPart >> 48,
-							  ( UMDVersion.QuadPart >> 32 ) & 0xFFFF,
-							  ( UMDVersion.QuadPart >> 16 ) & 0xFFFF,
-								UMDVersion.QuadPart & 0xFFFF );
-	}
-	else
-	{
-		version_string.Format( "UMD driver ?.?.?.?" );
-	}
-
-	common->Printf( "Created DX12 device: %s (%s)\n", m_RendererString.c_str(), version_string.c_str() );
-
 	if( m_DeviceParams.enableDebugRuntime )
 	{
 		RefCountPtr<ID3D12InfoQueue> pInfoQueue;

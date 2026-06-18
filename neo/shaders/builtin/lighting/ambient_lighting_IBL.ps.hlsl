@@ -4,6 +4,7 @@
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
 Copyright (C) 2013-2025 Robert Beckebans
+Copyright (C) 2026 Phillip Melnichenko
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -40,14 +41,123 @@ Texture2D t_BaseColor			: register( t2 VK_DESCRIPTOR_SET( 1 ) );
 
 Texture2D t_BrdfLut				: register( t3 VK_DESCRIPTOR_SET( 2 ) );
 Texture2D t_Ssao				: register( t4 VK_DESCRIPTOR_SET( 2 ) );
-Texture2D t_IrradianceCubeMap	: register( t7 VK_DESCRIPTOR_SET( 2 ) );
-Texture2D t_RadianceCubeMap1	: register( t8 VK_DESCRIPTOR_SET( 2 ) );
-Texture2D t_RadianceCubeMap2	: register( t9 VK_DESCRIPTOR_SET( 2 ) );
-Texture2D t_RadianceCubeMap3	: register( t10 VK_DESCRIPTOR_SET( 2 ) );
+//Texture2D t_IrradianceCubeMap	: register( t7 VK_DESCRIPTOR_SET( 2 ) );    //no longer used
+TextureCube t_RadianceCubeMap1	: register( t8 VK_DESCRIPTOR_SET( 2 ) );
+TextureCube t_RadianceCubeMap2	: register( t9 VK_DESCRIPTOR_SET( 2 ) );
+TextureCube t_RadianceCubeMap3	: register( t10 VK_DESCRIPTOR_SET( 2 ) );
+TextureCube t_DepthCubeMap		: register (t12 VK_DESCRIPTOR_SET( 2 ) );
+TextureCube t_DepthCubeMap2		: register( t13 VK_DESCRIPTOR_SET( 2 ) );	// inter-probe distance 1
+TextureCube t_DepthCubeMap3		: register( t14 VK_DESCRIPTOR_SET( 2 ) );	// inter-probe distance 2
+#define NUM_RADIANCE_MIPS 10
 
 SamplerState s_Material			: register( s0 VK_DESCRIPTOR_SET( 3 ) ); // (Wrap) Anisotropic sampler: normal sampler & specular sampler
 SamplerState s_LinearClamp		: register( s1 VK_DESCRIPTOR_SET( 3 ) ); // (Clamp) Linear sampler: brdf lut sampler & ssao sampler
 //SamplerState s_Light			: register( s2 VK_DESCRIPTOR_SET( 3 )); // (Clamp) Anisotropic sampler: irradiance, radiance 1, 2 and 3.
+
+float3 ParallaxCorrectAndOcclude(float3 worldPos, float3 reflDir, float3 probeCentre,
+								  float probeFarDist, float roughness, out float occlusion, out float hitDist)
+{
+    occlusion = 1.0;
+    hitDist = probeFarDist;
+
+	// the lookup is blurry anyway
+    const int steps = (int) lerp(16.0, 4.0, roughness);
+    const float stepLen = probeFarDist / max((float) steps, 1.0);
+
+    float3 rayPos = worldPos + reflDir * (stepLen * 0.5);
+
+    float3 dSeed = rayPos - probeCentre;
+    float prevDiff = length(dSeed) - t_DepthCubeMap.SampleLevel(s_LinearClamp, normalize(dSeed), 0).r;
+
+	[loop]
+    for (int i = 0; i < steps; i++)
+    {
+        float3 nextPos = rayPos + reflDir * stepLen;
+        float3 d = nextPos - probeCentre;
+        float rayDist = length(d);
+        float scnDist = t_DepthCubeMap.SampleLevel(s_LinearClamp, normalize(d), 0).r;
+        float diff = rayDist - scnDist; 
+
+        if (diff > 0.0)
+        {
+            float t = saturate(prevDiff / min(prevDiff - diff, -1e-4));
+            float3 hitPos = lerp(rayPos, nextPos, t);
+
+            hitDist = length(hitPos - worldPos);
+            occlusion = saturate(hitDist / (probeFarDist * 0.5));
+
+            return normalize(hitPos - probeCentre);
+        }
+
+        rayPos = nextPos;
+        prevDiff = diff;
+    }
+    return reflDir;
+}
+
+
+
+// coarse (distances are from the probe centre, not the shading point)
+// returns a bent normal 
+#define NUM_AO_TAPS 6
+float LargeScaleDepthAO(float3 worldPos, float3 N, float3 probeCentre, float probeFarDist, out float3 bentNormal)
+{
+	// tangent basis around N
+    float3 up = (abs(N.z) < 0.999) ? float3(0, 0, 1) : float3(1, 0, 0);
+    float3 T = normalize(cross(up, N));
+    float3 Bt = cross(N, T);
+
+	// tangent-plane offsets; index 0 points straight up the normal
+    const float2 kernel[NUM_AO_TAPS] =
+    {
+        float2(0.00, 0.00),
+		float2(0.66, 0.00),
+		float2(-0.33, 0.57),
+		float2(-0.33, -0.57),
+		float2(0.30, 0.52),
+		float2(-0.60, -0.20),
+    };
+
+    const float radius = probeFarDist * 0.25;			// occlusion reach    (tunable)
+    const float falloff = probeFarDist * 0.25;			// transition softness (tunable)
+
+    float visSum = 0.0;
+    float wSum = 0.0;
+    float3 bent = float3(0, 0, 0);
+
+	[unroll]
+    for (int i = 0; i < NUM_AO_TAPS; i++)
+    {
+        float3 dir = normalize(N + T * kernel[i].x + Bt * kernel[i].y);
+        float w = saturate(dot3(dir, N));				// cosine weight
+
+        float3 p = worldPos + dir * radius;
+        float3 fromC = p - probeCentre;
+        float scnD = t_DepthCubeMap.SampleLevel(s_LinearClamp, normalize(fromC), 0).r;
+        float behind = length(fromC) - scnD;			// > 0 => p is past the surface => occluded
+        float vis = saturate(-behind / falloff);		// open space => ~1; behind geometry => 0
+
+        visSum += vis * w;
+        wSum += w;
+        bent += dir * (vis * w);
+    }
+
+    bentNormal = (wSum > 0.0) ? normalize(bent + N * 1e-4) : N;
+    return (wSum > 0.0) ? saturate(visSum / wSum) : 1.0;
+}
+
+// can this probe see worldPos? 1 = fully visible, -> 0 = behind geometry.
+// Bias keeps points lying ON a surface visible; fade softens the wall transition.
+float ProbeVisibility(TextureCube depthCube, float3 worldPos, float3 probePos, float probeFarDist)
+{
+    float3 toP = worldPos - probePos;
+    float dP = length(toP);
+    float scn = depthCube.SampleLevel(s_LinearClamp, normalize(toP), 0).r;
+
+    const float bias = probeFarDist * 0.02;				// tunable
+    const float fade = probeFarDist * 0.10;				// tunable
+    return saturate(1.0 - (dP - scn - bias) / fade);
+}
 
 struct PS_IN
 {
@@ -71,24 +181,36 @@ struct PS_OUT
 
 
 
-
-float2 OctTexCoord( float3 worldDir )
+void shEvaluateL2(float3 d, out float y[9])
 {
-	float2 normalizedOctCoord = octEncode( worldDir );
-	float2 normalizedOctCoordZeroOne = ( normalizedOctCoord + _float2( 1.0 ) ) * 0.5;
+    float x = d.x, yv = d.y, z = d.z;
+    float x2 = x * x, y2 = yv * yv, z2 = z * z;
 
-	// offset by one pixel border bleed size for linear filtering
-#if 0
-	// texcoord sizes in pc.rpCascadeDistances are not valid
-	float2 octCoordNormalizedToTextureDimensions = ( normalizedOctCoordZeroOne * ( pc.rpCascadeDistances.x - float( 2.0 ) ) ) / pc.rpCascadeDistances.xy;
+    y[0] = 1.0 / ( 2.0 * sqrt( 3.1415927 ) );
+    y[1] = -sqrt( 3.0 / ( 4.0 * 3.1415927 ) ) * yv;
+    y[2] = sqrt( 3.0 / ( 4.0 * 3.1415927 ) ) * z;
+    y[3] = -sqrt( 3.0 / ( 4.0 * 3.1415927 ) ) * x;
+    y[4] = sqrt( 15.0 / ( 4.0 * 3.1415927 ) ) * yv * x;
+    y[5] = -sqrt( 15.0 / ( 4.0 * 3.1415927 ) ) * yv * z;
+    y[6] = sqrt( 5.0 / ( 16.0 * 3.1415927 ) ) * (3.0 * z2 - 1.0);
+    y[7] = -sqrt( 15.0 / ( 4.0 * 3.1415927 ) ) * x * z;
+    y[8] = sqrt( 15.0 / ( 16.0 * 3.1415927 ) ) * (x2 - y2);
+}
 
-	float2 probeTopLeftPosition = float2( 1.0, 1.0 );
-	float2 normalizedProbeTopLeftPosition = probeTopLeftPosition * pc.rpCascadeDistances.zw;
+// c[9] = the stored RGB coefficients (first 9 / L2). Returns irradiance E(n).
+float3 shEvaluateDiffuseL2RGB(float3 c[9], float3 n)
+{
+    float b[9];
+    shEvaluateL2(n, b);
 
-	normalizedOctCoordZeroOne.xy = normalizedProbeTopLeftPosition + octCoordNormalizedToTextureDimensions;
-#endif
+    const float A0 = 3.1415927;              // SphericalHarmonics
+    const float A1 = 3.1415927 * 2.0 / 3.0;
+    const float A2 = 3.1415927 * 1.0 / 4.0;
 
-	return normalizedOctCoordZeroOne;
+    float3 r = c[0] * b[0] * A0;
+    r += (c[1] * b[1] + c[2] * b[2] + c[3] * b[3]) * A1;
+    r += (c[4] * b[4] + c[5] * b[5] + c[6] * b[6] + c[7] * b[7] + c[8] * b[8]) * A2;
+    return r;
 }
 
 void main( PS_IN fragment, out PS_OUT result )
@@ -121,15 +243,32 @@ void main( PS_IN fragment, out PS_OUT result )
 	localNormal.z = sqrt( abs( dot( localNormal.xy, localNormal.xy ) - 0.25 ) );
 	localNormal = normalize( localNormal );
 
-	float3 globalNormal;
-	globalNormal.x = dot3( localNormal, fragment.texcoord4 );
-	globalNormal.y = dot3( localNormal, fragment.texcoord5 );
-	globalNormal.z = dot3( localNormal, fragment.texcoord6 );
-	globalNormal = normalize( globalNormal );
+    float3 globalPosition = fragment.texcoord7.xyz;
+    float3 globalView = normalize(pc.rpGlobalEyePos.xyz - globalPosition);
 
-	float3 globalPosition = fragment.texcoord7.xyz;
+	// View-dependent normal contrast 
+    const float vdContrastMin = 1.0;
+    const float vdContrastMax = 1.4;
+	{
+		
+        float3 globalNormalPre;
+        globalNormalPre.x = dot3(localNormal, fragment.texcoord4);
+        globalNormalPre.y = dot3(localNormal, fragment.texcoord5);
+        globalNormalPre.z = dot3(localNormal, fragment.texcoord6);
+        globalNormalPre = normalize(globalNormalPre);
 
-	float3 globalView = normalize( pc.rpGlobalEyePos.xyz - globalPosition );
+        float NdotV = saturate(dot3(globalNormalPre, globalView));
+        float grazing = 1.0 - NdotV;
+        float contrast = lerp(vdContrastMin, vdContrastMax, grazing);
+        localNormal.xy *= contrast;
+        localNormal = normalize(localNormal);
+    }
+
+    float3 globalNormal;
+    globalNormal.x = dot3(localNormal, fragment.texcoord4);
+    globalNormal.y = dot3(localNormal, fragment.texcoord5);
+    globalNormal.z = dot3(localNormal, fragment.texcoord6);
+    globalNormal = normalize(globalNormal);
 
 	float3 reflectionVector = globalNormal * dot3( globalView, globalNormal );
 	reflectionVector = normalize( ( reflectionVector * 2.0f ) - globalView );
@@ -188,12 +327,13 @@ void main( PS_IN fragment, out PS_OUT result )
 #endif
 
 	float3 kS = Fresnel_SchlickRoughness( specularColor, vDotN, roughness );
-	float3 kD = ( float3( 1.0, 1.0, 1.0 ) - kS ) * ( 1.0 - metallic );
+	float3 kD = ( float3( 1.0, 1.0, 1.0 ) - kS );
 
 #else
 
 	float ao = 1.0;
 
+// legacy fudgefactor spec+bump wrangling into "PBR", leave it alone unless touching backwards compat
 #if KENNY_PBR
 	float3 diffuseColor = diffuseMap;
 	float3 specularColor;
@@ -229,29 +369,85 @@ void main( PS_IN fragment, out PS_OUT result )
 	ao = min( ao,  t_Ssao.Sample( s_LinearClamp, screenTexCoord ).r );
 
 	// evaluate diffuse IBL
+    // Matches the bake's normalization: it stored shEvaluateDiffuse(...) / PI
+	// (RenderWorld_envprobes), so divide by PI here too or be PI x too bright.
+    float3 sh[9];
+	[unroll]
+    for (int i = 0; i < 9; i++)
+    {
+        sh[i] = pc.rpSHIrradiance[i].rgb;
+    }
+    
+    float3 irradiance = max(shEvaluateDiffuseL2RGB(sh, globalNormal) / 3.14159265, 0.0);
+    
+    float2 envBRDF = t_BrdfLut.Sample(s_LinearClamp, float2(max(vDotN, 0.0), roughness)).rg;
 
-	float2 normalizedOctCoordZeroOne = OctTexCoord( globalNormal );
+	// multiple-scattering energy compensation - Fdez-Aguera
+    float3 singleScatterSpec = specularColor * envBRDF.x + envBRDF.y;
+    float singleScatterEnergy = envBRDF.x + envBRDF.y;
+    float multiScatterEnergy = 1.0 - singleScatterEnergy;
+    float3 averageFresnel = specularColor + (1.0 - specularColor) * (1.0 / 21.0);
+    float3 multiScatterSpec = singleScatterSpec * averageFresnel / (1.0 - multiScatterEnergy * averageFresnel);
+    float3 specularScatter = singleScatterSpec + multiScatterSpec * multiScatterEnergy;
 
-	float3 irradiance = t_IrradianceCubeMap.Sample( s_LinearClamp, normalizedOctCoordZeroOne ).rgb;
-	float3 diffuseLight = ( kD * irradiance * diffuseColor ) * ao * ( pc.rpDiffuseModifier.xyz * 1.0 );
+	// energy left for diffuse after specular takes its full (multiscatter) share - replaces kD
+    float3 diffuseEnergy = float3(1.0, 1.0, 1.0) - specularScatter;
 
-	// evaluate specular IBL
+    float3 diffuseLight = (diffuseEnergy * irradiance * diffuseColor) * ao * (pc.rpDiffuseModifier.xyz * 1.0);
+	
+	// large-scale AO folded into diffuse
+    if (pc.rpWobbleSkyX.w > 0.0)
+    {
+        float3 bentN;
+        float aoFarDist = length(pc.rpWobbleSkyY.xyz - pc.rpWobbleSkyZ.xyz);
+        float largeAO = LargeScaleDepthAO(fragment.texcoord7.xyz, globalNormal, pc.rpWobbleSkyZ.xyz, aoFarDist, bentN);
+        diffuseLight *= lerp(1.0, largeAO, 0.50); //third is tunable
+    }
 
-	// 512^2 = 10 mips
-	// however we can't use the last 3 mips with octahedrons because the quality suffers too much
-	// so it is 7 - 1
-	const float MAX_REFLECTION_LOD = 6.0;
-	float mip = clamp( ( roughness * MAX_REFLECTION_LOD ), 0.0, MAX_REFLECTION_LOD );
-	//float mip = 0.0;
+	// cube: full chain, hardware seam filtering. No octahedral mip cap
+    const float MAX_REFLECTION_LOD = float(NUM_RADIANCE_MIPS - 1);
+    float mip = roughness * MAX_REFLECTION_LOD;
 
-	normalizedOctCoordZeroOne = OctTexCoord( reflectionVector );
+	// parallax-correct march, per-probe reprojection, visibility-weighted blend
+	// Gated on probe validity (rpWobbleSkyX.w == 1)
+    float3 reflDir = reflectionVector;
+    float reflOcclusion = 1.0;
+    float3 blend = pc.rpLocalLightOrigin.xyz; // barycentric weights from the frontend
+    float3 dir1 = reflectionVector;
+    float3 dir2 = reflectionVector;
+    float3 dir3 = reflectionVector;
 
-	float3 radiance = t_RadianceCubeMap1.SampleLevel( s_LinearClamp, normalizedOctCoordZeroOne, mip ).rgb * pc.rpLocalLightOrigin.x;
-	radiance += t_RadianceCubeMap2.SampleLevel( s_LinearClamp, normalizedOctCoordZeroOne, mip ).rgb * pc.rpLocalLightOrigin.y;
-	radiance += t_RadianceCubeMap3.SampleLevel( s_LinearClamp, normalizedOctCoordZeroOne, mip ).rgb * pc.rpLocalLightOrigin.z;
-	//radiance = float3( 0.0 );
+    if ( pc.rpWobbleSkyX.w > 0.0 )
+    {
+        float probeFarDist = length( pc.rpWobbleSkyY.xyz - pc.rpWobbleSkyZ.xyz );
+        float reflHitDist;
+        reflDir = ParallaxCorrectAndOcclude( fragment.texcoord7.xyz, reflectionVector,
+											 pc.rpWobbleSkyZ.xyz, probeFarDist, roughness, reflOcclusion, reflHitDist );
 
-	float2 envBRDF  = t_BrdfLut.Sample( s_LinearClamp, float2( max( vDotN, 0.0 ), roughness ) ).rg;
+		// distant reflected geometry blurs with roughness (optional)
+        mip = min( MAX_REFLECTION_LOD, mip + roughness * saturate( reflHitDist / probeFarDist ) * 2.0 );
+
+		// The march walked along reflectionVector from the fragment, so hitPos sits on that ray. re-project it into each probe. On a miss,
+		// reflHitDist == probeFarDist and this becomes correct finite-distance parallax.
+        float3 hitPos = fragment.texcoord7.xyz + reflectionVector * reflHitDist;
+        dir1 = ( pc.rpTexGen0S.w > 0.0 ) ? normalize(hitPos - pc.rpTexGen0S.xyz ) : reflDir;
+        dir2 = ( pc.rpTexGen0T.w > 0.0 ) ? normalize(hitPos - pc.rpTexGen0T.xyz ) : reflDir;
+        dir3 = ( pc.rpTexGen0Q.w > 0.0 ) ? normalize(hitPos - pc.rpTexGen0Q.xyz ) : reflDir;
+
+        float v1 = ( pc.rpTexGen0S.w > 0.0 ) ? ProbeVisibility( t_DepthCubeMap, fragment.texcoord7.xyz, pc.rpTexGen0S.xyz, probeFarDist ) : 1.0;
+        float v2 = ( pc.rpTexGen0T.w > 0.0 ) ? ProbeVisibility( t_DepthCubeMap2, fragment.texcoord7.xyz, pc.rpTexGen0T.xyz, probeFarDist ) : 1.0;
+        float v3 = ( pc.rpTexGen0Q.w > 0.0 ) ? ProbeVisibility( t_DepthCubeMap3, fragment.texcoord7.xyz, pc.rpTexGen0Q.xyz, probeFarDist ) : 1.0;
+
+        float3 w = blend * float3(v1, v2, v3);
+        float s = w.x + w.y + w.z;
+        blend = (s > 0.02) ? (w / s) : blend;
+    }
+
+	// per-probe directions and visibility-weighted blend replace the shared lookup
+    float3 radiance = t_RadianceCubeMap1.SampleLevel( s_LinearClamp, dir1, mip ).rgb * blend.x;
+    radiance += t_RadianceCubeMap2.SampleLevel( s_LinearClamp, dir2, mip ).rgb * blend.y;
+    radiance += t_RadianceCubeMap3.SampleLevel( s_LinearClamp, dir3, mip ).rgb * blend.z;
+
 
 #if 0
 	result.color.rgb = float3( envBRDF.x, envBRDF.y, 0.0 );
@@ -259,13 +455,28 @@ void main( PS_IN fragment, out PS_OUT result )
 	return;
 #endif
 
-	float specAO = ComputeSpecularAO( vDotN, ao, roughness );
-	float3 specularLight = radiance * ( kS * envBRDF.x + envBRDF.y ) * specAO * ( pc.rpSpecularModifier.xyz * 1.0 );
+	// Gate specular IBL by local lightgrid irradiance independent of ambient slider,
+    float irradianceLum = dot(irradiance, float3(0.2126, 0.7152, 0.0722));
+
+	// Tunable: irradiance level below which specular IBL begins to fade.
+    const float specGateThreshold = 0.005;
+    float specGate = smoothstep(0.0, specGateThreshold, irradianceLum);
+
+	// Gate dielectric IBL specular to kill bleed in dim areas, 
+#if USE_PBR
+	float specVisibility = lerp( specGate, 1.0, metallic );
+#else
+    float metalnessSignal = saturate((max(max(specularColor.r, specularColor.g), specularColor.b) - 0.04) / 0.96);
+    float specVisibility = lerp(specGate, 1.0, metalnessSignal);
+#endif
+
+    float specAO = ComputeSpecularAO(vDotN, ao, roughness);
+    float3 specularLight = radiance * specularScatter * specAO * specVisibility * reflOcclusion * pc.rpSpecularModifier.xyz;
 
 	// Marmoset Horizon Fade trick
-	const half horizonFade = 1.3;
-	half horiz = saturate( 1.0 + horizonFade * saturate( dot3( reflectionVector, globalNormal ) ) );
-	horiz *= horiz;
+    const half horizonFade = 1.3;
+    half horiz = saturate( 1.0 + horizonFade * dot3(reflectionVector, globalNormal)); // signed dot
+    horiz *= horiz;
 	//horiz = clamp( horiz, 0.0, 1.0 );
 
 	//float3 lightColor = sRGBToLinearRGB( pc.rpAmbientColor.rgb );
@@ -274,7 +485,7 @@ void main( PS_IN fragment, out PS_OUT result )
 	//result.color.rgb = diffuseLight;
 	//result.color.rgb = diffuseLight * lightColor;
 	//result.color.rgb = specularLight;
-	result.color.rgb = ( diffuseLight + specularLight * horiz ) * lightColor * fragment.color.rgb;
+    result.color.rgb = (diffuseLight * lightColor + specularLight * horiz) * fragment.color.rgb;
 	//result.color.rgb = localNormal.xyz * 0.5 + 0.5;
 	//result.color.rgb = float3( ao );
 	result.color.w = fragment.color.a;

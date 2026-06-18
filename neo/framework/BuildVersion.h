@@ -26,10 +26,11 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-const int BUILD_NUMBER_SAVE_VERSION_BEFORE_SKIP_CINEMATIC		= 1400;
-const int BUILD_NUMBER_SAVE_VERSION_CHANGE						= 1401;		// Altering saves so that the version goes in the Details file that we read in during the enumeration phase
-const int BUILD_NUMBER_SAVE_VERSION_SCRIPT_CHANGES1				= 1402;		// RB: Merged script compiler changes from Dhewm3 so functions don't need declarations before used
-const int BUILD_NUMBER_SAVE_VERSION_LIGHT_MODELTARGET_CHANGE	= 1403;		// RB: added idLight::modelTarget entity pointer
+const int BUILD_NUMBER_SAVE_VERSION_BEFORE_SKIP_CINEMATIC       = 1400;
+const int BUILD_NUMBER_SAVE_VERSION_CHANGE                      = 1401;
+const int BUILD_NUMBER_SAVE_VERSION_SCRIPT_CHANGES1             = 1402;
+const int BUILD_NUMBER_SAVE_VERSION_LIGHT_MODELTARGET_CHANGE    = 1403;
+const int BUILD_NUMBER_SAVE_VERSION_MATH_LIGHTS                 = 1404; 
 
-const int BUILD_NUMBER = BUILD_NUMBER_SAVE_VERSION_LIGHT_MODELTARGET_CHANGE;
+const int BUILD_NUMBER = BUILD_NUMBER_SAVE_VERSION_MATH_LIGHTS;         
 const int BUILD_NUMBER_MINOR = 0;
