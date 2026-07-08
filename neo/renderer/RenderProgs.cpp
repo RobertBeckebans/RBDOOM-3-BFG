@@ -407,8 +407,11 @@ void idRenderProgManager::Init( nvrhi::IDevice* device )
 		//     - Possibly due to exceeding push constant resource limits or perhaps a driver sync problem with AMD GPUs
 		//     - Note this may not be required on Windows Vulkan+AMD, but being conservative with minimal impact
 		layoutTypeAttributes[BINDING_LAYOUT_GBUFFER].pcEnabled = false;
+		layoutTypeAttributes[BINDING_LAYOUT_GBUFFER_SKINNED].pcEnabled = false;
 		layoutTypeAttributes[BINDING_LAYOUT_TEXTURE].pcEnabled = false;
+		layoutTypeAttributes[BINDING_LAYOUT_TEXTURE_SKINNED].pcEnabled = false;
 		layoutTypeAttributes[BINDING_LAYOUT_CONSTANT_BUFFER_ONLY].pcEnabled = false;
+		layoutTypeAttributes[BINDING_LAYOUT_CONSTANT_BUFFER_ONLY_SKINNED].pcEnabled = false;
 	}
 
 	auto defaultLayoutDesc = nvrhi::BindingLayoutDesc()
