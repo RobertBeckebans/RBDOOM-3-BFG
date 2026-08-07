@@ -1439,7 +1439,8 @@ static void PrintFloat( float f )
 	char buf[128];
 	int i;
 
-	for( i = idStr::snPrintf( buf, sizeof( buf ), "%3.2f", f ); i < 7; i++ )
+	// snPrintf() returns >= 0 here, cast to uint to avoid false positive -Wstringop-overflow
+	for( i = ( unsigned int )idStr::snPrintf( buf, sizeof( buf ), "%3.2f", f ); i < 7; i++ )
 	{
 		buf[i] = ' ';
 	}
