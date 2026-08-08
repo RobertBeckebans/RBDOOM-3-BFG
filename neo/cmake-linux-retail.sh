@@ -1,7 +1,7 @@
 rm -f idlib/precompiled.h.gch
 rm -f tools/compilers/precompiled.h.gch
 cd ..
-rm -rf build
-mkdir build
+mkdir -p build
 cd build
+rm -rf *
 cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DONATIVE=ON -DFFMPEG=OFF -DBINKDEC=ON -DRETAIL=ON ../neo

@@ -1,7 +1,7 @@
 cd ..
-rm -rf build
-mkdir build
+mkdir -p build
 cd build
+rm -rf *
 
 # Define the minimum OSX deployment target for machine architecture
 if [ "$(uname -m)" = "arm64" ]; then
