@@ -834,7 +834,7 @@ void idSWF::RenderShape( idRenderSystem* gui, const idSWFShape* shape, const swf
 			uint32 packedColorM = LittleLong( PackColor( color.mul ) );
 			uint32 packedColorA = LittleLong( PackColor( ( color.add * 0.5f ) + idVec4( 0.5f ) ) ); // Compress from -1..1 to 0..1
 
-			gui->SetGLState( GLStateForRenderState( renderState ) | GLS_POLYMODE_LINE );
+			gui->SetGLState( GLStateForRenderState( renderState ) );
 
 			idDrawVert* verts = gui->AllocTris( line.startVerts.Num(), line.indices.Ptr(), line.indices.Num(), white, renderState.stereoDepth );
 			if( verts == NULL )

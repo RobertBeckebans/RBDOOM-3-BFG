@@ -129,6 +129,8 @@ void idSWFSprite::Load( idSWFBitStream& bitstream, bool parseDictionary )
 					HANDLE_SWF_TAG( DefineText );
 					HANDLE_SWF_TAG( DefineText2 );
 					HANDLE_SWF_TAG( DefineEditText );
+					HANDLE_SWF_TAG( DoABC );
+					HANDLE_SWF_TAG( SymbolClass );
 #undef HANDLE_SWF_TAG
 				default:
 					handled = false;

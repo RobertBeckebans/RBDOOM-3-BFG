@@ -3,6 +3,7 @@
 
 Doom 3 BFG Edition GPL Source Code
 Copyright (C) 1993-2012 id Software LLC, a ZeniMax Media company.
+Copyright (C) 2023 Harrie van Ginneken
 
 This file is part of the Doom 3 BFG Edition GPL Source Code ("Doom 3 BFG Edition Source Code").
 
@@ -47,7 +48,8 @@ public:
 	idSWFTextInstance();
 	~idSWFTextInstance();
 
-	void Init( idSWFEditText* editText, idSWF* _swf );
+	void Init( idSWFEditText* _editText, idSWF* _swf );
+	void Init( idSWFText* _text, idSWF* _swf );
 
 	idSWFScriptObject* GetScriptObject()
 	{
@@ -175,12 +177,18 @@ public:
 		lengthCalculated = false;
 	}
 
+	const idSWFText* GetText() const
+	{
+		return staticText;
+	}
+
 	// Removing the private access control statement due to cl 214702
 	// Apparently MS's C++ compiler supports the newer C++ standard, and GCC supports C++03
 	// In the new C++ standard, nested members of a friend class have access to private/protected members of the class granting friendship
 	// In C++03, nested members defined in a friend class do NOT have access to private/protected members of the class granting friendship
 
 	idSWFEditText* editText;
+	idSWFText* staticText;
 	idSWF* 	swf;
 
 	// this text instance's script object
@@ -316,6 +324,7 @@ public:
 	SWF_NATIVE_VAR_DECLARE( subtitleSpeaker );
 
 	SWF_NATIVE_VAR_DECLARE_READONLY( _textLength );
+	SWF_NATIVE_VAR_DECLARE_READONLY( length );
 
 	SWF_TEXT_FUNCTION_DECLARE( subtitleSourceCheck );
 	SWF_TEXT_FUNCTION_DECLARE( subtitleStart );
