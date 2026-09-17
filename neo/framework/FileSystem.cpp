@@ -302,6 +302,7 @@ private:
 	void					ReplaceSeparators( idStr& path, char sep = PATHSEPARATOR_CHAR );
 	int						ListOSFiles( const char* directory, const char* extension, idStrList& list );
 	idFileHandle			OpenOSFile( const char* name, fsMode_t mode );
+	bool					SavePathFallback( const char* path, const char* relativePath, idStr& OSPath );
 	void					CloseOSFile( idFileHandle o );
 	int						DirectFileLength( idFileHandle o );
 	void					CopyFile( idFile* src, const char* toOSPath );
@@ -3959,6 +3960,34 @@ idFile* idFileSystemLocal::OpenFileReadMemory( const char* relativePath, bool al
 
 /*
 ===========
+idFileSystemLocal::SavePathFallback
+
+The base path is not necessarily writable, the game data may be installed
+system wide. Rebuild the relative path inside fs_savepath instead, which is
+added to the search paths after the base path, so the redirected files are
+found again when they are read back.
+
+Returns false if there is no other path left to try.
+===========
+*/
+bool idFileSystemLocal::SavePathFallback( const char* path, const char* relativePath, idStr& OSPath )
+{
+	const char* savePath = fs_savepath.GetString();
+
+	if( !savePath[0] || idStr::Icmp( path, savePath ) == 0 )
+	{
+		return false;
+	}
+
+	OSPath = BuildOSPath( savePath, gameFolder, relativePath );
+
+	CreateOSPath( OSPath );
+
+	return true;
+}
+
+/*
+===========
 idFileSystemLocal::OpenFileWrite
 ===========
 */
@@ -3987,16 +4016,25 @@ idFile* idFileSystemLocal::OpenFileWrite( const char* relativePath, const char* 
 		common->Printf( "idFileSystem::OpenFileWrite: %s\n", OSpath.c_str() );
 	}
 
-	common->DPrintf( "writing to: %s\n", OSpath.c_str() );
 	CreateOSPath( OSpath );
 
 	f = new( TAG_IDFILE ) idFile_Permanent();
 	f->o = OpenOSFile( OSpath, FS_WRITE );
+
+	// the base path can be read only, retry within the save path
+	if( !f->o && SavePathFallback( path, relativePath, OSpath ) )
+	{
+		f->o = OpenOSFile( OSpath, FS_WRITE );
+	}
+
 	if( !f->o )
 	{
 		delete f;
 		return NULL;
 	}
+
+	common->DPrintf( "writing to: %s\n", OSpath.c_str() );
+
 	f->name = relativePath;
 	f->fullPath = OSpath;
 	f->mode = ( 1 << FS_WRITE );
@@ -4150,6 +4188,13 @@ idFile* idFileSystemLocal::OpenFileAppend( const char* relativePath, bool sync, 
 
 	f = new( TAG_IDFILE ) idFile_Permanent();
 	f->o = OpenOSFile( OSpath, FS_APPEND );
+
+	// the base path can be read only, retry within the save path
+	if( !f->o && SavePathFallback( path, relativePath, OSpath ) )
+	{
+		f->o = OpenOSFile( OSpath, FS_APPEND );
+	}
+
 	if( !f->o )
 	{
 		delete f;
