@@ -158,6 +158,10 @@ protected:
 	void EndFrame() override;
 	void Present() override;
 
+#if defined(__APPLE__) && !USE_OPTICK
+	void AccumulateEncodeTime() override;
+#endif
+
 	const char* GetRendererString() const override
 	{
 		return m_RendererString.c_str();
@@ -340,6 +344,8 @@ private:
 #if defined(__APPLE__) && defined( USE_MoltenVK )
 	// SRS - function pointer for retrieving MoltenVK advanced performance statistics
 	PFN_vkGetPerformanceStatisticsMVK vkGetPerformanceStatisticsMVK = nullptr;
+	uint64 mvkEncodeTime = 0;
+	double mvkPreviousEncodeHash = 0.0;
 
 #if MVK_VERSION >= MVK_MAKE_VERSION( 1, 2, 9 ) && USE_OPTICK
 	// SRS - Optick event storage for MoltenVK's Vulkan-to-Metal encoding thread
@@ -1669,7 +1675,7 @@ void DeviceManager_VK::Present()
 		size_t mvkPerfStatsSize = sizeof( mvkPerfStats );
 		if( vkGetPerformanceStatisticsMVK( m_VulkanDevice, &mvkPerfStats, &mvkPerfStatsSize ) == VK_SUCCESS )
 		{
-			uint64 mvkEncodeTime = Max( 0.0, mvkPerfStats.queue.commandBufferEncoding.latest - mvkPerfStats.queue.retrieveCAMetalDrawable.latest ) * 1000000.0;
+			mvkEncodeTime += Max( 0.0, mvkPerfStats.queue.commandBufferEncoding.latest - mvkPerfStats.queue.retrieveCAMetalDrawable.latest ) * 1000000.0;
 
 #if MVK_VERSION >= MVK_MAKE_VERSION( 1, 2, 9 ) && USE_OPTICK
 			if( optickCapturing )
@@ -1722,10 +1728,35 @@ void DeviceManager_VK::Present()
 			}
 #endif
 			commonLocal.SetRendererMvkEncodeMicroseconds( mvkEncodeTime / 1000 );
+			mvkEncodeTime = 0;
+			mvkPreviousEncodeHash = mvkPerfStats.queue.commandBufferEncoding.latest + mvkPerfStats.queue.commandBufferEncoding.previous;
 		}
 	}
 #endif
 }
+
+#if defined(__APPLE__) && !USE_OPTICK
+void DeviceManager_VK::AccumulateEncodeTime()
+{
+#if defined( USE_MoltenVK )
+	if( vkGetPerformanceStatisticsMVK )
+	{
+		// SRS - accumulate MoltenVK's incremental command buffer Metal encoding times when r_mvkAMDShadowMappingFix is active for AMD GPUs
+		MVKPerformanceStatistics mvkPerfStats;
+		size_t mvkPerfStatsSize = sizeof( mvkPerfStats );
+		if( vkGetPerformanceStatisticsMVK( m_VulkanDevice, &mvkPerfStats, &mvkPerfStatsSize ) == VK_SUCCESS )
+		{
+			double mvkLatestEncodeHash = mvkPerfStats.queue.commandBufferEncoding.latest + mvkPerfStats.queue.commandBufferEncoding.previous;
+			if( mvkLatestEncodeHash != mvkPreviousEncodeHash )
+			{
+				mvkEncodeTime += Max( 0.0, mvkPerfStats.queue.commandBufferEncoding.latest - mvkPerfStats.queue.retrieveCAMetalDrawable.latest ) * 1000000.0;;
+				mvkPreviousEncodeHash = mvkLatestEncodeHash;
+			}
+		}
+	}
+#endif
+}
+#endif
 
 DeviceManager* DeviceManager::CreateVK()
 {
