@@ -445,15 +445,15 @@ void Sys_ReLaunch()
 			idLib::Warning( "Sys_ReLaunch(): Couldn't open /dev/fd/ - will leak file descriptors. Reason: %s", strerror( errno ) );
 		}
 
-		// + 3 because "+set" "com_skipIntroVideos" "1" - and note that while we'll skip
-		// one (the first) cmdargv argument, we need one more pointer for NULL at the end.
-		int argc = cmdargc + 3;
+		// + 4 because "+set" "com_skipIntroVideos" "1" - and note that we shouldn't skip
+		// the first cmdargv argument, plus we need one more pointer for NULL at the end.
+		int argc = cmdargc + 4;
 		const char** argv = ( const char** )calloc( argc, sizeof( char* ) );
 
 		int i;
-		for( i = 0; i < cmdargc - 1; ++i )
+		for( i = 0; i < cmdargc; ++i )
 		{
-			argv[i] = cmdargv[i + 1];    // ignore cmdargv[0] == executable name
+			argv[i] = cmdargv[i];    // retain cmdargv[0] == executable name expected by indexing logic in main() following restart
 		}
 
 		// add +set com_skipIntroVideos 1
