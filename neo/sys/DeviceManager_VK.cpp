@@ -1620,8 +1620,9 @@ void DeviceManager_VK::Present()
 	void* pNext = nullptr;
 #if USE_OPTICK
 	// SRS - if display timing enabled, define the presentID for labeling the Optick GPU VSync / Present queue
+	//     - If vsync is on we wait an extra frame to acquire an image, so actual present occurs 1 frame later
 	vk::PresentTimeGOOGLE presentTime = vk::PresentTimeGOOGLE()
-										.setPresentID( idLib::frameNumber - 1 );
+										.setPresentID( r_swapInterval.GetInteger() > 0 ? idLib::frameNumber : ( idLib::frameNumber - 1 ) );
 	vk::PresentTimesInfoGOOGLE presentTimesInfo = vk::PresentTimesInfoGOOGLE()
 			.setSwapchainCount( 1 )
 			.setPTimes( &presentTime );
