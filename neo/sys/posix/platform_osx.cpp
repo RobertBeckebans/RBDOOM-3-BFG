@@ -50,6 +50,77 @@ static const char** cmdargv = NULL;
 static int cmdargc = 0;
 // DG end
 
+// SRS - needed to detect if an AMD GPU is present: this is AI-generated from Google Gemini
+#include <iostream>
+#include <string>
+#include <algorithm>
+
+// A custom buffer stream wrapper that turns a POSIX pipe (FILE*) into a usable std::istream
+class pipe_streambuf : public std::streambuf
+{
+public:
+	pipe_streambuf( FILE* pipe ) : pipe_( pipe )
+	{
+		setg( buffer_, buffer_, buffer_ );
+	}
+protected:
+	int_type underflow() override
+	{
+		if( gptr() < egptr() )
+		{
+			return traits_type::to_int_type( *gptr() );
+		}
+
+		// Read data directly into the stream buffer from the system pipe
+		size_t bytes_read = fread( buffer_, 1, sizeof( buffer_ ), pipe_ );
+		if( bytes_read == 0 )
+		{
+			return traits_type::eof();
+		}
+
+		setg( buffer_, buffer_, buffer_ + bytes_read );
+		return traits_type::to_int_type( *gptr() );
+	}
+private:
+	FILE* pipe_;
+	char buffer_[1024];
+};
+
+// Function to detect if an AMD GPU is present (would be prioritized over an Intel iGPU)
+bool IsAMDGPUDetected()
+{
+	// 1. Run the macOS built-in system profiler specifically for Graphics/Displays
+	FILE* pipe = popen( "system_profiler SPDisplaysDataType 2>/dev/null", "r" );
+	if( !pipe )
+	{
+		return false;
+	}
+
+	// 2. Wrap the active system pipe directly inside a standard C++ std::istream
+	pipe_streambuf buf( pipe );
+	std::istream stream( &buf );
+
+	std::string line;
+	bool amdFound = false;
+
+	// 3. Scan the incoming text data line-by-line using standard stream mechanics
+	while( std::getline( stream, line ) )
+	{
+		// Convert to lowercase to make sure the check is completely case-insensitive
+		std::transform( line.begin(), line.end(), line.begin(), ::tolower );
+		
+		if( line.find( "amd" ) != std::string::npos || line.find( "radeon" ) != std::string::npos )
+		{
+			amdFound = true;
+			break;
+		}
+	}
+
+	pclose( pipe );
+	return amdFound;
+}
+// SRS end
+
 /*
 ==============
 Sys_EXEPath
@@ -461,8 +532,6 @@ main
 */
 int main( int argc, const char** argv )
 {
-	//extern idCVar r_useGPUSkinning;
-
 	// DG: needed for Sys_ReLaunch()
 	cmdargc = argc;
 	cmdargv = argv;
@@ -483,9 +552,27 @@ int main( int argc, const char** argv )
 
 	Posix_EarlyInit();
 
-	if( argc > 1 )
+	// SRS - Copy argv into a vector in case we need to add additional command line arguments
+	std::vector<const char *> args;
+	for( int i = 0; i < argc; i++ )
 	{
-		common->Init( argc - 1, &argv[1], NULL );
+		args.push_back( argv[i] );    // retain cmdargv[0] == executable name expected by indexing logic when calling common->Init()
+	}
+
+#if defined( USE_MoltenVK ) && !USE_OPTICK
+	// SRS - If AMD GPU detected enable mvk synchronous queue submits so encoding times can be accumulated if r_mvkAMDShadowMappingFix enabled
+	//	   - This needs to occur via synthetic command line args since cvar setting is read during device initialization inside common->Init()
+	if( IsAMDGPUDetected() )
+	{
+		args.push_back( "+set" );
+		args.push_back( "r_mvkSynchronousQueueSubmits" );
+		args.push_back( "1" );
+	}
+#endif
+
+	if( args.size() > 1 )
+	{
+		common->Init( args.size() - 1, &args[1], NULL );
 	}
 	else
 	{
@@ -503,6 +590,7 @@ int main( int argc, const char** argv )
 	sysctlbyname( "hw.machine", machineName, &size, NULL, 0 );
 
 	// FIXME: On Apple Silicon disable GPU skinning to eliminate rendering artifacts
+	extern idCVar r_useGPUSkinning;
 	if( strcmp( machineName, "arm64" ) == 0 )
 	{
 		r_useGPUSkinning.SetInteger( 0 );
