@@ -19,8 +19,22 @@ if [[ $OPENAL_VARIANTS != *universal* ]]; then
   exit 1
 fi
 
+# Define the minimum OSX deployment target for the installed sdk
+SDK_PATH=$(xcrun --show-sdk-path 2>/dev/null)
+MIN_MACOS_TARGET=$(plutil -extract SupportedTargets.macosx.MinimumDeploymentTarget raw "$SDK_PATH/SDKSettings.plist")
+MIN_MACOS_SORTED=$(printf '%s\n%s' "11.0" "$MIN_MACOS_TARGET" | sort -V | head -n1)
+if [ "$MIN_MACOS_SORTED" = "11.0" ]; then
+	# use minimum deployment target specified by sdk if version >= macOS 11.0
+	# note: MoltenVK 1.4.2 requires a minimum runtime version of macOS 12.0
+	OSX_TARGET=$MIN_MACOS_TARGET
+else
+	# macOS 11.0 is the minimum runtime for universal targets and MoltenVK 1.4.1
+	OSX_TARGET="11.0"
+fi
+
 # note 1: policy CMAKE_POLICY_DEFAULT_CMP0142=NEW suppresses non-existant per-config suffixes on Xcode library search paths, works for cmake version 3.25 and later
 # note 2: universal openal-soft library and include paths assume MacPorts install locations
 # note 3: env variable OS_ACTIVITY_MODE=disable deactivates OS logging to Xcode console - specifically this suppresses Apple AUHAL status message spam from OpenAL
 # note 4: set -DCMAKE_OSX_DEPLOYMENT_TARGET=<version> to match supported runtime targets, needed for CMake 4.0+ since CMAKE_OSX_SYSROOT is no longer set by default
-cmake -G Xcode -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_SYSROOT=macosx -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_CONFIGURATION_TYPES="Release;MinSizeRel;RelWithDebInfo" -DMACOSX_BUNDLE=ON -DFFMPEG=OFF -DBINKDEC=ON -DUSE_MoltenVK=ON -DCMAKE_XCODE_GENERATE_SCHEME=ON -DCMAKE_XCODE_SCHEME_ENVIRONMENT="OS_ACTIVITY_MODE=disable" -DCMAKE_XCODE_SCHEME_ENABLE_GPU_API_VALIDATION=OFF -DOPENAL_LIBRARY=/opt/local/lib/libopenal.dylib -DOPENAL_INCLUDE_DIR=/opt/local/include ../neo -DCMAKE_POLICY_DEFAULT_CMP0142=NEW -Wno-dev
+# note 5: the MoltenVK Vulkan driver must be used for universal builds since KosmicKrisp does not support x86_64 runtime targets
+cmake -G Xcode -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_SYSROOT=macosx -DCMAKE_OSX_DEPLOYMENT_TARGET=$OSX_TARGET -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_CONFIGURATION_TYPES="Release;MinSizeRel;RelWithDebInfo" -DMACOSX_BUNDLE=ON -DFFMPEG=OFF -DBINKDEC=ON -DUSE_MoltenVK=ON -DCMAKE_XCODE_GENERATE_SCHEME=ON -DCMAKE_XCODE_SCHEME_ENVIRONMENT="OS_ACTIVITY_MODE=disable" -DCMAKE_XCODE_SCHEME_ENABLE_GPU_API_VALIDATION=OFF -DOPENAL_LIBRARY=/opt/local/lib/libopenal.dylib -DOPENAL_INCLUDE_DIR=/opt/local/include ../neo -DCMAKE_POLICY_DEFAULT_CMP0142=NEW -Wno-dev

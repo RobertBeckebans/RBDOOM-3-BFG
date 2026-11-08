@@ -186,6 +186,10 @@ protected:
 	virtual void EndFrame() = 0; // RB: added for BFG edition
 	virtual void Present() = 0;
 
+#if defined(__APPLE__) && !USE_OPTICK
+	virtual void AccumulateEncodeTime() = 0;
+#endif
+
 public:
 	[[nodiscard]] virtual nvrhi::IDevice* GetDevice() const = 0;
 	[[nodiscard]] virtual const char* GetRendererString() const = 0;

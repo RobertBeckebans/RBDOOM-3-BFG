@@ -3344,6 +3344,7 @@ void idRenderBackend::ShadowMapPassFast( const drawSurf_t* drawSurfs, viewLight_
 		{
 			commandList->close();
 			deviceManager->GetDevice()->executeCommandList( commandList );
+			deviceManager->AccumulateEncodeTime();
 			commandList->open();
 		}
 		prevViewLight = vLight;
