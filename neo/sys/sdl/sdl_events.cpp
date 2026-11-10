@@ -482,10 +482,15 @@ sysEvent_t Sys_GetEvent()
 							SDL_Window* window = SDL_GetWindowFromID( ev.window.windowID );
 							if( SDL_GetWindowFlags( window ) & SDL_WINDOW_MAXIMIZED )
 							{
-								SDL_SetWindowFullscreen( window, SDL_WINDOW_FULLSCREEN_DESKTOP );
+								// SRS - Set borderless fullscreen only if maximized size is different from current, otherwise
+								//       can get stuck in borderless fullscreen loop which prevents returning to windowed mode
+								if( w != glConfig.nativeScreenWidth || h != glConfig.nativeScreenHeight )
+								{
+									SDL_SetWindowFullscreen( window, SDL_WINDOW_FULLSCREEN_DESKTOP );
 
-								glConfig.isFullscreen = -2;
-								cvarSystem->SetCVarInteger( "r_fullscreen", glConfig.isFullscreen );
+									glConfig.isFullscreen = -2;
+									cvarSystem->SetCVarInteger( "r_fullscreen", glConfig.isFullscreen );
+								}
 							}
 							else
 							{
