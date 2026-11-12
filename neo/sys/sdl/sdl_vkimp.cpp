@@ -281,16 +281,19 @@ bool VKimp_Init( glimpParms_t parms )
 
 	if( parms.fullScreen > 0 )
 	{
-		// SRS - Make sure display is set to the requested refresh rate
-		if( parms.displayHz > 0 && parms.displayHz != GetDisplayFrequency( parms ) )
-		{
-			SDL_DisplayMode m = {0};
-			SDL_GetWindowDisplayMode( window, &m );
+		SDL_DisplayMode m = {0};
+		SDL_GetWindowDisplayMode( window, &m );
 
-			m.refresh_rate = parms.displayHz;
+		// SRS - Make sure display is set to the requested display mode if different than current mode
+		if( ( parms.width > 0 && parms.width != m.w ) || ( parms.height > 0 && parms.height != m.h ) ||
+		    ( parms.displayHz > 0 && parms.displayHz != m.refresh_rate ) )
+		{
+			m.w = parms.width > 0 ? parms.width : m.w;
+			m.h = parms.height > 0 ? parms.height : m.h;
+			m.refresh_rate = parms.displayHz > 0 ? parms.displayHz : m.refresh_rate;
 			if( SDL_SetWindowDisplayMode( window, &m ) < 0 )
 			{
-				common->Warning( "Couldn't set display refresh rate to %i Hz, reason: %s", parms.displayHz, SDL_GetError() );
+				common->Warning( "Couldn't set display mode to %i x %i @ %i Hz, reason: %s", m.w, m.h, m.refresh_rate, SDL_GetError() );
 			}
 		}
 
