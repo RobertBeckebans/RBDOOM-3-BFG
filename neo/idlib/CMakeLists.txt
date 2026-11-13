@@ -110,22 +110,27 @@ else()
 			set_source_files_properties(
 				${src_file}
 				PROPERTIES
-				COMPILE_FLAGS "-include ${CMAKE_CURRENT_SOURCE_DIR}/precompiled.h"
+				COMPILE_FLAGS "-include \"${CMAKE_CURRENT_SOURCE_DIR}/precompiled.h\""
 				)
 		endforeach()
 
 		# precompiled magic for GCC/clang, adapted from https://gist.github.com/573926
+		# NOTE: SEPARATE_ARGUMENTS() must run before any -I/-D entries are appended,
+		# since it re-splits the whole flags string on whitespace. Running it after
+		# would shred any include path that itself contains a space (e.g. a project
+		# checked out under a directory like ".../DOOM 3 BFG Edition/...").
 		STRING(TOUPPER "CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}" _flags_var_name)
 		SET(_compiler_FLAGS "${${_flags_var_name}} -std=c++${CMAKE_CXX_STANDARD}")
+		SEPARATE_ARGUMENTS(_compiler_FLAGS)
+
 		GET_DIRECTORY_PROPERTY(_directory_flags INCLUDE_DIRECTORIES)
 		FOREACH(item ${_directory_flags})
-			LIST(APPEND _compiler_FLAGS " -I${item}")
+			LIST(APPEND _compiler_FLAGS "-I${item}")
 		ENDFOREACH(item)
 
 		GET_DIRECTORY_PROPERTY(_directory_flags COMPILE_OPTIONS)
 		LIST(APPEND _compiler_FLAGS ${_directory_flags})
-		SEPARATE_ARGUMENTS(_compiler_FLAGS)
-	
+
 		GET_DIRECTORY_PROPERTY(_directory_flags COMPILE_DEFINITIONS)
 		FOREACH(item ${_directory_flags})
 			LIST(APPEND _compiler_FLAGS "-D${item}")
