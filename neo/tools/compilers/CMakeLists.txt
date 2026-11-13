@@ -93,6 +93,7 @@ set(MC_RENDERER_SOURCES
 	../../renderer/Image_process.cpp
 	../../renderer/Image_program.cpp
 	../../stub/Image_stub.cpp
+	../../stub/Cinematic_stub.cpp
 	../../renderer/Material.cpp
 	../../renderer/tr_trisurf.cpp
 	#../../renderer/VertexCache.cpp
