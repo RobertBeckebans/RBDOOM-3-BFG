@@ -85,7 +85,7 @@ nvrhi::BindingSetHandle BindingCache::GetOrCreateBindingSet( const nvrhi::Bindin
 	for( int i = bindingHash.First( hash ); i != -1; i = bindingHash.Next( i ) )
 	{
 		nvrhi::BindingSetHandle bindingSet = bindingSets[i];
-		if( *bindingSet->getDesc() == desc )
+		if( *bindingSet->getDesc() == desc && bindingSet->getLayout() == layout )
 		{
 			result = bindingSet;
 			break;
